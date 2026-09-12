@@ -1,0 +1,17 @@
+{
+  "name": "self-test-framework",
+  "version": "1.0.0",
+  "description": "Self-testing, self-patching, self-verification framework",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "build": "bun build src/index.ts --outdir dist",
+    "start": "bun src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {}
+}

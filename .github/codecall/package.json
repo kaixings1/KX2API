@@ -1,0 +1,55 @@
+{
+  "name": "codecall",
+  "version": "1.2.0",
+  "license": "MIT",
+  "type": "module",
+  "description": "Implementation-grounded adaptive learning skills for Codex and Claude Code.",
+  "keywords": [
+    "codex",
+    "claude-code",
+    "skill",
+    "learning",
+    "developer-education"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GAURAV-1313/codecall.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GAURAV-1313/codecall/issues"
+  },
+  "homepage": "https://github.com/GAURAV-1313/codecall#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "plugins/codecall",
+    "README.md",
+    "ARCHITECTURE.md",
+    "LICENSE"
+  ],
+  "main": "./dist/public.js",
+  "types": "./dist/public.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/public.d.ts",
+      "import": "./dist/public.js"
+    }
+  },
+  "bin": {
+    "codecall": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "node scripts/clean.mjs && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepack": "npm run build",
+    "postinstall": "node ./dist/install-skill.js --global-only"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

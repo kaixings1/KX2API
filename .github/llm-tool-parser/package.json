@@ -1,0 +1,57 @@
+{
+  "name": "llm-tool-parser",
+  "version": "0.0.4",
+  "description": "Universal LLM tool call extractor that normalizes messy outputs into a unified ToolCall format.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Saber2pr/llm-tool-parser"
+  },
+  "author": "saber2pr",
+  "license": "MIT",
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "llm",
+    "tool-calling",
+    "tool-calls",
+    "ai-tools",
+    "agent",
+    "ai-agent",
+    "llm-agent",
+    "tool-parser",
+    "tool-extraction",
+    "llm-output-parser"
+  ],
+  "main": "./lib/index.js",
+  "scripts": {
+    "start": "tsc --watch",
+    "build": "tsc",
+    "build:browser": "esbuild src/browser.ts --bundle --format=iife --global-name=LlmToolParser --outfile=public/parser.bundle.js --target=es2020",
+    "serve": "yarn build:browser && npx --yes serve public -p 5173",
+    "prepublishOnly": "yarn build",
+    "test": "vitest run src/*.test.ts",
+    "lint": "prettier --write ./src",
+    "prepare": "husky install"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "esbuild": "^0.25.0",
+    "husky": "^7.0.2",
+    "lint-staged": "^11.1.2",
+    "prettier": "^2.4.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.8"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "yarn lint",
+      "git add ."
+    ]
+  }
+}

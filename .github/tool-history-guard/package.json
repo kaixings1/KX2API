@@ -1,0 +1,52 @@
+{
+  "name": "tool-history-guard",
+  "version": "0.1.0",
+  "description": "Tiny validator and safe fixer for AI agent tool-call history.",
+  "license": "MIT",
+  "author": {
+    "name": "Arman Aslanyan",
+    "url": "https://www.linkedin.com/in/arman-aslanyan/"
+  },
+  "type": "commonjs",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "require": "./dist/src/index.js"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aslanyan88/tool-history-guard.git"
+  },
+  "homepage": "https://github.com/Aslanyan88/tool-history-guard#readme",
+  "bugs": {
+    "url": "https://github.com/Aslanyan88/tool-history-guard/issues"
+  },
+  "files": [
+    "dist/src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "tool-calls",
+    "tool-results",
+    "validation",
+    "typescript"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test \"dist/tests/**/*.test.js\"",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "default",
+  "test": {
+    "timeout": 30000,
+    "retries": 3,
+    "parallel": true
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "output": "console"
+  },
+  "patching": {
+    "autoBackup": true,
+    "autoTest": true,
+    "autoRollback": true
+  }
+}

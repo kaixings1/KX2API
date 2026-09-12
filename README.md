@@ -1,45 +1,39 @@
-# 系统诊断与排查工具
+# KX2API
 
-## 功能特性
+KX2Code - AI 编程智能体桌面端，集成代理服务与代码引擎。
 
-- 系统资源检查（CPU、内存、磁盘）
-- 关键服务状态检查
-- 网络连接性检查
-- 日志错误分析
-- 配置文件语法验证
-- 自动生成诊断报告
+## 功能
 
-## 使用方法
+- 多供应商 AI 代理转发（StepFun、DeepSeek、GLM、Kimi、Qwen、MiniMax 等）
+- OpenAI 兼容 API 代理服务（`/v1/chat/completions`）
+- 模型映射与负载均衡
+- OAuth 自动登录与 Token 管理
+- 工具调用（Tool Use）支持
+- 代码引擎与智能体协作
 
-### 基础用法
-\`\`\`bash
-bash diagnostic_tool/diagnostic.sh
-\`\`\`
+## 快速开始
 
-### 查看帮助
-\`\`\`bash
-bash diagnostic_tool/diagnostic.sh --help
-\`\`\`
+```bash
+# 安装依赖
+npm install
 
-## 配置文件说明
+# 开发模式
+npm run dev
 
-- \`config/checklist.conf\` - 检查项配置
-- \`config/thresholds.conf\` - 阈值配置
+# 构建
+npm run build
 
-## 日志位置
+# 构建 Windows 可执行文件
+npm run build:win
+```
 
-诊断报告保存在 \`logs/\` 目录下。
+## 配置
 
-## 自动化排查
+在管理界面中配置供应商和账户，支持手动输入 Token 或 OAuth 自动登录。
 
-工具会自动：
-1. 检测系统资源瓶颈
-2. 识别服务异常
-3. 分析日志错误
-4. 验证配置文件
-5. 生成详细报告
+## 技术栈
 
-## 故障处理建议
-
-根据诊断结果，工具会提供相应的处理建议。
-"# KX2API" 
+- Electron 33
+- React 18 + TypeScript
+- Koa (代理服务端)
+- electron-vite

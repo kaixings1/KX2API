@@ -1,0 +1,3 @@
+test_mode: true
+log_level: DEBUG
+output_path: ./logs/test_diagnostic.log

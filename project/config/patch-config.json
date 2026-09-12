@@ -1,0 +1,8 @@
+{
+  "patchDir": "./patches",
+  "backupDir": "./backups",
+  "logLevel": "info",
+  "autoBackup": true,
+  "allowedPatchTypes": ["feature", "fix", "config"],
+  "maxBackupCount": 10
+}
