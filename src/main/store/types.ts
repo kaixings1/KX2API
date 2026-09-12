@@ -782,14 +782,38 @@ export const DEFAULT_DEEPSEEK_MODEL_MAPPINGS: Record<string, ModelMapping> = {
   },
 }
 
+export const DEFAULT_STEPFUN_MODEL_MAPPINGS: Record<string, ModelMapping> = {
+  'gpt-4o': {
+    requestModel: 'gpt-4o',
+    actualModel: 'step-3.7-flash',
+    preferredProviderId: 'stepfun',
+  },
+  'gpt-4o-mini': {
+    requestModel: 'gpt-4o-mini',
+    actualModel: 'step-3.7-flash',
+    preferredProviderId: 'stepfun',
+  },
+  'claude-sonnet-4-20250514': {
+    requestModel: 'claude-sonnet-4-20250514',
+    actualModel: 'step-3.7-flash',
+    preferredProviderId: 'stepfun',
+  },
+  'claude-3-5-haiku-20241022': {
+    requestModel: 'claude-3-5-haiku-20241022',
+    actualModel: 'step-3.7-flash',
+    preferredProviderId: 'stepfun',
+  },
+}
+
 export function createDefaultModelMappings(): Record<string, ModelMapping> {
-  return Object.fromEntries(
-    Object.entries(DEFAULT_DEEPSEEK_MODEL_MAPPINGS).map(([key, mapping]) => [key, { ...mapping }]),
-  )
+  return Object.fromEntries([
+    ...Object.entries(DEFAULT_DEEPSEEK_MODEL_MAPPINGS).map(([key, mapping]) => [key, { ...mapping }]),
+    ...Object.entries(DEFAULT_STEPFUN_MODEL_MAPPINGS).map(([key, mapping]) => [key, { ...mapping }]),
+  ])
 }
 
 export function isDefaultModelMapping(requestModel: string): boolean {
-  return requestModel in DEFAULT_DEEPSEEK_MODEL_MAPPINGS
+  return requestModel in DEFAULT_DEEPSEEK_MODEL_MAPPINGS || requestModel in DEFAULT_STEPFUN_MODEL_MAPPINGS
 }
 
 export function normalizeModelMappingsWithDefaults(
