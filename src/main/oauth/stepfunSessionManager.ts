@@ -15,9 +15,14 @@ import { logManager } from '../logger/manager'
 
 const STEPFUN_SESSION_PARTITION = 'persist:stepfun-login'
 const STEPFUN_CHAT_URL = 'https://chat.stepfun.com/'
+// The exact endpoint the adapter calls. Cookies are resolved against this URL
+// so path-scoped affinity cookies match the route they belong to.
+const CHAT_STREAM_URL = 'https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/ChatStream'
 const REFRESH_INTERVAL = 10 * 60 * 1000 // 10 minutes
 const OASIS_TOKEN_COOKIE = 'Oasis-Token'
 const OASIS_WEBID_COOKIE = 'Oasis-Webid'
+// Cookies whose rotation must push fresh credentials to the adapter.
+const WATCHED_COOKIES = new Set([OASIS_TOKEN_COOKIE, OASIS_WEBID_COOKIE, 'INGRESSCOOKIE', 'WS-AFFINITY'])
 
 export interface StepFunSessionEvents {
   'token-updated': (token: string, webId: string, cookies: Record<string, string>) => void
@@ -31,6 +36,7 @@ export class StepFunSessionManager extends EventEmitter {
   private currentToken: string = ''
   private currentWebId: string = ''
   private currentCookies: Record<string, string> = {}
+  private currentCookieHeader: string = ''
   private isReady: boolean = false
   private refreshTimer: NodeJS.Timeout | null = null
   private checkTimer: NodeJS.Timeout | null = null
@@ -55,10 +61,12 @@ export class StepFunSessionManager extends EventEmitter {
         callback(0)
       })
 
-      // Listen for cookie changes
+      // Listen for cookie changes. Affinity cookies rotate on their own
+      // schedule, so they must trigger a re-extract too — otherwise the adapter
+      // keeps sending the cookie that was current when the token last changed.
       this.session.cookies.on('changed', async (_event, cookie: Cookie) => {
-        if (cookie.name === OASIS_TOKEN_COOKIE || cookie.name === OASIS_WEBID_COOKIE) {
-          console.log(`[StepFunSession] Cookie changed: ${cookie.name} (length: ${cookie.value?.length || 0})`)
+        if (WATCHED_COOKIES.has(cookie.name)) {
+          console.log(`[StepFunSession] Cookie changed: ${cookie.name} path=${cookie.path} (length: ${cookie.value?.length || 0})`)
           await this.extractCredentials()
         }
       })
@@ -114,23 +122,64 @@ export class StepFunSessionManager extends EventEmitter {
     if (!this.session) return
 
     try {
-      const cookies = await this.session.cookies.get({})
-      const cookieMap: Record<string, string> = {}
-      for (const c of cookies) {
-        if (c.value) {
-          cookieMap[c.name] = c.value
-        }
+      // A flat Record<string,string> cannot represent this session: chat.stepfun.com
+      // stores FOUR cookies named INGRESSCOOKIE, distinguished only by path
+      // (/api/agent/(.*), /api/(.*), /api/user/(.*), /passport/(.*)), each bound to a
+      // different backend node. Flattening them left whichever came last, so
+      // ChatStream received the affinity cookie of an unrelated route and the
+      // gateway answered permission_denied / need sign in.
+      //
+      // RFC 6265 requires sending EVERY cookie whose path prefix matches the
+      // request, longest path first — ChatStream legitimately carries two
+      // INGRESSCOOKIE values. So we emit a pre-built Cookie header string
+      // rather than a name→value map, which structurally cannot hold duplicates.
+      // Query by domain, then do the path matching ourselves.
+      //
+      // cookies.get({ url }) would look right, but Chromium treats a cookie
+      // path as a literal prefix. StepFun stores these paths in regex form
+      // ("/api/agent/(.*)"), so a URL query matches nothing at all and the
+      // session silently yields zero cookies.
+      const all = await this.session.cookies.get({ domain: 'chat.stepfun.com' })
+
+      const requestPath = new URL(CHAT_STREAM_URL).pathname
+      const matchesPath = (cookiePath: string, reqPath: string): boolean => {
+        // Normalise the stored regex-ish form down to its literal prefix.
+        const literal = (cookiePath || '/').replace(/\(\.\*\)$/, '').replace(/\(\?.*?\)/g, '') || '/'
+        return reqPath.startsWith(literal)
       }
 
-      const token = cookieMap[OASIS_TOKEN_COOKIE] || ''
-      const webId = cookieMap[OASIS_WEBID_COOKIE] || ''
+      // Longest path first, matching browser ordering.
+      const ordered = [...all]
+        .filter(c => c.value && matchesPath(c.path || '/', requestPath))
+        .sort((a, b) => (b.path || '/').length - (a.path || '/').length)
 
-      if (token && (token !== this.currentToken || webId !== this.currentWebId)) {
+      const cookieHeader = ordered.map(c => `${c.name}=${c.value}`).join('; ')
+
+      const scalar: Record<string, string> = {}
+      for (const c of ordered) scalar[c.name] = c.value
+
+      // Auth cookies live at path "/" so they are part of `ordered`, but read
+      // them from the full set so a path mismatch can never hide the token.
+      const tokenCookie = all.find(c => c.name === OASIS_TOKEN_COOKIE)?.value || scalar[OASIS_TOKEN_COOKIE] || ''
+      const webIdCookie = all.find(c => c.name === OASIS_WEBID_COOKIE)?.value || scalar[OASIS_WEBID_COOKIE] || ''
+
+      if (!tokenCookie) {
+        console.warn('[StepFunSession] No Oasis-Token cookie in partition; user must log in')
+      }
+
+      const token = tokenCookie
+      const webId = webIdCookie
+
+      // Gateway affinity cookies rotate far more often than the Oasis-Token.
+      const affinityChanged = this.hasAffinityChanged(scalar)
+
+      if (token && (token !== this.currentToken || webId !== this.currentWebId || affinityChanged)) {
         this.currentToken = token
         this.currentWebId = webId
-        this.currentCookies = cookieMap
-        console.log(`[StepFunSession] Credentials updated: token=${token.length > 0} webId=${webId.length > 0} cookies=${Object.keys(cookieMap).length}`)
-        this.emit('token-updated', token, webId, cookieMap)
+        this.currentCookies = scalar
+        this.currentCookieHeader = cookieHeader
+        console.log(`[StepFunSession] Credentials updated: token=${token.length > 0} webId=${webId.length > 0} cookies=${ordered.length} affinityChanged=${affinityChanged} names=[${ordered.map(c => c.name).join(',')}]`)
+        this.emit('token-updated', token, webId, { Cookie: cookieHeader })
       }
     } catch (error) {
       console.error('[StepFunSession] Failed to extract credentials:', error)
@@ -167,6 +216,22 @@ export class StepFunSessionManager extends EventEmitter {
   }
 
   /**
+   * Detect rotation of the gateway affinity cookies.
+   *
+   * INGRESSCOOKIE / WS-AFFINITY encode a backend-node binding plus an expiry
+   * timestamp. The edge gateway uses them to route the request to the node that
+   * holds the session; once they expire the request is rejected before it ever
+   * reaches the agent service.
+   */
+  private hasAffinityChanged(next: Record<string, string>): boolean {
+    const keys = ['INGRESSCOOKIE', 'WS-AFFINITY']
+    for (const key of keys) {
+      if ((next[key] || '') !== (this.currentCookies[key] || '')) return true
+    }
+    return false
+  }
+
+  /**
    * Get the current token
    */
   getToken(): string {
@@ -181,10 +246,21 @@ export class StepFunSessionManager extends EventEmitter {
   }
 
   /**
-   * Get all current cookies
+   * Get all current cookies as a name→value map.
+   *
+   * Lossy for duplicate names (the four path-scoped INGRESSCOOKIE entries
+   * collapse to one). Prefer getCookieHeader() when building a request.
    */
   getCookies(): Record<string, string> {
     return { ...this.currentCookies }
+  }
+
+  /**
+   * Get the Cookie header exactly as the browser would send it to ChatStream,
+   * including every path-matched cookie in longest-path-first order.
+   */
+  getCookieHeader(): string {
+    return this.currentCookieHeader
   }
 
   /**
@@ -235,6 +311,7 @@ export class StepFunSessionManager extends EventEmitter {
     this.currentToken = ''
     this.currentWebId = ''
     this.currentCookies = {}
+    this.currentCookieHeader = ''
     this.isReady = false
   }
 }

@@ -219,8 +219,22 @@ export class ProviderChecker {
       }
     }
 
-    // Web session mode (Oasis-Token + web_id):
-    // Actually call GetChatConfig to verify the session token with the platform.
+    // Web session mode (Oasis-Token + web_id).
+    //
+    // GetChatConfig answers 200 for sessions that cannot actually chat, so it
+    // is not a real gate. CreateChatSession is: the server refuses it with
+    // 403 CODE_ACCOUNT_NEED_SIGN_IN unless the session is fully activated.
+    // Checking the token's own `activated` flag first gives a precise message
+    // instead of a vague failure later at request time.
+    const activated = this.readTokenFlag(token, 'activated')
+    if (activated === false) {
+      return {
+        valid: false,
+        error: 'StepFun session is not activated (token has activated=false). '
+          + 'Log in at chat.stepfun.com in a normal browser tab and copy a fresh Oasis-Token.',
+      }
+    }
+
     try {
       const cookieParts: string[] = [
         'is_pc_desktop=false',
@@ -233,24 +247,21 @@ export class ProviderChecker {
       }
 
       const headers: Record<string, string> = {
-        'Accept': 'application/json',
+        'Accept': '*/*',
         'Content-Type': 'application/json',
-        'Oasis-Platform': 'web',
-        'Oasis-appID': '10200',
-        'Canary': 'false',
-        'Connect-Protocol-Version': '1',
-        Origin: 'https://chat.stepfun.com',
+        'oasis-platform': 'web',
+        'oasis-appid': '10200',
+        'canary': 'false',
+        'connect-protocol-version': '1',
         'oasis-language': 'zh',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
-        'oasis-token': token,
+        'Origin': 'https://chat.stepfun.com',
+        'Referer': 'https://chat.stepfun.com/chats/new',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0',
         Cookie: cookieParts.join('; '),
-      }
-      if (webId) {
-        headers['Oasis-Webid'] = webId
       }
 
       const response = await axios.post(
-        'https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/GetChatConfig',
+        'https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/CreateChatSession',
         {},
         { headers, timeout: CHECK_TIMEOUT, validateStatus: () => true }
       )
@@ -259,10 +270,19 @@ export class ProviderChecker {
         return { valid: true }
       }
 
-      const errMsg = response.data?.message
-        || response.data?.error?.message
-        || response.data?.msg
-        || `HTTP ${response.status}`
+      const data = response.data || {}
+      const code = data?.debug?.code || data?.details?.[0]?.debug?.code
+      const errMsg = data?.message || data?.error?.message || data?.msg || `HTTP ${response.status}`
+
+      if (code === 'CODE_ACCOUNT_NEED_SIGN_IN' || response.status === 403) {
+        return {
+          valid: false,
+          error: 'StepFun rejected the session (need sign in). '
+            + 'Log in at chat.stepfun.com in a normal browser tab and copy a fresh Oasis-Token, '
+            + 'then confirm the token shows "activated": true.',
+        }
+      }
+
       return { valid: false, error: errMsg }
     } catch (error) {
       return {
@@ -270,6 +290,28 @@ export class ProviderChecker {
         error: error instanceof Error ? error.message : 'Connection failed',
       }
     }
+  }
+
+  /**
+   * Read a boolean claim out of an Oasis-Token.
+   *
+   * The token is two base64url JWTs joined by "..."; each carries a JSON
+   * payload. Returns null when the token is not decodable or lacks the field.
+   */
+  private static readTokenFlag(token: string, field: string): boolean | null {
+    for (const part of token.split('...')) {
+      const bits = part.split('.')
+      if (bits.length < 3) continue
+      try {
+        const payload = JSON.parse(
+          Buffer.from(bits[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8')
+        )
+        if (typeof payload?.[field] === 'boolean') return payload[field]
+      } catch {
+        // not a JSON payload, try the next segment
+      }
+    }
+    return null
   }
 
   private static async checkDeepSeekToken(token: string): Promise<TokenCheckResult> {

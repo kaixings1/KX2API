@@ -10,6 +10,7 @@ import axios from 'axios'
 import { Readable, PassThrough } from 'stream'
 import { Account, Provider } from '../../store/types'
 import { PROTOCOL_PREFIX } from '../toolCalling/protocols/managedXml.ts'
+import { stepfunSessionManager } from '../../oauth/stepfunSessionManager'
 
 // step_plan endpoint: supports reasoning models (step-3.7, step-2, step-1o series)
 const STEP_PLAN_ENDPOINT = 'https://api.stepfun.com/step_plan/v1/chat/completions'
@@ -22,20 +23,23 @@ const API_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',
 }
 
+// Header shape mirrored byte-for-byte from a live CDP capture of
+// chat.stepfun.com/api/agent/capy.agent.v1.AgentService/ChatStream.
+// Notable omissions that matter:
+//   - no `oasis-token` / `oasis-webid` headers (auth is Cookie-only)
+//   - no `Origin` header (same-origin request; the browser strips it)
+//   - `Referer` is the concrete chat page URL, injected per-request
 const WEB_HEADERS: Record<string, string> = {
-  'Accept': '*/*',
-  'Accept-Encoding': 'identity',
-  'Cache-Control': 'no-cache, no-transform',
-  'Content-Type': 'application/connect+json',
+  'accept': '*/*',
+  'accept-encoding': 'identity',
+  'content-type': 'application/connect+json',
   'oasis-platform': 'web',
   'oasis-appid': '10200',
   'canary': 'false',
   'connect-protocol-version': '1',
   'oasis-language': 'zh',
-  'Origin': 'https://chat.stepfun.com',
-  'Referer': 'https://chat.stepfun.com/',
   'sec-ch-ua-platform': '"Windows"',
-  'sec-ch-ua': '"Microsoft Edge";v="153", "Not_A(Brand";v="8", "Chromium";v="153"',
+  'sec-ch-ua': '"Microsoft Edge";v="153", "Not_A Brand";v="8", "Chromium";v="153"',
   'sec-ch-ua-mobile': '?0',
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0',
 }
@@ -131,6 +135,12 @@ export class StepFunAdapter {
   private oasisToken: string
   private webId: string
   private allCookies: StoredCookies
+  // Cookie header produced by the session manager. Carries the path-scoped
+  // INGRESSCOOKIE duplicates that a name→value map cannot represent.
+  private sessionCookieHeader: string = ''
+  // Cache key for the active conversation, so messageEvent updates land under
+  // the same key the caller used to look the session up.
+  private currentSessionKey: string = ''
   private isApiKeyMode: boolean
   private chatSessionId: string | null = null
   private chatId: string | null = null
@@ -154,6 +164,95 @@ export class StepFunAdapter {
     if (this.oasisToken && !this.allCookies['Oasis-Token']) {
       this.allCookies['Oasis-Token'] = this.oasisToken
     }
+
+    console.log('[StepFun][DIAG] adapter init, initial tokenPrefix=', this.oasisToken.slice(0, 30), 'webId=', this.webId.slice(0, 20), 'isApiKeyMode=', this.isApiKeyMode)
+
+    // Subscribe to StepFunSessionManager for live token updates.
+    // This ensures the adapter always uses the freshest Oasis-Token
+    // even after the browser session refreshes it periodically.
+    stepfunSessionManager.on('token-updated', (token: string, webId: string, cookies: Record<string, string>) => {
+      this.updateToken(token, webId, cookies)
+    })
+    // If the session manager already has credentials, adopt them ONLY if
+    // they are non-empty. This prevents stale/empty session manager credentials
+    // from overriding credentials the user manually configured in settings.
+    if (stepfunSessionManager.ready() && stepfunSessionManager.hasCredentials()) {
+      const smToken = stepfunSessionManager.getToken()
+      const smWebId = stepfunSessionManager.getWebId()
+      if (smToken && smToken.length > 10) {
+        const cookieHeader = stepfunSessionManager.getCookieHeader()
+        console.log('[StepFun][DIAG] session manager offers credentials, tokenLen=', smToken.length,
+          'cookieHeaderLen=', cookieHeader.length)
+        this.updateToken(smToken, smWebId, { Cookie: cookieHeader })
+      } else {
+        console.log('[StepFun][DIAG] session manager has empty/stale credentials, keeping user-configured token')
+      }
+    }
+    console.log('[StepFun][DIAG] adapter init FINAL tokenDeviceId=',
+      this.readDeviceIdFromToken(this.oasisToken).slice(0, 20) || 'none',
+      'webId=', this.webId.slice(0, 20),
+      'cookieSource=', this.sessionCookieHeader ? 'session-manager' : 'account-fallback')
+  }
+
+  private updateToken(token: string, webId: string, cookies: Record<string, string>): void {
+    // The session-manager partition holds its own login, which is frequently a
+    // DIFFERENT StepFun account/device from the one the user configured. The
+    // token payload carries the device it was minted for; presenting that token
+    // with another device's Oasis-Webid makes the server answer
+    // CODE_ACCOUNT_NEED_SIGN_IN.
+    //
+    // So only adopt the pushed credentials when they are self-consistent, and
+    // never let them clobber the account's own identity.
+    const tokenDeviceId = this.readDeviceIdFromToken(token)
+    const accountWebId = this.account.credentials.web_id || this.account.credentials.webId || ''
+
+    if (tokenDeviceId && webId && tokenDeviceId !== webId) {
+      console.warn('[StepFun][ADAPTER] session manager credentials inconsistent:',
+        'token.device_id=', tokenDeviceId.slice(0, 20),
+        'Oasis-Webid=', webId.slice(0, 20),
+        '-> ignoring push')
+      return
+    }
+
+    if (accountWebId && webId && accountWebId !== webId && tokenDeviceId && tokenDeviceId !== accountWebId) {
+      console.warn('[StepFun][ADAPTER] session manager belongs to a different account:',
+        'account web_id=', accountWebId.slice(0, 20),
+        'pushed web_id=', webId.slice(0, 20),
+        '-> ignoring push')
+      return
+    }
+
+    this.oasisToken = token
+    if (webId) {
+      this.webId = webId
+    }
+    // The session manager hands over a fully-formed Cookie header (it is the
+    // only place that can see the path-scoped INGRESSCOOKIE duplicates). Store
+    // it verbatim; buildHeaders prefers it over reconstructing from allCookies.
+    if (cookies['Cookie']) {
+      this.sessionCookieHeader = cookies['Cookie']
+    }
+    const { Cookie: _ignore, ...rest } = cookies
+    this.allCookies = { ...this.allCookies, ...rest } as StoredCookies
+    this.cachedAppId = null
+    this.clearSessionCache()
+    console.log('[StepFun][ADAPTER] token updated from session manager, tokenLen=', token.length,
+      'webIdLen=', webId.length, 'hasCookieHeader=', !!this.sessionCookieHeader,
+      'cookieNames=', (this.sessionCookieHeader || '').split('; ').map(p => p.split('=')[0]).join(','))
+  }
+
+  /**
+   * Read device_id out of an Oasis-Token.
+   *
+   * The token is two base64url JWTs joined by "..."; the second one's payload
+   * carries app_id / device_id / platform.
+   */
+  private readDeviceIdFromToken(token: string): string {
+    const payloads = extractTokenPayloads(token)
+    for (const p of payloads) {
+      if (p.deviceId) return p.deviceId
+    }
+    return ''
   }
 
   private async acquireToken(): Promise<string> {
@@ -168,6 +267,7 @@ export class StepFunAdapter {
 
     let hasValidPayload = false
     let expiresAt: number | null = null
+    let activated: boolean | null = null
     if (this.oasisToken) {
       const segments = this.oasisToken.includes('...') ? this.oasisToken.split('...') : this.oasisToken.split('.')
       for (const seg of segments) {
@@ -183,10 +283,27 @@ export class StepFunAdapter {
               if (typeof p.exp === 'number' && p.exp > 0) {
                 expiresAt = expiresAt === null ? p.exp : Math.max(expiresAt, p.exp)
               }
+              if (typeof p.activated === 'boolean') {
+                activated = p.activated
+              }
             } catch { /* non-JSON payload, ignore */ }
           }
         } catch { /* skip */ }
       }
+    }
+
+    // An unactivated session can still be minted by the login page but cannot
+    // call any business endpoint — the server answers 403
+    // CODE_ACCOUNT_NEED_SIGN_IN. Fail early with an actionable message rather
+    // than letting every request die at the gateway.
+    if (activated === false) {
+      console.error('[StepFun][ACQUIRE-TOKEN] token has activated=false; session is not usable')
+      const err: any = new Error(
+        'StepFun session is not activated. Log in at chat.stepfun.com in a normal browser tab, ' +
+        'confirm the page loads your conversation list, then copy a fresh Oasis-Token.'
+      )
+      err.code = 'account_not_activated'
+      throw err
     }
 
     // Pre-check expiry: if the JWT contains an explicit exp that has already passed,
@@ -254,9 +371,10 @@ export class StepFunAdapter {
 
     const appId = jwtAppId || this.provider.headers?.['Oasis-appID'] || '10200'
 
-    // Oasis-Webid must be the original web_id (from account credentials), NOT the device_id from JWT.
-    // The server validates the token signature against web_id. device_id is only for device identification.
-    // Do NOT overwrite this.webId with tokenDeviceId.
+    // The Connect server validates the token signature against the oasis-webid header,
+    // which MUST match the device_id embedded in the JWT payload.
+    // User-pasted web_id from browser cookies often differs from token's device_id,
+    // causing "permission_denied: need sign in". Extract device_id from token as primary.
     let tokenDeviceId: string | null = null
     if (this.oasisToken) {
       const payloads = extractTokenPayloads(this.oasisToken)
@@ -267,39 +385,64 @@ export class StepFunAdapter {
         }
       }
     }
-    // tokenDeviceId is available for logging/debugging but NOT used for headers
 
     headers['oasis-appid'] = appId
-    headers['oasis-webid'] = this.webId
-    headers['oasis-token'] = this.oasisToken
-    // Add device ID header (mirrors browser's oasis-extra-did for chatapi endpoints)
-    const deviceId = this.webId || (this.oasisToken ? extractTokenPayloads(this.oasisToken).find(p => p.deviceId)?.deviceId : null)
-    if (deviceId) {
-      headers['oasis-extra-did'] = deviceId
-    }
+
+    // CRITICAL: the browser sends NO oasis-token / oasis-webid request headers
+    // on ChatStream. Auth travels exclusively in the Cookie header (Oasis-Token
+    // + Oasis-Webid). Adding oasis-token as a header pushes the gateway onto a
+    // different validation path that rejects valid sessions with
+    // CODE_ACCOUNT_NEED_SIGN_IN. Confirmed by CDP capture of the live web client.
+    // NOTE: no oasis-extra-did. The browser does not send it on ChatStream —
+    // only the growth/user endpoints carry it. Sending it here made the gateway
+    // take a stricter validation branch and reject the session.
+    const extraDid = tokenDeviceId || this.webId || null
     console.log('[StepFun][ADAPTER] buildHeaders EXIT, mode=WEB, appId=', appId,
       'webId=', this.webId ? '[REDACTED]' : 'null',
       'oasisToken=', this.oasisToken ? '[REDACTED]' : 'null',
-      'deviceId=', deviceId ? '[REDACTED]' : 'null',
+      'allCookieKeys=[' + Object.keys(this.allCookies).join(',') + ']',
       'jwtAppId=', jwtAppId || 'null')
 
-    // Build Cookie header exactly like the browser
-    // Must use the FINAL webId (after device_id override) to match Oasis-Webid header
-    const cookieParts: string[] = []
-    cookieParts.push('is_pc_desktop=false')
-    cookieParts.push('i18next=zh')
-    if (this.webId) {
-      cookieParts.push('oasis-webid=' + this.webId)
+    // Prefer the session manager's Cookie header: it is built from the live
+    // cookie jar with RFC 6265 path matching, so it contains every
+    // path-scoped INGRESSCOOKIE the gateway expects for this route.
+    if (this.sessionCookieHeader) {
+      headers['Cookie'] = this.sessionCookieHeader
+      console.log('[StepFun][ADAPTER] buildHeaders EXIT, mode=WEB, appId=', appId,
+        'cookieSource=session-manager',
+        'cookieLen=', headers['Cookie'].length,
+        'cookies=', headers['Cookie'].split('; ').map(p => p.split('=')[0]).join(','))
+      return headers
     }
-    cookieParts.push('sidebar_state=false')
-    cookieParts.push('Oasis-Token=' + this.oasisToken)
+
+    // Fallback for accounts configured with a manually pasted token: rebuild
+    // the header from available pieces. Only one INGRESSCOOKIE can survive here.
+    const emitted = new Set<string>()
+    const cookiePairs: Array<[string, string]> = []
+
+    const addCookie = (name: string, value: string) => {
+      if (!value) return
+      const key = name.toLowerCase()
+      if (emitted.has(key)) return
+      emitted.add(key)
+      cookiePairs.push([name, value])
+    }
+
+    addCookie('is_pc_desktop', 'false')
+    addCookie('i18next', 'zh')
+    addCookie('Oasis-Webid', this.webId)
+    addCookie('sidebar_state', 'false')
+    addCookie('Oasis-Token', this.oasisToken)
+
     for (const [name, value] of Object.entries(this.allCookies)) {
-      if (value && !cookieParts.some(part => part.startsWith(name + '='))) {
-        cookieParts.push(name + '=' + value)
-      }
+      addCookie(name, value)
     }
-    headers['Cookie'] = cookieParts.join('; ')
-    console.log('[StepFun][ADAPTER] buildHeaders EXIT, mode=WEB, appId=', appId, 'cookieLen=', headers['Cookie']?.length)
+
+    headers['Cookie'] = cookiePairs.map(([n, v]) => n + '=' + v).join('; ')
+    console.log('[StepFun][ADAPTER] buildHeaders EXIT, mode=WEB, appId=', appId,
+      'cookieSource=fallback',
+      'cookieLen=', headers['Cookie'].length,
+      'cookies=', cookiePairs.map(([n]) => n).join(','))
     return headers
   }
 
@@ -342,39 +485,6 @@ export class StepFunAdapter {
     }
 
     return `Network error: ${errorMsg}. Please check your connection and try again.`
-  }
-
-  private buildWebSessionRequest(request: ChatCompletionRequest, sessionId?: string): any {
-    const model = this.mapModel(request.model)
-    const userContent = request.messages.map((msg) => {
-      const content = msg.content == null ? '' : msg.content
-      return content
-    }).filter(Boolean).join('\n') || ''
-
-    // Reuse cached chatSessionId for multi-turn conversations instead of generating a new timestamp
-    const cachedSession = sessionId ? this.getCachedSession(sessionId) : null
-    const chatSessionId = cachedSession?.chatSessionId || Date.now().toString()
-
-    // Web session mode: browser sends nested JSON format
-    // {"message": {"chatSessionId": "...", "content": {"userMessage": {"qa": {"content": "..."}}}}, "config": {"model": "...", "enableReasoning": bool, "enableSearch": bool}}
-    const baseBody = {
-      message: {
-        chatSessionId,
-        content: {
-          userMessage: {
-            qa: {
-              content: userContent
-            }
-          }
-        }
-      },
-      config: {
-        model,
-        enableReasoning: false,
-        enableSearch: false
-      }
-    }
-    return baseBody
   }
 
   private buildStepPlanRequest(request: ChatCompletionRequest): any {
@@ -751,9 +861,31 @@ export class StepFunAdapter {
     // Use sessionId for cache lookup if provided (from proxy session manager)
     // Fall back to account-level key for backward compatibility
     const sessionKey = sessionId || this.account.id
+    this.currentSessionKey = sessionKey
     const cachedSession = !this.isApiKeyMode ? this.getCachedSession(sessionKey) : null
     let useChatSessionId: string | null = cachedSession?.chatSessionId || this.chatSessionId
     let useChatId: string | null = cachedSession?.chatId || this.chatId
+
+    // Tracks whether we already owned a session before this call, which decides
+    // whether Referer points at /chats/new or /chats/<id>.
+    const hadSessionBeforeRequest = !!useChatSessionId
+
+    // The server rejects ChatStream unless message.chatSessionId names a session
+    // it created for this account — an invented id returns
+    // permission_denied / need sign in. The web client always calls
+    // CreateChatSession first and echoes the returned id, so do the same
+    // whenever we do not already hold a server-issued session.
+    if (!useChatSessionId) {
+      const created = await this.createChatSession(headers)
+      if (created) {
+        useChatSessionId = created
+        this.chatSessionId = created
+        this.setCachedSession(sessionKey, { chatSessionId: created, chatId: useChatId || '', createdAt: Date.now() })
+        console.log('[StepFun][CONNECT] created chat session:', created)
+      } else {
+        console.error('[StepFun][CONNECT] CreateChatSession failed; ChatStream will likely be rejected')
+      }
+    }
 
     // Build user message content from messages array
     const userContent = request.messages
@@ -781,11 +913,13 @@ export class StepFunAdapter {
       messageBody.chatSessionId = useChatSessionId
     }
 
+    // config mirrors the web client's defaults (both flags true) unless the
+    // caller explicitly downgrades reasoning via reasoning_effort.
     const requestData = {
       message: messageBody,
       config: {
         model,
-        enableReasoning: request.reasoning_effort === 'high' || request.reasoning_effort === 'max',
+        enableReasoning: request.reasoning_effort !== 'low' && request.reasoning_effort !== 'none',
         enableSearch: false
       }
     }
@@ -798,18 +932,20 @@ export class StepFunAdapter {
     requestBody.copy(connectFrame, 5)
 
     const connectHeaders = { ...headers }
-    connectHeaders['Content-Type'] = 'application/connect+json'
-    connectHeaders['Connect-Protocol-Version'] = '1'
+    connectHeaders['content-type'] = 'application/connect+json'
+    connectHeaders['connect-protocol-version'] = '1'
+    // The captured flow sends the first message of a fresh conversation while
+    // the URL is still /chats/new — the route only changes to /chats/<id>
+    // after ChatStream returns. Follow the same order.
+    connectHeaders['Referer'] = hadSessionBeforeRequest
+      ? `https://chat.stepfun.com/chats/${useChatSessionId}`
+      : 'https://chat.stepfun.com/chats/new'
 
-    // DIAG: log all header values for signature debugging
-    console.log('[StepFun][CONNECT] headers:',
-      'oasis-appid=', connectHeaders['oasis-appid'],
-      'oasis-webid=', connectHeaders['oasis-webid'],
-      'oasis-token=', connectHeaders['oasis-token'] ? '[REDACTED]' : 'null',
-      'oasis-platform=', connectHeaders['oasis-platform'],
-      'canary=', connectHeaders['canary'],
-      'connect-protocol-version=', connectHeaders['connect-protocol-version'],
-      'Origin=', connectHeaders['Origin'])
+    // DIAG: log header names actually being sent, so the shape can be diffed
+    // against a live capture without leaking token material.
+    console.log('[StepFun][CONNECT] header names:', Object.keys(connectHeaders).sort().join(','))
+    console.log('[StepFun][CONNECT] cookie names:', (connectHeaders['Cookie'] || '')
+      .split('; ').map(p => p.split('=')[0]).join(','))
 
     const request_ = net.request({
       method: 'POST',
@@ -943,6 +1079,134 @@ export class StepFunAdapter {
         })
       }
     })
+  }
+
+  /**
+   * Create a chat session and return the server-issued session id.
+   *
+   * The web client calls this before the first message of a new conversation
+   * and copies the returned id into message.chatSessionId. Skipping it makes
+   * ChatStream fail with permission_denied / need sign in because the id does
+   * not belong to any session owned by this account.
+   *
+   * Request shape verified by CDP capture: POST with content-type
+   * application/json, an empty JSON object body, and Referer /chats/new.
+   */
+  private async createChatSession(headers: Record<string, string>): Promise<string | null> {
+    const url = 'https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/CreateChatSession'
+
+    return new Promise((resolve) => {
+      let settled = false
+      const done = (value: string | null) => {
+        if (settled) return
+        settled = true
+        resolve(value)
+      }
+
+      const request_ = net.request({ method: 'POST', url })
+      for (const [key, value] of Object.entries(headers)) {
+        // The create call is plain JSON, not a Connect stream.
+        if (key.toLowerCase() === 'content-type') continue
+        request_.setHeader(key, value)
+      }
+      request_.setHeader('content-type', 'application/json')
+      request_.setHeader('Referer', 'https://chat.stepfun.com/chats/new')
+
+      request_.on('response', (response) => {
+        const statusCode = response.statusCode || 0
+        const chunks: Buffer[] = []
+        response.on('data', (chunk: Buffer) => chunks.push(chunk))
+        response.on('end', () => {
+          const text = Buffer.concat(chunks).toString('utf-8')
+          if (statusCode < 200 || statusCode >= 300) {
+            console.error('[StepFun][CONNECT] CreateChatSession HTTP', statusCode, text.slice(0, 300))
+            return done(null)
+          }
+          const id = this.extractSessionId(text)
+          if (!id) {
+            console.error('[StepFun][CONNECT] CreateChatSession returned no session id:', text.slice(0, 300))
+          }
+          done(id)
+        })
+        response.on('error', (error) => {
+          console.error('[StepFun][CONNECT] CreateChatSession response error:', error)
+          done(null)
+        })
+      })
+
+      request_.on('error', (error) => {
+        console.error('[StepFun][CONNECT] CreateChatSession request error:', error)
+        done(null)
+      })
+
+      const timeout = setTimeout(() => {
+        console.error('[StepFun][CONNECT] CreateChatSession timed out')
+        ;(request_ as any).destroy()
+        done(null)
+      }, 15000)
+
+      request_.on('response', () => clearTimeout(timeout))
+      request_.on('error', () => clearTimeout(timeout))
+
+      try {
+        request_.write(JSON.stringify({}), 'utf-8')
+        request_.end()
+      } catch (writeError) {
+        console.error('[StepFun][CONNECT] CreateChatSession write failed:', writeError)
+        clearTimeout(timeout)
+        done(null)
+      }
+    })
+  }
+
+  /**
+   * Pull the session id out of a CreateChatSession response.
+   *
+   * Accepts either a plain JSON body or a Connect frame (flag + BE length +
+   * JSON), and looks for the id under the handful of names the API uses.
+   */
+  private extractSessionId(body: string): string | null {
+    const findIn = (obj: any): string | null => {
+      if (!obj || typeof obj !== 'object') return null
+      const direct = obj.chatSessionId || obj.sessionId || obj.chatSessionID
+      if (typeof direct === 'string' && direct) return direct
+      if (typeof direct === 'number') return String(direct)
+      for (const value of Object.values(obj)) {
+        const nested = findIn(value)
+        if (nested) return nested
+      }
+      return null
+    }
+
+    const tryParse = (text: string): string | null => {
+      const trimmed = text.trim()
+      if (!trimmed.startsWith('{')) return null
+      try {
+        return findIn(JSON.parse(trimmed))
+      } catch {
+        return null
+      }
+    }
+
+    // Direct JSON body.
+    const direct = tryParse(body)
+    if (direct) return direct
+
+    // Connect-framed body: skip the 5-byte header and try each frame.
+    const buf = Buffer.from(body, 'utf-8')
+    let offset = 0
+    while (offset + 5 <= buf.length) {
+      const frameLen = buf.readUInt32BE(offset + 1)
+      if (offset + 5 + frameLen > buf.length) break
+      const payload = buf.slice(offset + 5, offset + 5 + frameLen).toString('utf-8')
+      const found = tryParse(payload)
+      if (found) return found
+      offset += 5 + frameLen
+    }
+
+    // Last resort: regex over the raw text.
+    const m = body.match(/"(?:chatSessionId|sessionId)"\s*:\s*"(\d+)"/)
+    return m ? m[1] : null
   }
 
   /**
@@ -1463,7 +1727,7 @@ export class StepFunAdapter {
           this.chatId = newChatId
         }
         if (newChatSessionId || newChatId) {
-          this.setCachedSession(this.account.id, {
+          this.setCachedSession(this.currentSessionKey || this.account.id, {
             chatSessionId: newChatSessionId,
             chatId: newChatId,
             createdAt: Date.now(),
@@ -1692,3 +1956,4 @@ export { StepFunStreamHandler } from './stepfun-stream'
 export const stepfunAdapter = {
   StepFunAdapter,
 }
+
