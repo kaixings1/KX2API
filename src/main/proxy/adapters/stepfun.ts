@@ -1020,6 +1020,223 @@ export class StepFunAdapter {
   }
 
   /**
+   * Token-based sliding window queue for incremental tool call extraction.
+   *
+   * Why: streaming responses arrive in chunks. A tool marker like
+   * "<tool name="pwd"><arguments>{}</arguments></tool>" can be split across
+   * multiple chunks. The model may also interleave normal text with tool
+   * calls (e.g. "hello\n<tool_use>...</tool_use>\nworld").
+   *
+   * This queue keeps a rolling buffer. On each new content arrival we
+   * scan the buffer for the earliest complete tool marker. Text before the
+   * marker is emitted as content. The marker is extracted and removed.
+   * Any trailing incomplete marker stays in the buffer for the next round.
+   */
+  private static toolQueue: { buffer: string } = {
+    buffer: '',
+  }
+
+  private static QUEUE_MAX_CHARS = 5000 // hard cap to prevent unbounded growth
+
+  /**
+   * Given a buffer, find the start position of the earliest tool marker
+   * (any of the three formats). Returns -1 if no marker start is found.
+   */
+  private static findFirstMarkerStart(buf: string): number {
+    const candidates: number[] = []
+
+    // Format 1: <|KX2API|invoke name="..."
+    const prefix = PROTOCOL_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const invokeOpenPattern = new RegExp('<' + '\\|' + prefix + '\\|invoke\\s+name="([^"]+)"', 'g')
+    const invokeMatch = invokeOpenPattern.exec(buf)
+    if (invokeMatch) candidates.push(invokeMatch.index)
+
+    // Format 2: <tool name="..." (not <tool_use>)
+    const toolNamePattern = /<tool\s+name="/gi
+    let toolNameMatch
+    while ((toolNameMatch = toolNamePattern.exec(buf)) !== null) {
+      const before = buf.slice(Math.max(0, toolNameMatch.index - 10), toolNameMatch.index)
+      if (!before.includes('<tool_use')) {
+        candidates.push(toolNameMatch.index)
+      }
+    }
+
+    // Format 3: <tool_use>
+    const toolUseIdx = buf.indexOf('<tool_use>')
+    if (toolUseIdx >= 0) candidates.push(toolUseIdx)
+
+    return candidates.length > 0 ? Math.min(...candidates) : -1
+  }
+
+  /**
+   * Check if there is a complete tool marker starting at the given offset
+   * in the buffer. Returns the endIndex (exclusive) and parsed data, or null.
+   */
+  private static tryParseMarkerAt(buf: string, offset: number): { endIndex: number; name: string; params: Record<string, string> } | null {
+    const sub = buf.slice(offset)
+
+    // --- Format 1: <|KX2API|invoke name="...">...<|KX2API|invoke> ---
+    const prefix = PROTOCOL_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const invokeOpenPattern = new RegExp('<' + '\\|' + prefix + '\\|invoke\\s+name="([^"]+)"')
+    const invokeOpenMatch = invokeOpenPattern.exec(sub)
+    if (invokeOpenMatch && invokeOpenMatch.index === 0) {
+      const closePattern = new RegExp('<' + '\\|' + prefix + '\\|invoke>')
+      const closeMatch = closePattern.exec(sub)
+      if (closeMatch && closeMatch.index >= invokeOpenMatch.index) {
+        const blockEnd = closeMatch.index + closeMatch[0].length
+        const block = sub.slice(0, blockEnd)
+        const params: Record<string, string> = {}
+        const paramRegex = new RegExp(
+          '<' + '\\|' + prefix + '\\|parameter\\s+name="([^"]+)"(?:[^>]*)?>(.*?)<' + '\\|' + prefix + '\\|parameter>',
+          'g'
+        )
+        let pm
+        while ((pm = paramRegex.exec(block)) !== null) {
+          params[pm[1]] = pm[2].trim()
+        }
+        return { endIndex: offset + blockEnd, name: invokeOpenMatch[1], params }
+      }
+    }
+
+    // --- Format 2: <tool name="..."><arguments>...</arguments></tool> ---
+    const toolOpenMatch = sub.match(/^<tool\s+name="([^"]+)"/i)
+    if (toolOpenMatch) {
+      const toolCloseIdx = sub.indexOf('</tool>')
+      if (toolCloseIdx >= 0) {
+        const blockEnd = toolCloseIdx + '</tool>'.length
+        const block = sub.slice(0, blockEnd)
+        const argsMatch = block.match(/<arguments[^>]*>([\s\S]*?)<\/arguments>/i)
+        let argsStr = argsMatch ? argsMatch[1].trim() : '{}'
+        const cdataMatch = argsStr.match(/<!\[CDATA\[([\s\S]*?)\]\]>/)
+        if (cdataMatch) argsStr = cdataMatch[1].trim()
+        const parsedArgs = StepFunAdapter.parseJsonArgs(argsStr)
+        return { endIndex: offset + blockEnd, name: toolOpenMatch[1], params: parsedArgs }
+      }
+    }
+
+    // --- Format 3: <tool_use><name>...</name><arguments>...</arguments></tool_use> ---
+    if (sub.startsWith('<tool_use>')) {
+      const toolUseCloseIdx = sub.indexOf('</tool_use>')
+      if (toolUseCloseIdx >= 0) {
+        const blockEnd = toolUseCloseIdx + '</tool_use>'.length
+        const block = sub.slice(0, blockEnd)
+        const inner = block.slice('<tool_use>'.length, blockEnd - '</tool_use>'.length)
+        const nameMatch = inner.match(/<name[^>]*>([\s\S]*?)<\/name>/i)
+        const argsMatch = inner.match(/<arguments[^>]*>([\s\S]*?)<\/arguments>/i)
+        if (nameMatch) {
+          const toolName = nameMatch[1].trim()
+          const argsStr = argsMatch ? argsMatch[1].trim() : '{}'
+          const parsedArgs = StepFunAdapter.parseJsonArgs(argsStr)
+          return { endIndex: offset + blockEnd, name: toolName, params: parsedArgs }
+        }
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * Append new text to the queue and return any newly extractable tool calls
+   * plus the display-safe text that should be forwarded to the client.
+   *
+   * Algorithm:
+   *   1. Append newText to buffer
+   *   2. Find the earliest marker start position in the entire buffer
+   *   3. Try to parse a complete marker at that position
+   *   4. If complete: emit text before it as content, extract tool call,
+   *      remove consumed portion, repeat from step 2
+   *   5. If incomplete: stop, keep everything in buffer for next round
+   *   6. If no marker: emit all text as content
+   */
+  private static processQueue(
+    newText: string
+  ): {
+    extractedCalls: Array<{ name: string; params: Record<string, string> }>
+    displayText: string
+  } {
+    const q = StepFunAdapter.toolQueue
+    const prevLen = q.buffer.length
+    q.buffer += newText
+
+    // Hard cap: if buffer exceeds max, discard oldest portion
+    if (q.buffer.length > StepFunAdapter.QUEUE_MAX_CHARS) {
+      const excess = q.buffer.length - StepFunAdapter.QUEUE_MAX_CHARS
+      q.buffer = q.buffer.slice(excess)
+    }
+
+    const extractedCalls: Array<{ name: string; params: Record<string, string> }> = []
+    const contentSegments: string[] = []
+    let iterations = 0
+    const MAX_ITERATIONS = 20
+
+    while (q.buffer.length > 0 && iterations < MAX_ITERATIONS) {
+      iterations++
+
+      const markerStart = StepFunAdapter.findFirstMarkerStart(q.buffer)
+      console.log(`[StepFun][QUEUE] iter=${iterations} bufLen=${q.buffer.length} prevLen=${prevLen} markerStart=${markerStart} bufPreview=${JSON.stringify(q.buffer.slice(Math.max(0, markerStart - 30), markerStart + 80))}`)
+
+      if (markerStart < 0) {
+        // No tool marker in buffer at all — all text is safe content
+        const allText = q.buffer
+        q.buffer = ''
+        contentSegments.push(StepFunAdapter.filterProtocolMarkersFromBuffer(allText))
+        break
+      }
+
+      // Try to parse a complete marker at that position
+      const marker = StepFunAdapter.tryParseMarkerAt(q.buffer, markerStart)
+
+      if (!marker) {
+        // Marker start found but incomplete — emit text before it (if any),
+        // keep the incomplete marker in buffer, then break to wait for more data.
+        // The next processQueue call will append new text to the buffer and
+        // re-scan, allowing the marker to eventually become complete.
+        const preText = q.buffer.slice(0, markerStart)
+        const remaining = q.buffer.slice(markerStart)
+        console.log(`[StepFun][QUEUE] incomplete marker at ${markerStart}, emitting ${preText.length} chars, keeping ${remaining.length} in buffer`)
+        contentSegments.push(StepFunAdapter.filterProtocolMarkersFromBuffer(preText))
+        q.buffer = remaining
+        break
+      }
+
+      // Complete marker found: emit text before it, extract tool call
+      const preText = q.buffer.slice(0, markerStart)
+      if (preText) {
+        contentSegments.push(StepFunAdapter.filterProtocolMarkersFromBuffer(preText))
+      }
+      console.log(`[StepFun][QUEUE] EXTRACTED tool call: name=${marker.name} params=${JSON.stringify(marker.params)}`)
+      extractedCalls.push({ name: marker.name, params: marker.params })
+      q.buffer = q.buffer.slice(marker.endIndex)
+    }
+
+    const finalDisplay = contentSegments.join('') + StepFunAdapter.filterProtocolMarkersFromBuffer(q.buffer)
+    console.log(`[StepFun][QUEUE] RESULT: extractedCalls=${extractedCalls.length} displayLen=${finalDisplay.length} bufferRemaining=${q.buffer.length}`)
+    return { extractedCalls, displayText: finalDisplay }
+  }
+
+  /**
+   * Filter protocol markers from a buffer string (used on remaining queue
+   * content after tool extraction). Same logic as filterProtocolMarkers but
+   * operates on the queue's residual text.
+   */
+  private static filterProtocolMarkersFromBuffer(text: string): string {
+    const prefix = PROTOCOL_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    let cleaned = text.replace(new RegExp('<\\|' + prefix + '\\|[^|]*\\|>', 'g'), '')
+    cleaned = cleaned.replace(new RegExp('<\\|' + prefix + '\\|[^>]*$', 'g'), '')
+    // Strip complete tool markers
+    cleaned = cleaned.replace(/<tool(?!_)[^>]*>[\s\S]*?<\/tool>/gi, '')
+    cleaned = cleaned.replace(/<tool_use>[\s\S]*?<\/tool_use>/gi, '')
+    cleaned = cleaned.replace(/<arguments[^>]*>[\s\S]*?<\/arguments>/gi, '')
+    // Strip incomplete tool markers at end of buffer (streaming chunks may
+    // arrive with split tags that have not yet closed)
+    cleaned = cleaned.replace(/<tool(?!_)[^>]*>[\s\S]*$/gi, '')
+    cleaned = cleaned.replace(/<tool_use>[\s\S]*$/gi, '')
+    cleaned = cleaned.replace(/<arguments[^>]*>[\s\S]*$/gi, '')
+    cleaned = cleaned.replace(/[ \t]+/g, ' ').trim()
+    return cleaned
+  }
+
+  /**
    * Strip internal protocol markers from response text.
    * Removes <|PREFIX|...|> tags that leak into user-facing output.
    */
@@ -1146,8 +1363,10 @@ export class StepFunAdapter {
           const rawText = event.textEvent.text || ''
           if (!rawText || !messageIdState.current) continue
 
-          const toolCalls = StepFunAdapter.extractToolCalls(rawText)
-          const displayText = StepFunAdapter.filterProtocolMarkers(rawText)
+          console.log(`[StepFun][QUEUE][SSE] textEvent received, len=${rawText.length}, preview=${JSON.stringify(rawText.slice(0, 120))}`)
+
+          // Use queue-based extraction to handle tool markers split across chunks
+          const { extractedCalls, displayText } = StepFunAdapter.processQueue(rawText)
 
           if (displayText) {
             stream.write('data: ' + JSON.stringify({
@@ -1158,8 +1377,8 @@ export class StepFunAdapter {
               created: Math.floor(Date.now() / 1000),
             }) + '\n\n')
           }
-          if (toolCalls.length > 0) {
-            const tcChunks = toolCalls.map((call, idx) => ({
+          if (extractedCalls.length > 0) {
+            const tcChunks = extractedCalls.map((call, idx) => ({
               id: 'call_' + messageIdState.current + '_' + idx,
               type: 'function',
               function: { name: call.name, arguments: JSON.stringify(call.params) },
@@ -1259,19 +1478,20 @@ export class StepFunAdapter {
     if (event.textEvent) {
       const rawText = event.textEvent.text || ''
       if (rawText && messageIdState.current) {
-        // Extract tool calls BEFORE filtering, then filter text for display
-        const toolCalls = StepFunAdapter.extractToolCalls(rawText)
-        const text = StepFunAdapter.filterProtocolMarkers(rawText)
+        console.log(`[StepFun][QUEUE][CONNECT] textEvent received, len=${rawText.length}, preview=${JSON.stringify(rawText.slice(0, 120))}`)
+
+        // Use queue-based extraction to handle tool markers split across chunks
+        const { extractedCalls, displayText } = StepFunAdapter.processQueue(rawText)
 
         // Send text chunk (filtered)
-        if (text) {
+        if (displayText) {
           const deltaChunk = {
             id: messageIdState.current,
             model: model,
             object: 'chat.completion.chunk',
             choices: [{
               index: 0,
-              delta: { role: 'assistant', content: text },
+              delta: { role: 'assistant', content: displayText },
               finish_reason: null,
             }],
             created: Math.floor(Date.now() / 1000),
@@ -1280,8 +1500,8 @@ export class StepFunAdapter {
         }
 
         // Send tool calls as additional commands if any were extracted
-        if (toolCalls.length > 0) {
-          const toolCallChunks = toolCalls.map((call, idx) => ({
+        if (extractedCalls.length > 0) {
+          const toolCallChunks = extractedCalls.map((call, idx) => ({
             id: 'call_' + messageIdState.current + '_' + idx,
             type: 'function',
             function: {
@@ -1351,6 +1571,57 @@ export class StepFunAdapter {
     // doneEvent: entire stream completed (server-end signal)
     if (event.doneEvent) {
       console.log('[StepFun][CONNECT] doneEvent, messageId=', messageIdState.current)
+      // Flush any remaining content from the tool queue before ending
+      const remaining = StepFunAdapter.toolQueue.buffer
+      StepFunAdapter.toolQueue.buffer = ''
+      if (remaining) {
+        // First, try to extract any complete tool calls from the remaining buffer
+        const finalCalls = StepFunAdapter.extractToolCalls(remaining)
+        const displayRemaining = StepFunAdapter.filterProtocolMarkers(remaining)
+
+        if (displayRemaining) {
+          const remainingChunk = {
+            id: messageIdState.current,
+            model: model,
+            object: 'chat.completion.chunk',
+            choices: [{
+              index: 0,
+              delta: { role: 'assistant', content: displayRemaining },
+              finish_reason: null,
+            }],
+            created: Math.floor(Date.now() / 1000),
+          }
+          stream.write('data: ' + JSON.stringify(remainingChunk) + '\n\n')
+        }
+
+        if (finalCalls.length > 0) {
+          const toolCallChunks = finalCalls.map((call, idx) => ({
+            id: 'call_' + messageIdState.current + '_' + idx,
+            type: 'function',
+            function: {
+              name: call.name,
+              arguments: JSON.stringify(call.params),
+            },
+          }))
+          const toolCallDeltaChunk = {
+            id: messageIdState.current,
+            model: model,
+            object: 'chat.completion.chunk',
+            choices: [{
+              index: 0,
+              delta: {
+                role: 'assistant',
+                content: '',
+                tool_calls: toolCallChunks,
+              },
+              finish_reason: null,
+            }],
+            created: Math.floor(Date.now() / 1000),
+          }
+          stream.write('data: ' + JSON.stringify(toolCallDeltaChunk) + '\n\n')
+          console.log('[StepFun][CONNECT] doneEvent FLUSHED toolCalls=', finalCalls.length, 'names=', finalCalls.map(c => c.name).join(','))
+        }
+      }
       const finishChunk = {
         id: messageIdState.current,
         model: model,
