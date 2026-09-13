@@ -1140,6 +1140,8 @@ const electronAPI = {
       ipcRenderer.invoke(IpcChannels.COOKIE_SESSION_INIT, providers),
     openLogin: (providerType: ProviderVendor): Promise<{ success: boolean; opened: boolean; error?: string }> =>
       ipcRenderer.invoke(IpcChannels.COOKIE_SESSION_OPEN_LOGIN, providerType),
+    clearLogin: (providerType: ProviderVendor): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.COOKIE_SESSION_CLEAR_LOGIN, providerType),
     getStatus: (): Promise<{ success: boolean; status: Record<ProviderVendor, { ready: boolean; cookieCount: number }> }> =>
       ipcRenderer.invoke(IpcChannels.COOKIE_SESSION_GET_STATUS),
     getCredentials: (providerType: ProviderVendor): Promise<{ success: boolean; credentials: Record<string, string> }> =>

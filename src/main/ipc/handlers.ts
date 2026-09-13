@@ -2377,6 +2377,11 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     }
   })
 
+  // Wipe a provider's persisted login so the login window starts anonymous.
+  ipcMain.handle(IpcChannels.COOKIE_SESSION_CLEAR_LOGIN, async (_, providerType: ProviderType) => {
+    return cookieSessionManager.clearLogin(providerType)
+  })
+
   ipcMain.handle(IpcChannels.COOKIE_SESSION_GET_STATUS, async () => {
     try {
       const status = cookieSessionManager.getStatus()

@@ -158,6 +158,7 @@ export const IpcChannels = {
   COOKIE_SESSION_GET_CREDENTIALS: 'cookie:session:getCredentials',
   COOKIE_SESSION_INIT: 'cookie:session:init',
   COOKIE_SESSION_DESTROY: 'cookie:session:destroy',
+  COOKIE_SESSION_CLEAR_LOGIN: 'cookie:session:clearLogin',
   COOKIE_SESSION_CREDENTIALS_CHANGED: 'cookie:session:credentialsChanged',
 
   // Log category config

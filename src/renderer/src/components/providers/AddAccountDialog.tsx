@@ -27,7 +27,8 @@ import {
   Eye,
   EyeOff,
   Copy,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react'
 import type { Provider, CredentialField, Account, BuiltinProviderConfig, ProviderVendor } from '@/types/electron'
 
@@ -301,12 +302,44 @@ export function AddAccountDialog({
     }
   }
 
+  /**
+   * Wipe any persisted login for this provider, then open a fresh window.
+   *
+   * The login partitions survive restarts, so an old session would otherwise
+   * come back with the window: the page loads already authenticated and the
+   * flow reports success before a phone number can be entered.
+   */
+  const handleClearAndRelogin = async () => {
+    if (!provider) return
+
+    setIsOAuthLoading(true)
+    setOAuthStatus(t('providers.clearingLoginState'))
+
+    try {
+      const cleared = await window.electronAPI?.cookieSession?.clearLogin(
+        provider.id as ProviderVendor
+      )
+      if (!cleared?.success) {
+        setOAuthStatus(cleared?.error || t('providers.clearLoginFailed'))
+        setIsOAuthLoading(false)
+        return
+      }
+      setCredentials({})
+      setValidationResult(null)
+      await handleOpenOAuthBrowser()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('providers.clearLoginFailed')
+      setOAuthStatus(message)
+      setIsOAuthLoading(false)
+    }
+  }
+
   const handleOpenOAuthBrowser = async () => {
     if (!provider) return
-    
+
     setIsOAuthLoading(true)
     setOAuthStatus(t('providers.openingLoginWindow'))
-    
+
     try {
       const result = await window.electronAPI?.oauth.startInAppLogin(
         provider.id,
@@ -411,22 +444,33 @@ export function AddAccountDialog({
                         {t('providers.oauthAutoCapture')}
                       </p>
                     </div>
-                    <Button 
-                      onClick={handleOpenOAuthBrowser}
-                      disabled={isOAuthLoading}
-                    >
-                      {isOAuthLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {oauthStatus || t('providers.loggingIn')}
-                        </>
-                      ) : (
-                        <>
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          {t('providers.openOAuthLogin')}
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <Button
+                        onClick={handleOpenOAuthBrowser}
+                        disabled={isOAuthLoading}
+                      >
+                        {isOAuthLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {oauthStatus || t('providers.loggingIn')}
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            {t('providers.openOAuthLogin')}
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleClearAndRelogin}
+                        disabled={isOAuthLoading}
+                        title={t('providers.clearAndReloginHint')}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t('providers.clearAndRelogin')}
+                      </Button>
+                    </div>
                     {oauthStatus && !isOAuthLoading && (
                       <p className={`text-sm ${validationResult.valid ? 'text-green-600' : 'text-red-500'}`}>
                         {oauthStatus}

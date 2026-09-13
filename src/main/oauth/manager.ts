@@ -413,27 +413,40 @@ export class OAuthManager extends EventEmitter {
           }
         }
 
-        // For StepFun, we need both Oasis-Token and web_id before validating
+        // For StepFun, we need Oasis-Token, web_id and Oasis-Webid before
+        // validating. A session is only usable when all three agree: the token
+        // names the account, web_id is the localStorage device id, and
+        // Oasis-Webid is the cookie device id the server validates the token
+        // signature against.
         if (providerType === 'stepfun') {
-          const hasOasisToken = collectedTokens['Oasis-Token']
-          const hasWebId = collectedTokens.web_id
+          const hasOasisToken = !!collectedTokens['Oasis-Token']
+          const hasWebId = !!collectedTokens.web_id
+          const hasDeviceId = !!collectedTokens.device_id || !!collectedTokens['Oasis-Webid']
 
-          if (!hasOasisToken || !hasWebId) {
+          if (!hasOasisToken || !hasWebId || !hasDeviceId) {
             console.log('[OAuthManager] Waiting for all StepFun tokens...', {
-              hasOasisToken: !!hasOasisToken,
-              hasWebId: !!hasWebId,
+              hasOasisToken,
+              hasWebId,
+              hasDeviceId,
             })
 
-            // Clear any existing timeout
             if (validationTimeout) {
               clearTimeout(validationTimeout)
             }
 
-            // Wait 500ms for all tokens to be collected
+            // Give the page more time, but do NOT validate with a partial set.
+            // An earlier version called validateAndComplete() unconditionally
+            // after 500ms, so a page that had only written anonymous cookies
+            // was treated as a finished login.
             validationTimeout = setTimeout(() => {
-              console.log('[OAuthManager] Proceeding with StepFun validation, collected tokens:', Object.keys(collectedTokens))
-              validateAndComplete()
-            }, 500)
+              if (hasOasisToken && hasWebId && hasDeviceId) {
+                console.log('[OAuthManager] StepFun tokens all present, validating')
+                validateAndComplete()
+              } else {
+                console.log('[OAuthManager] StepFun login not finished; still missing',
+                  { hasOasisToken, hasWebId, hasDeviceId })
+              }
+            }, 2000)
             return
           }
 

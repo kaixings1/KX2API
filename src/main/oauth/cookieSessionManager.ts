@@ -358,6 +358,58 @@ export class CookieSessionManager extends EventEmitter {
   }
 
   /**
+   * Wipe every trace of a previous login for this provider.
+   *
+   * Both partitions are `persist:` prefixed, so cookies, localStorage and the
+   * IndexedDB behind them survive restarts. That is what made re-login
+   * impossible: the login window reopened holding the old session, the page
+   * finished loading already authenticated, and the flow reported success
+   * before the user could enter a phone number.
+   *
+   * Closing any open window first avoids a live webContents writing the old
+   * cookies straight back after they are cleared.
+   */
+  async clearLogin(providerType: ProviderType): Promise<{ success: boolean; error?: string }> {
+    try {
+      // 1. Tear down the live session and its window, if present.
+      const existing = this.sessions.get(providerType)
+      if (existing) {
+        try {
+          if (existing.window && !existing.window.isDestroyed()) {
+            existing.window.destroy()
+          }
+        } catch (error) {
+          console.error(`[CookieSession] Failed to destroy window for ${providerType}:`, error)
+        }
+        this.sessions.delete(providerType)
+      }
+
+      // 2. Wipe both partitions: the persistent one and the login one.
+      const partitions = [
+        SESSION_PARTITION_PREFIX + providerType,
+        SESSION_PARTITION_PREFIX + providerType + '-login',
+      ]
+
+      for (const partition of partitions) {
+        const ses = session.fromPartition(partition)
+        await ses.clearStorageData()
+        await ses.clearCache()
+        console.log(`[CookieSession] Cleared storage for ${partition}`)
+      }
+
+      // 3. Tell listeners this provider now has no credentials.
+      this.emit('cookie-changed', providerType, {})
+      console.log(`[CookieSession] Login state cleared for ${providerType}`)
+
+      return { success: true }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to clear login state'
+      console.error(`[CookieSession] clearLogin failed for ${providerType}:`, error)
+      return { success: false, error: msg }
+    }
+  }
+
+  /**
    * Open login window for a provider (user-facing)
    */
   async openLoginWindow(providerType: ProviderType): Promise<BrowserWindow | null> {

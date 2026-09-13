@@ -305,80 +305,91 @@ export class InAppLoginManager extends EventEmitter {
   }
 
   private isValidToken(value: string): boolean {
-    console.log('[InAppLogin] Checking token validity:', value.length, value.substring(0, 20))
-    
     if (!value || value.length < 5) {
-      console.log('[InAppLogin] Token rejected: too short or empty')
       return false
     }
-    
-    // Check for JWT format (3 parts) or JWE format (5 parts)
+
+    // StepFun: the Oasis-Token is two base64url JWTs joined by "...". Validate
+    // it properly rather than falling through to the permissive rules below,
+    // which accepted page-chrome cookies like "sidebar_state=false" and made
+    // the window report success seconds after opening, before any login.
+    if (value.includes('...') || (value.startsWith('eyJ') && value.includes('.'))) {
+      return this.validateOasisToken(value)
+    }
+
+    // JWE format (5 parts) - used by Perplexity and some other providers
     if (value.startsWith('eyJ')) {
       const parts = value.split('.')
-      
-      // JWE format (5 parts) - used by Perplexity and some other providers
       if (parts.length === 5) {
-        console.log('[InAppLogin] Token appears to be JWE format (5 parts)')
-        // JWE tokens are encrypted, we can't decode them, but they're valid if properly formatted
-        if (value.length >= 100) {
-          console.log('[InAppLogin] Token accepted as valid JWE')
-          return true
-        }
-        console.log('[InAppLogin] JWE token rejected: too short')
-        return false
+        return value.length >= 100
       }
-      
-      // JWT format (3 parts)
       if (parts.length === 3) {
         try {
           const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString())
-          console.log('[InAppLogin] JWT payload:', payload)
-          
-          // Reject guest accounts
-          if (payload.email && payload.email.includes('@guest.com')) {
-            console.log('[InAppLogin] Token rejected: guest account')
-            return false
-          }
-          
-          if (payload && (payload.app_id || payload.sub || payload.exp || payload.id || payload.user_id || payload.uid || payload.email)) {
-            console.log('[InAppLogin] Token accepted as valid JWT')
-            return true
-          }
+          if (payload.email && payload.email.includes('@guest.com')) return false
+          return !!(payload.app_id || payload.sub || payload.exp || payload.id || payload.user_id || payload.uid || payload.email)
         } catch {
-          console.log('[InAppLogin] Token rejected: invalid JWT')
           return false
         }
       }
     }
-    
-    // Accept long tokens (>= 64 chars) - includes base64 chars like / + and *
-    if (value.length >= 64 && /^[a-zA-Z0-9_\-+/*]+$/.test(value)) {
-      console.log('[InAppLogin] Token accepted as long token')
-      return true
+
+    if (value.length >= 64 && /^[a-zA-Z0-9_\-+/*]+$/.test(value)) return true
+    if (value.length >= 32 && /^[a-zA-Z0-9_\-+/*]+$/.test(value)) return true
+    if (value.length >= 20 && /^[a-zA-Z0-9_\-+/]+=*$/.test(value)) return true
+
+    // Short opaque values (device ids, user ids). Kept, but note this is why
+    // callers must not treat any single match as a completed login on its own.
+    return value.length >= 5 && !/\s/.test(value)
+  }
+
+  /**
+   * Validate a StepFun Oasis-Token.
+   *
+   * The token is `<jwt>...<jwt>`; the first payload carries the account state
+   * (activated, exp, oasis_id) and the second identifies the device (app_id,
+   * device_id, platform).
+   *
+   * Two conditions matter, both learned from the adapter rejecting sessions the
+   * login flow had reported as good:
+   *   - activated must be true. A login page can mint an unactivated token that
+   *     no business endpoint will accept.
+   *   - it must not be expired.
+   */
+  private validateOasisToken(value: string): boolean {
+    const segments = value.includes('...') ? value.split('...') : [value]
+    let sawPayload = false
+    let activated: boolean | null = null
+    let expiresAt: number | null = null
+
+    for (const part of segments) {
+      const bits = part.split('.')
+      if (bits.length < 3) continue
+      try {
+        const payload = JSON.parse(Buffer.from(bits[1], 'base64url').toString('utf-8'))
+        sawPayload = true
+        if (typeof payload.activated === 'boolean') activated = payload.activated
+        if (typeof payload.exp === 'number' && payload.exp > 0) {
+          expiresAt = expiresAt === null ? payload.exp : Math.max(expiresAt, payload.exp)
+        }
+      } catch {
+        // not a JSON payload; keep looking
+      }
     }
-    
-    // Accept medium tokens (32-63 chars) - includes base64 chars and *
-    if (value.length >= 32 && value.length < 64 && /^[a-zA-Z0-9_\-+/*]+$/.test(value)) {
-      console.log('[InAppLogin] Token accepted as medium token')
-      return true
+
+    if (!sawPayload) return false
+
+    if (activated === false) {
+      console.log('[InAppLogin] Oasis-Token rejected: activated=false (login not finished)')
+      return false
     }
-    
-    // Accept Base64-encoded tokens (may contain = padding and /)
-    // This handles tokens like "SME5/AEwvmtjSu4XO18SYg=="
-    if (value.length >= 20 && /^[a-zA-Z0-9_\-+/]+=*$/.test(value)) {
-      console.log('[InAppLogin] Token accepted as Base64 token')
-      return true
+
+    if (expiresAt !== null && expiresAt < Math.floor(Date.now() / 1000)) {
+      console.log('[InAppLogin] Oasis-Token rejected: expired')
+      return false
     }
-    
-    // Accept any token that looks like a valid string (at least 5 chars, no spaces)
-    // This handles short tokens like userId
-    if (value.length >= 5 && !/\s/.test(value)) {
-      console.log('[InAppLogin] Token accepted as generic token')
-      return true
-    }
-    
-    console.log('[InAppLogin] Token rejected: does not match any pattern')
-    return false
+
+    return true
   }
 
   private async checkForTokens(): Promise<void> {
