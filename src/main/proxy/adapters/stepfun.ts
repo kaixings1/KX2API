@@ -121,9 +121,42 @@ interface StoredCookies {
   [name: string]: string
 }
 
+/**
+ * A conversation as returned by capy.agent.v1.AgentService.
+ *
+ * Mirrors the ChatSession message: chat_session_id(1) chat_id(2)
+ * display_name(3) latest_message_id(4) meta(5) state(6) type(7)
+ * chat_client_type(8) class(9) has_unread_image_result(10)
+ * create_time(101) update_time(102).
+ *
+ * Enums:
+ *   State         STATE_UNSPECIFIED, STATE_FAVOR
+ *   Type          TYPE_UNSPECIFIED, TYPE_INCOGNITO
+ *   ChatClientType CHAT_CLIENT_TYPE_UNSPECIFIED, WEB, APP, DESKTOP
+ *   Class         CLASS_UNSPECIFIED, CLASS_STUDIO, CLASS_ARTIFACT, CLASS_KNOWLEDGE_BASE
+ */
+export interface StepFunChatSession {
+  chatSessionId: string
+  chatId: string
+  displayName: string
+  latestMessageId: string
+  state: string
+  type: string
+  chatClientType: string
+  class: string
+  createTime: string
+  updateTime: string
+}
+
 // --- Module-level caches ---
 interface TokenInfo { tokenHash: string; isValid: boolean; checkedAt: number }
-interface SessionInfo { chatSessionId: string; chatId: string; createdAt: number }
+interface SessionInfo {
+  chatSessionId: string
+  chatId: string
+  createdAt: number
+  // Identity that owns this session, so it is not reused across accounts.
+  oasisId?: string
+}
 const tokenValidationCache = new Map<string, TokenInfo>()
 const sessionCache = new Map<string, SessionInfo>()
 const SESSION_TTL_MS = 30 * 60 * 1000
@@ -163,6 +196,18 @@ export class StepFunAdapter {
     console.log('[StepFun][ADAPTER] constructor EXIT, isApiKeyMode=', this.isApiKeyMode, 'hasWebSession=', hasWebSession, 'tokenPrefix=', rawToken ? rawToken.slice(0, 25) : '', 'webId=', this.webId ? this.webId.slice(0, 20) : '')
     if (this.oasisToken && !this.allCookies['Oasis-Token']) {
       this.allCookies['Oasis-Token'] = this.oasisToken
+    }
+
+    // sessionCache is module-level, so it survives across adapter instances.
+    // A fresh adapter with different credentials would otherwise pick up a
+    // session id that belongs to a previously configured account.
+    const incomingOasisId = this.readOasisId()
+    if (incomingOasisId) {
+      for (const [key, info] of Array.from(sessionCache.entries())) {
+        if (info.oasisId && info.oasisId !== incomingOasisId) {
+          sessionCache.delete(key)
+        }
+      }
     }
 
     console.log('[StepFun][DIAG] adapter init, initial tokenPrefix=', this.oasisToken.slice(0, 30), 'webId=', this.webId.slice(0, 20), 'isApiKeyMode=', this.isApiKeyMode)
@@ -255,6 +300,24 @@ export class StepFunAdapter {
     return ''
   }
 
+  /**
+   * Read oasis_id out of the active token. Sessions are scoped to this id, so
+   * it is used to invalidate cached session ids after a credential change.
+   */
+  private readOasisId(): string {
+    for (const part of this.oasisToken.split('...')) {
+      const bits = part.split('.')
+      if (bits.length < 3) continue
+      try {
+        const payload = JSON.parse(Buffer.from(bits[1], 'base64url').toString('utf-8'))
+        if (payload?.oasis_id) return String(payload.oasis_id)
+      } catch {
+        // not a JSON payload
+      }
+    }
+    return ''
+  }
+
   private async acquireToken(): Promise<string> {
     if (!this.oasisToken) throw new Error('StepFun token not configured')
     if (this.isApiKeyMode) return this.oasisToken
@@ -329,12 +392,23 @@ export class StepFunAdapter {
   private getCachedSession(key: string): SessionInfo | null {
     const cached = sessionCache.get(key)
     if (!cached) return null
-    if (Date.now() - cached.createdAt > SESSION_TTL_MS) { sessionCache.delete(key); return null }
+    if (Date.now() - cached.createdAt > SESSION_TTL_MS) {
+      sessionCache.delete(key)
+      return null
+    }
+    // A session id belongs to the account that created it. Reusing one after
+    // the credentials change makes the server answer "chat session not found",
+    // so treat a different identity as a cache miss.
+    if (cached.oasisId && cached.oasisId !== this.readOasisId()) {
+      console.log('[StepFun][SESSION] cached session belongs to another account, discarding')
+      sessionCache.delete(key)
+      return null
+    }
     return cached
   }
 
   private setCachedSession(key: string, sessionInfo: SessionInfo): void {
-    sessionCache.set(key, { ...sessionInfo, createdAt: Date.now() })
+    sessionCache.set(key, { ...sessionInfo, oasisId: this.readOasisId(), createdAt: Date.now() })
   }
 
   private clearSessionCache(): void {
@@ -343,8 +417,60 @@ export class StepFunAdapter {
     this.chatId = null
   }
 
-  async deleteSession(sessionId: string): Promise<boolean> { return true }
-  async deleteAllChats(): Promise<boolean> { this.clearSessionCache(); return true }
+  /**
+   * Create a conversation and return its id.
+   *
+   * Public entry for the management API; createChatSession stays private
+   * because it is also called internally when a stream needs a fresh session.
+   */
+  async createSession(options: { type?: string; scene?: string; studioId?: string } = {}): Promise<string> {
+    await this.acquireToken()
+    const headers = this.buildHeaders()
+    const id = await this.createChatSession(headers, options)
+    if (!id) throw new Error('CreateChatSession did not return a session id')
+    return id
+  }
+
+  async deleteSession(sessionId: string): Promise<boolean> {
+    return this.deleteChatSessions([sessionId])
+  }
+
+  /**
+   * Delete every stored conversation for this account.
+   *
+   * Pages through ListChatSessions and deletes in batches; the API takes an
+   * array so a single call covers a whole page.
+   */
+  async deleteAllChats(): Promise<boolean> {
+    const collected: string[] = []
+    let pageToken = ''
+
+    for (let page = 0; page < 50; page++) {
+      const opts: { pageSize: number; pageToken?: string } = { pageSize: 100 }
+      if (pageToken) opts.pageToken = pageToken
+      const { sessions, nextPageToken } = await this.listChatSessions(opts)
+      for (const s of sessions) {
+        if (s.chatSessionId) collected.push(s.chatSessionId)
+      }
+      if (!nextPageToken) break
+      pageToken = nextPageToken
+    }
+
+    if (collected.length === 0) {
+      this.clearSessionCache()
+      return true
+    }
+
+    let ok = true
+    for (let i = 0; i < collected.length; i += 100) {
+      const batch = collected.slice(i, i + 100)
+      if (!(await this.deleteChatSessions(batch))) ok = false
+    }
+
+    this.clearSessionCache()
+    console.log('[StepFun][API] deleteAllChats, deleted=', collected.length, 'ok=', ok)
+    return ok
+  }
 
   private buildHeaders(): Record<string, string> {
     console.log('[StepFun][ADAPTER] buildHeaders ENTRY, isApiKeyMode=', this.isApiKeyMode)
@@ -849,7 +975,10 @@ export class StepFunAdapter {
     })
   }
 
-  private async chatCompletionConnect(request: ChatCompletionRequest, sessionId?: string): Promise<{ success: boolean; status?: number; stream?: Readable; body?: any; headers?: Record<string, string>; error?: string }> {
+  private async chatCompletionConnect(
+    request: ChatCompletionRequest,
+    sessionId?: string,
+  ): Promise<{ success: boolean; status?: number; stream?: Readable; body?: any; headers?: Record<string, string>; error?: string }> {
     console.log('[StepFun][CONNECT] chatCompletionConnect ENTRY, model=', request.model)
 
     await this.acquireToken()
@@ -864,7 +993,6 @@ export class StepFunAdapter {
     this.currentSessionKey = sessionKey
     const cachedSession = !this.isApiKeyMode ? this.getCachedSession(sessionKey) : null
     let useChatSessionId: string | null = cachedSession?.chatSessionId || this.chatSessionId
-    let useChatId: string | null = cachedSession?.chatId || this.chatId
 
     // Tracks whether we already owned a session before this call, which decides
     // whether Referer points at /chats/new or /chats/<id>.
@@ -875,12 +1003,22 @@ export class StepFunAdapter {
     // permission_denied / need sign in. The web client always calls
     // CreateChatSession first and echoes the returned id, so do the same
     // whenever we do not already hold a server-issued session.
+    // A cached id can go stale server-side (expired, or the conversation was
+    // deleted). ChatStream only reports that as an in-band error frame after
+    // the stream has already been handed to the caller, which is too late to
+    // retry. Verify the id first and create a replacement when it is gone.
+    if (useChatSessionId && !(await this.chatSessionExists(useChatSessionId, headers))) {
+      console.log('[StepFun][CONNECT] cached session is gone, requesting a new one')
+      useChatSessionId = null
+      this.chatSessionId = null
+      sessionCache.delete(sessionKey)
+    }
+
     if (!useChatSessionId) {
+      // createChatSession seeds the cache itself, keyed on currentSessionKey.
       const created = await this.createChatSession(headers)
       if (created) {
         useChatSessionId = created
-        this.chatSessionId = created
-        this.setCachedSession(sessionKey, { chatSessionId: created, chatId: useChatId || '', createdAt: Date.now() })
         console.log('[StepFun][CONNECT] created chat session:', created)
       } else {
         console.error('[StepFun][CONNECT] CreateChatSession failed; ChatStream will likely be rejected')
@@ -1082,22 +1220,29 @@ export class StepFunAdapter {
   }
 
   /**
-   * Create a chat session and return the server-issued session id.
+   * Call a unary method on capy.agent.v1.AgentService.
    *
-   * The web client calls this before the first message of a new conversation
-   * and copies the returned id into message.chatSessionId. Skipping it makes
-   * ChatStream fail with permission_denied / need sign in because the id does
-   * not belong to any session owned by this account.
+   * These endpoints speak Connect over JSON: POST with content-type
+   * application/json, a camelCase JSON body, and the same Cookie and oasis-*
+   * headers ChatStream uses. Verified against a live capture and against the
+   * protobuf schema extracted from the web bundle.
    *
-   * Request shape verified by CDP capture: POST with content-type
-   * application/json, an empty JSON object body, and Referer /chats/new.
+   * Returns the parsed body, or null on any transport or HTTP failure. Pass
+   * tolerate[status] = true to treat a specific status as a valid result
+   * (GetChatSessionByID answers 404 for a session that no longer exists).
    */
-  private async createChatSession(headers: Record<string, string>): Promise<string | null> {
-    const url = 'https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/CreateChatSession'
+  private async callAgentService(
+    method: string,
+    body: Record<string, any>,
+    headers: Record<string, string>,
+    opts: { timeoutMs?: number; tolerate?: number[]; referer?: string } = {},
+  ): Promise<{ status: number; data: any; text: string } | null> {
+    const url = `${WEB_PROXY_ENDPOINT.replace(/\/AgentService\/.*$/, '/AgentService')}/${method}`
+    const tolerate = new Set(opts.tolerate || [])
 
     return new Promise((resolve) => {
       let settled = false
-      const done = (value: string | null) => {
+      const done = (value: { status: number; data: any; text: string } | null) => {
         if (settled) return
         settled = true
         resolve(value)
@@ -1105,12 +1250,14 @@ export class StepFunAdapter {
 
       const request_ = net.request({ method: 'POST', url })
       for (const [key, value] of Object.entries(headers)) {
-        // The create call is plain JSON, not a Connect stream.
+        // These calls are plain JSON, not Connect streams.
         if (key.toLowerCase() === 'content-type') continue
         request_.setHeader(key, value)
       }
       request_.setHeader('content-type', 'application/json')
-      request_.setHeader('Referer', 'https://chat.stepfun.com/chats/new')
+      if (opts.referer) {
+        request_.setHeader('Referer', opts.referer)
+      }
 
       request_.on('response', (response) => {
         const statusCode = response.statusCode || 0
@@ -1118,45 +1265,258 @@ export class StepFunAdapter {
         response.on('data', (chunk: Buffer) => chunks.push(chunk))
         response.on('end', () => {
           const text = Buffer.concat(chunks).toString('utf-8')
-          if (statusCode < 200 || statusCode >= 300) {
-            console.error('[StepFun][CONNECT] CreateChatSession HTTP', statusCode, text.slice(0, 300))
+          if ((statusCode < 200 || statusCode >= 300) && !tolerate.has(statusCode)) {
+            console.error(`[StepFun][API] ${method} HTTP`, statusCode, text.slice(0, 300))
             return done(null)
           }
-          const id = this.extractSessionId(text)
-          if (!id) {
-            console.error('[StepFun][CONNECT] CreateChatSession returned no session id:', text.slice(0, 300))
+          let data: any = null
+          try {
+            data = text.trim() ? JSON.parse(text) : {}
+          } catch {
+            data = { raw: text.slice(0, 400) }
           }
-          done(id)
+          done({ status: statusCode, data, text })
         })
         response.on('error', (error) => {
-          console.error('[StepFun][CONNECT] CreateChatSession response error:', error)
+          console.error(`[StepFun][API] ${method} response error:`, error)
           done(null)
         })
       })
 
       request_.on('error', (error) => {
-        console.error('[StepFun][CONNECT] CreateChatSession request error:', error)
+        console.error(`[StepFun][API] ${method} request error:`, error)
         done(null)
       })
 
       const timeout = setTimeout(() => {
-        console.error('[StepFun][CONNECT] CreateChatSession timed out')
+        console.error(`[StepFun][API] ${method} timed out`)
         ;(request_ as any).destroy()
         done(null)
-      }, 15000)
-
+      }, opts.timeoutMs ?? 15000)
       request_.on('response', () => clearTimeout(timeout))
       request_.on('error', () => clearTimeout(timeout))
 
       try {
-        request_.write(JSON.stringify({}), 'utf-8')
+        request_.write(JSON.stringify(body), 'utf-8')
         request_.end()
       } catch (writeError) {
-        console.error('[StepFun][CONNECT] CreateChatSession write failed:', writeError)
+        console.error(`[StepFun][API] ${method} write failed:`, writeError)
         clearTimeout(timeout)
         done(null)
       }
     })
+  }
+
+  /**
+   * Create a chat session and return the server-issued session object.
+   *
+   * The web client calls this before the first message of a new conversation
+   * and copies the returned id into message.chatSessionId. Skipping it makes
+   * ChatStream fail with permission_denied / need sign in because the id does
+   * not belong to any session owned by this account.
+   *
+   * CreateChatSessionRequest: scene(1) share_id(2) type(3) studio_id(4)
+   * class(5) artifact_project_params(6) doc_ids(7) file_ids(8) vip_case(9)
+   */
+  private async createChatSession(
+    headers: Record<string, string>,
+    options: { type?: string; scene?: string; studioId?: string } = {},
+  ): Promise<string | null> {
+    const body: Record<string, any> = {}
+    if (options.type) body.type = options.type
+    if (options.scene) body.scene = options.scene
+    if (options.studioId) body.studioId = options.studioId
+
+    const res = await this.callAgentService('CreateChatSession', body, headers, {
+      referer: 'https://chat.stepfun.com/chats/new',
+    })
+    if (!res) return null
+
+    const session = res.data?.chatSession
+    const id = session?.chatSessionId
+    if (!id) {
+      console.error('[StepFun][API] CreateChatSession returned no session id:', res.text.slice(0, 300))
+      return null
+    }
+
+    // Seed the cache so the id is reused for follow-up turns.
+    const useChatId = session?.chatId || ''
+    this.chatSessionId = id
+    this.setCachedSession(this.currentSessionKey || this.account.id, {
+      chatSessionId: id,
+      chatId: useChatId,
+      createdAt: Date.now(),
+    })
+    return id
+  }
+
+  /**
+   * Check whether a chat session id is still known to the server.
+   *
+   * Used to avoid sending ChatStream with a stale id: the server reports that
+   * case as an in-band error frame ("chat session not found") after the stream
+   * has already been returned, leaving no chance to retry. Any transport
+   * failure is treated as "assume it exists" so a flaky probe never discards a
+   * perfectly good session.
+   */
+  private async chatSessionExists(sessionId: string, headers: Record<string, string>): Promise<boolean> {
+    const res = await this.callAgentService('GetChatSessionByID', { sessionId }, headers, {
+      timeoutMs: 10000,
+      tolerate: [404],
+    })
+    if (!res) return true
+    if (res.status === 404) return false
+    if (res.data?.chatSession?.chatSessionId) return true
+    // A well-formed 200 without a session means the id no longer resolves.
+    if (res.status >= 200 && res.status < 300 && res.text.includes('chatSession')) return true
+    return res.status >= 500
+  }
+
+  /**
+   * List chat sessions, newest first.
+   *
+   * ListChatSessionsRequest: page_size(1) page_token(2) state(3) client_types(4)
+   * State is STATE_UNSPECIFIED (history) or STATE_FAVOR (starred).
+   */
+  async listChatSessions(options: {
+    pageSize?: number
+    pageToken?: string
+    favorites?: boolean
+  } = {}): Promise<{ sessions: StepFunChatSession[]; nextPageToken: string }> {
+    await this.acquireToken()
+    const headers = this.buildHeaders()
+
+    const body: Record<string, any> = { pageSize: options.pageSize ?? 50 }
+    if (options.pageToken) body.pageToken = options.pageToken
+    if (options.favorites) body.state = 'STATE_FAVOR'
+
+    const res = await this.callAgentService('ListChatSessions', body, headers, {
+      referer: 'https://chat.stepfun.com/',
+    })
+    if (!res) return { sessions: [], nextPageToken: '' }
+
+    const sessions = Array.isArray(res.data?.chatSessions) ? res.data.chatSessions : []
+    return {
+      sessions: sessions.map((s: any) => this.normalizeSession(s)),
+      nextPageToken: res.data?.nextPageToken || '',
+    }
+  }
+
+  /**
+   * Fetch a single chat session by id.
+   * GetChatSessionByIDRequest: session_id(1)
+   */
+  async getChatSession(sessionId: string): Promise<StepFunChatSession | null> {
+    await this.acquireToken()
+    const headers = this.buildHeaders()
+
+    const res = await this.callAgentService('GetChatSessionByID', { sessionId }, headers, {
+      tolerate: [404],
+      referer: 'https://chat.stepfun.com/',
+    })
+    if (!res || res.status === 404) return null
+    const session = res.data?.chatSession
+    return session ? this.normalizeSession(session) : null
+  }
+
+  /**
+   * Delete one or more chat sessions.
+   * DeleteChatSessionRequest: chat_session_ids(1, repeated)
+   */
+  async deleteChatSessions(sessionIds: string[]): Promise<boolean> {
+    if (sessionIds.length === 0) return true
+    await this.acquireToken()
+    const headers = this.buildHeaders()
+
+    const res = await this.callAgentService('DeleteChatSession', { chatSessionIds: sessionIds }, headers, {
+      referer: 'https://chat.stepfun.com/',
+    })
+    if (!res) return false
+
+    // Drop any cached id that was just deleted, otherwise the next turn would
+    // send ChatStream with a session the server no longer knows.
+    for (const id of sessionIds) {
+      if (this.chatSessionId === id) this.chatSessionId = null
+      for (const [key, info] of Array.from(sessionCache.entries())) {
+        if (info.chatSessionId === id) sessionCache.delete(key)
+      }
+    }
+    return true
+  }
+
+  /**
+   * Rename a chat session.
+   * UpdateChatSessionRequest wraps a full ChatSession: set chat_session_id and
+   * display_name on a partial object and the server updates just those fields.
+   */
+  async updateChatSession(sessionId: string, displayName: string): Promise<boolean> {
+    await this.acquireToken()
+    const headers = this.buildHeaders()
+
+    const res = await this.callAgentService(
+      'UpdateChatSession',
+      { chatSession: { chatSessionId: sessionId, displayName } },
+      headers,
+      { referer: `https://chat.stepfun.com/chats/${sessionId}` },
+    )
+    if (!res) return false
+
+    for (const [key, info] of Array.from(sessionCache.entries())) {
+      if (info.chatSessionId === sessionId) sessionCache.delete(key)
+    }
+    return true
+  }
+
+  /**
+   * Star or unstar a session.
+   * FavorChatSessionRequest: chat_session_id(1) state(2)
+   */
+  async favorChatSession(sessionId: string, favorite: boolean): Promise<boolean> {
+    await this.acquireToken()
+    const headers = this.buildHeaders()
+
+    const res = await this.callAgentService(
+      'FavorChatSession',
+      { chatSessionId: sessionId, state: favorite ? 'STATE_FAVOR' : 'STATE_UNSPECIFIED' },
+      headers,
+      { referer: `https://chat.stepfun.com/chats/${sessionId}` },
+    )
+    return !!res
+  }
+
+  /**
+   * Search chat sessions by text.
+   * SearchChatSessionsRequest: query(1) state(2) client_types(3)
+   */
+  async searchChatSessions(query: string): Promise<StepFunChatSession[]> {
+    await this.acquireToken()
+    const headers = this.buildHeaders()
+
+    const res = await this.callAgentService('SearchChatSessions', { query }, headers, {
+      referer: 'https://chat.stepfun.com/',
+    })
+    if (!res) return []
+    const sessions = Array.isArray(res.data?.chatSessions) ? res.data.chatSessions : []
+    return sessions.map((s: any) => this.normalizeSession(s))
+  }
+
+  /**
+   * Convert a wire ChatSession into the shape used by the app.
+   * Field names follow capy.agent.v1.ChatSession.
+   */
+  private normalizeSession(raw: any): StepFunChatSession {
+    return {
+      chatSessionId: String(raw?.chatSessionId || ''),
+      chatId: String(raw?.chatId || ''),
+      displayName: String(raw?.displayName || ''),
+      latestMessageId: String(raw?.latestMessageId || ''),
+      state: raw?.state || 'STATE_UNSPECIFIED',
+      type: raw?.type || 'TYPE_UNSPECIFIED',
+      chatClientType: raw?.chatClientType || 'CHAT_CLIENT_TYPE_UNSPECIFIED',
+      class: raw?.class || 'CLASS_UNSPECIFIED',
+      createTime: raw?.createTime || '',
+      updateTime: raw?.updateTime || '',
+    }
   }
 
   /**
