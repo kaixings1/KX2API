@@ -227,6 +227,7 @@ export const IpcChannels = {
   MCP_GET_CONFIG: 'mcp:getConfig',
   MCP_UPDATE_CONFIG: 'mcp:updateConfig',
   MCP_GET_SERVERS: 'mcp:getServers',
+  MCP_GET_SERVER_BY_ID: 'mcp:getServerById',
   MCP_ADD_SERVER: 'mcp:addServer',
   MCP_REMOVE_SERVER: 'mcp:removeServer',
   MCP_TEST_CONNECTION: 'mcp:testConnection',
@@ -241,6 +242,7 @@ export const IpcChannels = {
   PLUGINS_ENABLE: 'plugins:enable',
   PLUGINS_DISABLE: 'plugins:disable',
   PLUGINS_UPDATE: 'plugins:update',
+  PLUGINS_GET_BY_ID: 'plugins:getById',
 
   // ==================== Other Config ====================
   OTHER_CONFIG_GET: 'otherConfig:get',
@@ -267,6 +269,15 @@ export const IpcChannels = {
   TOOLS_REMOVE_HINT_RULE: 'tools:removeHintRule',
   TOOLS_MATCH_HINTS: 'tools:matchHints',
   TOOLS_RESET: 'tools:reset',
+  TOOLS_GET_BY_ID: 'tools:getById',
+
+  // Generic management import/export
+  MGMT_EXPORT: 'mgmt:export',
+  MGMT_IMPORT: 'mgmt:import',
+  MGMT_BACKUP: 'mgmt:backup',
+  MGMT_RESTORE: 'mgmt:restore',
+  MGMT_GET_ALL_BACKUPS: 'mgmt:getBackups',
+  MGMT_DELETE_BACKUP: 'mgmt:deleteBackup',
 } as const
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels]

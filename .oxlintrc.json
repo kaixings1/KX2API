@@ -1,0 +1,40 @@
+{
+  "plugins": ["typescript", "react", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn",
+    "style": "warn",
+    "pedantic": "warn"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "out/",
+    "dist/",
+    "build/",
+    "release/",
+    "tests/",
+    "**/*.d.ts",
+    "project/**"
+  ],
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "react/jsx-max-depth": "off",
+    "react/no-array-index-key": "warn",
+    "react/set-state-in-effect": "off",
+    "react/function-component-definition": "off",
+    "import/prefer-default-export": "off",
+    "import/no-named-export": "off",
+    "import/max-dependencies": "off",
+    "import/exports-last": "off",
+    "eslint/func-style": "off",
+    "eslint/no-ternary": "off",
+    "eslint/no-magic-numbers": "off",
+    "eslint/id-length": "off",
+    "eslint/one-var": "off",
+    "eslint/curly": "off",
+    "eslint/max-statements": "off",
+    "eslint/sort-keys": "off",
+    "eslint/no-unused-expressions": "off"
+  }
+}

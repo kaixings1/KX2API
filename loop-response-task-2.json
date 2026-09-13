@@ -1,0 +1,3 @@
+{
+  "output": "```bash\nmkdir -p tool_extractor/{config,src,tests}\n```"
+}

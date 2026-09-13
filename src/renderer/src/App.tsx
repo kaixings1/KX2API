@@ -10,12 +10,18 @@ import PlanManagement from '@/pages/PlanManagement/PlanManagementPage'
 import TaskManagement from '@/pages/TaskManagement/TaskManagementPage'
 import GitManagement from '@/pages/GitManagement/GitManagementPage'
 import AgentManagement from '@/pages/AgentManagement/AgentManagementPage'
+import AgentDetailPage from '@/pages/AgentManagement/AgentDetailPage'
 import CommandManagement from '@/pages/CommandManagement/CommandManagementPage'
 import WorkflowManagement from '@/pages/WorkflowManagement/WorkflowManagementPage'
+import WorkflowDetailPage from '@/pages/WorkflowManagement/WorkflowDetailPage'
 import McpManagement from '@/pages/McpManagement/McpManagementPage'
+import McpServerDetailPage from '@/pages/McpManagement/McpServerDetailPage'
 import PluginManagement from '@/pages/PluginManagement/PluginManagementPage'
+import PluginDetailPage from '@/pages/PluginManagement/PluginDetailPage'
 import OtherConfig from '@/pages/OtherConfig/OtherConfigPage'
 import ToolManagement from '@/pages/ToolManagement/ToolManagementPage'
+import ToolDetailPage from '@/pages/ToolManagement/ToolDetailPage'
+import PlanDetailPage from '@/pages/PlanManagement/PlanDetailPage'
 
 const Providers = lazy(() => import('@/pages/Providers').then(m => ({ default: m.Providers })))
 const ProxySettings = lazy(() => import('@/pages/ProxySettings').then(m => ({ default: m.ProxySettings })))
@@ -54,10 +60,14 @@ function App() {
           <Route path="/tasks" element={<Suspense fallback={<PageLoader />}><TaskManagement /></Suspense>} />
           <Route path="/git" element={<Suspense fallback={<PageLoader />}><GitManagement /></Suspense>} />
           <Route path="/agents" element={<Suspense fallback={<PageLoader />}><AgentManagement /></Suspense>} />
+          <Route path="/agents/:id" element={<Suspense fallback={<PageLoader />}><AgentDetailPage /></Suspense>} />
           <Route path="/commands" element={<Suspense fallback={<PageLoader />}><CommandManagement /></Suspense>} />
           <Route path="/workflows" element={<Suspense fallback={<PageLoader />}><WorkflowManagement /></Suspense>} />
+          <Route path="/workflows/:id" element={<Suspense fallback={<PageLoader />}><WorkflowDetailPage /></Suspense>} />
           <Route path="/mcp" element={<Suspense fallback={<PageLoader />}><McpManagement /></Suspense>} />
+          <Route path="/mcp/:id" element={<Suspense fallback={<PageLoader />}><McpServerDetailPage /></Suspense>} />
           <Route path="/plugins" element={<Suspense fallback={<PageLoader />}><PluginManagement /></Suspense>} />
+          <Route path="/plugins/:id" element={<Suspense fallback={<PageLoader />}><PluginDetailPage /></Suspense>} />
           <Route path="/proxy" element={<Suspense fallback={<PageLoader />}><ProxySettings /></Suspense>} />
           <Route path="/models" element={<Suspense fallback={<PageLoader />}><Models /></Suspense>} />
           <Route path="/api-keys" element={<Suspense fallback={<PageLoader />}><ApiKeys /></Suspense>} />
@@ -67,6 +77,9 @@ function App() {
           <Route path="/profiles" element={<Suspense fallback={<PageLoader />}><Profiles /></Suspense>} />
           <Route path="/other-config" element={<Suspense fallback={<PageLoader />}><OtherConfig /></Suspense>} />
           <Route path="/tools" element={<Suspense fallback={<PageLoader />}><ToolManagement /></Suspense>} />
+          <Route path="/tools/:id" element={<Suspense fallback={<PageLoader />}><ToolDetailPage /></Suspense>} />
+          <Route path="/plans" element={<Suspense fallback={<PageLoader />}><PlanManagement /></Suspense>} />
+          <Route path="/plans/:id" element={<Suspense fallback={<PageLoader />}><PlanDetailPage /></Suspense>} />
           <Route path="/team" element={<Suspense fallback={<PageLoader />}><TeamTask /></Suspense>} />
           <Route path="/about" element={<Suspense fallback={<PageLoader />}><About /></Suspense>} />
         </Route>

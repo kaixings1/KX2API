@@ -1,0 +1,440 @@
+{
+  "page_url": "https://chat.stepfun.com/chats/287965097367240704",
+  "cookies": {
+    "INGRESSCOOKIE": "1789283654.195.7133.850262|6dddace56d2f031536c7d069dc23901c",
+    "WS-AFFINITY": "1789292044.757.6899.61286|1c61397e53fe2e0a82a69cacb306ef22",
+    "i18next": "zh",
+    "Oasis-Webid": "0d1595c5e16cb2154f2a92a5ff7db6804ff80657",
+    "sidebar_state": "false",
+    "Oasis-Token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY3RpdmF0ZWQiOnRydWUsImFnZSI6MywiYmFuZWQiOmZhbHNlLCJjcmVhdGVfYXQiOjE3ODkyOTIwNDEsImV4cCI6MTc4OTI5Mzg0MSwibW9kZSI6Miwib2FzaXNfaWQiOjM4ODU3NzMzNDA0MTc1MTU1Miwib3JnYW5pemF0aW9uX2lkIjowLCJyb2xlX2luX29yZ2FuaXphdGlvbiI6MCwidmVyc2lvbiI6M30.JSnWCzyK5xbzOq-_rpvq2biH-VCKW5e6Jlk6vNk_jH0...eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOjEwMjAwLCJkZXZpY2VfaWQiOiIwZDE1OTVjNWUxNmNiMjE1NGYyYTkyYTVmZjdkYjY4MDRmZjgwNjU3IiwiZXhwIjoxNzkxODc1NDE4LCJvYXNpc19pZCI6Mzg4NTc3MzM0MDQxNzUxNTUyLCJvYXNpc19yX2F0IjoxNzg0MDk3MzQzLCJwbGF0Zm9ybSI6IndlYiIsInZlcnNpb24iOjN9.F0bYdyJMVaeo4QjO87f5xf9uxIBcL8mZFRg66Q2cVqA"
+  },
+  "localStorage": {
+    "device-storage": "{\"state\":{\"deviceId\":\"0d1595c5e16cb2154f2a92a5ff7db6804ff80657\",\"tokenExpireAt\":1789293750942,\"authMode\":2},\"version\":0}",
+    "__tea_cache_refer_20002086": "{\"refer_key\":\"\",\"refer_title\":\"问候对话 | 阶跃AI\",\"refer_manual_key\":\"\",\"routeChange\":false}",
+    "tokenExpireAt": "1789285053768",
+    "APMPLUS619121": "JTdCJTIydXNlcklkJTIyOiUyMjVmMGMyYTljLTg1MmItNDk1ZC05ZDk4LTE0MTIyMTc4OTRmNSUyMiwlMjJkZXZpY2VJZCUyMjolMjJjZWYxNmIxNC03NjA5LTRjMmMtYmEwOC0xMDAwYjFjOGFmMTglMjIsJTIyciUyMjowLjIzMDk3MDQ3NzQ2NTA4NDI2LCUyMmV4cGlyZXMlMjI6MTc5NzA1OTY1MjY0MyU3RA==",
+    "APMPLUS__cache__server__config__619121": "{\"sample\":{\"sample_rate\":1,\"include_users\":[],\"sample_granularity\":\"session\",\"rules\":[{\"name\":\"js_error\",\"enable\":true,\"sample_rate\":1,\"conditional_sample_rules\":[]},{\"name\":\"http\",\"enable\":true,\"sample_rate\":0.1,\"conditional_sample_rules\":[]},{\"name\":\"performance\",\"enable\":true,\"sample_rate\":0.1,\"conditional_sample_rules\":[]},{\"name\":\"resource_error\",\"enable\":true,\"sample_rate\":1,\"conditional_sample_rules\":[]},{\"name\":\"resource\",\"enable\":true,\"sample_rate\":0.1,\"conditional_sample_rules\":[]},{\"name\":\"custom\",\"enable\":true,\"sample_rate\":1,\"conditional_sample_rules\":[]},{\"name\":\"performance_timing\",\"enable\":true,\"sample_rate\":0.1,\"conditional_sample_rules\":[]},{\"name\":\"performance_longtask\",\"enable\":true,\"sample_rate\":0.01,\"conditional_sample_rules\":[]},{\"name\":\"pageview\",\"enable\":true,\"sample_rate\":1,\"conditional_sample_rules\":[]},{\"name\":\"action\",\"enable\":true,\"sample_rate\":0.01,\"conditional_sample_rules\":[]},{\"name\":\"blank_screen\",\"enable\":true,\"sample_rate\":1,\"conditional_sample_rules\":[]}]},\"status\":0,\"timestamp\":1789283653322}",
+    "__tea_cache_tokens_20002086": "{\"web_id\":\"7684913445757549322\",\"user_unique_id\":\"388577334041751552\",\"timestamp\":1789283652487,\"_type_\":\"default\"}",
+    "i18nextLng": "zh",
+    "model-config-storage": "{\"state\":{\"modelList\":[{\"model\":\"step3.7-flash\",\"displayName\":\"Step 3.7 Flash\",\"tags\":[\"深度思考\"],\"modelFeatures\":[{\"feature\":\"reasoning\",\"displayName\":\"深度思考\",\"index\":9}],\"description\":\"全面领先的推理和代理能力\",\"userInputLimit\":50000,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"deepseek-r1\",\"displayName\":\"DeepSeek R1\",\"tags\":[\"深度思考\"],\"modelFeatures\":[{\"feature\":\"reasoning\",\"displayName\":\"深度思考\",\"index\":1}],\"description\":\"擅长深度思考和推理\",\"userInputLimit\":0,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"step2\",\"displayName\":\"Step 系列模型\",\"tags\":[],\"modelFeatures\":[],\"description\":\"万亿参数MoE大模型，更智能、更聪明\",\"userInputLimit\":20000,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"step-r1-v-mini\",\"displayName\":\"Step R1-V-Mini\",\"tags\":[\"深度思考\"],\"modelFeatures\":[{\"feature\":\"reasoning\",\"displayName\":\"深度思考\",\"index\":9}],\"description\":\"擅长深度思考和推理\",\"userInputLimit\":40000,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"studio-step-r1-v-mini\",\"displayName\":\"Step R1-V-Mini\",\"tags\":[\"深度思考\"],\"modelFeatures\":[{\"feature\":\"reasoning\",\"displayName\":\"深度思考\",\"index\":9}],\"description\":\"擅长深度思考和推理\",\"userInputLimit\":40000,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"step3.5-flash\",\"displayName\":\"Step 3.5 Flash\",\"tags\":[\"深度思考\"],\"modelFeatures\":[{\"feature\":\"reasoning\",\"displayName\":\"深度思考\",\"index\":9}],\"description\":\"全面领先的推理和代理能力\",\"userInputLimit\":50000,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"step3\",\"displayName\":\"\",\"tags\":[\"深度思考\"],\"modelFeatures\":[{\"feature\":\"reasoning\",\"displayName\":\"深度思考\",\"index\":9}],\"description\":\"Step系列全新多模态推理模型\",\"userInputLimit\":50000,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"studio-step2-creation\",\"displayName\":\"Step-2 Literary Master\",\"tags\":[],\"modelFeatures\":[],\"description\":\"\",\"userInputLimit\":0,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"studio-dialogue-reason\",\"displayName\":\"Dialogue Reason\",\"tags\":[],\"modelFeatures\":[],\"description\":\"\",\"userInputLimit\":0,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"Diligence Check\",\"displayName\":\"深入核查\",\"tags\":[],\"modelFeatures\":[],\"description\":\"\",\"userInputLimit\":0,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"image-reason\",\"displayName\":\"\",\"tags\":[],\"modelFeatures\":[],\"description\":\"\",\"userInputLimit\":0,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}},{\"model\":\"step-video\",\"displayName\":\"Step-Video\",\"tags\":[],\"modelFeatures\":[],\"description\":\"\",\"userInputLimit\":0,\"availability\":{\"available\":true,\"reason\":\"REASON_UNSPECIFIED\"}}],\"currentModel\":{\"model\":\"step-auto\",\"displayName\":\"快速\",\"tags\":[],\"modelFeatures\":[],\"description\":\"多模态极速推理模型\",\"userInputLimit\":0},\"enableSearch\":false,\"enableReasoning\":true,\"enableDeepResearch\":false,\"enableArtifactAgent\":false,\"artifactTemplate\":\"html\",\"autoUpdateStep3ForPersist\":true,\"stepModelPopupGatePassed\":true,\"extraLog\":{}},\"version\":0}",
+    "research-source-storage": "{\"state\":{\"source\":{\"connectors\":[{\"code\":\"finance_report\",\"name\":\"商业报告\",\"description\":\"财经动态、市场研究\",\"iconUrl\":\"<svg width=\\\"16\\\" height=\\\"16\\\" viewBox=\\\"0 0 16 16\\\" fill=\\\"none\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"> <path fill-rule=\\\"evenodd\\\" clip-rule=\\\"evenodd\\\" d=\\\"M8.00008 2.16666C4.77842 2.16666 2.16675 4.77833 2.16675 7.99999C2.16675 11.2217 4.77842 13.8333 8.00008 13.8333C11.2217 13.8333 13.8334 11.2217 13.8334 7.99999C13.8334 4.77833 11.2217 2.16666 8.00008 2.16666ZM1.16675 7.99999C1.16675 4.22604 4.22614 1.16666 8.00008 1.16666C11.774 1.16666 14.8334 4.22604 14.8334 7.99999C14.8334 11.7739 11.774 14.8333 8.00008 14.8333C4.22614 14.8333 1.16675 11.7739 1.16675 7.99999Z\\\" fill=\\\"#222222\\\"/> <path d=\\\"M4.83325 6.66668C4.83325 5.65415 5.65406 4.83334 6.66659 4.83334H9.99992C10.2761 4.83334 10.4999 5.0572 10.4999 5.33334C10.4999 5.60949 10.2761 5.83334 9.99992 5.83334H6.66659C6.20635 5.83334 5.83325 6.20644 5.83325 6.66668C5.83325 7.12691 6.20635 7.50001 6.66659 7.50001H8.99992C9.27606 7.50001 9.49992 7.72387 9.49992 8.00001C9.49992 8.27615 9.27606 8.50001 8.99992 8.50001H6.66659C5.65406 8.50001 4.83325 7.6792 4.83325 6.66668Z\\\" fill=\\\"#222222\\\"/> <path d=\\\"M11.1667 9.33332C11.1667 10.3458 10.3459 11.1667 9.33341 11.1667H6.00008C5.72394 11.1667 5.50008 10.9428 5.50008 10.6667C5.50008 10.3905 5.72394 10.1667 6.00008 10.1667H9.33341C9.79365 10.1667 10.1667 9.79356 10.1667 9.33332C10.1667 8.87309 9.79365 8.49999 9.33341 8.49999H7.00008C6.72394 8.49999 6.50008 8.27613 6.50008 7.99999C6.50008 7.72385 6.72394 7.49999 7.00008 7.49999H9.33341C10.3459 7.49999 11.1667 8.3208 11.1667 9.33332Z\\\" fill=\\\"#222222\\\"/> <path d=\\\"M7.5 5.33333L7.5 4C7.5 3.72386 7.72386 3.5 8 3.5C8.27614 3.5 8.5 3.72386 8.5 4L8.5 5.33333C8.5 5.60948 8.27614 5.83333 8 5.83333C7.72386 5.83333 7.5 5.60948 7.5 5.33333Z\\\" fill=\\\"#222222\\\"/> <path d=\\\"M7.5 12L7.5 10.6667C7.5 10.3905 7.72386 10.1667 8 10.1667C8.27614 10.1667 8.5 10.3905 8.5 10.6667L8.5 12C8.5 12.2761 8.27614 12.5 8 12.5C7.72386 12.5 7.5 12.2761 7.5 12Z\\\" fill=\\\"#222222\\\"/> </svg>\",\"type\":\"TYPE_SEARCH\",\"status\":\"STATUS_ENABLED\",\"config\":{\"search\":{\"groupCode\":\"_finance_report\"}}},{\"code\":\"research_literature\",\"name\":\"学术文献\",\"description\":\"学术研究、专业知识\",\"iconUrl\":\"<svg width=\\\"16\\\" height=\\\"16\\\" viewBox=\\\"0 0 16 16\\\" fill=\\\"none\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"> <g clip-path=\\\"url(#clip0_6701_31954)\\\"> <g clip-path=\\\"url(#clip1_6701_31954)\\\"> <path d=\\\"M3.83325 11.9212V7.33331H4.83325V11.9212C4.83328 11.9254 4.83535 11.9293 4.83879 11.9316L5.01978 12.0488C6.90513 13.2189 9.31037 13.1798 11.1611 11.9316L11.165 11.9271C11.1659 11.9253 11.1666 11.9233 11.1666 11.9212V7.33331H12.1666V11.9212C12.1666 12.2368 12.0194 12.533 11.7711 12.7239L11.72 12.7607C9.54186 14.2296 6.7113 14.2756 4.49243 12.8984L4.27987 12.7607C4.00074 12.5725 3.83328 12.2579 3.83325 11.9212Z\\\" fill=\\\"#222222\\\"/> <path d=\\\"M0.499778 5.71888C0.499154 5.52508 0.610739 5.34817 0.78589 5.2652L7.37151 1.47939C7.77484 1.28834 8.24236 1.28662 8.64693 1.47502L15.1264 5.15932C15.3021 5.24115 15.4146 5.41695 15.4153 5.6107C15.4159 5.80447 15.3045 5.98116 15.1294 6.06415L8.54381 9.85042C8.16571 10.0295 7.73121 10.042 7.34504 9.88771L7.26839 9.85479L0.788882 6.17049C0.61319 6.08867 0.500413 5.9127 0.499778 5.71888ZM7.69031 8.94812L7.7421 8.96861C7.86409 9.00969 7.99806 9.00245 8.11568 8.94674L13.7387 5.61623L8.22478 2.38146C8.08993 2.31867 7.93408 2.31939 7.79964 2.38307L2.17616 5.71359L7.69031 8.94812Z\\\" fill=\\\"#222222\\\"/> <path d=\\\"M13.5 9.66668V6.33334C13.5 6.0572 13.7239 5.83334 14 5.83334C14.2761 5.83334 14.5 6.0572 14.5 6.33334V9.66668C14.5 9.94282 14.2761 10.1667 14 10.1667C13.7239 10.1667 13.5 9.94282 13.5 9.66668Z\\\" fill=\\\"#222222\\\"/> </g> </g> <defs> <clipPath id=\\\"clip0_6701_31954\\\"> <rect width=\\\"16\\\" height=\\\"16\\\" fill=\\\"white\\\"/> </clipPath> <clipPath id=\\\"clip1_6701_31954\\\"> <rect width=\\\"16\\\" height=\\\"16\\\" fill=\\\"white\\\"/> </clipPath> </defs> </svg>\",\"type\":\"TYPE_SEARCH\",\"status\":\"STATUS_ENABLED\",\"config\":{\"search\":{\"groupCode\":\"_research_literature\"}}},{\"code\":\"gov\",\"name\":\"政府/机构网站\",\"description\":\"政策法规与官方信息\",\"iconUrl\":\"<svg width=\\\"16\\\" height=\\\"16\\\" viewBox=\\\"0 0 16 16\\\" fill=\\\"none\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"> <path d=\\\"M13.1666 12.6667C13.1666 12.5746 13.092 12.5 12.9999 12.5H2.99992C2.90787 12.5 2.83325 12.5746 2.83325 12.6667V13.3333C2.83325 13.4254 2.90787 13.5 2.99992 13.5H12.9999C13.092 13.5 13.1666 13.4254 13.1666 13.3333V12.6667ZM14.1666 13.3333C14.1666 13.9777 13.6443 14.5 12.9999 14.5H2.99992C2.35559 14.5 1.83325 13.9777 1.83325 13.3333V12.6667C1.83325 12.0223 2.35559 11.5 2.99992 11.5H12.9999C13.6443 11.5 14.1666 12.0223 14.1666 12.6667V13.3333Z\\\" fill=\\\"#222222\\\"/> <path d=\\\"M6.16675 12.5L3.16675 12.5L3.16675 5.83334L6.16675 5.83334L6.16675 12.5ZM4.16675 6.83334L4.16675 11.5L5.16675 11.5L5.16675 6.83334L4.16675 6.83334Z\\\" fill=\\\"#222222\\\"/> <path d=\\\"M12.8333 12.5L9.83325 12.5L9.83325 5.83334L12.8333 5.83334L12.8333 12.5ZM10.8333 6.83334L10.8333 11.5L11.8333 11.5L11.8333 6.83334L10.8333 6.83334Z\\\" fill=\\\"#222222\\\"/> <path d=\\\"M7.5 12V6.5C7.5 6.22386 7.72386 6 8 6C8.27614 6 8.5 6.22386 8.5 6.5V12C8.5 12.2761 8.27614 12.5 8 12.5C7.72386 12.5 7.5 12.2761 7.5 12Z\\\" fill=\\\"#222222\\\"/> <path d=\\\"M13.5 5.00065C13.5 4.94481 13.4722 4.893 13.4268 4.8623L13.4062 4.85058L8.07292 2.25813C8.03843 2.24137 7.99955 2.23707 7.96289 2.24544L7.92708 2.25813L2.59375 4.85058C2.53639 4.87848 2.5 4.93686 2.5 5.00065V5.66666C2.5 5.75871 2.57462 5.83333 2.66667 5.83333H13.3333C13.4254 5.83333 13.5 5.75871 13.5 5.66666V5.00065ZM14.5 5.66666C14.5 6.311 13.9777 6.83333 13.3333 6.83333H2.66667C2.02233 6.83333 1.5 6.311 1.5 5.66666V5.00065C1.5 4.55405 1.75492 4.14642 2.15658 3.95117L7.48991 1.35872L7.55078 1.33105C7.85864 1.2026 8.20817 1.21195 8.51009 1.35872L13.8434 3.95117L13.917 3.99023C14.276 4.19751 14.5 4.58196 14.5 5.00065V5.66666Z\\\" fill=\\\"#222222\\\"/> </svg>\",\"type\":\"TYPE_SEARCH\",\"status\":\"STATUS_ENABLED\",\"config\":{\"search\":{\"groupCode\":\"_gov\"}}},{\"code\":\"code\",\"name\":\"代码\",\"description\":\"实用编程技巧、开发技能\",\"iconUrl\":\"<svg width=\\\"16\\\" height=\\\"16\\\" viewBox=\\\"0 0 16 16\\\" fill=\\\"none\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"> <path d=\\\"M12 1.5C13.3807 1.5 14.5 2.61929 14.5 4V12C14.5 13.3807 13.3807 14.5 12 14.5H4C2.61929 14.5 1.5 13.3807 1.5 12V4C1.5 2.61929 2.61929 1.5 4 1.5H12ZM4 2.5C3.17157 2.5 2.5 3.17157 2.5 4V12C2.5 12.8284 3.17157 13.5 4 13.5H12C12.8284 13.5 13.5 12.8284 13.5 12V4C13.5 3.17157 12.8284 2.5 12 2.5H4ZM8.83887 5.48926C9.10432 5.56533 9.25772 5.84197 9.18164 6.10742L7.98828 10.2725C7.91223 10.5378 7.63548 10.6921 7.37012 10.6162C7.10466 10.5401 6.95127 10.2625 7.02734 9.99707L8.2207 5.83203C8.29676 5.56664 8.57347 5.41332 8.83887 5.48926ZM5.53223 5.97949C5.72747 5.78449 6.04406 5.78441 6.23926 5.97949C6.43445 6.17468 6.4343 6.49124 6.23926 6.68652L4.70703 8.21875L6.23926 9.75098C6.43447 9.94621 6.43441 10.2627 6.23926 10.458C6.044 10.6533 5.72749 10.6532 5.53223 10.458L3.64648 8.57227C3.45132 8.377 3.45126 8.06046 3.64648 7.86523L5.53223 5.97949ZM9.96973 5.97949C10.1649 5.78435 10.4815 5.78454 10.6768 5.97949L12.5625 7.86523C12.7578 8.06049 12.7577 8.377 12.5625 8.57227L10.6768 10.458C10.4815 10.6532 10.165 10.6532 9.96973 10.458C9.77468 10.2628 9.77463 9.94619 9.96973 9.75098L11.502 8.21875L9.96973 6.68652C9.77477 6.49124 9.77457 6.17465 9.96973 5.97949Z\\\" fill=\\\"#222222\\\"/> </svg>\",\"type\":\"TYPE_SEARCH\",\"status\":\"STATUS_ENABLED\",\"config\":{\"search\":{\"groupCode\":\"_code\"}}}],\"personalSearches\":[],\"isHitSearchSources\":true},\"searchConfig\":{\"enableGlobal\":false,\"enableConnectors\":[\"code\"],\"enableSearchGroups\":[],\"enableBaseIds\":[]},\"personalBaseId\":\"266257536573972480\"},\"version\":0}",
+    "__tea_cache_first_20002086": "1",
+    "oasis-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY3RpdmF0ZWQiOnRydWUsImFnZSI6MywiYmFuZWQiOmZhbHNlLCJjcmVhdGVfYXQiOjE3ODkyOTIwNDEsImV4cCI6MTc4OTI5Mzg0MSwibW9kZSI6Miwib2FzaXNfaWQiOjM4ODU3NzMzNDA0MTc1MTU1Miwib3JnYW5pemF0aW9uX2lkIjowLCJyb2xlX2luX29yZ2FuaXphdGlvbiI6MCwidmVyc2lvbiI6M30.JSnWCzyK5xbzOq-_rpvq2biH-VCKW5e6Jlk6vNk_jH0...eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOjEwMjAwLCJkZXZpY2VfaWQiOiIwZDE1OTVjNWUxNmNiMjE1NGYyYTkyYTVmZjdkYjY4MDRmZjgwNjU3IiwiZXhwIjoxNzkxODc1NDE4LCJvYXNpc19pZCI6Mzg4NTc3MzM0MDQxNzUxNTUyLCJvYXNpc19yX2F0IjoxNzg0MDk3MzQzLCJwbGF0Zm9ybSI6IndlYiIsInZlcnNpb24iOjN9.F0bYdyJMVaeo4QjO87f5xf9uxIBcL8mZFRg66Q2cVqA",
+    "_howxm_c_uid": "{\"clientId\":\"48010cce-d7ff-4c11-9d3b-07699e9d22a8\"}",
+    "openclaw-storage": "{\"state\":{\"hasPreloaded\":true,\"showDeployPage\":true,\"appId\":\"412674\",\"appToken\":\"Mdq5iJ7QcA4v25zzHpxQBoIPxFW9i5Xd\",\"cloudDeployStatus\":0},\"version\":0}",
+    "deviceId": "\"0d1595c5e16cb2154f2a92a5ff7db6804ff80657\""
+  },
+  "sessionStorage": {
+    "drCount": "0",
+    "_howxm_appid": "\"88d9101c-b6ca-4417-a010-64df4715aee0\"",
+    "__tea_session_id_20002086": "{\"sessionId\":\"e714553c-82df-4276-83cd-88c35c0d2c05\",\"timestamp\":1789292040765}",
+    "prevUrl": "\"https://chat.stepfun.com/chats/287965097367240704\""
+  },
+  "ws_request": {
+    "url": "",
+    "headers": {
+      "Upgrade": "websocket",
+      "Origin": "https://chat.stepfun.com",
+      "Cache-Control": "no-cache",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+      "Pragma": "no-cache",
+      "Connection": "Upgrade",
+      "Sec-WebSocket-Key": "8yk8kpdEWXzxdWJJjfzatg==",
+      "Accept-Encoding": "gzip, deflate, br, zstd",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+      "Sec-WebSocket-Version": "13",
+      "Host": "chatapi.stepfun.com",
+      "Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits"
+    },
+    "postData": ""
+  },
+  "api_requests": {
+    "https://chatapi.stepfun.com/api/step.growth.capability_center.CapabilityService/GetUserCapability": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "oasis-extra-did": "0d1595c5e16cb2154f2a92a5ff7db6804ff80657",
+        "sec-ch-ua-mobile": "?0",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "Content-Type": "application/json",
+        "oasis-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY3RpdmF0ZWQiOnRydWUsImFnZSI6MywiYmFuZWQiOmZhbHNlLCJjcmVhdGVfYXQiOjE3ODkyOTIwNDEsImV4cCI6MTc4OTI5Mzg0MSwibW9kZSI6Miwib2FzaXNfaWQiOjM4ODU3NzMzNDA0MTc1MTU1Miwib3JnYW5pemF0aW9uX2lkIjowLCJyb2xlX2luX29yZ2FuaXphdGlvbiI6MCwidmVyc2lvbiI6M30.JSnWCzyK5xbzOq-_rpvq2biH-VCKW5e6Jlk6vNk_jH0...eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOjEwMjAwLCJkZXZpY2VfaWQiOiIwZDE1OTVjNWUxNmNiMjE1NGYyYTkyYTVmZjdkYjY4MDRmZjgwNjU3IiwiZXhwIjoxNzkxODc1NDE4LCJvYXNpc19pZCI6Mzg4NTc3MzM0MDQxNzUxNTUyLCJvYXNpc19yX2F0IjoxNzg0MDk3MzQzLCJwbGF0Zm9ybSI6IndlYiIsInZlcnNpb24iOjN9.F0bYdyJMVaeo4QjO87f5xf9uxIBcL8mZFRg66Q2cVqA",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chatapi.stepfun.com/api/step.growth.capability_center.CapabilityService/GetUserCreditsOverall": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "sec-ch-ua-mobile": "?0",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY3RpdmF0ZWQiOnRydWUsImFnZSI6MywiYmFuZWQiOmZhbHNlLCJjcmVhdGVfYXQiOjE3ODkyOTIwNDEsImV4cCI6MTc4OTI5Mzg0MSwibW9kZSI6Miwib2FzaXNfaWQiOjM4ODU3NzMzNDA0MTc1MTU1Miwib3JnYW5pemF0aW9uX2lkIjowLCJyb2xlX2luX29yZ2FuaXphdGlvbiI6MCwidmVyc2lvbiI6M30.JSnWCzyK5xbzOq-_rpvq2biH-VCKW5e6Jlk6vNk_jH0...eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOjEwMjAwLCJkZXZpY2VfaWQiOiIwZDE1OTVjNWUxNmNiMjE1NGYyYTkyYTVmZjdkYjY4MDRmZjgwNjU3IiwiZXhwIjoxNzkxODc1NDE4LCJvYXNpc19pZCI6Mzg4NTc3MzM0MDQxNzUxNTUyLCJvYXNpc19yX2F0IjoxNzg0MDk3MzQzLCJwbGF0Zm9ybSI6IndlYiIsInZlcnNpb24iOjN9.F0bYdyJMVaeo4QjO87f5xf9uxIBcL8mZFRg66Q2cVqA",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chatapi.stepfun.com/api/step.growth.capability_center.CapabilityService/GetFissionActivityEntry": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "sec-ch-ua-mobile": "?0",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY3RpdmF0ZWQiOnRydWUsImFnZSI6MywiYmFuZWQiOmZhbHNlLCJjcmVhdGVfYXQiOjE3ODkyOTIwNDEsImV4cCI6MTc4OTI5Mzg0MSwibW9kZSI6Miwib2FzaXNfaWQiOjM4ODU3NzMzNDA0MTc1MTU1Miwib3JnYW5pemF0aW9uX2lkIjowLCJyb2xlX2luX29yZ2FuaXphdGlvbiI6MCwidmVyc2lvbiI6M30.JSnWCzyK5xbzOq-_rpvq2biH-VCKW5e6Jlk6vNk_jH0...eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOjEwMjAwLCJkZXZpY2VfaWQiOiIwZDE1OTVjNWUxNmNiMjE1NGYyYTkyYTVmZjdkYjY4MDRmZjgwNjU3IiwiZXhwIjoxNzkxODc1NDE4LCJvYXNpc19pZCI6Mzg4NTc3MzM0MDQxNzUxNTUyLCJvYXNpc19yX2F0IjoxNzg0MDk3MzQzLCJwbGF0Zm9ybSI6IndlYiIsInZlcnNpb24iOjN9.F0bYdyJMVaeo4QjO87f5xf9uxIBcL8mZFRg66Q2cVqA",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chatapi.stepfun.com/api/step.growth.fission.Fission/QueryMyFission": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "sec-ch-ua-mobile": "?0",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY3RpdmF0ZWQiOnRydWUsImFnZSI6MywiYmFuZWQiOmZhbHNlLCJjcmVhdGVfYXQiOjE3ODkyOTIwNDEsImV4cCI6MTc4OTI5Mzg0MSwibW9kZSI6Miwib2FzaXNfaWQiOjM4ODU3NzMzNDA0MTc1MTU1Miwib3JnYW5pemF0aW9uX2lkIjowLCJyb2xlX2luX29yZ2FuaXphdGlvbiI6MCwidmVyc2lvbiI6M30.JSnWCzyK5xbzOq-_rpvq2biH-VCKW5e6Jlk6vNk_jH0...eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOjEwMjAwLCJkZXZpY2VfaWQiOiIwZDE1OTVjNWUxNmNiMjE1NGYyYTkyYTVmZjdkYjY4MDRmZjgwNjU3IiwiZXhwIjoxNzkxODc1NDE4LCJvYXNpc19pZCI6Mzg4NTc3MzM0MDQxNzUxNTUyLCJvYXNpc19yX2F0IjoxNzg0MDk3MzQzLCJwbGF0Zm9ybSI6IndlYiIsInZlcnNpb24iOjN9.F0bYdyJMVaeo4QjO87f5xf9uxIBcL8mZFRg66Q2cVqA",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chatapi.stepfun.com/api/step.growth.capability_center.CapabilityService/QueryMissionOverall": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "sec-ch-ua-mobile": "?0",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY3RpdmF0ZWQiOnRydWUsImFnZSI6MywiYmFuZWQiOmZhbHNlLCJjcmVhdGVfYXQiOjE3ODkyOTIwNDEsImV4cCI6MTc4OTI5Mzg0MSwibW9kZSI6Miwib2FzaXNfaWQiOjM4ODU3NzMzNDA0MTc1MTU1Miwib3JnYW5pemF0aW9uX2lkIjowLCJyb2xlX2luX29yZ2FuaXphdGlvbiI6MCwidmVyc2lvbiI6M30.JSnWCzyK5xbzOq-_rpvq2biH-VCKW5e6Jlk6vNk_jH0...eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOjEwMjAwLCJkZXZpY2VfaWQiOiIwZDE1OTVjNWUxNmNiMjE1NGYyYTkyYTVmZjdkYjY4MDRmZjgwNjU3IiwiZXhwIjoxNzkxODc1NDE4LCJvYXNpc19pZCI6Mzg4NTc3MzM0MDQxNzUxNTUyLCJvYXNpc19yX2F0IjoxNzg0MDk3MzQzLCJwbGF0Zm9ybSI6IndlYiIsInZlcnNpb24iOjN9.F0bYdyJMVaeo4QjO87f5xf9uxIBcL8mZFRg66Q2cVqA",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chatapi.stepfun.com/api/step.growth.activity_center.ActivityService/QueryUserMissionRecords": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "sec-ch-ua-mobile": "?0",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY3RpdmF0ZWQiOnRydWUsImFnZSI6MywiYmFuZWQiOmZhbHNlLCJjcmVhdGVfYXQiOjE3ODkyOTIwNDEsImV4cCI6MTc4OTI5Mzg0MSwibW9kZSI6Miwib2FzaXNfaWQiOjM4ODU3NzMzNDA0MTc1MTU1Miwib3JnYW5pemF0aW9uX2lkIjowLCJyb2xlX2luX29yZ2FuaXphdGlvbiI6MCwidmVyc2lvbiI6M30.JSnWCzyK5xbzOq-_rpvq2biH-VCKW5e6Jlk6vNk_jH0...eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOjEwMjAwLCJkZXZpY2VfaWQiOiIwZDE1OTVjNWUxNmNiMjE1NGYyYTkyYTVmZjdkYjY4MDRmZjgwNjU3IiwiZXhwIjoxNzkxODc1NDE4LCJvYXNpc19pZCI6Mzg4NTc3MzM0MDQxNzUxNTUyLCJvYXNpc19yX2F0IjoxNzg0MDk3MzQzLCJwbGF0Zm9ybSI6IndlYiIsInZlcnNpb24iOjN9.F0bYdyJMVaeo4QjO87f5xf9uxIBcL8mZFRg66Q2cVqA",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{\"page\":1,\"size\":100}"
+    },
+    "https://apm.volccdn.com/mars-web/apmplus/web/browser.cn.js?aid=0&globalName=apmPlus": {
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0"
+      },
+      "postData": ""
+    },
+    "https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/GetChatConfig": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/ListStudios": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{\"scene\":\"SCENE_TYPE_CHAT\"}"
+    },
+    "https://chat.stepfun.com/api/capy.connectors.v1.ConnectorService/ListConnectors": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{\"deepResearch\":false}"
+    },
+    "https://chat.stepfun.com/api/agent/capy.knowledge.v1.KnowledgeService/GetPersonalBase": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/GetChatSessionByID": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{\"sessionId\":\"287965097367240704\"}"
+    },
+    "https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/GetChatSummary": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/ListMessages": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{\"pageSize\":10,\"chatSessionId\":\"287965097367240704\",\"asyncFetchTask\":true}"
+    },
+    "https://chat.stepfun.com/api/capy.invitation.v1.InvitationService/GetDrBetaPermission": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chat.stepfun.com/api/capy.invitation.v1.InvitationService/GetDesktopBetaPermission": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chat.stepfun.com/api/user/proto.api.user.v1.UserService/GetUser": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chat.stepfun.com/api/agent/capy.memory.v1.MemoryService/GetMemoryConfig": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://chatapi.stepfun.com/api/step.growth.popup_center.PopupService/ListPopup": {
+      "method": "OPTIONS",
+      "headers": {
+        "Accept": "*/*",
+        "Access-Control-Request-Headers": "canary,connect-protocol-version,content-type,oasis-appid,oasis-language,oasis-platform,oasis-token",
+        "Access-Control-Request-Method": "POST",
+        "Origin": "https://chat.stepfun.com",
+        "Sec-Fetch-Mode": "cors",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0"
+      },
+      "postData": ""
+    },
+    "https://chat.stepfun.com/api/agent/capy.knowledge.v1.KnowledgeService/ListFiles": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{\"knowledgeBaseId\":\"266257536573972480\",\"pageSize\":20,\"pageNumber\":1}"
+    },
+    "https://chat.stepfun.com/api/user/proto.api.user.v1.UserService/GetAccountBinding": {
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287965097367240704",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "postData": "{}"
+    },
+    "https://sophon.howxm.com/api/sdk/v2/88d9101c-b6ca-4417-a010-64df4715aee0/se": {
+      "method": "OPTIONS",
+      "headers": {
+        "Accept": "*/*",
+        "Access-Control-Request-Headers": "content-type,x-referer,x-req-mode,x-screen-res",
+        "Access-Control-Request-Method": "POST",
+        "Origin": "https://chat.stepfun.com",
+        "Sec-Fetch-Mode": "cors",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0"
+      },
+      "postData": ""
+    },
+    "https://chatapi.stepfun.com/api/step.growth.activity_center.ActivityService/TriggerUserMission": {
+      "method": "OPTIONS",
+      "headers": {
+        "Accept": "*/*",
+        "Access-Control-Request-Headers": "canary,connect-protocol-version,content-type,oasis-appid,oasis-language,oasis-platform,oasis-token",
+        "Access-Control-Request-Method": "POST",
+        "Origin": "https://chat.stepfun.com",
+        "Sec-Fetch-Mode": "cors",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0"
+      },
+      "postData": ""
+    },
+    "https://sophon.howxm.com/api/sdk/v2/88d9101c-b6ca-4417-a010-64df4715aee0/identify": {
+      "method": "OPTIONS",
+      "headers": {
+        "Accept": "*/*",
+        "Access-Control-Request-Headers": "content-type,x-referer,x-req-mode,x-screen-res",
+        "Access-Control-Request-Method": "POST",
+        "Origin": "https://chat.stepfun.com",
+        "Sec-Fetch-Mode": "cors",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0"
+      },
+      "postData": ""
+    }
+  }
+}

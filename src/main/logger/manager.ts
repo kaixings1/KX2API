@@ -20,6 +20,7 @@ interface LogFilter {
 class LogManager {
   private logs: LogEntry[] = []
   private logFile: string
+  private debugFileStream: fs.WriteStream | null = null
   private maxLogs: number = 10000
   private retentionDays: number = 7
   private initialized: boolean = false
@@ -38,6 +39,60 @@ class LogManager {
     this.categoryConfigs = { ...DEFAULT_LOG_CATEGORIES }
   }
 
+  /**
+   * Open an additional debug log file. All debugLog() calls are appended here.
+   * Pass null to disable.
+   */
+  setDebugFile(filePath: string | null): void {
+    this.closeDebugFile()
+
+    if (!filePath) return
+
+    try {
+      const dir = path.dirname(filePath)
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true })
+      }
+      this.debugFileStream = fs.createWriteStream(filePath, { flags: 'a', encoding: 'utf-8' })
+      this.debugFileStream.write(`\n===== DEBUG LOG START ${new Date().toISOString()} =====\n`)
+      console.log('[LogManager] Debug file enabled:', filePath)
+    } catch (error) {
+      console.error('[LogManager] Failed to open debug file:', error)
+      this.debugFileStream = null
+    }
+  }
+
+  private closeDebugFile(): void {
+    if (this.debugFileStream) {
+      try {
+        this.debugFileStream.write(`\n===== DEBUG LOG END ${new Date().toISOString()} =====\n`)
+        this.debugFileStream.end()
+      } catch { /* ignore */ }
+      this.debugFileStream = null
+    }
+  }
+
+  /**
+   * Write a raw line to the debug file (if enabled). Also echoes to console.
+   * This is for verbose protocol-level logging (Connect frames, cookies, etc.)
+   */
+  debugLog(message: string): void {
+    const line = `[${new Date().toISOString()}] ${message}`
+    console.log(line)
+    if (this.debugFileStream) {
+      try {
+        this.debugFileStream.write(line + '\n')
+      } catch { /* ignore write errors */ }
+    }
+  }
+
+  /**
+   * Get whether debug file logging is active
+   */
+  isDebugLogging(): boolean {
+    return this.debugFileStream !== null
+  }
+
   setMainWindow(window: BrowserWindow | null): void {
     this.mainWindow = window
   }
@@ -50,8 +105,13 @@ class LogManager {
     return { ...this.categoryConfigs }
   }
 
-  async initialize(): Promise<void> {
+  async initialize(debugFilePath?: string): Promise<void> {
     if (this.initialized) return
+
+    // Enable debug file logging if --debug-file was specified
+    if (debugFilePath) {
+      this.setDebugFile(debugFilePath)
+    }
 
     try {
       await this.loadLogs()
@@ -300,6 +360,10 @@ class LogManager {
     }
 
     return trends
+  }
+
+  destroy(): void {
+    this.closeDebugFile()
   }
 
   async clearLogs(): Promise<void> {

@@ -1049,6 +1049,9 @@ const electronAPI = {
     getServers: (): Promise<McpServerConfig[]> =>
       ipcRenderer.invoke(IpcChannels.MCP_GET_SERVERS).then((r: any) => r.data as McpServerConfig[]),
 
+    getServerById: (id: string): Promise<McpServerConfig | null> =>
+      ipcRenderer.invoke(IpcChannels.MCP_GET_SERVER_BY_ID, id).then((r: any) => r.success ? (r.data as McpServerConfig | null) : null),
+
     addServer: (server: Omit<McpServerConfig, 'id'>): Promise<McpServerConfig> =>
       ipcRenderer.invoke(IpcChannels.MCP_ADD_SERVER, server).then((r: any) => r.data as McpServerConfig),
 
@@ -1072,6 +1075,9 @@ const electronAPI = {
 
     getInstalled: (): Promise<PluginRecord[]> =>
       ipcRenderer.invoke(IpcChannels.PLUGINS_GET_INSTALLED).then((r: any) => r.data as PluginRecord[]),
+
+    getById: (id: string): Promise<PluginRecord | null> =>
+      ipcRenderer.invoke(IpcChannels.PLUGINS_GET_BY_ID, id).then((r: any) => r.success ? (r.data as PluginRecord | null) : null),
 
     install: (pluginId: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke(IpcChannels.PLUGINS_INSTALL, pluginId).then((r: any) => ({ success: r.success, error: r.error })),
@@ -1105,6 +1111,27 @@ const electronAPI = {
 
     reset: (): Promise<{ success: boolean }> =>
       ipcRenderer.invoke(IpcChannels.OTHER_CONFIG_RESET).then((r: any) => ({ success: r.success })),
+  },
+
+  // ==================== Management Import/Export ====================
+  mgmt: {
+    export: (moduleName: string, data: any): Promise<{ success: boolean; path?: string; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.MGMT_EXPORT, moduleName, data).then((r: any) => r),
+
+    import: (moduleName: string, jsonData: string): Promise<{ success: boolean; data?: any; count?: number; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.MGMT_IMPORT, moduleName, jsonData).then((r: any) => r),
+
+    backup: (): Promise<{ success: boolean; path?: string; modules?: string[]; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.MGMT_BACKUP).then((r: any) => r),
+
+    restore: (filePath: string): Promise<{ success: boolean; restored?: Record<string, number>; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.MGMT_RESTORE, filePath).then((r: any) => r),
+
+    getAllBackups: (): Promise<{ success: boolean; data?: Array<{ name: string; path: string }>; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.MGMT_GET_ALL_BACKUPS).then((r: any) => r),
+
+    deleteBackup: (fileName: string): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.MGMT_DELETE_BACKUP, fileName).then((r: any) => r),
   },
 
   // Cookie Session — 网页 Cookie 持续注入
@@ -1294,6 +1321,9 @@ const electronAPI = {
 
     reset: (): Promise<{ success: boolean }> =>
       ipcRenderer.invoke('tools:reset'),
+
+    getById: (id: string): Promise<{ success: boolean; data?: any; error?: string }> =>
+      ipcRenderer.invoke('tools:getById', id),
   },
 
   on: (channel: string, callback: (...args: unknown[]) => void) => {

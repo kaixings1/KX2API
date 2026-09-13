@@ -237,7 +237,7 @@ export class ProviderChecker {
         'Content-Type': 'application/json',
         'Oasis-Platform': 'web',
         'Oasis-appID': '10200',
-        Canary: 'false',
+        'Canary': 'false',
         'Connect-Protocol-Version': '1',
         Origin: 'https://chat.stepfun.com',
         'oasis-language': 'zh',

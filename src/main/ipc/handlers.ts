@@ -1,5 +1,7 @@
 import { ipcMain, app, BrowserWindow, shell } from 'electron'
 import axios from 'axios'
+import { join, dirname } from 'path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from 'fs'
 import { IpcChannels } from './channels'
 import { storeManager } from '../store/store'
 import { ProviderManager } from '../store/providers'
@@ -14,7 +16,7 @@ import { mcpService } from '../mcp/mcpService'
 import { toolManager } from '../tools/toolManager'
 import { kimiSessionManager } from '../oauth/kimiSessionManager'
 import { cookieSessionManager } from '../oauth/cookieSessionManager'
-import { ProxyServer } from '../proxy/server'
+import { proxyServer } from '../proxy/server'
 import { proxyStatusManager } from '../proxy/status'
 import { sessionManager } from '../proxy/sessionManager'
 import { TrayManager } from '../tray/TrayManager'
@@ -48,7 +50,6 @@ export function setEngineRef(eng: typeof engine) {
   engine = eng
 }
 
-let proxyServer: ProxyServer | null = null
 let proxyStartTime: number | null = null
 const updaterManager = UpdaterManager.getInstance()
 
@@ -168,6 +169,289 @@ interface OtherConfig {
   developer: Record<string, unknown>
 }
 
+// ==================== Default Data Seeding ====================
+
+const DEFAULT_AGENTS: AgentRecord[] = [
+  {
+    id: 'agent_code_reviewer',
+    name: '代码审查员',
+    role: 'Code Reviewer',
+    systemPrompt: '你是一位经验丰富的代码审查员。请检查代码中的潜在问题：安全漏洞、性能瓶颈、可读性、边界条件、错误处理。给出具体行号和建议的修复方案。',
+    model: null,
+    status: 'idle',
+    createdAt: Date.now() - 86400000 * 3,
+    updatedAt: Date.now() - 86400000 * 3,
+  },
+  {
+    id: 'agent_refactor',
+    name: '重构助手',
+    role: 'Refactoring Assistant',
+    systemPrompt: '你是一位软件重构专家。分析代码结构，识别重复代码、过长函数、深层嵌套等问题，提供逐步重构建议。保持行为不变的前提下提升可维护性。',
+    model: null,
+    status: 'idle',
+    createdAt: Date.now() - 86400000 * 2,
+    updatedAt: Date.now() - 86400000 * 2,
+  },
+  {
+    id: 'agent_test_gen',
+    name: '测试生成器',
+    role: 'Test Generator',
+    systemPrompt: '你是一位测试工程师。根据给定的代码逻辑生成全面的单元测试，覆盖正常路径、边界条件和异常情况。输出可直接运行的测试代码。',
+    model: null,
+    status: 'idle',
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now() - 86400000,
+  },
+  {
+    id: 'agent_docs_writer',
+    name: '文档编写员',
+    role: 'Documentation Writer',
+    systemPrompt: '你是一位技术文档专家。根据代码和注释生成清晰、完整的文档，包括 API 说明、使用示例、参数描述和注意事项。',
+    model: null,
+    status: 'idle',
+    createdAt: Date.now() - 3600000,
+    updatedAt: Date.now() - 3600000,
+  },
+]
+
+const DEFAULT_WORKFLOWS: WorkflowRecord[] = [
+  {
+    id: 'wf_code_review_pipeline',
+    name: '代码审查流水线',
+    description: '自动对代码进行多轮审查：语法检查 → 安全扫描 → 性能分析 → 建议汇总',
+    steps: [
+      { id: 'step_1', type: 'command', config: { command: 'git-diff' } },
+      { id: 'step_2', type: 'agent', config: { agentId: 'agent_code_reviewer', prompt: '审查以下代码变更' } },
+      { id: 'step_3', type: 'agent', config: { agentId: 'agent_refactor', prompt: '基于审查结果提出重构建议' } },
+      { id: 'step_4', type: 'condition', config: { condition: 'has_issues', trueStep: 'step_5', falseStep: 'step_6' } },
+      { id: 'step_5', type: 'agent', config: { agentId: 'agent_test_gen', prompt: '为修改的代码生成回归测试' } },
+      { id: 'step_6', type: 'delay', config: { duration: 1000 } },
+    ],
+    status: 'active',
+    createdAt: Date.now() - 86400000 * 5,
+    updatedAt: Date.now() - 86400000,
+  },
+  {
+    id: 'wf_feature_development',
+    name: '功能开发流程',
+    description: '从需求到上线的完整开发流程：需求分析 → 设计 → 实现 → 测试 → 文档',
+    steps: [
+      { id: 'step_1', type: 'agent', config: { agentId: 'agent_docs_writer', prompt: '分析需求并生成功能设计文档' } },
+      { id: 'step_2', type: 'agent', config: { agentId: 'agent_code_reviewer', prompt: '根据设计文档编写代码实现' } },
+      { id: 'step_3', type: 'agent', config: { agentId: 'agent_test_gen', prompt: '为新功能编写测试用例' } },
+      { id: 'step_4', type: 'agent', config: { agentId: 'agent_docs_writer', prompt: '编写用户文档和 API 文档' } },
+    ],
+    status: 'draft',
+    createdAt: Date.now() - 86400000 * 2,
+    updatedAt: Date.now() - 3600000,
+  },
+  {
+    id: 'wf_bug_fix',
+    name: 'Bug 修复流程',
+    description: '快速响应 Bug 报告：复现 → 定位 → 修复 → 验证 → 回归测试',
+    steps: [
+      { id: 'step_1', type: 'command', config: { command: 'git-log' } },
+      { id: 'step_2', type: 'agent', config: { agentId: 'agent_code_reviewer', prompt: '定位 Bug 根因' } },
+      { id: 'step_3', type: 'agent', config: { agentId: 'agent_refactor', prompt: '编写最小化修复方案' } },
+      { id: 'step_4', type: 'agent', config: { agentId: 'agent_test_gen', prompt: '编写回归测试验证修复' } },
+    ],
+    status: 'paused',
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now() - 86400000,
+  },
+]
+
+const DEFAULT_PLUGINS: PluginRecord[] = [
+  {
+    id: 'plugin_git_integration',
+    name: 'Git 集成插件',
+    version: '1.0.0',
+    description: '提供 Git 仓库管理、代码提交、分支操作等功能的插件。支持 Git 状态查看、差异对比、提交历史浏览。',
+    author: 'KX2API',
+    enabled: true,
+    installed: true,
+    icon: '📦',
+  },
+  {
+    id: 'plugin_code_formatter',
+    name: '代码格式化插件',
+    version: '1.0.0',
+    description: '自动格式化代码，支持多种编程语言。集成 Prettier 和 ESLint，提供统一的代码风格。',
+    author: 'KX2API',
+    enabled: true,
+    installed: true,
+    icon: '✨',
+  },
+  {
+    id: 'plugin_docker_manager',
+    name: 'Docker 管理插件',
+    version: '1.0.0',
+    description: '管理 Docker 容器、镜像和网络。支持容器启动、停止、日志查看和资源监控。',
+    author: 'KX2API',
+    enabled: false,
+    installed: true,
+    icon: '🐳',
+  },
+  {
+    id: 'plugin_api_tester',
+    name: 'API 测试插件',
+    version: '1.0.0',
+    description: 'HTTP/REST API 测试工具。支持 GET/POST/PUT/DELETE 请求，可保存和复用测试用例。',
+    author: 'KX2API',
+    enabled: false,
+    installed: false,
+    icon: '🔍',
+  },
+  {
+    id: 'plugin_markdown_preview',
+    name: 'Markdown 预览插件',
+    version: '1.0.0',
+    description: '实时预览 Markdown 文档，支持数学公式、代码高亮和自定义主题。',
+    author: 'KX2API',
+    enabled: false,
+    installed: false,
+    icon: '📝',
+  },
+]
+
+const DEFAULT_PLANS: PlanRecord[] = [
+  {
+    id: 'plan_v1_release',
+    title: 'v1.0 发布计划',
+    description: '完成核心功能开发，包括代理管理、工具集成、工作流引擎等',
+    status: 'running',
+    steps: [
+      { id: 'step_1', description: '完成 Agent 管理模块', status: 'completed' },
+      { id: 'step_2', description: '完成 Tool 管理模块', status: 'completed' },
+      { id: 'step_3', description: '完成 Workflow 引擎', status: 'running' },
+      { id: 'step_4', description: '完成 MCP 集成', status: 'pending' },
+      { id: 'step_5', description: '完成测试覆盖', status: 'pending' },
+    ],
+    createdAt: Date.now() - 86400000 * 7,
+  },
+  {
+    id: 'plan_security_audit',
+    title: '安全审计计划',
+    description: '对系统进行全面安全审计，修复已知漏洞，加强认证和授权机制',
+    status: 'pending',
+    steps: [
+      { id: 'step_1', description: '代码安全扫描', status: 'pending' },
+      { id: 'step_2', description: '依赖项漏洞检查', status: 'pending' },
+      { id: 'step_3', description: '认证机制加固', status: 'pending' },
+      { id: 'step_4', description: '渗透测试', status: 'pending' },
+    ],
+    createdAt: Date.now() - 86400000 * 2,
+  },
+]
+
+const DEFAULT_TASKS: TaskRecord[] = [
+  {
+    id: 'task_001',
+    title: '实现 Agent 管理页面',
+    description: '创建 Agent 管理界面，支持增删改查和执行操作',
+    status: 'done',
+    priority: 'high',
+    assignee: '开发者',
+    tags: ['frontend', 'agent'],
+    createdAt: Date.now() - 86400000 * 5,
+    dueAt: Date.now() - 86400000 * 3,
+    completedAt: Date.now() - 86400000 * 3,
+  },
+  {
+    id: 'task_002',
+    title: '实现 Workflow 管理页面',
+    description: '创建工作流管理界面，支持步骤配置和执行',
+    status: 'done',
+    priority: 'high',
+    assignee: '开发者',
+    tags: ['frontend', 'workflow'],
+    createdAt: Date.now() - 86400000 * 4,
+    dueAt: Date.now() - 86400000 * 2,
+    completedAt: Date.now() - 86400000 * 2,
+  },
+  {
+    id: 'task_003',
+    title: '实现 MCP 管理页面',
+    description: '创建 MCP 服务器配置界面，支持添加、编辑、测试连接',
+    status: 'in_progress',
+    priority: 'medium',
+    assignee: '开发者',
+    tags: ['frontend', 'mcp'],
+    createdAt: Date.now() - 86400000 * 3,
+    dueAt: Date.now() + 86400000,
+    completedAt: null,
+  },
+  {
+    id: 'task_004',
+    title: '添加导入导出功能',
+    description: '为所有管理页面添加导入导出和备份恢复功能',
+    status: 'in_progress',
+    priority: 'medium',
+    assignee: '开发者',
+    tags: ['feature', 'import-export'],
+    createdAt: Date.now() - 86400000 * 2,
+    dueAt: Date.now() + 86400000 * 2,
+    completedAt: null,
+  },
+  {
+    id: 'task_005',
+    title: '编写单元测试',
+    description: '为关键模块编写单元测试，确保代码质量',
+    status: 'todo',
+    priority: 'medium',
+    assignee: '开发者',
+    tags: ['testing'],
+    createdAt: Date.now() - 86400000,
+    dueAt: Date.now() + 86400000 * 5,
+    completedAt: null,
+  },
+  {
+    id: 'task_006',
+    title: '优化暗色模式支持',
+    description: '修复所有页面在暗色模式下的显示问题',
+    status: 'todo',
+    priority: 'low',
+    assignee: '开发者',
+    tags: ['ui', 'dark-mode'],
+    createdAt: Date.now() - 86400000,
+    dueAt: Date.now() + 86400000 * 3,
+    completedAt: null,
+  },
+]
+
+const DEFAULT_MCP_SERVERS: McpServerConfig[] = [
+  {
+    id: 'mcp_filesystem',
+    name: '文件系统 MCP',
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-filesystem', 'C:/Users/Administrator/Documents'],
+    enabled: true,
+    tools: null,
+  },
+  {
+    id: 'mcp_web_search',
+    name: 'Web 搜索 MCP',
+    transport: 'http',
+    url: 'http://localhost:3001',
+    enabled: true,
+    tools: null,
+  },
+]
+
+function seedStoreIfEmpty<T extends Record<string, unknown>>(
+  store: ModuleDataStore<T>,
+  defaults: T[],
+  storeName: string
+): void {
+  if (store.size === 0) {
+    for (const item of defaults) {
+      store.set(item.id as string, item as T)
+    }
+    console.log(`[IPC] Seeded ${defaults.length} default ${storeName}`)
+  }
+}
+
 // ==================== Persistent Module Storage ====================
 import { ModuleDataStore } from './ModuleDataStore'
 
@@ -178,6 +462,14 @@ const commandsStore = new ModuleDataStore<CommandRecord>('commands')
 const workflowsStore = new ModuleDataStore<WorkflowRecord>('workflows')
 const mcpServersStore = new ModuleDataStore<McpServerConfig>('mcp-servers')
 const pluginsStore = new ModuleDataStore<PluginRecord>('plugins')
+
+// Seed default data on startup
+seedStoreIfEmpty(agentsStore, DEFAULT_AGENTS as unknown as AgentRecord[], 'agents')
+seedStoreIfEmpty(workflowsStore, DEFAULT_WORKFLOWS as unknown as WorkflowRecord[], 'workflows')
+seedStoreIfEmpty(mcpServersStore, DEFAULT_MCP_SERVERS as unknown as McpServerConfig[], 'mcp-servers')
+seedStoreIfEmpty(pluginsStore, DEFAULT_PLUGINS as unknown as PluginRecord[], 'plugins')
+seedStoreIfEmpty(plansStore, DEFAULT_PLANS as unknown as PlanRecord[], 'plans')
+seedStoreIfEmpty(tasksStore, DEFAULT_TASKS as unknown as TaskRecord[], 'tasks')
 
 export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Promise<void> {
   console.log('[IPC] registerIpcHandlers called, mainWindow:', !!mainWindow)
@@ -705,6 +997,118 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     }
   })
 
+  ipcMain.handle(IpcChannels.MCP_GET_SERVER_BY_ID, async (_, id: string) => {
+    try {
+      const configRes = await mcpService.getConfig()
+      const server = (configRes as any)?.servers?.find((s: any) => s.id === id)
+      if (server) return { success: true, data: server }
+      return { success: false, error: 'Server not found' }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // ==================== Generic Management Import/Export ====================
+
+  const BACKUP_DIR = join(app.getPath('userData'), 'backups')
+  function ensureBackupDir(): void {
+    if (!existsSync(BACKUP_DIR)) mkdirSync(BACKUP_DIR, { recursive: true })
+  }
+
+  ipcMain.handle(IpcChannels.MGMT_EXPORT, async (_: any, moduleName: string, data: any) => {
+    try {
+      ensureBackupDir()
+      const path = join(BACKUP_DIR, `${moduleName}_${Date.now()}.json`)
+      writeFileSync(path, JSON.stringify(data, null, 2), 'utf-8')
+      return { success: true, path }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.MGMT_IMPORT, async (_: any, moduleName: string, jsonData: string) => {
+    try {
+      const data = JSON.parse(jsonData)
+      if (!Array.isArray(data)) return { success: false, error: 'Data must be an array' }
+      return { success: true, data, count: data.length }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.MGMT_BACKUP, async () => {
+    try {
+      ensureBackupDir()
+      const backup: Record<string, any> = {}
+      const modules = [
+        { key: 'agents', store: agentsStore },
+        { key: 'workflows', store: workflowsStore },
+        { key: 'mcp-servers', store: mcpServersStore },
+        { key: 'tools', store: (toolManager as any)?.store },
+        { key: 'plugins', store: pluginsStore },
+        { key: 'plans', store: plansStore },
+        { key: 'tasks', store: tasksStore },
+      ]
+      for (const m of modules) {
+        try { backup[m.key] = Array.from(m.store.values()) } catch { /* skip */ }
+      }
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+      const path = join(BACKUP_DIR, `full_backup_${timestamp}.json`)
+      writeFileSync(path, JSON.stringify(backup, null, 2), 'utf-8')
+      return { success: true, path, modules: Object.keys(backup) }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.MGMT_RESTORE, async (_, filePath: string) => {
+    try {
+      const raw = readFileSync(filePath, 'utf-8')
+      const backup: Record<string, any[]> = JSON.parse(raw)
+      const restored: Record<string, number> = {}
+      for (const [key, items] of Object.entries(backup)) {
+        if (!Array.isArray(items)) continue
+        let count = 0
+        for (const item of items) {
+          if (item?.id) {
+            try {
+              const storeMap: Record<string, any> = {
+                'agents': agentsStore, 'workflows': workflowsStore,
+                'mcp-servers': mcpServersStore, 'plugins': pluginsStore,
+                'plans': plansStore, 'tasks': tasksStore,
+              }
+              const store = storeMap[key]
+              if (store && !store.has(item.id)) { store.set(item.id, item); count++ }
+            } catch { /* skip duplicates */ }
+          }
+        }
+        restored[key] = count
+      }
+      return { success: true, restored }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.MGMT_GET_ALL_BACKUPS, async () => {
+    try {
+      ensureBackupDir()
+      const files = readdirSync(BACKUP_DIR).filter((f: string) => f.endsWith('.json'))
+      return { success: true, data: files.map(f => ({ name: f, path: join(BACKUP_DIR, f) })) }
+    } catch (e) {
+      return { success: false, data: [] }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.MGMT_DELETE_BACKUP, async (_, fileName: string) => {
+    try {
+      unlinkSync(join(BACKUP_DIR, fileName))
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
   // ==================== Plugin Management IPC Handlers ====================
 
   ipcMain.handle(IpcChannels.PLUGINS_GET_ALL, async () => {
@@ -785,6 +1189,16 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
         pluginsStore.set(pluginId, { ...plugin, updatedAt: Date.now() })
       }
       return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.PLUGINS_GET_BY_ID, async (_, pluginId: string) => {
+    try {
+      const plugin = pluginsStore.get(pluginId)
+      if (plugin) return { success: true, data: plugin }
+      return { success: false, error: 'Plugin not found' }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
@@ -996,6 +1410,17 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     }
   })
 
+  ipcMain.handle(IpcChannels.TOOLS_GET_BY_ID, async (_, id: string) => {
+    try {
+      const res = await toolManager.getAll()
+      const tool = res.tools?.find(t => t.id === id)
+      if (tool) return { success: true, data: tool }
+      return { success: false, error: 'Tool not found' }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
   // ==================== Store Initialization ====================
   try {
     await storeManager.initialize()
@@ -1009,7 +1434,6 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
         const proxyPort = config.proxyPort
         const proxyHost = config.proxyHost || '127.0.0.1'
         try {
-          proxyServer = new ProxyServer()
           const success = await proxyServer.start(proxyPort, proxyHost)
           if (success) {
             proxyStartTime = Date.now()
@@ -1023,12 +1447,10 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
             }
             mainWindow?.webContents.send(IpcChannels.PROXY_STATUS_CHANGED, status)
           } else {
-            proxyServer = null
             console.log('[App] Proxy service auto-start failed')
           }
         } catch (error) {
           console.error('[App] Proxy service auto-start failed:', error)
-          proxyServer = null
         }
       }
     }
@@ -1048,14 +1470,13 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
 
   ipcMain.handle(IpcChannels.PROXY_START, async (_, port?: number): Promise<boolean> => {
     try {
-      if (proxyServer) {
+      if (proxyServer.isRunning()) {
         console.log('Proxy server is already running')
         return true
       }
       const config = storeManager.getConfig()
       const proxyPort = port || config.proxyPort
       const proxyHost = config.proxyHost || '127.0.0.1'
-      proxyServer = new ProxyServer()
       const success = await proxyServer.start(proxyPort, proxyHost)
       if (success) {
         proxyStartTime = Date.now()
@@ -1078,11 +1499,10 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
 
   ipcMain.handle(IpcChannels.PROXY_STOP, async (): Promise<boolean> => {
     try {
-      if (!proxyServer) {
+      if (!proxyServer.isRunning()) {
         return true
       }
       await proxyServer.stop()
-      proxyServer = null
       proxyStartTime = null
       console.log('Proxy server stopped')
       const status = {
@@ -1101,7 +1521,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   })
 
   ipcMain.handle(IpcChannels.PROXY_GET_STATUS, async (): Promise<ProxyStatus> => {
-    const isRunning = proxyServer !== null
+    const isRunning = proxyServer.isRunning()
     const port = proxyStatusManager.getPort()
     const host = isRunning
       ? proxyStatusManager.getHost()
@@ -2009,7 +2429,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
 }
 
 export function getProxyStatus(): ProxyStatus {
-  const isRunning = proxyServer !== null
+  const isRunning = proxyServer.isRunning()
   const port = proxyStatusManager.getPort()
   const host = isRunning
     ? proxyStatusManager.getHost()

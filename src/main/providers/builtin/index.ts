@@ -8,6 +8,16 @@ import qwenConfig from './qwen.ts'
 import qwenAiConfig from './qwen-ai.ts'
 import zaiConfig from './zai.ts'
 import stepfunConfig from './stepfun.ts'
+import openaiConfig from './openai.ts'
+import anthropicConfig from './anthropic.ts'
+import googleConfig from './google.ts'
+import ollamaConfig from './ollama.ts'
+import groqConfig from './groq.ts'
+import togetherConfig from './together.ts'
+import mistralConfig from './mistral.ts'
+import xaiConfig from './xai.ts'
+import siliconCloudConfig from './siliconcloud.ts'
+import cozeConfig from './coze.ts'
 import type { BuiltinProviderConfig } from '../../store/types.ts'
 
 export const builtinProviders: BuiltinProviderConfig[] = [
@@ -21,6 +31,16 @@ export const builtinProviders: BuiltinProviderConfig[] = [
   qwenAiConfig,
   zaiConfig,
   stepfunConfig,
+  openaiConfig,
+  anthropicConfig,
+  googleConfig,
+  ollamaConfig,
+  groqConfig,
+  togetherConfig,
+  mistralConfig,
+  xaiConfig,
+  siliconCloudConfig,
+  cozeConfig,
 ]
 
 export const builtinProviderMap: Record<string, BuiltinProviderConfig> = {
@@ -34,6 +54,16 @@ export const builtinProviderMap: Record<string, BuiltinProviderConfig> = {
   'qwen-ai': qwenAiConfig,
   zai: zaiConfig,
   stepfun: stepfunConfig,
+  openai: openaiConfig,
+  anthropic: anthropicConfig,
+  google: googleConfig,
+  ollama: ollamaConfig,
+  groq: groqConfig,
+  together: togetherConfig,
+  mistral: mistralConfig,
+  xai: xaiConfig,
+  siliconcloud: siliconCloudConfig,
+  coze: cozeConfig,
 }
 
 export function getBuiltinProvider(id: string): BuiltinProviderConfig | undefined {
@@ -55,6 +85,16 @@ export {
   qwenAiConfig,
   zaiConfig,
   stepfunConfig,
+  openaiConfig,
+  anthropicConfig,
+  googleConfig,
+  ollamaConfig,
+  groqConfig,
+  togetherConfig,
+  mistralConfig,
+  xaiConfig,
+  siliconCloudConfig,
+  cozeConfig,
 }
 
 export default builtinProviders

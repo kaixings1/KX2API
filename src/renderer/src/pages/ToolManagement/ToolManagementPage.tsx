@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,8 +11,9 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Plus, Trash2, Edit3, Save, X, RotateCcw,
-  Wrench, FolderOpen, Lightbulb, Check, Search,
+  Wrench, FolderOpen, Lightbulb, Check, Search, RefreshCw, Download, Upload, ArrowRight,
 } from 'lucide-react'
+import { ImportExportDialog, ManagementToolbar } from '@/components/management'
 
 // ==================== Types ====================
 
@@ -51,11 +53,13 @@ interface HintRule {
 
 export function ToolManagementPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [tools, setTools] = useState<ToolDef[]>([])
   const [groups, setGroups] = useState<ToolGroup[]>([])
   const [hintRules, setHintRules] = useState<HintRule[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
+  const [search, setSearch] = useState('')
 
   // Tool form
   const [editingTool, setEditingTool] = useState<string | null>(null)
@@ -200,19 +204,122 @@ export function ToolManagementPage() {
     if (res.success) { showMsg('已重置为默认'); loadAll() }
   }
 
+  // ==================== Import/Export ====================
+
+  const [ioOpen, setIoOpen] = useState(false)
+  const [ioMode, setIoMode] = useState<'import' | 'export' | 'backup' | 'restore'>('export')
+
+  const handleExport = async () => {
+    try {
+      const res = await window.electronAPI.mgmt.export('tools', { tools: filteredTools, groups, hintRules: filteredRules })
+      if (res.success) {
+        const blob = new Blob([JSON.stringify({ tools: filteredTools, groups, hintRules: filteredRules }, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `tools_${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Export failed:', e)
+    }
+  }
+
+  const handleImport = async (jsonData: string) => {
+    try {
+      const res = await window.electronAPI.mgmt.import('tools', jsonData)
+      if (res.success && res.data) {
+        const data = Array.isArray(res.data) ? res.data : []
+        for (const item of data) {
+          if (item?.name) {
+            await api.add({ name: item.name, displayName: item.displayName || item.name, description: item.description || '', usage: item.usage || '', platform: item.platform || 'all', tags: item.tags || [], enabled: true })
+          }
+        }
+        loadAll()
+        return { success: true }
+      }
+      return { success: false, error: res.error }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  }
+
+  const handleBackup = async () => {
+    try {
+      const res = await window.electronAPI.mgmt.backup()
+      if (res.success) {
+        const blob = new Blob([JSON.stringify({ tools: { tools: filteredTools, groups, hintRules: filteredRules } }, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `tools_backup_${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Backup failed:', e)
+    }
+  }
+
+  const handleRestore = async (file: File) => {
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      const items = Array.isArray(data) ? data : (data.tools?.tools || data['tools'] || [])
+      if (!Array.isArray(items)) return { success: false, error: '数据格式错误' }
+      for (const item of items) {
+        if (item?.name) {
+          await api.add({ name: item.name, displayName: item.displayName || item.name, description: item.description || '', usage: item.usage || '', platform: item.platform || 'all', tags: item.tags || [], enabled: true })
+        }
+      }
+      loadAll()
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  }
+
   // ==================== Render ====================
+
+  const filteredTools = tools.filter(t => !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.displayName.toLowerCase().includes(search.toLowerCase()))
+  const filteredGroups = groups.filter(g => !search || g.name.toLowerCase().includes(search.toLowerCase()) || g.description.toLowerCase().includes(search.toLowerCase()))
+  const filteredRules = hintRules.filter(r => !search || r.name.toLowerCase().includes(search.toLowerCase()) || r.description.toLowerCase().includes(search.toLowerCase()))
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">工具管理</h1>
-          <p className="text-sm text-[var(--text-muted)]">管理内置工具、分组和提示规则</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={handleReset}>
-          <RotateCcw className="w-4 h-4 mr-1" /> 重置默认
-        </Button>
-      </div>
+      <ManagementToolbar
+        title={t('tools.title', '工具管理')}
+        subtitle={t('tools.description', '管理内置工具、分组和提示规则')}
+        onRefresh={loadAll}
+        onExport={() => { setIoMode('export'); setIoOpen(true) }}
+        onImport={() => { setIoMode('import'); setIoOpen(true) }}
+        onBackup={() => { setIoMode('backup'); setIoOpen(true) }}
+        onRestore={() => { setIoMode('restore'); setIoOpen(true) }}
+        filters={{ search }}
+        onFiltersChange={(f) => setSearch(f.search || '')}
+        totalCount={tools.length}
+        filteredCount={filteredTools.length}
+        isLoading={loading}
+        extraActions={
+          <Button variant="outline" size="sm" onClick={handleReset}>
+            <RotateCcw className="w-4 h-4 mr-1" /> 重置默认
+          </Button>
+        }
+      />
+
+      <ImportExportDialog
+        open={ioOpen}
+        onOpenChange={setIoOpen}
+        mode={ioMode}
+        title="工具管理"
+        description={ioMode === 'export' ? '导出工具、分组和规则配置' : ioMode === 'import' ? '导入工具配置' : ioMode === 'backup' ? '备份所有工具数据' : '从备份恢复工具数据'}
+        data={{ tools: filteredTools, groups, hintRules: filteredRules }}
+        onExport={handleExport}
+        onImport={handleImport}
+        onBackup={handleBackup}
+        onRestore={handleRestore}
+      />
 
       {message && (
         <div className="flex items-center gap-2 text-sm text-green-400 bg-green-400/10 px-3 py-2 rounded">
@@ -225,9 +332,9 @@ export function ToolManagementPage() {
       ) : (
         <Tabs defaultValue="tools" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="tools"><Wrench className="w-4 h-4 mr-1" /> 工具列表 ({tools.length})</TabsTrigger>
-            <TabsTrigger value="groups"><FolderOpen className="w-4 h-4 mr-1" /> 分组管理 ({groups.length})</TabsTrigger>
-            <TabsTrigger value="hints"><Lightbulb className="w-4 h-4 mr-1" /> 提示规则 ({hintRules.length})</TabsTrigger>
+            <TabsTrigger value="tools"><Wrench className="w-4 h-4 mr-1" /> 工具列表 ({filteredTools.length})</TabsTrigger>
+            <TabsTrigger value="groups"><FolderOpen className="w-4 h-4 mr-1" /> 分组管理 ({filteredGroups.length})</TabsTrigger>
+            <TabsTrigger value="hints"><Lightbulb className="w-4 h-4 mr-1" /> 提示规则 ({filteredRules.length})</TabsTrigger>
             <TabsTrigger value="test"><Search className="w-4 h-4 mr-1" /> 规则测试</TabsTrigger>
           </TabsList>
 
@@ -243,7 +350,7 @@ export function ToolManagementPage() {
                   <div className="col-span-2"><Label>描述</Label><Input value={toolForm.description} onChange={e => setToolForm(p => ({ ...p, description: e.target.value }))} /></div>
                   <div><Label>用法</Label><Input value={toolForm.usage} onChange={e => setToolForm(p => ({ ...p, usage: e.target.value }))} placeholder="/my-tool" /></div>
                   <div><Label>平台</Label>
-                    <select className="w-full text-xs bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1.5" value={toolForm.platform} onChange={e => setToolForm(p => ({ ...p, platform: e.target.value }))}>
+                    <select className="w-full text-xs text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1.5" value={toolForm.platform} onChange={e => setToolForm(p => ({ ...p, platform: e.target.value }))}>
                       <option value="all">全部</option><option value="windows">Windows</option><option value="unix">Unix</option>
                     </select>
                   </div>
@@ -255,8 +362,10 @@ export function ToolManagementPage() {
 
             {/* Tool list */}
             <div className="space-y-2">
-              {tools.map(tool => (
-                <Card key={tool.id}>
+              {filteredTools.length === 0 ? (
+                <Card><CardContent className="py-6 text-center text-xs text-[var(--text-muted)]">没有匹配的工具</CardContent></Card>
+              ) : filteredTools.map(tool => (
+                <Card key={tool.id} className="cursor-pointer hover:border-[var(--accent-primary)] transition-colors" onClick={() => navigate(`/tools/${tool.id}`)}>
                   <CardContent className="py-3 flex items-center gap-3">
                     <Switch checked={tool.enabled} onCheckedChange={() => handleToggleTool(tool.id)} />
                     <div className="flex-1 min-w-0">
@@ -264,13 +373,14 @@ export function ToolManagementPage() {
                         <span className="font-medium text-sm">/{tool.name}</span>
                         <span className="text-xs text-[var(--text-muted)]">{tool.displayName}</span>
                         {tool.builtin && <Badge variant="secondary" className="text-[10px]">内置</Badge>}
+                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
                       </div>
                       <p className="text-xs text-[var(--text-muted)] truncate">{tool.description}</p>
                       <div className="flex gap-1 mt-1">
                         {tool.tags.map(tag => <Badge key={tag} variant="outline" className="text-[10px]">{tag}</Badge>)}
                       </div>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                       {editingTool === tool.id ? (
                         <>
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleUpdateTool(tool.id)}><Save className="w-3 h-3" /></Button>
@@ -304,7 +414,7 @@ export function ToolManagementPage() {
 
             {/* Group list */}
             <div className="grid gap-3">
-              {groups.map(group => (
+              {filteredGroups.map(group => (
                 <Card key={group.id}>
                   <CardContent className="py-3 flex items-center gap-3">
                     <div className="flex-1">
@@ -355,7 +465,7 @@ export function ToolManagementPage() {
 
             {/* Rule list */}
             <div className="space-y-2">
-              {hintRules.map(rule => (
+              {filteredRules.map(rule => (
                 <Card key={rule.id}>
                   <CardContent className="py-3 flex items-center gap-3">
                     <div className="flex-1">
@@ -366,7 +476,7 @@ export function ToolManagementPage() {
                       </div>
                       <p className="text-xs text-[var(--text-muted)]">{rule.description}</p>
                       <div className="flex gap-1 mt-1 flex-wrap">
-                        {rule.patterns.map(p => <code key={p} className="text-[10px] bg-[var(--bg-tertiary)] px-1 rounded">{p}</code>)}
+                        {rule.patterns.map(p => <code key={p} className="text-[10px] text-[var(--text-primary)] bg-[var(--bg-tertiary)] px-1 rounded">{p}</code>)}
                       </div>
                       <div className="flex gap-1 mt-1">
                         {rule.groupIds.map(gid => <Badge key={gid} variant="outline" className="text-[10px]">{gid}</Badge>)}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -8,7 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Trash2, Play, Loader2, Search, Filter } from 'lucide-react'
+import { Plus, Trash2, Play, Loader2, ArrowRight } from 'lucide-react'
+import { ManagementToolbar } from '@/components/management'
+import { ImportExportDialog } from '@/components/management/ImportExportDialog'
 
 const agentsApi = window.electronAPI.agents
 
@@ -20,6 +23,7 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
 
 export function AgentManagement() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [agents, setAgents] = useState<AgentRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -92,62 +96,150 @@ export function AgentManagement() {
     return matchSearch && matchStatus
   })
 
+  // ==================== Import/Export ====================
+
+  const [ioOpen, setIoOpen] = useState(false)
+  const [ioMode, setIoMode] = useState<'import' | 'export' | 'backup' | 'restore'>('export')
+
+  const handleExport = async () => {
+    try {
+      const res = await window.electronAPI.mgmt.export('agents', filtered)
+      if (res.success) {
+        const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `agents_${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Export failed:', e)
+    }
+  }
+
+  const handleImport = async (jsonData: string) => {
+    try {
+      const res = await window.electronAPI.mgmt.import('agents', jsonData)
+      if (res.success && res.data) {
+        for (const item of res.data) {
+          if (item?.id) {
+            await agentsApi.create({ name: item.name, role: item.role, systemPrompt: item.systemPrompt, model: item.model || '', status: 'idle' })
+          }
+        }
+        loadAgents()
+        return { success: true }
+      }
+      return { success: false, error: res.error }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  }
+
+  const handleBackup = async () => {
+    try {
+      const res = await window.electronAPI.mgmt.backup()
+      if (res.success) {
+        const blob = new Blob([JSON.stringify({ agents: filtered }, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `agents_backup_${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Backup failed:', e)
+    }
+  }
+
+  const handleRestore = async (file: File) => {
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      if (!Array.isArray(data)) return { success: false, error: '数据格式错误' }
+      for (const item of data) {
+        if (item?.id) {
+          await agentsApi.create({ name: item.name, role: item.role, systemPrompt: item.systemPrompt, model: item.model || '', status: 'idle' })
+        }
+      }
+      loadAgents()
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  }
+
+  // ==================== Render ====================
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{t('agents.title', 'Agent 管理')}</h2>
-          <p className="text-muted-foreground">{t('agents.description', '创建和管理 AI Agent')} · 数据存储于 userData/data/agents/</p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" />{t('agents.create', '新建 Agent')}</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingAgent ? t('agents.edit', '编辑 Agent') : t('agents.create', '新建 Agent')}</DialogTitle>
-              <DialogDescription>
-                {editingAgent ? t('agents.editDesc', '编辑 Agent 配置') : t('agents.createDesc', '创建一个新的 AI Agent')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>{t('agents.nameLabel', '名称')}</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} />
-              </div>
-              <div>
-                <Label>{t('agents.roleLabel', '角色')}</Label>
-                <Input value={role} onChange={e => setRole(e.target.value)} />
-              </div>
-              <div>
-                <Label>{t('agents.systemPromptLabel', '系统提示词')}</Label>
-                <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4} />
-              </div>
-              <div>
-                <Label>{t('agents.modelLabel', '模型')}</Label>
-                <Input value={model} onChange={e => setModel(e.target.value)} placeholder={t('agents.modelPlaceholder', '留空使用默认')} />
-              </div>
-              <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <ManagementToolbar
+        title={t('agents.title', 'Agent 管理')}
+        subtitle={t('agents.description', '创建和管理 AI Agent') + ' · 数据存储于 userData/data/agents/'}
+        createLabel={<><Plus className="h-4 w-4 mr-1" />{t('agents.create', '新建 Agent')}</>}
+        onCreate={openCreate}
+        onRefresh={loadAgents}
+        onExport={() => { setIoMode('export'); setIoOpen(true) }}
+        onImport={() => { setIoMode('import'); setIoOpen(true) }}
+        onBackup={() => { setIoMode('backup'); setIoOpen(true) }}
+        onRestore={() => { setIoMode('restore'); setIoOpen(true) }}
+        filters={{ search, status: filterStatus }}
+        onFiltersChange={(f) => { setSearch(f.search || ''); setFilterStatus(f.status || 'all') }}
+        filterOptions={[
+          { key: 'status', label: '状态', options: [
+            { value: 'all', label: '全部状态' },
+            ...Object.entries(STATUS_MAP).map(([k, v]) => ({ value: k, label: v.label })),
+          ]},
+        ]}
+        totalCount={agents.length}
+        filteredCount={filtered.length}
+        isLoading={loading}
+      />
 
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜索 Agent..." className="pl-8" />
-        </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-32"><Filter className="h-4 w-4 mr-1" /><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部状态</SelectItem>
-            {Object.entries(STATUS_MAP).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <ImportExportDialog
+        open={ioOpen}
+        onOpenChange={setIoOpen}
+        mode={ioMode}
+        title="Agent 管理"
+        description={ioMode === 'export' ? '导出 Agent 配置为 JSON 文件' : ioMode === 'import' ? '导入 Agent 配置' : ioMode === 'backup' ? '备份所有 Agent 数据' : '从备份恢复 Agent 数据'}
+        data={filtered}
+        onExport={handleExport}
+        onImport={handleImport}
+        onBackup={handleBackup}
+        onRestore={handleRestore}
+      />
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingAgent ? t('agents.edit', '编辑 Agent') : t('agents.create', '新建 Agent')}</DialogTitle>
+            <DialogDescription>
+              {editingAgent ? t('agents.editDesc', '编辑 Agent 配置') : t('agents.createDesc', '创建一个新的 AI Agent')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>{t('agents.nameLabel', '名称')}</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div>
+              <Label>{t('agents.roleLabel', '角色')}</Label>
+              <Input value={role} onChange={e => setRole(e.target.value)} />
+            </div>
+            <div>
+              <Label>{t('agents.systemPromptLabel', '系统提示词')}</Label>
+              <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4} />
+            </div>
+            <div>
+              <Label>{t('agents.modelLabel', '模型')}</Label>
+              <Input value={model} onChange={e => setModel(e.target.value)} placeholder={t('agents.modelPlaceholder', '留空使用默认')} />
+            </div>
+            <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
@@ -158,18 +250,25 @@ export function AgentManagement() {
       ) : (
         <div className="grid gap-4">
           {filtered.map(agent => (
-            <Card key={agent.id}>
+            <Card key={agent.id} className="cursor-pointer hover:border-[var(--accent-primary)] transition-colors" onClick={() => navigate(`/agents/${agent.id}`)}>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2 flex-wrap">
-                  <span>{agent.name}</span>
-                  <Badge variant={STATUS_MAP[agent.status]?.variant}>{STATUS_MAP[agent.status]?.label}</Badge>
-                  <Badge variant="outline">{agent.role}</Badge>
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                    <span>{agent.name}</span>
+                    <Badge variant={STATUS_MAP[agent.status]?.variant}>{STATUS_MAP[agent.status]?.label}</Badge>
+                    <Badge variant="outline">{agent.role}</Badge>
+                  </CardTitle>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
               </CardHeader>
-              <CardContent className="py-2">
-                <p className="text-sm text-muted-foreground line-clamp-2">{agent.systemPrompt}</p>
-                {agent.model && <p className="text-xs text-muted-foreground mt-1">Model: {agent.model}</p>}
-                <div className="flex gap-1 mt-3">
+              <CardContent className="py-3 space-y-2">
+                <p className="text-sm text-muted-foreground line-clamp-3">{agent.systemPrompt}</p>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {agent.model && <span>Model: {agent.model}</span>}
+                  <span>ID: {agent.id}</span>
+                  <span>创建: {new Date(agent.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div className="flex gap-1 mt-2" onClick={e => e.stopPropagation()}>
                   <Button size="sm" variant="outline" onClick={() => setExecuteId(executeId === agent.id ? null : agent.id)} disabled={executeId === agent.id}>
                     <Play className="h-3 w-3 mr-1" />{t('agents.execute', '执行')}
                   </Button>

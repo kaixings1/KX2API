@@ -1,0 +1,140 @@
+
+============================================================
+FILE: _stepfun_7875.js
+============================================================
+
+  [send_format] @16938:
+    age",{message_type:g.aE.MainChat,file_type:V,file_cnt:q,file_size_kb:$})}catch(e){}let et=new a.yI({message:{content:{data:{value:{prompt:I},case:"userMessage"}},chatSessionId:ec},config:F?{}:{model:null==Y?void 0:Y.model,enableSearch:J,enableReasoning:!0,fromChatcaseId:X}}),er=!1,el=()=>{er||Q!==ec&&(er=!0,window.next.router.push("/chats/".concat(ec).concat(W?"?toolId="+W:"")))};F&&(d.ChatStoreRef.getState().setSending(!0,ec),el());let ea=await (0,p.QR)({request:et,sendType:B,isAiEdit:K,targetM
+
+  [prompt_qa] @15078:
+    oid 0:t.rid)&&(null==t||null==(c=t.data.value)?void 0:c.rid)&&(t.rid=t.data.value.rid)}),I={value:k,case:"qa"}):R?I={value:R,case:"creation"}:M?I={value:M,case:"copyCreationRecord"}:A?(A.attachments.forEach(e=>{var c;let t=e.resource;!(null==t?void 0:t.rid)&&(null==t||null==(c=t.data.value)?void 0:c.rid)&&(t.rid=t.data.value.rid)}),I={value:A,case:"deepResearch"}):D?I={value:D,case:"studioAgent"}:F?(F.attachments.forEach(e=>{var c;let t=e.resource;!(null==t?void 0:t.rid)&&(null==t||null==(c=t.da
+
+  [prompt_qa] @316579:
+    oid 0:t.role)==="user";if(!l||0===l.length)return;let n={case:"userMessage",value:new j.RG({prompt:{case:"qa",value:{content:l}}})},i={case:"assistantMessage",value:new j.Gd({content:{case:"qa",value:{content:l}}})};return new k.xd({content:{data:a?n:i}})}(e),{isFromPhoneCall:r,turn:l,traceId:a,tracelogFile:n,messageId:i}=e;if(t){var s,o;let m=(null==(o=e.messageInfo)||null==(s=o.author)?void 0:s.role)==="user";return(0,p.jsxs)("div",{children:[u&&(a||n)&&(0,p.jsxs)(rS(),{className:(0,S.cn)("tex
+
+  [prompt_qa] @316663:
+    w j.RG({prompt:{case:"qa",value:{content:l}}})},i={case:"assistantMessage",value:new j.Gd({content:{case:"qa",value:{content:l}}})};return new k.xd({content:{data:a?n:i}})}(e),{isFromPhoneCall:r,turn:l,traceId:a,tracelogFile:n,messageId:i}=e;if(t){var s,o;let m=(null==(o=e.messageInfo)||null==(s=o.author)?void 0:s.role)==="user";return(0,p.jsxs)("div",{children:[u&&(a||n)&&(0,p.jsxs)(rS(),{className:(0,S.cn)("text-blue text-xs cursor-pointer flex",m&&"justify-end"),href:function(e,c,t){return cM
+
+  [prompt_creation] @15103:
+    ull==(c=t.data.value)?void 0:c.rid)&&(t.rid=t.data.value.rid)}),I={value:k,case:"qa"}):R?I={value:R,case:"creation"}:M?I={value:M,case:"copyCreationRecord"}:A?(A.attachments.forEach(e=>{var c;let t=e.resource;!(null==t?void 0:t.rid)&&(null==t||null==(c=t.data.value)?void 0:c.rid)&&(t.rid=t.data.value.rid)}),I={value:A,case:"deepResearch"}):D?I={value:D,case:"studioAgent"}:F?(F.attachments.forEach(e=>{var c;let t=e.resource;!(null==t?void 0:t.rid)&&(null==t||null==(c=t.data.value)?void 0:c.rid)&&
+
+  [config_format] @17031:
+     a.yI({message:{content:{data:{value:{prompt:I},case:"userMessage"}},chatSessionId:ec},config:F?{}:{model:null==Y?void 0:Y.model,enableSearch:J,enableReasoning:!0,fromChatcaseId:X}}),er=!1,el=()=>{er||Q!==ec&&(er=!0,window.next.router.push("/chats/".concat(ec).concat(W?"?toolId="+W:"")))};F&&(d.ChatStoreRef.getState().setSending(!0,ec),el());let ea=await (0,p.QR)({request:et,sendType:B,isAiEdit:K,targetMessage:P,studioId:H,onSendStart:()=>{var e;el(),null===u.Wk||void 0===u.Wk||null==(e=u.Wk.scr
+
+  [studioId] @14675:
+    Message:P,enableReasoning:U=y.q.getState().enableReasoning,enableSearch:G,currentModel:z,isAiEdit:K,studioId:H,creationToolId:W,fromChatcaseId:X,fileType:V="",fileCount:q=0,fileSizeKb:$=0}=e,J=null!=G?G:E.U.getState().checkSearchEnabled(),Q=d.ChatStoreRef.getState().currentChatSessionId,{currentModel:Z}=y.q.getState(),Y=void 0!==z?z:Z;if(k?(k.attachments.forEach(e=>{var c;let t=e.resource;!(null==t?void 0:t.rid)&&(null==t||null==(c=t.data.value)?void 0:c.rid)&&(t.rid=t.data.value.rid)}),I={value
+
+  [studioId] @15682:
+    e:"drWeb"}),!I)return;let ee=!!(L||(null==F?void 0:F.vipShareTemplate)),ec=await (0,p.ON)(new a.sI({studioId:H,...F?{class:l.Es.ARTIFACT,artifactProjectParams:new a.zT({template:O||"html"}),vipCase:ee}:{}})).catch(()=>{throw Error(o.DY.CREATE_SESSION_FAILED)});try{let e=null!=(C=null===x.ChatSessionStoreRef||void 0===x.ChatSessionStoreRef||null==(m=x.ChatSessionStoreRef.getState().getChatSession(Q))||null==(i=m.meta)?void 0:i.vipCase)&&C,c=ee||e;(0,g.X8)("send_prompt_message",{image_cnt:null==k?
+
+  [studioId] @17347:
+    e().setSending(!0,ec),el());let ea=await (0,p.QR)({request:et,sendType:B,isAiEdit:K,targetMessage:P,studioId:H,onSendStart:()=>{var e;el(),null===u.Wk||void 0===u.Wk||null==(e=u.Wk.scrollToEnd)||e.call(u.Wk),null==b||b()},onSendSuccess:_,onSendError:e=>{e instanceof f.T&&(0,r.gp)(e,n.Cy.ACCOUNT_NEED_SIGN_IN)&&(0,s.openLoginModal)({from:"主动输入超过2�"}),null==S||S(e)},...(null==(t=e.deepResearchMessage)?void 0:t.continueInput)?{appendMessageMode:"dr_task",deepResearchMessage:A}:{}});return w(),ea}
+
+  [thinking] @244756:
+     0:i.displayName)&&(0,p.jsx)("p",{className:(0,S.cn)((null==u||null==(s=u.tool)?void 0:s.toolId)==="thinking-mock"&&"text-sm mb-1","text-content-primary text-sm font-medium mr-2 whitespace-nowrap"),children:(null==u||null==(o=u.tool)?void 0:o.displayName)||"搜索"}),(g||v)&&(0,p.jsx)(cq,{content:null==(m=u.params)?void 0:m.params,needParse:!0})]}),(()=>{if(f){var e;let c=(0,e3.jD)(null==(e=u.params)?void 0:e.params);if(c&&"object"==typeof c&&"python_code"in c)return(0,p.jsx)(c$,{code:c.python_code
+
+  [thinking] @250760:
+    ry text-sm font-medium mr-2 mb-3  whitespace-nowrap",(null==f||null==(s=f.tool)?void 0:s.toolId)==="thinking-mock"&&"text-sm mb-1",j&&"mb-0"),children:null==f||null==(o=f.tool)?void 0:o.displayName}),(0,p.jsx)(cq,{content:null==(m=f.params)?void 0:m.params,header:null==f||null==(x=f.result)||null==(d=x.ui)?void 0:d.header,needParse:!0})]}),(0,p.jsx)("div",{className:"flex flex-col w-full",children:(0,p.jsx)(tu,{toolId:null==f||null==(u=f.tool)?void 0:u.toolId,ui:g,resource:(null==f||null==(y=f.r
+
+  [thinking] @260593:
+    2({itemId:"placeholder",type:ef.SK.TOOL_CALL,status:ef.ur.IN_PROGRESS,data:{toolCall:{tool:{toolId:"thinking-mock",displayName:m("Chat.DeepResearching")}}}}),isLast:!0,total:(null==H?void 0:H.length)||0,index:(null==H?void 0:H.length)||0,havePlaceholder:!!V},"placeholder"):null]}),!x&&!y&&(0,p.jsx)(tp,{isResearchCompleted:!!W,expanded:y,setExpanded:E,classname:(0,cS.XJ)()?"":"mr-3"})]}),y&&(0,p.jsx)(tp,{isResearchCompleted:!!W,expanded:y,setExpanded:E,classname:"mr-3 bottom-[-".concat((null==P||
+
+============================================================
+FILE: _stepfun_5229.js
+============================================================
+
+  [proto_ChatStreamRequest] @219823:
+    epeated:!0},{no:2,name:"next_page_token",kind:"scalar",T:9}]),u=s.C.makeMessageType("capy.studio.v1.ChatStreamRequest",()=>[{no:1,name:"message",kind:"message",T:t.QB}]),g=s.C.makeMessageType("capy.studio.v1.ChatStreamResponse",()=>[{no:1,name:"data",kind:"message",T:k}]),k=s.C.makeMessageType("capy.studio.v1.StreamData",()=>[{no:1,name:"event",kind:"message",T:o.Jh}]),_=s.C.makeMessageType("capy.studio.v1.DeleteMessagesRequest",()=>[{no:1,name:"message_ids",kind:"scalar",T:9,repeated:!0}]),y=s.
+
+  [proto_ChatStreamRequest] @230812:
+    calar",T:9},{no:52,name:"from_vipcase_id",kind:"scalar",T:9}]),w=s.C.makeMessageType("capy.agent.v1.ChatStreamRequest",()=>[{no:1,name:"message",kind:"message",T:o.QB},{no:2,name:"config",kind:"message",T:P}]),x=s.C.makeMessageType("capy.agent.v1.ChatStreamResponse",()=>[{no:1,name:"data",kind:"message",T:b}]),L=s.C.makeMessageType("capy.agent.v1.BatchGetTaskItemsRequest",()=>[{no:1,name:"item_ids",kind:"scalar",T:9,repeated:!0},{no:2,name:"task_type",kind:"enum",T:s.C.getEnumType(r.Px)}]),G=s.C
+
+  [proto_ChatStreamResponse] @219931:
+    amRequest",()=>[{no:1,name:"message",kind:"message",T:t.QB}]),g=s.C.makeMessageType("capy.studio.v1.ChatStreamResponse",()=>[{no:1,name:"data",kind:"message",T:k}]),k=s.C.makeMessageType("capy.studio.v1.StreamData",()=>[{no:1,name:"event",kind:"message",T:o.Jh}]),_=s.C.makeMessageType("capy.studio.v1.DeleteMessagesRequest",()=>[{no:1,name:"message_ids",kind:"scalar",T:9,repeated:!0}]),y=s.C.makeMessageType("capy.studio.v1.DeleteMessagesResponse",[]),C=s.C.makeMessageType("capy.studio.v1.GetMessa
+
+  [proto_ChatStreamResponse] @230959:
+    nd:"message",T:o.QB},{no:2,name:"config",kind:"message",T:P}]),x=s.C.makeMessageType("capy.agent.v1.ChatStreamResponse",()=>[{no:1,name:"data",kind:"message",T:b}]),L=s.C.makeMessageType("capy.agent.v1.BatchGetTaskItemsRequest",()=>[{no:1,name:"item_ids",kind:"scalar",T:9,repeated:!0},{no:2,name:"task_type",kind:"enum",T:s.C.getEnumType(r.Px)}]),G=s.C.makeMessageType("capy.agent.v1.BatchGetTaskItemsResponse",()=>[{no:1,name:"task_items",kind:"message",T:r.L2,repeated:!0}]),F=s.C.makeMessageType(
+
+  [proto_PushStreamEvent] @524140:
+    Response",()=>[{no:1,name:"message_id",kind:"scalar",T:9}]),Q=s.C.makeMessageType("step.capy.botmsg.PushStreamEventRequest",[]),Z=s.C.makeMessageType("step.capy.botmsg.WeComChannelBotInfo",()=>[{no:1,name:"bot_id",kind:"scalar",T:9},{no:2,name:"secret",kind:"scalar",T:9}]),$=s.C.makeMessageType("step.capy.botmsg.FeishuChannelBotInfo",()=>[{no:1,name:"device_code",kind:"scalar",T:9},{no:2,name:"device_code_expire_at",kind:"scalar",T:3},{no:3,name:"bot_id",kind:"scalar",T:9},{no:4,name:"secret",ki
+
+  [event_reasoning] @373876:
+    ,"imageRec")},chatSessionId:A.chatSessionId}),K({messageId:A.respMessageId,text:e.text});break}case"reasoningEvent":{let e=L.value;F(A.respMessageId,{callback:e=>{e.showRespLoading=!1,e.reasonAction!==l.H1.START&&Z(e,"reason")},chatSessionId:A.chatSessionId}),q({messageId:A.respMessageId,text:e.text});break}case"textEvent":{let e=L.value;F(A.respMessageId,{callback:e=>{Z(e,"text"),e.showRespLoading=!1}}),(null==(t=Q(A.respMessageId))?void 0:t.showRespLoading)&&F(A.respMessageId,{updates:{showRes
+
+  [event_text] @374090:
+    (e,"reason")},chatSessionId:A.chatSessionId}),q({messageId:A.respMessageId,text:e.text});break}case"textEvent":{let e=L.value;F(A.respMessageId,{callback:e=>{Z(e,"text"),e.showRespLoading=!1}}),(null==(t=Q(A.respMessageId))?void 0:t.showRespLoading)&&F(A.respMessageId,{updates:{showRespLoading:!1},chatSessionId:A.chatSessionId}),B({messageId:A.respMessageId,text:e.text});break}case"cardEvent":{let e=L.value;e.type===l.bU.IMAGE&&Y(e);break}case"errorEvent":L.value;break;case"bizMessageEvent":{let
+
+  [event_messageDone] @378028:
+    ,a.content.data.value.content.value.messageMemories=[])},chatSessionId:A.chatSessionId});break}case"messageDoneEvent":case"interruptEvent":case"doneEvent":E(A.respMessageId),V(!1,A.chatSessionId),X("",A.chatSessionId),F(A.respMessageId,{updates:{streaming:!1,showRespLoading:!1,showReqLoading:!1,reasonAction:l.H1.END,imageRecognizeAction:l.H1.END,searchAction:l.H1.END,memoryAction:l.H1.END},chatSessionId:A.chatSessionId}),null==P||P(A)}},Z=(e,a)=>{switch(["searchAction","imageRecognizeAction","re
+
+  [event_error] @80019:
+    taEvent"===n.event.case?n.event.value:void 0,i="finishEvent"===n.event.case?n.event.value:void 0,r="errorEvent"===n.event.case?n.event.value:void 0;if(o){let n=o.messageId;if(!n)return;t&&C.set(t,n),e(e=>{let s=M(e.messages),i=N(s,n,e=>(0,g.tp)(e,o,t));if(i.found)return{messages:i.messages};let r=(0,g.H2)(o,a().appId,t);return r?{messages:R(s,[r])}:e}),h();return}if(i){let n=i.messageId||(t?C.get(t):void 0);if(n){let s=!1;e(e=>{let a=N(M(e.messages),n,e=>new c.QB({...e,status:(0,g.I6)(i.reason)}
+
+  [event_error] @374438:
+    spMessageId,text:e.text});break}case"cardEvent":{let e=L.value;e.type===l.bU.IMAGE&&Y(e);break}case"errorEvent":L.value;break;case"bizMessageEvent":{let e,a=L.value.message;if(!a||"artifact.snapshot"!==a.label)break;let n=null==(o=a.payload)?void 0:o.toJson();if(!n||"object"!=typeof n)break;try{e=c.RD.fromJson(n,{ignoreUnknownFields:!0})}catch(e){break}F(A.respMessageId,{callback:a=>{a.artifactSnapshots||(a.artifactSnapshots=[]);let n=a.artifactSnapshots.findIndex(a=>a.snapshotId===e.snapshotId)
+
+  [stopEvent] @30061:
+    g=async e=>{let a=e.invocationId.trim(),n=e.appId.trim();a&&n&&await d.submit({appId:n,event:{case:"stopEvent",value:new i.PU({chatSessionId:n,invocationId:a})}})},k=async()=>d.suggestOpenClawPrompts({}),_=async function(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:10;return c.listBotAccounts({afterId:"",limit:e})},y=async()=>d.checkUserCanDeploy({}),C=async function(){let e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:"";return d.doAutoDeploy({inviteCode:e})},v=async
+
+  [streaming_true] @355973:
+    T:()=>u});var s=n(83273),t=n(5710),o=n(75298);class i extends t.QB{constructor(e){let{feMessageId:a,streaming:n,showReqLoading:s=!1,showRespLoading:t=!1,isError:o=!1,feedback:i,feedbackContent:r,...l}=null!=e?e:{};super(l),this.feMessageId=a,this.streaming=n,this.showReqLoading=s,this.showRespLoading=t,this.isError=o,this.feedback=i,this.feedbackContent=r}}let r=(e,a)=>{var n,s;(null==(n=e.content)?void 0:n.data.case)===o.rf.AssistantMessage&&(null==(s=e.content)?void 0:s.data.value.content.case
+
+  [streaming_true] @378174:
+    neEvent":E(A.respMessageId),V(!1,A.chatSessionId),X("",A.chatSessionId),F(A.respMessageId,{updates:{streaming:!1,showRespLoading:!1,showReqLoading:!1,reasonAction:l.H1.END,imageRecognizeAction:l.H1.END,searchAction:l.H1.END,memoryAction:l.H1.END},chatSessionId:A.chatSessionId}),null==P||P(A)}},Z=(e,a)=>{switch(["searchAction","imageRecognizeAction","reasonAction"].forEach(a=>e[a]=l.H1.END),a){case"search":e.searchAction=l.H1.START;break;case"imageRec":e.imageRecognizeAction=l.H1.START;break;case
+
+  [streaming_true] @381106:
+    =d&&(V(H,{chatSessionId:L,updates:{messageId:e.parentMessageId}}),K(new D.xd({messageId:e.messageId,streaming:!0,showRespLoading:!0})),(0,x.X8)("first_token_delay",{message_id:e.messageId,first_token_type:"general",time:Date.now()-I,model_name:null==(s=a.config)?void 0:s.model,chat_type:q}))},en=(e,a)=>{e.messageId&&V(e.messageId,{updates:e,chatSessionId:L})},es=e=>{Y(e.respMessageId)},et=async e=>{let{context:a}=e;E(a.respMessageId),y.ChatStoreRef.getState().updateMessage(a.respMessageId,{updat
+
+============================================================
+FILE: _stepfun_1056.js
+============================================================
+
+  [proto_messages] @4006:
+    ILE",localName:"FILE"},{no:2,name:"ARTIFACT_SNAPSHOT_ENTRY_KIND_FOLDER",localName:"FOLDER"}]),y=m.C.makeMessageType("capy.agent.v1.ChatConfig",()=>[{no:1,name:"models",kind:"message",T:u,repeated:!0},{no:2,name:"search_config",kind:"message",T:A},{no:3,name:"agent_mode",kind:"enum",T:m.C.getEnumType(d)}]),A=m.C.makeMessageType("capy.agent.v1.ChatConfig.Search",()=>[{no:1,name:"enable_global",kind:"scalar",T:8,opt:!0},{no:2,name:"enable_connectors",kind:"scalar",T:9,repeated:!0},{no:3,name:"enabl
+
+  [proto_messages] @4219:
+    earch_config",kind:"message",T:A},{no:3,name:"agent_mode",kind:"enum",T:m.C.getEnumType(d)}]),A=m.C.makeMessageType("capy.agent.v1.ChatConfig.Search",()=>[{no:1,name:"enable_global",kind:"scalar",T:8,opt:!0},{no:2,name:"enable_connectors",kind:"scalar",T:9,repeated:!0},{no:3,name:"enable_search_groups",kind:"scalar",T:9,repeated:!0},{no:4,name:"enable_base_ids",kind:"scalar",T:9,repeated:!0}],{localName:"ChatConfig_Search"}),u=m.C.makeMessageType("capy.agent.v1.Model",()=>[{no:1,name:"model",kin
+
+  [proto_messages] @4554:
+    {no:4,name:"enable_base_ids",kind:"scalar",T:9,repeated:!0}],{localName:"ChatConfig_Search"}),u=m.C.makeMessageType("capy.agent.v1.Model",()=>[{no:1,name:"model",kind:"scalar",T:9},{no:2,name:"display_name",kind:"scalar",T:9},{no:3,name:"tags",kind:"scalar",T:9,repeated:!0},{no:4,name:"model_features",kind:"message",T:M,repeated:!0},{no:6,name:"description",kind:"scalar",T:9},{no:7,name:"user_input_limit",kind:"scalar",T:5},{no:8,name:"availability",kind:"message",T:R}]),R=m.C.makeMessageType("c
+
+  [proto_chatstream] @4006:
+    ILE",localName:"FILE"},{no:2,name:"ARTIFACT_SNAPSHOT_ENTRY_KIND_FOLDER",localName:"FOLDER"}]),y=m.C.makeMessageType("capy.agent.v1.ChatConfig",()=>[{no:1,name:"models",kind:"message",T:u,repeated:!0},{no:2,name:"search_config",kind:"message",T:A},{no:3,name:"agent_mode",kind:"enum",T:m.C.getEnumType(d)}]),A=m.C.makeMessageType("capy.agent.v1.ChatConfig.Search",()=>[{no:1,name:"enable_global",kind:"scalar",T:8,opt:!0},{no:2,name:"enable_connectors",kind:"scalar",T:9,repeated:!0},{no:3,name:"enabl
+
+  [proto_chatstream] @4219:
+    earch_config",kind:"message",T:A},{no:3,name:"agent_mode",kind:"enum",T:m.C.getEnumType(d)}]),A=m.C.makeMessageType("capy.agent.v1.ChatConfig.Search",()=>[{no:1,name:"enable_global",kind:"scalar",T:8,opt:!0},{no:2,name:"enable_connectors",kind:"scalar",T:9,repeated:!0},{no:3,name:"enable_search_groups",kind:"scalar",T:9,repeated:!0},{no:4,name:"enable_base_ids",kind:"scalar",T:9,repeated:!0}],{localName:"ChatConfig_Search"}),u=m.C.makeMessageType("capy.agent.v1.Model",()=>[{no:1,name:"model",kin
+
+  [proto_chatstream] @5634:
+    ar",T:9},{no:2,name:"display_name",kind:"scalar",T:9},{no:3,name:"index",kind:"scalar",T:5}]),v=m.C.makeMessageType("capy.agent.v1.ChatSession",()=>[{no:1,name:"chat_session_id",kind:"scalar",T:9},{no:2,name:"chat_id",kind:"scalar",T:9},{no:3,name:"display_name",kind:"scalar",T:9},{no:4,name:"latest_message_id",kind:"scalar",T:9},{no:5,name:"meta",kind:"message",T:F},{no:6,name:"state",kind:"enum",T:m.C.getEnumType(U)},{no:7,name:"type",kind:"enum",T:m.C.getEnumType(D)},{no:8,name:"chat_client_t
+
+============================================================
+FILE: _stepfun_7830.js
+============================================================
+
+  [chat_session_id] @10794:
+    hildren:e},e))})};var J=n(80538),Q=n(91390),Z=n(2707),q=n(71612),ee=n(28074);function et(e){let t=e.chatSessionId,n=(0,l.useRouter)(),{closeSidebar:a}=(0,j.L)(),{t:i}=(0,r.Bd)(),{chatSessionId:o,deleteChatSession:c}=(0,X.useChatSessionStore)((0,R.k)(e=>({chatSessionId:e.chatSessionId,deleteChatSession:e.deleteChatSession}))),d=o===t,u=(0,m.wF)(()=>{let e=async()=>{await c([t]),(0,W.X8)("chat_session_operate",{operate_type:"删除",chat_session_id:t}),d&&(a(),n.push((0,w.GP)("new")))};(0,ee.G)({titl
+
+  [chat_session_id] @10873:
+    nction et(e){let t=e.chatSessionId,n=(0,l.useRouter)(),{closeSidebar:a}=(0,j.L)(),{t:i}=(0,r.Bd)(),{chatSessionId:o,deleteChatSession:c}=(0,X.useChatSessionStore)((0,R.k)(e=>({chatSessionId:e.chatSessionId,deleteChatSession:e.deleteChatSession}))),d=o===t,u=(0,m.wF)(()=>{let e=async()=>{await c([t]),(0,W.X8)("chat_session_operate",{operate_type:"删除",chat_session_id:t}),d&&(a(),n.push((0,w.GP)("new")))};(0,ee.G)({title:i("Chat.ConfirmDeleteTopic"),Icon:(0,s.jsx)(C.Og,{className:"w-6 h-6"}),descr
+
+  [chat_session_id] @10949:
+    .L)(),{t:i}=(0,r.Bd)(),{chatSessionId:o,deleteChatSession:c}=(0,X.useChatSessionStore)((0,R.k)(e=>({chatSessionId:e.chatSessionId,deleteChatSession:e.deleteChatSession}))),d=o===t,u=(0,m.wF)(()=>{let e=async()=>{await c([t]),(0,W.X8)("chat_session_operate",{operate_type:"删除",chat_session_id:t}),d&&(a(),n.push((0,w.GP)("new")))};(0,ee.G)({title:i("Chat.ConfirmDeleteTopic"),Icon:(0,s.jsx)(C.Og,{className:"w-6 h-6"}),description:i("Chat.ConfirmTopicDeletion"),confirmButtonProps:{text:i("Chat.Delet
+
+  [delete_chat] @10889:
+     t=e.chatSessionId,n=(0,l.useRouter)(),{closeSidebar:a}=(0,j.L)(),{t:i}=(0,r.Bd)(),{chatSessionId:o,deleteChatSession:c}=(0,X.useChatSessionStore)((0,R.k)(e=>({chatSessionId:e.chatSessionId,deleteChatSession:e.deleteChatSession}))),d=o===t,u=(0,m.wF)(()=>{let e=async()=>{await c([t]),(0,W.X8)("chat_session_operate",{operate_type:"删除",chat_session_id:t}),d&&(a(),n.push((0,w.GP)("new")))};(0,ee.G)({title:i("Chat.ConfirmDeleteTopic"),Icon:(0,s.jsx)(C.Og,{className:"w-6 h-6"}),description:i("Chat.C
+
+  [delete_chat] @10979:
+    ssionId:o,deleteChatSession:c}=(0,X.useChatSessionStore)((0,R.k)(e=>({chatSessionId:e.chatSessionId,deleteChatSession:e.deleteChatSession}))),d=o===t,u=(0,m.wF)(()=>{let e=async()=>{await c([t]),(0,W.X8)("chat_session_operate",{operate_type:"删除",chat_session_id:t}),d&&(a(),n.push((0,w.GP)("new")))};(0,ee.G)({title:i("Chat.ConfirmDeleteTopic"),Icon:(0,s.jsx)(C.Og,{className:"w-6 h-6"}),description:i("Chat.ConfirmTopicDeletion"),confirmButtonProps:{text:i("Chat.DeleteTopic"),colorType:"danger"},o
+
+  [delete_chat] @10999:
+    Session:c}=(0,X.useChatSessionStore)((0,R.k)(e=>({chatSessionId:e.chatSessionId,deleteChatSession:e.deleteChatSession}))),d=o===t,u=(0,m.wF)(()=>{let e=async()=>{await c([t]),(0,W.X8)("chat_session_operate",{operate_type:"删除",chat_session_id:t}),d&&(a(),n.push((0,w.GP)("new")))};(0,ee.G)({title:i("Chat.ConfirmDeleteTopic"),Icon:(0,s.jsx)(C.Og,{className:"w-6 h-6"}),description:i("Chat.ConfirmTopicDeletion"),confirmButtonProps:{text:i("Chat.DeleteTopic"),colorType:"danger"},onConfirm:e})},[t]);r
+
+============================================================
+FILE: _stepfun_7957.js
+============================================================
+
+  [studio_list] @91393:
+    ?void 0:t.studioId),T=(0,s.useMemo)(()=>M?I?[...A,...j]:A:j,[j,A,M,I]),D=async()=>{let e=await c.r1.listStudios({scene:e5.UE.CHAT});y(e.studios),S(e.studios)};(0,s.useEffect)(()=>{if(l){let e=C.filter(e=>e.name.toLowerCase().includes(l.toLowerCase())||e.description.toLowerCase().includes(l.toLowerCase()));N(w.filter(e=>e.name.toLowerCase().includes(l.toLowerCase())||e.description.toLowerCase().includes(l.toLowerCase()))),S(e)}else S(C),N(w)},[l,C,w]),(0,s.useEffect)(()=>{D()},[b.language]);let P
+
+  [current_model] @28961:
+    Mode:v}=(0,k.useChatStore)((0,H.k)(e=>({isIncognitoMode:e.isIncognitoMode}))),{enableDeepResearch:b,currentModel:w}=(0,x.q)((0,H.k)(e=>({enableDeepResearch:e.enableDeepResearch,currentModel:e.currentModel}))),C=(0,x.q)(e=>e.enableArtifactAgent),{cases:y}=(0,V.K)((0,H.k)(e=>({cases:e.cases}))),[j,S]=(0,s.useState)({cases:[],displayType:O.aZ.TEXT_UNSPECIFIED}),A=(0,s.useMemo)(()=>c?new U.dX().fromJsonString(c).studios:[],[c]),N=(0,R.X)((0,H.k)(e=>e.studios)),_=N&&N.length>0?N:A,I=p.get("studioId")

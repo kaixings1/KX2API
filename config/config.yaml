@@ -1,0 +1,19 @@
+# 工具提取器配置
+queue:
+  min_size: 30
+  max_size: 50
+
+tool_detection:
+  start_marker: "<tool_call>"
+  end_marker: "</tool_call>"
+  # 队头检查的标记模式
+  head_pattern: "^[<\u4e00-\u9fa5]{1,10}"
+
+extraction:
+  # 合并队尾内容的策略
+  merge_tail: true
+  tail_merge_threshold: 5
+  
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

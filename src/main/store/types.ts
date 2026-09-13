@@ -77,7 +77,75 @@ export interface BuiltinProviderConfig extends Omit<Provider, 'createdAt' | 'upd
 /**
  * Load Balance Strategy Enum
  */
-export type LoadBalanceStrategy = 'round-robin' | 'fill-first' | 'failover'
+export type LoadBalanceStrategy = 'round-robin' | 'fill-first' | 'failover' | 'weighted'
+
+/**
+ * Quota Type Enum
+ */
+export type QuotaType = 'token' | 'request' | 'times'
+
+/**
+ * Channel Group Interface
+ */
+export interface ChannelGroup {
+  id: string
+  name: string
+  description?: string
+  testModel?: string
+  models?: string[]
+  /** Base multiplier for cost calculation */
+  multiplier?: number
+  /** Group priority (lower = higher priority) */
+  priority?: number
+  /** Whether the group is enabled */
+  enabled?: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+/**
+ * User Group Interface (for rate limiting and access control)
+ */
+export interface UserGroup {
+  id: string
+  name: string
+  description?: string
+  /** RPM limit */
+  rpm?: number
+  /** TPM limit */
+  tpm?: number
+  /** Daily request limit */
+  dailyLimit?: number
+  /** Model access whitelist (empty = all models) */
+  allowedModels?: string[]
+  /** Group priority */
+  priority?: number
+  /** Whether enabled */
+  enabled?: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+/**
+ * Announcement Interface
+ */
+export interface Announcement {
+  id: string
+  title: string
+  content: string
+  /** Markdown content */
+  markdown?: string
+  /** Whether enabled */
+  enabled: boolean
+  /** Priority for display ordering */
+  priority?: number
+  /** Start time for time-limited announcements */
+  startTime?: number
+  /** End time for time-limited announcements */
+  endTime?: number
+  createdAt: number
+  updatedAt: number
+}
 
 /**
  * Theme Enum
@@ -115,6 +183,36 @@ export interface Account {
   dailyLimit?: number
   /** Today used count */
   todayUsed?: number
+  /** Group IDs this account belongs to */
+  groupIds?: string[]
+  /** Channel group ID */
+  groupId?: string
+  /** Test model for connection testing */
+  testModel?: string
+  /** Model list for this account */
+  models?: string[]
+  /** Whether this account is enabled */
+  enabled?: boolean
+  /** Whether to use this account for load balancing */
+  usedInLoadBalance?: boolean
+  /** Retry count on failure */
+  retryCount?: number
+  /** Weight for load balancing (1-100) */
+  weight?: number
+  /** Channel priority (lower = higher priority) */
+  priority?: number
+  /** Response timeout override (ms) */
+  timeout?: number
+  /** Model mappings for this account */
+  modelMappings?: Record<string, string>
+  /** Whether model mappings override global mappings */
+  overrideModelMappings?: boolean
+  /** Whether this account requires web session (Oasis-Token) */
+  requireWebSession?: boolean
+  /** Base URL override for this account */
+  baseUrlOverride?: string
+  /** Custom headers for this account */
+  customHeaders?: Record<string, string>
 }
 
 /**
@@ -154,6 +252,54 @@ export interface Provider {
   status?: ProviderStatus
   /** Last status check time */
   lastStatusCheck?: number
+  /** Group IDs this provider belongs to */
+  groupIds?: string[]
+  /** Whether to test channel on creation */
+  testModelOnCreate?: string
+  /** Whether to auto-retry on failure */
+  autoRetry?: boolean
+  /** Retry count */
+  retryCount?: number
+  /** Retry delay (ms) */
+  retryDelay?: number
+  /** Request timeout override (ms) */
+  timeout?: number
+  /** Weight for load balancing (1-100) */
+  weight?: number
+  /** Base URL (for proxy settings) */
+  baseUrl?: string
+  /** Whether to use this provider for load balancing */
+  usedInLoadBalance?: boolean
+  /** Quota configuration */
+  quota?: {
+    /** Quota type */
+    type: QuotaType
+    /** Total quota value */
+    total: number
+    /** Used quota value */
+    used: number
+  }
+  /** Custom API path templates */
+  apiPaths?: {
+    chat?: string
+    completion?: string
+    embedding?: string
+    image?: string
+    audio?: string
+    models?: string
+  }
+  /** Request format: 'openai' | 'anthropic' | 'google' */
+  requestFormat?: string
+  /** Whether to stream by default */
+  defaultStream?: boolean
+  /** Credential fields configuration */
+  credentialFields?: CredentialField[]
+  /** Whether this is a custom provider (not built-in) */
+  custom?: boolean
+  /** Provider category */
+  category?: string
+  /** Provider tags */
+  tags?: string[]
 }
 
 /**
@@ -169,6 +315,146 @@ export interface ModelMapping {
   preferredProviderId?: string
   /** Preferred account ID */
   preferredAccountId?: string
+}
+
+/**
+ * Rate Limit Configuration
+ */
+export interface RateLimitConfig {
+  /** Whether rate limiting is enabled */
+  enabled: boolean
+  /** Requests per minute per user */
+  rpm?: number
+  /** Tokens per minute per user */
+  tpm?: number
+  /** Daily request limit per user */
+  dailyLimit?: number
+  /** Requests per minute per IP */
+  ipRpm?: number
+  /** Token limit per request */
+  tokenLimit?: number
+}
+
+/**
+ * Announcement Configuration
+ */
+export interface AnnouncementConfig {
+  /** Whether announcements are enabled */
+  enabled: boolean
+  /** List of announcements */
+  announcements: Announcement[]
+}
+
+/**
+ * Quota Configuration
+ */
+export interface QuotaConfig {
+  /** Whether quota tracking is enabled */
+  enabled: boolean
+  /** Default quota type */
+  defaultType: QuotaType
+  /** Default quota value */
+  defaultValue: number
+  /** Whether to deduct quota on failed requests */
+  deductOnFailure: boolean
+  /** Whether to allow quota top-up via redemption code */
+  allowRedemption: boolean
+}
+
+/**
+ * Billing Configuration
+ */
+export interface BillingConfig {
+  /** Whether billing is enabled */
+  enabled: boolean
+  /** Currency symbol */
+  currency: string
+  /** Exchange rate to USD (1 unit = X USD) */
+  exchangeRate: number
+  /** Default price per 1K tokens (input) */
+  defaultInputPrice: number
+  /** Default price per 1K tokens (output) */
+  defaultOutputPrice: number
+  /** Model-specific pricing overrides */
+  modelPricing: Record<string, { input: number; output: number }>
+}
+
+/**
+ * Channel Group Configuration
+ */
+export interface ChannelGroupConfig {
+  /** Whether channel groups are enabled */
+  enabled: boolean
+  /** List of channel groups */
+  groups: ChannelGroup[]
+}
+
+/**
+ * User Group Configuration
+ */
+export interface UserGroupConfig {
+  /** Whether user groups are enabled */
+  enabled: boolean
+  /** List of user groups */
+  groups: UserGroup[]
+}
+
+/**
+ * Logging Configuration Extension
+ */
+export interface LoggingConfig {
+  /** Whether access logs are enabled */
+  accessLogEnabled: boolean
+  /** Whether to log request body */
+  logRequestBody: boolean
+  /** Whether to log response body */
+  logResponseBody: boolean
+  /** Maximum log retention days */
+  maxLogRetentionDays: number
+  /** Whether to log to file */
+  logToFile: boolean
+  /** Log file path */
+  logFilePath?: string
+  /** Whether to enable debug logging for specific models */
+  debugModels?: string[]
+}
+
+/**
+ * Image Generation Configuration
+ */
+export interface ImageConfig {
+  /** Whether image generation is enabled */
+  enabled: boolean
+  /** Default size */
+  defaultSize: string
+  /** Supported sizes */
+  supportedSizes: string[]
+  /** Default quality */
+  defaultQuality?: string
+  /** Default style */
+  defaultStyle?: string
+}
+
+/**
+ * Audio Configuration
+ */
+export interface AudioConfig {
+  /** Whether audio API is enabled */
+  enabled: boolean
+  /** Supported input formats */
+  inputFormats: string[]
+  /** Supported output formats */
+  outputFormats: string[]
+}
+
+/**
+ * Rerank Configuration
+ */
+export interface RerankConfig {
+  /** Whether rerank API is enabled */
+  enabled: boolean
+  /** Default top-k */
+  defaultTopK: number
 }
 
 /**
@@ -219,6 +505,26 @@ export interface AppConfig {
   managementApi: ManagementApiConfig
   /** Context management configuration */
   contextManagement: ContextManagementConfig
+  /** Rate limiting configuration */
+  rateLimit: RateLimitConfig
+  /** Announcement configuration */
+  announcementConfig: AnnouncementConfig
+  /** Quota configuration */
+  quotaConfig: QuotaConfig
+  /** Billing configuration */
+  billingConfig: BillingConfig
+  /** Channel group configuration */
+  channelGroupConfig: ChannelGroupConfig
+  /** User group configuration */
+  userGroupConfig: UserGroupConfig
+  /** Logging configuration */
+  loggingConfig: LoggingConfig
+  /** Image generation configuration */
+  imageConfig: ImageConfig
+  /** Audio configuration */
+  audioConfig: AudioConfig
+  /** Rerank configuration */
+  rerankConfig: RerankConfig
 }
 
 /**
@@ -749,6 +1055,76 @@ export const DEFAULT_REQUEST_LOG_CONFIG: RequestLogConfig = {
   redactSensitiveData: true,
 }
 
+export const DEFAULT_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  enabled: false,
+  rpm: 60,
+  tpm: 100000,
+  dailyLimit: 1000,
+  ipRpm: 120,
+  tokenLimit: 128000,
+}
+
+export const DEFAULT_ANNOUNCEMENT_CONFIG: AnnouncementConfig = {
+  enabled: false,
+  announcements: [],
+}
+
+export const DEFAULT_QUOTA_CONFIG: QuotaConfig = {
+  enabled: false,
+  defaultType: 'token',
+  defaultValue: 1000000,
+  deductOnFailure: false,
+  allowRedemption: true,
+}
+
+export const DEFAULT_BILLING_CONFIG: BillingConfig = {
+  enabled: false,
+  currency: 'USD',
+  exchangeRate: 1,
+  defaultInputPrice: 0.001,
+  defaultOutputPrice: 0.002,
+  modelPricing: {},
+}
+
+export const DEFAULT_CHANNEL_GROUP_CONFIG: ChannelGroupConfig = {
+  enabled: false,
+  groups: [],
+}
+
+export const DEFAULT_USER_GROUP_CONFIG: UserGroupConfig = {
+  enabled: false,
+  groups: [],
+}
+
+export const DEFAULT_LOGGING_CONFIG: LoggingConfig = {
+  accessLogEnabled: true,
+  logRequestBody: false,
+  logResponseBody: false,
+  maxLogRetentionDays: 7,
+  logToFile: true,
+  logFilePath: '',
+  debugModels: [],
+}
+
+export const DEFAULT_IMAGE_CONFIG: ImageConfig = {
+  enabled: true,
+  defaultSize: '1024x1024',
+  supportedSizes: ['256x256', '512x512', '1024x1024', '1792x1024', '1024x1792'],
+  defaultQuality: 'standard',
+  defaultStyle: 'vivid',
+}
+
+export const DEFAULT_AUDIO_CONFIG: AudioConfig = {
+  enabled: true,
+  inputFormats: ['mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'wav', 'webm', 'ogg'],
+  outputFormats: ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'],
+}
+
+export const DEFAULT_RERANK_CONFIG: RerankConfig = {
+  enabled: true,
+  defaultTopK: 10,
+}
+
 export const DEFAULT_DEEPSEEK_MODEL_MAPPINGS: Record<string, ModelMapping> = {
   'deepseek-v4-flash-think': {
     requestModel: 'deepseek-v4-flash-think',
@@ -877,6 +1253,16 @@ export const DEFAULT_CONFIG: AppConfig = {
   toolPromptConfig: undefined,
   managementApi: DEFAULT_MANAGEMENT_API_CONFIG,
   contextManagement: DEFAULT_CONTEXT_MANAGEMENT_CONFIG,
+  rateLimit: DEFAULT_RATE_LIMIT_CONFIG,
+  announcementConfig: DEFAULT_ANNOUNCEMENT_CONFIG,
+  quotaConfig: DEFAULT_QUOTA_CONFIG,
+  billingConfig: DEFAULT_BILLING_CONFIG,
+  channelGroupConfig: DEFAULT_CHANNEL_GROUP_CONFIG,
+  userGroupConfig: DEFAULT_USER_GROUP_CONFIG,
+  loggingConfig: DEFAULT_LOGGING_CONFIG,
+  imageConfig: DEFAULT_IMAGE_CONFIG,
+  audioConfig: DEFAULT_AUDIO_CONFIG,
+  rerankConfig: DEFAULT_RERANK_CONFIG,
 }
 
 /**

@@ -27,12 +27,17 @@ const WEB_HEADERS: Record<string, string> = {
   'Accept-Encoding': 'identity',
   'Cache-Control': 'no-cache, no-transform',
   'Content-Type': 'application/connect+json',
-  'Oasis-Platform': 'web',
-  'Oasis-appID': '10200',
-  'Canary': 'false',
-  'Connect-Protocol-Version': '1',
-  'Origin': 'https://chat.stepfun.com',
+  'oasis-platform': 'web',
+  'oasis-appid': '10200',
+  'canary': 'false',
+  'connect-protocol-version': '1',
   'oasis-language': 'zh',
+  'Origin': 'https://chat.stepfun.com',
+  'Referer': 'https://chat.stepfun.com/',
+  'sec-ch-ua-platform': '"Windows"',
+  'sec-ch-ua': '"Microsoft Edge";v="153", "Not_A(Brand";v="8", "Chromium";v="153"',
+  'sec-ch-ua-mobile': '?0',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0',
 }
 
 // --- Token parsing helpers ---
@@ -264,13 +269,18 @@ export class StepFunAdapter {
     }
     // tokenDeviceId is available for logging/debugging but NOT used for headers
 
-    headers['Oasis-appID'] = appId
-    headers['Oasis-Webid'] = this.webId
+    headers['oasis-appid'] = appId
+    headers['oasis-webid'] = this.webId
     headers['oasis-token'] = this.oasisToken
+    // Add device ID header (mirrors browser's oasis-extra-did for chatapi endpoints)
+    const deviceId = this.webId || (this.oasisToken ? extractTokenPayloads(this.oasisToken).find(p => p.deviceId)?.deviceId : null)
+    if (deviceId) {
+      headers['oasis-extra-did'] = deviceId
+    }
     console.log('[StepFun][ADAPTER] buildHeaders EXIT, mode=WEB, appId=', appId,
       'webId=', this.webId ? '[REDACTED]' : 'null',
       'oasisToken=', this.oasisToken ? '[REDACTED]' : 'null',
-      'tokenDeviceId=', tokenDeviceId ? '[REDACTED]' : 'null',
+      'deviceId=', deviceId ? '[REDACTED]' : 'null',
       'jwtAppId=', jwtAppId || 'null')
 
     // Build Cookie header exactly like the browser
@@ -279,7 +289,7 @@ export class StepFunAdapter {
     cookieParts.push('is_pc_desktop=false')
     cookieParts.push('i18next=zh')
     if (this.webId) {
-      cookieParts.push('Oasis-Webid=' + this.webId)
+      cookieParts.push('oasis-webid=' + this.webId)
     }
     cookieParts.push('sidebar_state=false')
     cookieParts.push('Oasis-Token=' + this.oasisToken)
@@ -735,7 +745,7 @@ export class StepFunAdapter {
     await this.acquireToken()
 
     const headers = this.buildHeaders()
-    const appId = headers['Oasis-appID'] || '10200'
+    const appId = headers['oasis-appid'] || '10200'
     const model = this.mapModel(request.model)
 
     // Use sessionId for cache lookup if provided (from proxy session manager)
@@ -793,11 +803,12 @@ export class StepFunAdapter {
 
     // DIAG: log all header values for signature debugging
     console.log('[StepFun][CONNECT] headers:',
-      'Oasis-appID=', connectHeaders['Oasis-appID'],
-      'Oasis-Webid=', connectHeaders['Oasis-Webid'],
+      'oasis-appid=', connectHeaders['oasis-appid'],
+      'oasis-webid=', connectHeaders['oasis-webid'],
       'oasis-token=', connectHeaders['oasis-token'] ? '[REDACTED]' : 'null',
-      'Oasis-Platform=', connectHeaders['Oasis-Platform'],
-      'Canary=', connectHeaders['Canary'],
+      'oasis-platform=', connectHeaders['oasis-platform'],
+      'canary=', connectHeaders['canary'],
+      'connect-protocol-version=', connectHeaders['connect-protocol-version'],
       'Origin=', connectHeaders['Origin'])
 
     const request_ = net.request({
@@ -1016,6 +1027,9 @@ export class StepFunAdapter {
     const prefix = PROTOCOL_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     let cleaned = text.replace(new RegExp('<\\|' + prefix + '\\|[^|]*\\|>', 'g'), '')
     cleaned = cleaned.replace(new RegExp('<\\|' + prefix + '\\|[^>]*$', 'g'), '')
+    cleaned = cleaned.replace(/<tool(?!_)[^>]*>[\s\S]*?<\/tool>/gi, '')
+    cleaned = cleaned.replace(/<tool_use>[\s\S]*?<\/tool_use>/gi, '')
+    cleaned = cleaned.replace(/<arguments[^>]*>[\s\S]*?<\/arguments>/gi, '')
     cleaned = cleaned.replace(/[ \t]+/g, ' ').trim()
     return cleaned
   }
@@ -1034,7 +1048,50 @@ export class StepFunAdapter {
       }
       calls.push({ name: match[1], params })
     }
+
+    // StepFun web response format: <tool name="xxx"><arguments>{...}</arguments></tool>
+    const toolRegex = /<tool\s+name="([^"]+)"[^>]*>([\s\S]*?)<\/tool>/gi
+    let toolMatch
+    while ((toolMatch = toolRegex.exec(text)) !== null) {
+      const toolName = toolMatch[1]
+      const inner = toolMatch[2]
+      const argsMatch = inner.match(/<arguments[^>]*>([\s\S]*?)<\/arguments>/i)
+      if (!argsMatch) continue
+      let argsStr = argsMatch[1].trim()
+      const cdataMatch = argsStr.match(/<!\[CDATA\[([\s\S]*?)\]\]>/)
+      if (cdataMatch) argsStr = cdataMatch[1].trim()
+      const parsedArgs = StepFunAdapter.parseJsonArgs(argsStr)
+      calls.push({ name: toolName, params: parsedArgs })
+    }
+
+    // Claude-style XML format: <tool_use><name>xxx</name><arguments>{...}</arguments></tool_use>
+    const toolUseRegex = /<tool_use>([\s\S]*?)<\/tool_use>/gi
+    let toolUseMatch
+    while ((toolUseMatch = toolUseRegex.exec(text)) !== null) {
+      const inner = toolUseMatch[1]
+      const nameMatch = inner.match(/<name[^>]*>([\s\S]*?)<\/name>/i)
+      const argsMatch = inner.match(/<arguments[^>]*>([\s\S]*?)<\/arguments>/i)
+      if (!nameMatch) continue
+      const toolName = nameMatch[1].trim()
+      const argsStr = argsMatch ? argsMatch[1].trim() : '{}'
+      const parsedArgs = StepFunAdapter.parseJsonArgs(argsStr)
+      calls.push({ name: toolName, params: parsedArgs })
+    }
+
     return calls
+  }
+
+  private static parseJsonArgs(argsStr: string): Record<string, string> {
+    const cdataMatch = argsStr.match(/<!\[CDATA\[([\s\S]*?)\]\]>/)
+    if (cdataMatch) argsStr = cdataMatch[1].trim()
+    try {
+      const json = JSON.parse(argsStr)
+      return Object.fromEntries(
+        Object.entries(json).map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v)])
+      )
+    } catch {
+      return { arguments: argsStr }
+    }
   }
 
   /**
@@ -1257,8 +1314,20 @@ export class StepFunAdapter {
     // reasoningEvent: thinking process (streamed chunks)
     if (event.reasoningEvent) {
       const text = event.reasoningEvent.text || ''
-      if (text) {
+      if (text && messageIdState.current) {
         console.log('[StepFun][CONNECT] reasoningEvent, text=', text.slice(0, 80))
+        const deltaChunk = {
+          id: messageIdState.current,
+          model: model,
+          object: 'chat.completion.chunk',
+          choices: [{
+            index: 0,
+            delta: { role: 'assistant', reasoning_content: text },
+            finish_reason: null,
+          }],
+          created: Math.floor(Date.now() / 1000),
+        }
+        stream.write('data: ' + JSON.stringify(deltaChunk) + '\n\n')
       }
       return
     }

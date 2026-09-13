@@ -11,10 +11,11 @@ import { registerIpcHandlers } from './ipc/handlers'
 import { registerChatHandlers } from './ipc/chat-handlers'
 import { initEngineBridge } from './engine-bridge'
 import { kimiSessionManager } from './oauth/kimiSessionManager'
+import { stepfunSessionManager } from './oauth/stepfunSessionManager'
 import { cookieSessionManager } from './oauth/cookieSessionManager'
 import { UpdaterManager } from './updater'
-import type { ProviderVendor } from '../shared/types'
 import { storeManager } from './store/store'
+import { ProviderManager } from './store/providers'
 import { logManager } from './logger/manager'
 
 // Prevent uncaught exceptions from crashing the app
@@ -69,6 +70,24 @@ if (!gotTheLock) {
 
 let trayManager: TrayManager | null = null
 
+// Parse --debug-file <filename> from command line
+function getDebugFilePath(): string | null {
+  const args = process.argv
+  const idx = args.indexOf('--debug-file')
+  if (idx >= 0 && idx + 1 < args.length) {
+    return args[idx + 1]
+  }
+  const eqArg = args.find(a => a.startsWith('--debug-file='))
+  if (eqArg) {
+    return eqArg.split('=')[1]
+  }
+  return null
+}
+const debugFilePath = getDebugFilePath()
+if (debugFilePath) {
+  console.log('[App] Debug log file:', debugFilePath)
+}
+
 async function initializeApp(): Promise<void> {
   app.on('ready', async () => {
     await setupApp()
@@ -92,6 +111,7 @@ async function initializeApp(): Promise<void> {
   app.on('before-quit', () => {
     app.isQuitting = true
     trayManager?.destroy()
+    logManager.destroy()
   })
 
   app.on('will-quit', () => {
@@ -109,7 +129,7 @@ async function setupApp(): Promise<void> {
     show: false,
   })
 
-  await logManager.initialize()
+  await logManager.initialize(debugFilePath)
   await registerIpcHandlers(mainWindow)
   registerChatHandlers()
   await initEngineBridge(mainWindow)
@@ -124,12 +144,22 @@ async function setupApp(): Promise<void> {
     logManager.warn('[App] Kimi session manager init failed', { error: String(err) })
   }
 
+  // 初始化 StepFun 持久登录会话（保持 web session token 活跃，避免反复登录）
+  try {
+    await stepfunSessionManager.initialize()
+    console.log('[App] StepFun session manager initialized')
+    logManager.info('[App] StepFun session manager initialized', {})
+  } catch (err) {
+    console.log('[App] StepFun session manager init failed:', err)
+    logManager.warn('[App] StepFun session manager init failed', { error: String(err) })
+  }
+
   // 初始化通用 Cookie 会话管理器（网页版 Cookie 持续注入）
   try {
-    const allProviderTypes: ProviderVendor[] = ['deepseek', 'glm', 'kimi', 'mimo', 'minimax', 'qwen', 'qwen-ai', 'zai', 'perplexity', 'stepfun']
-    await cookieSessionManager.initialize(allProviderTypes)
-    console.log('[App] Cookie session manager initialized for', allProviderTypes.length, 'providers')
-    logManager.info('[App] Cookie session manager initialized', { providers: allProviderTypes.length })
+    const providers = ProviderManager.getEnabled().map(p => p.type)
+    await cookieSessionManager.initialize(providers)
+    console.log('[App] Cookie session manager initialized for', providers.length, 'providers')
+    logManager.info('[App] Cookie session manager initialized', { providers: providers.length })
   } catch (err) {
     console.log('[App] Cookie session manager init failed:', err)
     logManager.warn('[App] Cookie session manager init failed', { error: String(err) })

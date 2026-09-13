@@ -1024,3 +1024,43 @@ body {
   background: var(--bg-tertiary);
 }
 
+/* Dark mode: ensure form controls and code blocks have readable text */
+[data-theme="dark"] select {
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+}
+[data-theme="dark"] select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+[data-theme="dark"] code {
+  color: var(--accent-primary);
+}
+[data-theme="dark"] pre {
+  color: var(--text-primary);
+}
+[data-theme="dark"] textarea,
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="search"] {
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+}
+[data-theme="light"] select {
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+}
+[data-theme="light"] select option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Code blocks in management pages with explicit bg-tertiary need text color */
+[data-theme="dark"] .bg-\[var\(--bg-tertiary\)\]\:text,
+[data-theme="dark"] code.bg-\[var\(--bg-tertiary\)\] {
+  color: var(--text-primary);
+}
+[data-theme="light"] code.bg-\[var\(--bg-tertiary\)\] {
+  color: var(--text-primary);
+}
+

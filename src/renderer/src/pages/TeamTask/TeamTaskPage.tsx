@@ -73,7 +73,7 @@ const BUILTIN_ROLES: CustomRole[] = [
   {
     id: 'critic',
     name: '批评家',
-    systemPrompt: '你是 KX2Code 的批评家。你的职责是：找出计划中最坏的情况，指出可�的失败点，提出风险缓解方案，挑战不合理的假设。批评原则：假设每一步都可能失败，关注边界条件和异常情况，提出具体的风险缓解措施。',
+    systemPrompt: '你是 KX2Code 的批评家。你的职责是：找出计划中最坏的情况，指出可能的失败点，提出风险缓解方案，挑战不合理的假设。批评原则：假设每一步都可能失败，关注边界条件和异常情况，提出具体的风险缓解措施。',
   },
 ]
 
@@ -189,7 +189,7 @@ export function TeamTaskPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('team.taskTitle', '��务描述')}</CardTitle>
+          <CardTitle>{t('team.taskTitle', '任务描述')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea

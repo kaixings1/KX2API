@@ -1,0 +1,356 @@
+syntax = "proto3";
+
+package stepfun;
+
+// ============================================
+// 认证相关
+// ============================================
+
+message AuthHeaders {
+  string oasis_token = 1;       // JWT Token (Cookie + Header)
+  string oasis_webid = 2;       // 设备/Web 标识符
+  string device_id = 3;         // 设备唯一标识
+  string oasis_appid = 4;       // 应用 ID: 10200
+  string oasis_platform = 5;    // 平台: web
+  string oasis_language = 6;    // 语言: zh
+  string connect_protocol_version = 7;  // 协议版本: 1
+  string canary = 8;            // canary: false
+}
+
+message OasisTokenPayload {
+  bool activated = 1;
+  int32 age = 2;
+  bool banned = 3;
+  int64 create_at = 4;
+  int64 exp = 5;
+  int32 mode = 6;
+  string oasis_id = 7;          // 用户 ID
+  int64 organization_id = 8;
+  int32 role_in_organization = 9;
+  int32 version = 10;
+}
+
+message DeviceTokenPayload {
+  int64 app_id = 1;             // 10200
+  string device_id = 2;
+  int64 exp = 3;
+  string oasis_id = 4;          // 用户 ID
+  int64 oasis_ry_at = 5;        // Token 刷新时间
+  string platform = 6;          // web
+  int32 version = 7;
+}
+
+// ============================================
+// Connect 协议 (gRPC-Web / Connect Protocol)
+// ============================================
+
+// Connect 请求（protobuf，25073 bytes）
+// 认证信息嵌入在请求体中，不是 HTTP Header
+message ConnectRequest {
+  // 认证凭证
+  string token = 1;             // 加密后的 token (Base64)
+  string web_id = 2;            // 设备 ID (Base64 编码)
+  string device_id = 3;         // 设备唯一标识
+
+  // 客户端信息
+  int64 app_id = 4;             // 应用 ID: 10200
+  string platform = 5;          // 平台: web
+  string language = 6;          // 语言: zh
+  int32 protocol_version = 7;   // 协议版本: 1
+
+  // 可能的其他字段（请求 25073 字节，包含大量数据）
+  bytes extra_data = 8;         // 额外的 protobuf 数据
+}
+
+// Connect 响应（JSON 格�）
+// Content-Type: application/connect+json
+message ConnectResponse {
+  bool success = 1;
+  ErrorInfo error = 2;
+  string trace_id = 3;          // 跟踪 ID
+}
+
+message ErrorInfo {
+  string code = 1;              // permission_denied
+  string message = 2;           // need sign in
+  repeated ErrorDetail details = 3;
+}
+
+message ErrorDetail {
+  string type = 1;              // capy.error.v1.Error
+  string value = 2;             // COiOBg
+  ErrorDebug debug = 3;
+}
+
+message ErrorDebug {
+  string code = 1;              // CODE_ACCOUNT_NEED_SIGN_IN
+}
+
+// WebSocket 消息 (Protobuf Binary)
+// WebSocket 握手 URL: wss://chatapi.stepfun.com
+// 认证方式: Cookie 自动携带 (Oasis-Token, Oasis-Webid)
+
+// 服务端推送的认证成功消息
+// Field 1: message_type (Stream)
+// Field 2: message_body (Auth)
+message AuthResponse {
+  string status = 1;            // "ok"
+  string conn_id = 2;           // 连接 ID: "conn-c3b7667ab0dd43c18acb9a4b7fd8326a"
+  string oasis_id = 3;          // 用户 ID: "388577334041751552"
+  int32 some_flag = 4;          // 标记: 0
+}
+
+// Bot 消息包装器
+message BotMessage {
+  string msg_type = 1;          // "BotMsg"
+  string request_type = 2;      // 请求类型: "GetUserDeployTaskStatus"
+}
+
+// 心跳消息
+message Heartbeat {
+  int32 interval = 1;           // 心跳间隔 (秒)
+}
+
+// 通用 WebSocket 消息包装
+message WSMessage {
+  string msg_type = 1;          // "Stream", "BotMsg" 等
+  oneof payload {
+    AuthResponse auth = 2;
+    BotMessage bot_msg = 3;
+    Heartbeat heartbeat = 4;
+    bytes raw_data = 5;
+  }
+}
+
+// ============================================
+// HTTP API 请求/响应
+// ============================================
+
+// Agent Service
+message ListStudiosRequest {
+  string scene = 1;             // SCENE_TYPE_CHAT
+}
+
+message ListStudiosResponse {
+  repeated Studio studios = 1;
+}
+
+message Studio {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message GetChatConfigRequest {
+  // 空请求
+}
+
+message ChatConfig {
+  string current_model = 1;
+  bool enable_search = 2;
+  bool enable_reasoning = 3;
+  bool enable_deep_research = 4;
+  bool enable_artifact_agent = 5;
+  string artifact_template = 6;
+  bool auto_update_step3_for_persist = 7;
+  bool step_model_popup_gate_passed = 8;
+}
+
+message GetChatConfigResponse {
+  ChatConfig config = 1;
+}
+
+// Knowledge Service
+message GetPersonalBaseRequest {
+  // 空请求
+}
+
+message PersonalBase {
+  string id = 1;
+  string name = 2;
+}
+
+message GetPersonalBaseResponse {
+  PersonalBase base = 1;
+}
+
+// Connector Service
+message ListConnectorsRequest {
+  bool deep_research = 1;
+}
+
+message Connector {
+  string code = 1;
+  string name = 2;
+  string description = 3;
+  string type = 4;
+  string status = 5;
+  ConnectorConfig config = 6;
+}
+
+message ConnectorConfig {
+  SearchConfig search = 1;
+}
+
+message SearchConfig {
+  string group_code = 1;
+}
+
+message ListConnectorsResponse {
+  repeated Connector connectors = 1;
+}
+
+// Invitation Service
+message GetDrBetaPermissionRequest {
+  // 空请求
+}
+
+message BetaPermission {
+  bool has_permission = 1;
+}
+
+message GetDrBetaPermissionResponse {
+  BetaPermission permission = 1;
+}
+
+message GetDesktopBetaPermissionRequest {
+  // 空请求
+}
+
+message GetDesktopBetaPermissionResponse {
+  BetaPermission permission = 1;
+}
+
+// User Service
+message GetUserRequest {
+  // 空请求
+}
+
+message User {
+  string user_id = 1;
+  string name = 2;
+  string avatar = 3;
+  int32 age = 4;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message GetAccountBindingRequest {
+  // 空请求
+}
+
+message AccountBinding {
+  repeated Binding bindings = 1;
+}
+
+message Binding {
+  string platform = 1;
+  string account_id = 2;
+  bool is_bound = 3;
+}
+
+message GetAccountBindingResponse {
+  AccountBinding binding = 1;
+}
+
+// Memory Service
+message GetMemoryConfigRequest {
+  // 空请求
+}
+
+message MemoryConfig {
+  bool enable = 1;
+  int32 max_memory_size = 2;
+}
+
+message GetMemoryConfigResponse {
+  MemoryConfig config = 1;
+}
+
+// Feed Service
+message GetSuggestChatCasesRequest {
+  string studio_id = 1;
+  string model = 2;
+}
+
+message SuggestCase {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string model = 4;
+}
+
+message GetSuggestChatCasesResponse {
+  repeated SuggestCase cases = 1;
+}
+
+// Activity Service
+message QueryUserMissionRecordsRequest {
+  string user_id = 1;
+  int64 app_id = 2;
+}
+
+message QueryUserMissionRecordsResponse {
+  repeated MissionRecord records = 1;
+}
+
+message MissionRecord {
+  string mission_id = 1;
+  string name = 2;
+  int32 status = 3;
+  int64 complete_time = 4;
+}
+
+message TriggerUserMissionRequest {
+  string user_id = 1;
+  int64 app_id = 2;
+  string trigger_action = 3;    // daily_check_in
+  string payload = 4;
+}
+
+message TriggerUserMissionResponse {
+  bool success = 1;
+  int32 reward = 2;
+}
+
+// ============================================
+// HTTP API 完整定义
+// ============================================
+
+service AgentService {
+  rpc ListStudios(ListStudiosRequest) returns (ListStudiosResponse);
+  rpc GetChatConfig(GetChatConfigRequest) returns (GetChatConfigResponse);
+}
+
+service KnowledgeService {
+  rpc GetPersonalBase(GetPersonalBaseRequest) returns (GetPersonalBaseResponse);
+}
+
+service ConnectorService {
+  rpc ListConnectors(ListConnectorsRequest) returns (ListConnectorsResponse);
+}
+
+service InvitationService {
+  rpc GetDrBetaPermission(GetDrBetaPermissionRequest) returns (GetDrBetaPermissionResponse);
+  rpc GetDesktopBetaPermission(GetDesktopBetaPermissionRequest) returns (GetDesktopBetaPermissionResponse);
+}
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc GetAccountBinding(GetAccountBindingRequest) returns (GetAccountBindingResponse);
+}
+
+service MemoryService {
+  rpc GetMemoryConfig(GetMemoryConfigRequest) returns (GetMemoryConfigResponse);
+}
+
+service FeedService {
+  rpc GetSuggestChatCases(GetSuggestChatCasesRequest) returns (GetSuggestChatCasesResponse);
+}
+
+service ActivityService {
+  rpc QueryUserMissionRecords(QueryUserMissionRecordsRequest) returns (QueryUserMissionRecordsResponse);
+  rpc TriggerUserMission(TriggerUserMissionRequest) returns (TriggerUserMissionResponse);
+}

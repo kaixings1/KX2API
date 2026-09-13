@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Trash2, TestTube2, Loader2 } from 'lucide-react'
+import { Plus, Trash2, TestTube2, Loader2, ArrowRight } from 'lucide-react'
+import { ManagementToolbar } from '@/components/management'
+import { ImportExportDialog } from '@/components/management/ImportExportDialog'
 
 const mcpApi = window.electronAPI.mcp
 
@@ -20,6 +23,7 @@ const TRANSPORT_MAP: Record<string, string> = {
 
 export function McpManagement() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [servers, setServers] = useState<McpServerConfig[]>([])
   const [config, setConfig] = useState<{ servers: McpServerConfig[] } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -27,12 +31,17 @@ export function McpManagement() {
   const [editingServer, setEditingServer] = useState<McpServerConfig | null>(null)
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
+  const [command, setCommand] = useState('')
+  const [argsText, setArgsText] = useState('')
+  const [envText, setEnvText] = useState('')
   const [transport, setTransport] = useState<'stdio' | 'sse' | 'http'>('stdio')
   const [testResult, setTestResult] = useState<{ success: boolean; connected: boolean; tools: any[] } | null>(null)
   const [tools, setTools] = useState<any[]>([])
+  const [search, setSearch] = useState('')
 
   const loadData = useCallback(async () => {
     setLoading(true)
+    setTestResult(null)
     try {
       const [configRes, serversRes] = await Promise.all([mcpApi.getConfig(), mcpApi.getServers()])
       if (configRes?.servers) setConfig(configRes)
@@ -49,6 +58,9 @@ export function McpManagement() {
     setEditingServer(null)
     setName('')
     setUrl('')
+    setCommand('')
+    setArgsText('')
+    setEnvText('')
     setTransport('stdio')
     setDialogOpen(true)
   }
@@ -56,18 +68,28 @@ export function McpManagement() {
   const openEdit = (server: McpServerConfig) => {
     setEditingServer(server)
     setName(server.name)
-    setUrl(server.url)
+    setUrl(server.url || '')
+    setCommand(server.command || '')
+    setArgsText((server.args || []).join(' '))
+    setEnvText(server.env ? JSON.stringify(server.env) : '')
     setTransport(server.transport)
     setDialogOpen(true)
   }
 
   const handleSave = async () => {
+    const args = argsText.split(' ').filter(Boolean)
+    let env: Record<string, string> = {}
+    try { env = JSON.parse(envText || '{}') } catch { env = {} }
+    const serverData: Record<string, unknown> = { name, url, transport, enabled: true }
+    if (command) serverData.command = command
+    if (args.length > 0) serverData.args = args
+    if (Object.keys(env).length > 0) serverData.env = env
     if (editingServer) {
-      const newServers = servers.map(s => s.id === editingServer.id ? { ...s, name, url, transport } : s)
+      const newServers = servers.map(s => s.id === editingServer.id ? { ...s, ...serverData } : s)
       await mcpApi.updateConfig({ servers: newServers })
       setServers(newServers)
     } else {
-      await mcpApi.addServer({ name, url, transport, enabled: true })
+      await mcpApi.addServer(serverData as McpServerConfig & { enabled: boolean })
     }
     setDialogOpen(false)
     loadData()
@@ -92,71 +114,149 @@ export function McpManagement() {
     if (res) setTools(Array.isArray(res) ? res : [])
   }
 
+  const filtered = servers.filter(s => {
+    const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase()) || (s.url || '').toLowerCase().includes(search.toLowerCase()) || (s.command || '').toLowerCase().includes(search.toLowerCase())
+    return matchSearch
+  })
+
+  // ==================== Import/Export ====================
+
+  const [ioOpen, setIoOpen] = useState(false)
+  const [ioMode, setIoMode] = useState<'import' | 'export' | 'backup' | 'restore'>('export')
+
+  const handleExport = async () => {
+    try {
+      const res = await window.electronAPI.mgmt.export('mcp-servers', filtered)
+      if (res.success) {
+        const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `mcp_servers_${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Export failed:', e)
+    }
+  }
+
+  const handleImport = async (jsonData: string) => {
+    try {
+      const res = await window.electronAPI.mgmt.import('mcp-servers', jsonData)
+      if (res.success && res.data) {
+        for (const item of res.data) {
+          if (item?.name) {
+            await mcpApi.addServer({ name: item.name, url: item.url || '', transport: item.transport || 'stdio', enabled: true })
+          }
+        }
+        loadData()
+        return { success: true }
+      }
+      return { success: false, error: res.error }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  }
+
+  const handleBackup = async () => {
+    try {
+      const res = await window.electronAPI.mgmt.backup()
+      if (res.success) {
+        const blob = new Blob([JSON.stringify({ 'mcp-servers': filtered }, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `mcp_servers_backup_${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Backup failed:', e)
+    }
+  }
+
+  const handleRestore = async (file: File) => {
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      const items = Array.isArray(data) ? data : (data['mcp-servers'] || [])
+      if (!Array.isArray(items)) return { success: false, error: '数据格式错误' }
+      for (const item of items) {
+        if (item?.name) {
+          await mcpApi.addServer({ name: item.name, url: item.url || '', transport: item.transport || 'stdio', enabled: true })
+        }
+      }
+      loadData()
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  }
+
+  // ==================== Render ====================
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{t('mcp.title', 'MCP 管理')}</h2>
-          <p className="text-muted-foreground">{t('mcp.description', '管理 MCP 服务器配置')}</p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" />{t('mcp.addServer', '添加服务器')}</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingServer ? t('mcp.editServer', '编辑服务器') : t('mcp.addServer', '添加服务器')}</DialogTitle>
-              <DialogDescription>
-                {editingServer ? t('mcp.editServerDesc', '编辑 MCP 服务器配置') : t('mcp.addServerDesc', '添加新的 MCP 服务器')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>{t('mcp.nameLabel', '名称')}</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} />
-              </div>
-              <div>
-                <Label>{t('mcp.urlLabel', 'URL')}</Label>
-                <Input value={url} onChange={e => setUrl(e.target.value)} placeholder={t('mcp.urlPlaceholder', 'http://localhost:3000')} />
-              </div>
-              <div>
-                <Label>{t('mcp.transportLabel', '传输方式')}</Label>
-                <Select value={transport} onValueChange={v => setTransport(v as 'stdio' | 'sse' | 'http')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="stdio">stdio</SelectItem>
-                    <SelectItem value="sse">SSE</SelectItem>
-                    <SelectItem value="http">HTTP</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <ManagementToolbar
+        title={t('mcp.title', 'MCP 管理')}
+        subtitle={t('mcp.description', '管理 MCP 服务器配置')}
+        createLabel={<><Plus className="h-4 w-4 mr-1" />{t('mcp.addServer', '添加服务器')}</>}
+        onCreate={openCreate}
+        onRefresh={loadData}
+        onExport={() => { setIoMode('export'); setIoOpen(true) }}
+        onImport={() => { setIoMode('import'); setIoOpen(true) }}
+        onBackup={() => { setIoMode('backup'); setIoOpen(true) }}
+        onRestore={() => { setIoMode('restore'); setIoOpen(true) }}
+        filters={{ search }}
+        onFiltersChange={(f) => setSearch(f.search || '')}
+        totalCount={servers.length}
+        filteredCount={filtered.length}
+        isLoading={loading}
+      />
+
+      <ImportExportDialog
+        open={ioOpen}
+        onOpenChange={setIoOpen}
+        mode={ioMode}
+        title="MCP 管理"
+        description={ioMode === 'export' ? '导出 MCP 服务器配置为 JSON 文件' : ioMode === 'import' ? '导入 MCP 服务器配置' : ioMode === 'backup' ? '备份所有 MCP 服务器数据' : '从备份恢复 MCP 服务器数据'}
+        data={filtered}
+        onExport={handleExport}
+        onImport={handleImport}
+        onBackup={handleBackup}
+        onRestore={handleRestore}
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
-      ) : servers.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">{t('mcp.empty', '暂无 MCP 服务器')}</CardContent></Card>
+      ) : filtered.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">没有匹配的服务器</CardContent></Card>
       ) : (
         <div className="grid gap-4">
-          {servers.map(server => (
-            <Card key={server.id}>
+          {filtered.map(server => (
+            <Card key={server.id} className="cursor-pointer hover:border-[var(--accent-primary)] transition-colors" onClick={() => navigate(`/mcp/${server.id}`)}>
               <CardContent className="py-4">
                 <div className="flex items-start justify-between">
-                  <div className="space-y-1">
+                  <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{server.name}</span>
-                      <Badge variant={server.enabled ? 'default' : 'secondary'}>{TRANSPORT_MAP[server.transport]}</Badge>
+                      <Badge variant={server.enabled ? 'default' : 'secondary'}>{TRANSPORT_MAP[server.transport] || server.transport}</Badge>
+                      <Badge variant="outline" className="text-[10px]">ID: {server.id}</Badge>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
                     </div>
-                    <p className="text-sm font-mono text-muted-foreground">{server.url}</p>
+                    <div className="space-y-1">
+                      {server.command && <p className="text-sm font-mono text-muted-foreground">Command: {server.command} {server.args?.join(' ')}</p>}
+                      {server.url && <p className="text-sm font-mono text-muted-foreground">URL: {server.url}</p>}
+                      {server.headers && Object.keys(server.headers).length > 0 && (
+                        <p className="text-xs text-muted-foreground">Headers: {Object.keys(server.headers).length} configured</p>
+                      )}
+                    </div>
                     {testResult && testResult.connected && (
                       <p className="text-xs text-green-600">{t('mcp.connected', '连接成功')} - {testResult.tools.length} {t('mcp.toolsAvailable', '个工具')}</p>
                     )}
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 ml-3" onClick={e => e.stopPropagation()}>
                     <Button size="sm" variant="outline" onClick={() => handleTest(server)}><TestTube2 className="h-3 w-3 mr-1" />{t('mcp.test', '测试')}</Button>
                     <Button size="sm" variant="outline" onClick={() => handleGetTools(server)}>{t('mcp.getTools', '工具')}</Button>
                     <Button size="sm" variant="outline" onClick={() => openEdit(server)}>{t('common.edit', '编辑')}</Button>
@@ -184,6 +284,52 @@ export function McpManagement() {
           </CardContent>
         </Card>
       )}
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingServer ? t('mcp.editServer', '编辑服务器') : t('mcp.addServer', '添加服务器')}</DialogTitle>
+            <DialogDescription>
+              {editingServer ? t('mcp.editServerDesc', '编辑 MCP 服务器配置') : t('mcp.addServerDesc', '添加新的 MCP 服务器')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>{t('mcp.nameLabel', '名称')}</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div>
+              <Label>{t('mcp.urlLabel', 'URL')}</Label>
+              <Input value={url} onChange={e => setUrl(e.target.value)} placeholder={t('mcp.urlPlaceholder', 'http://localhost:3000')} />
+            </div>
+            <div>
+              <Label>Command</Label>
+              <Input value={command} onChange={e => setCommand(e.target.value)} placeholder="node" />
+            </div>
+            <div>
+              <Label>Args (空格分隔)</Label>
+              <Input value={argsText} onChange={e => setArgsText(e.target.value)} placeholder="server.js --port 3000" />
+            </div>
+            <div>
+              <Label>Env (JSON)</Label>
+              <Input value={envText} onChange={e => setEnvText(e.target.value)} placeholder='{"KEY": "value"}' />
+            </div>
+            <div>
+              <Label>{t('mcp.transportLabel', '传输方式')}</Label>
+              <Select value={transport} onValueChange={v => setTransport(v as 'stdio' | 'sse' | 'http')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stdio">stdio</SelectItem>
+                  <SelectItem value="sse">SSE</SelectItem>
+                  <SelectItem value="http">HTTP</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
