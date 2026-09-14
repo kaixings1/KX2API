@@ -5,8 +5,17 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/__tests__/**/*.test.ts', 'tests/**/*.test.ts'],
-    exclude: ['node_modules', 'out', 'dist'],
+    include: ['src/**/__tests__/**/*.test.ts', 'src/**/__tests__/**/*.test.tsx'],
+    exclude: [
+      'node_modules',
+      'out',
+      'dist',
+      // 基于 node:test，请用 `npm test` / `npm run test:management` 运行
+      'tests/**',
+      // 独立脚本（自己调用 process.exit），请用 `npx tsx <file>` 运行
+      'src/engine/__tests__/**',
+      'src/main/__tests__/profiles.test.ts',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -17,6 +26,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@shared': resolve(__dirname, 'src/shared'),
+      // 这些用例原本用 bun test 运行，API 与 vitest 兼容
+      'bun:test': resolve(__dirname, 'node_modules/vitest/dist/index.js'),
     },
   },
 })
