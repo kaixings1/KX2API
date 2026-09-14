@@ -14,6 +14,7 @@ import rehypeHighlight from 'rehype-highlight'
 import type { Components } from 'react-markdown'
 import { FileTree } from './FileTree'
 import { StreamParser, type ParsedTool, parseToolsFromText } from './streamParser'
+import { PROMPT_GROUPS, defaultPromptGroups, buildPromptText, type PromptGroupsState } from './promptGroups'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
 } from '@/components/ui/sheet'
@@ -513,7 +514,8 @@ export function ChatPage() {
   const [sidebarFiles, setSidebarFiles] = useState<{ name: string; path: string }[]>([])
   const [terminalOutput, setTerminalOutput] = useState('')
   const [terminalInput, setTerminalInput] = useState('')
-  const [config, setConfig] = useState({ provider: 'openai', model: 'gpt-4o', apiKey: '', baseUrl: '' })
+  const [config, setConfig] = useState({ provider: 'openai', model: 'gpt-4o', apiKey: '', baseUrl: '', systemPrompt: '' })
+  const [promptGroups, setPromptGroups] = useState<PromptGroupsState>(() => defaultPromptGroups())
   const [showConfig, setShowConfig] = useState(false)
   const [profiles, setProfiles] = useState<{ name: string; provider: string; baseUrl: string; model: string; active?: boolean }[]>([])
   const [activeProfileName, setActiveProfileName] = useState<string | null>(null)
