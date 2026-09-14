@@ -620,6 +620,10 @@ export function ChatPage() {
         if (c?.provider) setConfig(prev => ({ ...prev, provider: c.provider as string }))
         if (c?.model) setConfig(prev => ({ ...prev, model: c.model as string }))
         if (c?.baseUrl) setConfig(prev => ({ ...prev, baseUrl: c.baseUrl as string }))
+        if (typeof c?.systemPrompt === 'string') setConfig(prev => ({ ...prev, systemPrompt: c.systemPrompt as string }))
+        if (c?.promptGroups && typeof c.promptGroups === 'object') {
+          setPromptGroups(c.promptGroups as PromptGroupsState)
+        }
       })
     }
     // 加载配置组列表
@@ -1031,15 +1035,19 @@ export function ChatPage() {
     // 否则 baseUrl / apiKey / model 不会被实际用于请求。Base URL 为空时给本地代理默认值，
     // 避免回退到不可达的 api.openai.com。
     const baseUrl = (config.baseUrl || '').trim() || 'http://127.0.0.1:8080/v1/chat/completions'
+    // 合成提示词：显式 systemPrompt 为空时，用勾选分组合成片段
+    const finalSystemPrompt = (config.systemPrompt || '').trim() || buildPromptText(promptGroups)
     if (window.electronAPI?.chat?.setConfig) {
       await window.electronAPI.chat.setConfig({
         provider: config.provider,
         model: config.model,
         apiKey: config.apiKey || '',
         baseUrl,
+        systemPrompt: finalSystemPrompt,
+        promptGroups,
       })
     }
-    // 持久化到一个固定、无冲突的配置组并激活它：这样重启/切换下拉后仍保留，
+    // 持久化到一个固定、唯一冲突的配置页并激活它，这样重启/后下拉后仍保留，
     // 也避免下拉框因 active 被清空而重置回旧配置。upsert 内部会把 activePreset 设为该组。
     const persistName = '__dialog_config__'
     try {
@@ -1049,6 +1057,8 @@ export function ChatPage() {
         baseUrl,
         apiKey: config.apiKey || '',
         model: config.model,
+        systemPrompt: finalSystemPrompt,
+        promptGroups,
       })
     } catch { /* ignore */ }
     // 刷新下拉列表并保持选中已保存的配置组
@@ -1070,10 +1080,12 @@ export function ChatPage() {
     const result = await window.electronAPI.profiles.setActive(name)
     if (result.success && result.profile) {
       const p = result.profile as { provider: string; model: string; baseUrl: string; apiKey: string }
-      setConfig({ provider: p.provider, model: p.model, apiKey: p.apiKey, baseUrl: p.baseUrl })
+      setConfig({ provider: p.provider, model: p.model, apiKey: p.apiKey, baseUrl: p.baseUrl, systemPrompt: (p as Record<string, unknown>).systemPrompt as string || '' })
       setDirectBaseUrl(p.baseUrl)
       setProxyMode('standard')
       setActiveProfileName(name)
+      const pg = (p as Record<string, unknown>).promptGroups
+      if (pg && typeof pg === 'object') setPromptGroups(pg as PromptGroupsState)
     }
   }, [])
 
@@ -1151,6 +1163,70 @@ export function ChatPage() {
                     onChange={e => setConfig(p => ({ ...p, baseUrl: e.target.value }))}
                     placeholder="https://api.openai.com"
                   />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>自定义 System Prompt（可选，留空则用下方分组合成）</Label>
+                  <textarea
+                    value={config.systemPrompt}
+                    onChange={e => setConfig(p => ({ ...p, systemPrompt: e.target.value }))}
+                    placeholder="（留空时自动按勾选分组合成）"
+                    rows={2}
+                    className="text-xs bg-[var(--bg-tertiary)] border border-[var(--border)] rounded px-2 py-1.5 text-[var(--text)] w-full resize-y"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>提示词分组（勾选后每轮合进 System Prompt，降低无效 token）</Label>
+                  {PROMPT_GROUPS.map(g => {
+                    const cfg = promptGroups[g.id] || { enabled: false, mandatoryItemIds: [], optionalItemIds: [] }
+                    const toggleGroup = () => setPromptGroups(prev => ({
+                      ...prev,
+                      [g.id]: { ...cfg, enabled: !cfg.enabled },
+                    }))
+                    const toggleItem = (itemId: string, isMandatory: boolean) => {
+                      setPromptGroups(prev => {
+                        const cur = prev[g.id] || { enabled: true, mandatoryItemIds: [], optionalItemIds: [] }
+                        const inMandatory = cur.mandatoryItemIds.includes(itemId)
+                        const inOptional = cur.optionalItemIds.includes(itemId)
+                        let mandatory = cur.mandatoryItemIds
+                        let optional = cur.optionalItemIds
+                        if (isMandatory) {
+                          mandatory = inMandatory ? mandatory.filter(i => i !== itemId) : [...mandatory, itemId]
+                        } else {
+                          optional = inOptional ? optional.filter(i => i !== itemId) : [...optional, itemId]
+                        }
+                        return { ...prev, [g.id]: { ...cur, mandatoryItemIds: mandatory, optionalItemIds: optional } }
+                      })
+                    })
+                    return (
+                      <div key={g.id} className="border border-[var(--border)] rounded p-2">
+                        <label className="flex items-center gap-2 text-xs">
+                          <input type="checkbox" checked={cfg.enabled} onChange={toggleGroup} className="accent-[var(--accent)]" />
+                          <span className="font-medium">{g.name}</span>
+                          {g.description && <span className="text-[10px] text-[var(--muted)]">{g.description}</span>}
+                        </label>
+                        <div className="pl-5 mt-1 flex flex-col gap-0.5">
+                          {g.items.map(item => {
+                            const isMand = cfg.mandatoryItemIds.includes(item.id)
+                            const isOpt = cfg.optionalItemIds.includes(item.id)
+                            const checked = isMand || isOpt
+                            return (
+                              <label key={item.id} className="flex items-center gap-1.5 text-xs">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={!cfg.enabled}
+                                  onChange={() => toggleItem(item.id, isMand)}
+                                  className="accent-[var(--accent)]"
+                                />
+                                <span>{item.label}</span>
+                                <span className="text-[10px] text-[var(--muted)]">{item.mandatory ? '· 必发' : ''}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
                 <Button onClick={saveConfig} className="w-full">保存配置</Button>
               </div>
