@@ -32,7 +32,8 @@ import {
   Trash2,
   ArrowLeft,
   TrendingUp,
-  Coins
+  Coins,
+  RotateCcw
 } from 'lucide-react'
 import type { Account, AccountStatus, Provider } from '@/types/electron'
 import { cn } from '@/lib/utils'
@@ -44,6 +45,8 @@ interface AccountDetailProps {
   onEdit: () => void
   onDelete: () => void
   onValidate: () => Promise<void>
+  onRelogin?: () => Promise<void>
+  onAccountUpdated?: () => void
 }
 
 export function AccountDetail({
@@ -53,10 +56,16 @@ export function AccountDetail({
   onEdit,
   onDelete,
   onValidate,
+  onRelogin,
+  onAccountUpdated,
 }: AccountDetailProps) {
   const { t, i18n } = useTranslation()
   const [isValidating, setIsValidating] = useState(false)
+  const [isRelogining, setIsRelogining] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showResetDialog, setShowResetDialog] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
+  const [resetStatus, setResetStatus] = useState<AccountStatus>('active')
   const [credits, setCredits] = useState<{
     totalCredits: number
     usedCredits: number
@@ -154,9 +163,30 @@ export function AccountDetail({
     }
   }
 
+  const handleRelogin = async () => {
+    if (!onRelogin) return
+    setIsRelogining(true)
+    try {
+      await onRelogin()
+    } finally {
+      setIsRelogining(false)
+    }
+  }
+
   const handleDelete = async () => {
     await onDelete()
     setShowDeleteDialog(false)
+  }
+
+  const handleResetStatus = async () => {
+    setIsResetting(true)
+    try {
+      await window.electronAPI.accounts.resetStatus(account.id, resetStatus)
+      setShowResetDialog(false)
+      onAccountUpdated?.()
+    } finally {
+      setIsResetting(false)
+    }
   }
 
   const handleGetCredits = async () => {
@@ -236,12 +266,34 @@ export function AccountDetail({
             <RefreshCw className={cn('mr-2 h-4 w-4', isValidating && 'animate-spin')} />
             {isValidating ? t('oauth.validating') : t('providers.validateCredentials')}
           </Button>
+          {onRelogin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRelogin}
+              disabled={isRelogining}
+            >
+              <RefreshCw className={cn('mr-2 h-4 w-4', isRelogining && 'animate-spin')} />
+              {isRelogining ? t('providers.relogining') : t('providers.relogin')}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={onEdit}>
             <Edit className="mr-2 h-4 w-4" />
             {t('common.edit')}
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setResetStatus('active')
+              setShowResetDialog(true)
+            }}
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            重置状态
+          </Button>
+          <Button
+            variant="outline"
             size="sm"
             className="text-destructive"
             onClick={() => setShowDeleteDialog(true)}
@@ -470,6 +522,38 @@ export function AccountDetail({
           </p>
         </CardContent>
       </Card>
+
+      <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>重置账号状态</DialogTitle>
+            <DialogDescription>
+              将账号 "{account.name}" 的状态重置为可用的状态，使其重新参与负载均衡。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="text-sm font-medium mb-2 block">目标状态</label>
+            <select
+              value={resetStatus}
+              onChange={e => setResetStatus(e.target.value as AccountStatus)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="active">active（正常）</option>
+              <option value="inactive">inactive（停用）</option>
+              <option value="expired">expired（过期）</option>
+              <option value="error">error（错误）</option>
+            </select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowResetDialog(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={handleResetStatus} disabled={isResetting}>
+              {isResetting ? '重置中...' : '确认重置'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>

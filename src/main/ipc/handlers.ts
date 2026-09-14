@@ -1994,6 +1994,10 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     return AccountManager.delete(id)
   })
 
+  ipcMain.handle(IpcChannels.ACCOUNTS_RESET_STATUS, async (_, id: string, status: AccountStatus = 'active'): Promise<Account | null> => {
+    return AccountManager.updateStatus(id, status)
+  })
+
   ipcMain.handle(IpcChannels.ACCOUNTS_VALIDATE, async (_, accountId: string): Promise<boolean> => {
     const result = await AccountManager.validate(accountId)
     return result.valid
@@ -2426,6 +2430,20 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     ConfigManager.update({ contextManagement: newContextConfig })
 
     return newContextConfig
+  })
+
+  // ==================== Tool Plugins Handlers ====================
+
+  ipcMain.handle(IpcChannels.PLUGINS_GET_ENABLED_LIST, async (): Promise<string[]> => {
+    const config = ConfigManager.get()
+    return config.enabledPlugins || []
+  })
+
+  ipcMain.handle(IpcChannels.PLUGINS_SET_ENABLED_LIST, async (_, ids: string[]): Promise<string[]> => {
+    const validIds = new Set(allLegacyToolPlugins.map(p => p.id))
+    const filtered = ids.filter(id => validIds.has(id))
+    ConfigManager.update({ enabledPlugins: filtered })
+    return filtered
   })
 }
 

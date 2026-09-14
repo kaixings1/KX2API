@@ -91,7 +91,12 @@ export class InAppLoginManager extends EventEmitter {
   private createLoginWindow(): void {
     if (!this.config) return
 
-    const partition = `persist:oauth-${Date.now()}`
+    // Persistent per-provider partition so a provider's login cookies survive
+    // across login windows. Without this the window gets a fresh ephemeral
+    // partition every time, dropping the session cookie — the user has to
+    // re-enter the phone number / credentials on every subsequent login.
+    const providerKey = this.options?.providerId || 'default'
+    const partition = `persist:oauth-${providerKey}`
     this.loginSession = session.fromPartition(partition)
 
     // Bypass SSL certificate verification for login sessions
@@ -254,7 +259,8 @@ export class InAppLoginManager extends EventEmitter {
 
     this.loginWindow?.webContents.on('did-finish-load', () => {
       console.log('[InAppLogin] Page finished loading, starting token checks')
-      this.delayedTokenCheck()
+      // Immediately check for existing tokens (persistent session may already be logged in)
+      this.checkForTokens()
     })
 
     this.loginWindow?.webContents.on('did-navigate-in-page', () => {
@@ -370,7 +376,13 @@ export class InAppLoginManager extends EventEmitter {
         sawPayload = true
         if (typeof payload.activated === 'boolean') activated = payload.activated
         if (typeof payload.exp === 'number' && payload.exp > 0) {
-          expiresAt = expiresAt === null ? payload.exp : Math.max(expiresAt, payload.exp)
+          // The Oasis-Token is "<session JWT>...<device JWT>". The session part
+          // lives ~30 minutes, the device part ~30 days, and the server rejects
+          // the pair as soon as the session part lapses ({"code":"unauthenticated",
+          // "message":"token is expired"}). So the EARLIEST exp is the one that
+          // gates the session. Using Math.max here accepted hours-old tokens and
+          // reported a finished login for a session that could never chat.
+          expiresAt = expiresAt === null ? payload.exp : Math.min(expiresAt, payload.exp)
         }
       } catch {
         // not a JSON payload; keep looking

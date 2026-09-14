@@ -233,6 +233,15 @@ export class LoadBalancer {
       return false
     }
 
+    // An "active" account with absolutely no credentials would be chosen by the
+    // load balancer, then every adapter would silently produce an empty/error
+    // response and the client sees no answer at all. Treat a credentials-less
+    // account as unavailable so requesters get a clear "no available account"
+    // error instead of a silent failure.
+    if (!account.credentials || Object.keys(account.credentials).length === 0) {
+      return false
+    }
+
     return true
   }
 

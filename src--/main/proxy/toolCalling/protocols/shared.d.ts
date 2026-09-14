@@ -1,0 +1,34 @@
+import type { NormalizedToolDefinition, NormalizedToolResult, ToolParseResult, ToolProtocolId } from '../types.ts';
+import type { ToolProtocolDetection } from './base.ts';
+import type { ToolCall } from '../../types.ts';
+export declare function detectMarkers(buffer: string, markers: string[]): ToolProtocolDetection;
+export declare function stripFencedCodeBlocks(content: string): string;
+export declare function toolNames(tools: NormalizedToolDefinition[]): Set<string>;
+export declare function createParseResult(input: {
+    content: string;
+    toolCalls: ToolCall[];
+    protocol: ToolProtocolId | 'unknown';
+    rawMatches: string[];
+    invalidToolNames?: string[];
+    malformedReason?: string;
+}): ToolParseResult;
+export declare function buildToolCall(id: string, index: number, name: string, args: string, rawText?: string): ToolCall;
+export declare function normalizeArguments(args: unknown): string;
+export declare function parseJsonValue(value: string): unknown;
+export declare function unwrapCdata(value: string): string;
+export declare function decodeXml(value: string): string;
+export declare function escapeXmlAttribute(value: string): string;
+export declare function repairToolArguments(args: Record<string, unknown>, toolDefs: NormalizedToolDefinition[]): Record<string, unknown>;
+export declare function addParameter(target: Record<string, unknown>, name: string, value: unknown): void;
+export declare function renderToolList(tools: NormalizedToolDefinition[]): string;
+export declare function genericToolResultBlock(result: NormalizedToolResult): string;
+export declare function stableStringify(value: unknown): string;
+export declare const TOOL_NAME_MAPPING: Record<string, string>;
+export declare function normalizeToolName(name: string): string;
+export declare function readBalancedJson(text: string, start: number): {
+    json: string;
+    end: number;
+} | null;
+export declare function looksLikeToolCall(text: string): boolean;
+export declare function tryRepairIncompleteJsonObject(text: string): unknown | null;
+export declare function mapCommandForPlatform(cmd: string): string;

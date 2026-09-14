@@ -78,7 +78,7 @@ function LogRow({
       <Badge
         variant="outline"
         className={cn(
-          'text-white text-xs shrink-0 px-2 py-0.5',
+          'text-[var(--text-primary)] text-xs shrink-0 px-2 py-0.5',
           levelColors[log.level]
         )}
       >

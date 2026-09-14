@@ -525,6 +525,8 @@ export interface AppConfig {
   audioConfig: AudioConfig
   /** Rerank configuration */
   rerankConfig: RerankConfig
+  /** 启用的工具插件列表（ID 列表），空数组表示使用默认值 */
+  enabledPlugins: string[]
 }
 
 /**
@@ -1263,6 +1265,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   imageConfig: DEFAULT_IMAGE_CONFIG,
   audioConfig: DEFAULT_AUDIO_CONFIG,
   rerankConfig: DEFAULT_RERANK_CONFIG,
+  enabledPlugins: ['read_file', 'write_file', 'edit', 'bash', 'glob', 'grep', 'web_search', 'web_fetch', 'git'],
 }
 
 /**

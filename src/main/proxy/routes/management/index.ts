@@ -13,6 +13,7 @@ import statisticsRouter from './statistics'
 import proxyRouter from './proxy'
 import toolCallingRouter from './toolCalling'
 import chatSessionsRouter from './chatSessions'
+import configGroupsRouter from './config-groups'
 
 export {
   configRouter,
@@ -25,6 +26,7 @@ export {
   proxyRouter,
   toolCallingRouter,
   chatSessionsRouter,
+  configGroupsRouter,
 }
 
 export default [
@@ -38,4 +40,5 @@ export default [
   proxyRouter,
   toolCallingRouter,
   chatSessionsRouter,
+  configGroupsRouter,
 ]

@@ -290,6 +290,9 @@ const accountsAPI = {
 
   clearChats: (accountId: string): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke(IpcChannels.ACCOUNTS_CLEAR_CHATS, accountId),
+
+  resetStatus: (accountId: string, status?: 'active' | 'inactive' | 'expired' | 'error'): Promise<Account | null> =>
+    ipcRenderer.invoke(IpcChannels.ACCOUNTS_RESET_STATUS, accountId, status),
 }
 
 type ProviderType = ProviderVendor
@@ -1182,6 +1185,12 @@ const electronAPI = {
       return () => ipcRenderer.removeListener(IpcChannels.CHAT_STREAM_ERROR, handler)
     },
 
+    onStreamReasoning: (callback: (data: { requestId: string; reasoning: string }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: { requestId: string; reasoning: string }) => callback(data)
+      ipcRenderer.on(IpcChannels.CHAT_STREAM_REASONING, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.CHAT_STREAM_REASONING, handler)
+    },
+
     getHistory: (): Promise<{ messages: Array<{ role: string; content: string }> }> =>
       ipcRenderer.invoke('chat:getHistory'),
 
@@ -1234,6 +1243,33 @@ const electronAPI = {
 
     deleteFile: (name: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('doge:deleteConfigFile', name),
+  },
+
+  // Config Groups — API 配置组管理
+  configGroups: {
+    list: (): Promise<{ success: boolean; groups?: ConfigGroup[]; activeGroup?: string | null }> =>
+      ipcRenderer.invoke('configGroups:list'),
+
+    get: (id: string): Promise<{ success: boolean; group?: ConfigGroup; data?: ConfigGroupData; error?: string }> =>
+      ipcRenderer.invoke('configGroups:get', id),
+
+    getById: (id: string): Promise<{ success: boolean; group?: ConfigGroup; data?: ConfigGroupData; error?: string }> =>
+      ipcRenderer.invoke('configGroups:getById', id),
+
+    create: (id: string, data?: Partial<ConfigGroupData>): Promise<{ success: boolean; group?: ConfigGroup; error?: string }> =>
+      ipcRenderer.invoke('configGroups:create', id, data),
+
+    update: (id: string, data: ConfigGroupData): Promise<{ success: boolean; group?: ConfigGroup; error?: string }> =>
+      ipcRenderer.invoke('configGroups:update', id, data),
+
+    delete: (id: string): Promise<{ success: boolean; id?: string; deleted?: boolean; error?: string }> =>
+      ipcRenderer.invoke('configGroups:delete', id),
+
+    setActive: (id: string): Promise<{ success: boolean; group?: ConfigGroup; error?: string }> =>
+      ipcRenderer.invoke('configGroups:setActive', id),
+
+    switch: (id: string): Promise<{ success: boolean; group?: ConfigGroup; preset?: string; error?: string }> =>
+      ipcRenderer.invoke('configGroups:switch', id),
   },
 
   // Team Task — 多角色协作任务

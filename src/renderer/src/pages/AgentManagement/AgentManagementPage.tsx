@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Trash2, Play, Loader2, ArrowRight } from 'lucide-react'
+import { Plus, Trash2, Play, Loader2, ArrowRight, Info } from 'lucide-react'
 import { ManagementToolbar } from '@/components/management'
 import { ImportExportDialog } from '@/components/management/ImportExportDialog'
 
@@ -210,6 +210,16 @@ export function AgentManagement() {
         onRestore={handleRestore}
       />
 
+      {/* Help Card */}
+      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
+        <CardContent className="pt-4 pb-3">
+          <p className="text-xs text-[var(--text-dim)] leading-relaxed flex items-start gap-2">
+            <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-[var(--text-muted)]" />
+            {t('agents.pageHelp', '创建和管理 AI Agent。点击卡片进入详情页查看系统提示词、执行 Agent 或编辑配置。')}
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -246,7 +256,7 @@ export function AgentManagement() {
       ) : agents.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">{t('agents.empty', '暂无 Agent')}</CardContent></Card>
       ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">没有匹配的 Agent</CardContent></Card>
+        <Card><CardContent className="py-8 text-center text-muted-foreground">{t('agents.noMatch', '没有匹配的 Agent')}</CardContent></Card>
       ) : (
         <div className="grid gap-4">
           {filtered.map(agent => (

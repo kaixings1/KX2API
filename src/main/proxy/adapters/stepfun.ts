@@ -979,7 +979,7 @@ export class StepFunAdapter {
     request: ChatCompletionRequest,
     sessionId?: string,
   ): Promise<{ success: boolean; status?: number; stream?: Readable; body?: any; headers?: Record<string, string>; error?: string }> {
-    console.log('[StepFun][CONNECT] chatCompletionConnect ENTRY, model=', request.model)
+    // console.log('[StepFun][CONNECT] chatCompletionConnect ENTRY, model=', request.model)
 
     await this.acquireToken()
 
@@ -1008,7 +1008,7 @@ export class StepFunAdapter {
     // the stream has already been handed to the caller, which is too late to
     // retry. Verify the id first and create a replacement when it is gone.
     if (useChatSessionId && !(await this.chatSessionExists(useChatSessionId, headers))) {
-      console.log('[StepFun][CONNECT] cached session is gone, requesting a new one')
+      // console.log('[StepFun][CONNECT] cached session is gone, requesting a new one')
       useChatSessionId = null
       this.chatSessionId = null
       sessionCache.delete(sessionKey)
@@ -1019,9 +1019,9 @@ export class StepFunAdapter {
       const created = await this.createChatSession(headers)
       if (created) {
         useChatSessionId = created
-        console.log('[StepFun][CONNECT] created chat session:', created)
+        // console.log('[StepFun][CONNECT] created chat session:', created)
       } else {
-        console.error('[StepFun][CONNECT] CreateChatSession failed; ChatStream will likely be rejected')
+        // console.error('[StepFun][CONNECT] CreateChatSession failed; ChatStream will likely be rejected')
       }
     }
 
@@ -1081,9 +1081,9 @@ export class StepFunAdapter {
 
     // DIAG: log header names actually being sent, so the shape can be diffed
     // against a live capture without leaking token material.
-    console.log('[StepFun][CONNECT] header names:', Object.keys(connectHeaders).sort().join(','))
-    console.log('[StepFun][CONNECT] cookie names:', (connectHeaders['Cookie'] || '')
-      .split('; ').map(p => p.split('=')[0]).join(','))
+    // console.log('[StepFun][CONNECT] header names:', Object.keys(connectHeaders).sort().join(','))
+    // console.log('[StepFun][CONNECT] cookie names:', (connectHeaders['Cookie'] || '')
+    //   .split('; ').map(p => p.split('=')[0]).join(','))
 
     const request_ = net.request({
       method: 'POST',
@@ -1097,7 +1097,7 @@ export class StepFunAdapter {
     const stream = new PassThrough()
     let currentMessageId = ''
 
-    console.log('[StepFun][CONNECT] about to send request, model=', model, 'frameSize=', connectFrame.length, 'body=', JSON.stringify(requestData).slice(0, 800))
+    // console.log('[StepFun][CONNECT] about to send request, model=', model, 'frameSize=', connectFrame.length, 'body=', JSON.stringify(requestData).slice(0, 800))
 
     return new Promise((resolve) => {
       let responseReceived = false
@@ -1112,7 +1112,7 @@ export class StepFunAdapter {
           responseHeaders[k] = Array.isArray(v) ? v.join(', ') : String(v)
         })
 
-        console.log('[StepFun][CONNECT] response status=', statusCode, 'headers=', JSON.stringify(responseHeaders).slice(0, 300))
+        // console.log('[StepFun][CONNECT] response status=', statusCode, 'headers=', JSON.stringify(responseHeaders).slice(0, 300))
 
         if (statusCode && statusCode >= 400) {
           response.on('data', (chunk: Buffer) => {
@@ -1131,11 +1131,11 @@ export class StepFunAdapter {
 
         response.on('data', (chunk: Buffer) => {
           buffer = Buffer.concat([buffer, chunk])
-          console.log('[StepFun][CONNECT] received chunk, len=', chunk.length, 'hex=', chunk.slice(0, 64).toString('hex'))
+          // console.log('[StepFun][CONNECT] received chunk, len=', chunk.length, 'hex=', chunk.slice(0, 64).toString('hex'))
           const messageIdState = { current: currentMessageId }
           let consumed = this.processConnectFrames(buffer, stream, model, messageIdState)
           currentMessageId = messageIdState.current
-          console.log('[StepFun][CONNECT] binary frames consumed=', consumed, 'bufferRemaining=', buffer.length)
+          // console.log('[StepFun][CONNECT] binary frames consumed=', consumed, 'bufferRemaining=', buffer.length)
           // Fallback: if binary frame parser consumed nothing, try SSE text parsing
           if (consumed === 0 && buffer.length > 0) {
             consumed = this.parseConnectSSEText(buffer, stream, model, messageIdState)
@@ -1152,7 +1152,7 @@ export class StepFunAdapter {
             currentMessageId = messageIdState.current
           }
           stream.push(null)
-          console.log('[StepFun][CONNECT] stream ended, totalBytes=', buffer.length)
+          // console.log('[StepFun][CONNECT] stream ended, totalBytes=', buffer.length)
         })
 
         response.on('error', (error) => {
@@ -1176,7 +1176,7 @@ export class StepFunAdapter {
         // Fallback: if net.request fails due to SSL, try axios instead
         const isSslError = (error.message || '').includes('ERR_SSL') || (error as any).code === -100 || (error as any).code === -101
         if (isSslError) {
-          console.log('[StepFun][CONNECT] SSL error detected, falling back to axios')
+          // console.log('[StepFun][CONNECT] SSL error detected, falling back to axios')
           try {
             const axiosResult = await this.chatCompletionConnectAxios(request, model, connectFrame, headers)
             resolve(axiosResult)
@@ -1207,7 +1207,7 @@ export class StepFunAdapter {
       try {
         request_.write(connectFrame, 'binary')
         request_.end()
-        console.log('[StepFun][CONNECT] Connect frame sent, size=', connectFrame.length)
+        // console.log('[StepFun][CONNECT] Connect frame sent, size=', connectFrame.length)
       } catch (writeError) {
         clearTimeout(requestTimeout)
         console.error('[StepFun][CONNECT] write/end failed:', writeError)
@@ -1812,7 +1812,7 @@ export class StepFunAdapter {
       iterations++
 
       const markerStart = StepFunAdapter.findFirstMarkerStart(q.buffer)
-      console.log(`[StepFun][QUEUE] iter=${iterations} bufLen=${q.buffer.length} prevLen=${prevLen} markerStart=${markerStart} bufPreview=${JSON.stringify(q.buffer.slice(Math.max(0, markerStart - 30), markerStart + 80))}`)
+      // console.log(`[StepFun][QUEUE] iter=${iterations} bufLen=${q.buffer.length} prevLen=${prevLen} markerStart=${markerStart} bufPreview=${JSON.stringify(q.buffer.slice(Math.max(0, markerStart - 30), markerStart + 80))}`)
 
       if (markerStart < 0) {
         // No tool marker in buffer at all — all text is safe content
@@ -1832,7 +1832,7 @@ export class StepFunAdapter {
         // re-scan, allowing the marker to eventually become complete.
         const preText = q.buffer.slice(0, markerStart)
         const remaining = q.buffer.slice(markerStart)
-        console.log(`[StepFun][QUEUE] incomplete marker at ${markerStart}, emitting ${preText.length} chars, keeping ${remaining.length} in buffer`)
+        // console.log(`[StepFun][QUEUE] incomplete marker at ${markerStart}, emitting ${preText.length} chars, keeping ${remaining.length} in buffer`)
         contentSegments.push(StepFunAdapter.filterProtocolMarkersFromBuffer(preText))
         q.buffer = remaining
         break
@@ -1843,13 +1843,13 @@ export class StepFunAdapter {
       if (preText) {
         contentSegments.push(StepFunAdapter.filterProtocolMarkersFromBuffer(preText))
       }
-      console.log(`[StepFun][QUEUE] EXTRACTED tool call: name=${marker.name} params=${JSON.stringify(marker.params)}`)
+      // console.log(`[StepFun][QUEUE] EXTRACTED tool call: name=${marker.name} params=${JSON.stringify(marker.params)}`)
       extractedCalls.push({ name: marker.name, params: marker.params })
       q.buffer = q.buffer.slice(marker.endIndex)
     }
 
     const finalDisplay = contentSegments.join('') + StepFunAdapter.filterProtocolMarkersFromBuffer(q.buffer)
-    console.log(`[StepFun][QUEUE] RESULT: extractedCalls=${extractedCalls.length} displayLen=${finalDisplay.length} bufferRemaining=${q.buffer.length}`)
+    // console.log(`[StepFun][QUEUE] RESULT: extractedCalls=${extractedCalls.length} displayLen=${finalDisplay.length} bufferRemaining=${q.buffer.length}`)
     return { extractedCalls, displayText: finalDisplay }
   }
 
@@ -2002,7 +2002,7 @@ export class StepFunAdapter {
           const rawText = event.textEvent.text || ''
           if (!rawText || !messageIdState.current) continue
 
-          console.log(`[StepFun][QUEUE][SSE] textEvent received, len=${rawText.length}, preview=${JSON.stringify(rawText.slice(0, 120))}`)
+          // console.log(`[StepFun][QUEUE][SSE] textEvent received, len=${rawText.length}, preview=${JSON.stringify(rawText.slice(0, 120))}`)
 
           // Use queue-based extraction to handle tool markers split across chunks
           const { extractedCalls, displayText } = StepFunAdapter.processQueue(rawText)
@@ -2060,9 +2060,39 @@ export class StepFunAdapter {
       // so the next turn creates a fresh session instead of failing the same
       // way forever.
       if (/not_found/i.test(String(errCode)) || /session not found/i.test(String(errMsg))) {
-        console.log('[StepFun][CONNECT] session rejected by server, clearing cached id')
+        console.log('[StepFun][CONNECT] session rejected by server, clearing cached id') // KEPT: error recovery
         this.chatSessionId = null
         if (this.currentSessionKey) sessionCache.delete(this.currentSessionKey)
+      }
+
+      // Token expired / unauthenticated: the browser session may have rotated
+      // while we were holding a stale Oasis-Token. Ask the session manager to
+      // force a reload + credential re-extract now, and drop the local
+      // validation cache, so the NEXT request automatically carries a fresh
+      // token instead of re-sending the expired one (which fails forever until
+      // the user manually re-logs-in).
+      if (/token is expired|token.*expired|expired/i.test(errMsg) || /unauth|expired/.test(String(errCode))) {
+        console.log('[StepFun][CONNECT] token expired/unauth, forcing session refresh & clearing validation cache') // KEPT: error recovery
+        tokenValidationCache.delete(this.oasisToken.slice(0, 40))
+        if (this.isApiKeyMode) {
+          // In API-key mode there is no browser partition to refresh; surface the
+          // error as-is so the user re-mints or re-enters the key.
+        } else {
+          if (stepfunSessionManager.ready()) {
+            stepfunSessionManager.refresh()
+              .then(() => {
+                const fresh = stepfunSessionManager.getToken()
+                const freshWebId = stepfunSessionManager.getWebId()
+                if (fresh && fresh.length > 10 && fresh !== this.oasisToken) {
+                  // console.log('[StepFun][CONNECT] token refreshed after expiry, new tokenLen=', fresh.length)
+                  this.updateToken(fresh, freshWebId, { Cookie: stepfunSessionManager.getCookieHeader() })
+                }
+              })
+              .catch((e) => console.error('[StepFun][CONNECT] token refresh failed:', e))
+          } else {
+            console.warn('[StepFun][CONNECT] session manager not ready, cannot auto-refresh token')
+          }
+        }
       }
 
       const errorChunk = {
@@ -2091,7 +2121,7 @@ export class StepFunAdapter {
     if (event.startEvent) {
       const messageId = event.startEvent.messageId || ''
       messageIdState.current = messageId
-      console.log('[StepFun][CONNECT] startEvent, messageId=', messageId)
+      // console.log('[StepFun][CONNECT] startEvent, messageId=', messageId)
       return
     }
 
@@ -2120,7 +2150,7 @@ export class StepFunAdapter {
           })
         }
       }
-      console.log('[StepFun][CONNECT] messageEvent, messageId=', messageId, 'chatId=', msg.chatId)
+      // console.log('[StepFun][CONNECT] messageEvent, messageId=', messageId, 'chatId=', msg.chatId)
       return
     }
 
@@ -2128,7 +2158,7 @@ export class StepFunAdapter {
     if (event.textEvent) {
       const rawText = event.textEvent.text || ''
       if (rawText && messageIdState.current) {
-        console.log(`[StepFun][QUEUE][CONNECT] textEvent received, len=${rawText.length}, preview=${JSON.stringify(rawText.slice(0, 120))}`)
+        // console.log(`[StepFun][QUEUE][CONNECT] textEvent received, len=${rawText.length}, preview=${JSON.stringify(rawText.slice(0, 120))}`)
 
         // Use queue-based extraction to handle tool markers split across chunks
         const { extractedCalls, displayText } = StepFunAdapter.processQueue(rawText)
@@ -2185,7 +2215,7 @@ export class StepFunAdapter {
     if (event.reasoningEvent) {
       const text = event.reasoningEvent.text || ''
       if (text && messageIdState.current) {
-        console.log('[StepFun][CONNECT] reasoningEvent, text=', text.slice(0, 80))
+        // console.log('[StepFun][CONNECT] reasoningEvent, text=', text.slice(0, 80))
         const deltaChunk = {
           id: messageIdState.current,
           model: model,
@@ -2207,20 +2237,20 @@ export class StepFunAdapter {
       const action = event.pipelineEvent.action || ''
       const title = event.pipelineEvent.title || ''
       if (title) {
-        console.log('[StepFun][CONNECT] pipelineEvent, action=', action, 'title=', title)
+        // console.log('[StepFun][CONNECT] pipelineEvent, action=', action, 'title=', title)
       }
       return
     }
 
     // messageDoneEvent: single message completed
     if (event.messageDoneEvent) {
-      console.log('[StepFun][CONNECT] messageDoneEvent, messageId=', messageIdState.current)
+      // console.log('[StepFun][CONNECT] messageDoneEvent, messageId=', messageIdState.current)
       return
     }
 
     // doneEvent: entire stream completed (server-end signal)
     if (event.doneEvent) {
-      console.log('[StepFun][CONNECT] doneEvent, messageId=', messageIdState.current)
+      // console.log('[StepFun][CONNECT] doneEvent, messageId=', messageIdState.current)
       // Flush any remaining content from the tool queue before ending
       const remaining = StepFunAdapter.toolQueue.buffer
       StepFunAdapter.toolQueue.buffer = ''
@@ -2269,7 +2299,7 @@ export class StepFunAdapter {
             created: Math.floor(Date.now() / 1000),
           }
           stream.write('data: ' + JSON.stringify(toolCallDeltaChunk) + '\n\n')
-          console.log('[StepFun][CONNECT] doneEvent FLUSHED toolCalls=', finalCalls.length, 'names=', finalCalls.map(c => c.name).join(','))
+          // console.log('[StepFun][CONNECT] doneEvent FLUSHED toolCalls=', finalCalls.length, 'names=', finalCalls.map(c => c.name).join(','))
         }
       }
       const finishChunk = {
@@ -2293,7 +2323,7 @@ export class StepFunAdapter {
     if (event.finishEvent) {
       const messageId = event.finishEvent.messageId || messageIdState.current
       const reason = event.finishEvent.finishReason || 'stop'
-      console.log('[StepFun][CONNECT] finishEvent, messageId=', messageId, 'reason=', reason)
+      // console.log('[StepFun][CONNECT] finishEvent, messageId=', messageId, 'reason=', reason)
       const finishChunk = {
         id: messageId,
         model: model,

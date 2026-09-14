@@ -164,40 +164,61 @@ export class StepFunOAuthAdapter extends BaseOAuthAdapter {
 
   private async validateJwtToken(token: string, allCredentials: Record<string, string>): Promise<TokenValidationResult> {
     try {
-      // Decode JWT payload to check expiration and extract account info
+      // Decode JWT payload(s) to check expiration and extract account info.
+      //
+      // The Oasis-Token is TWO base64url JWTs joined by "...":
+      //   <session JWT>...<device JWT>
+      // The session part lives ~30 minutes, the device part ~30 days. The old
+      // code used token.split('.') and only read a payload when that produced
+      // exactly 3 parts — impossible for this format — so an expired token
+      // passed "local validation" and the failure only showed up later as the
+      // server's {"code":"unauthenticated","message":"token is expired"}.
+      const segments = token.includes('...') ? token.split('...') : [token]
       let accountInfo
-      let isExpired = false
-      try {
-        const parts = token.split('.')
-        if (parts.length === 3) {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString())
+      const expiredSegments: string[] = []
+      let activated: boolean | null = null
+
+      for (const segment of segments) {
+        const parts = segment.split('.')
+        if (parts.length < 3) continue
+        try {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf-8'))
           console.log('[StepFun] JWT payload:', JSON.stringify(payload).substring(0, 300))
 
-          // Check expiration
-          if (payload.exp) {
+          if (typeof payload.activated === 'boolean') activated = payload.activated
+
+          if (typeof payload.exp === 'number' && payload.exp > 0) {
             const expTime = payload.exp * 1000
-            const now = Date.now()
-            if (now > expTime) {
-              isExpired = true
-              console.log('[StepFun] JWT expired:', new Date(expTime).toISOString())
+            if (Date.now() > expTime) {
+              expiredSegments.push(new Date(expTime).toISOString())
+              console.log('[StepFun] JWT segment expired at:', new Date(expTime).toISOString())
             } else {
-              console.log('[StepFun] JWT valid until:', new Date(expTime).toISOString())
+              console.log('[StepFun] JWT segment valid until:', new Date(expTime).toISOString())
             }
           }
 
-          accountInfo = {
-            name: payload.name || payload.nickname || payload.username,
-            email: payload.email,
+          if (!accountInfo) {
+            accountInfo = {
+              name: payload.name || payload.nickname || payload.username,
+              email: payload.email,
+            }
           }
+        } catch {
+          // Ignore JWT decode errors for this segment
         }
-      } catch {
-        // Ignore JWT decode errors
       }
 
-      if (isExpired) {
+      if (expiredSegments.length > 0) {
         return {
           valid: false,
-          error: 'Session token expired, please login again',
+          error: `Session token expired at ${expiredSegments.join(', ')}, please login again`,
+        }
+      }
+
+      if (activated === false) {
+        return {
+          valid: false,
+          error: 'StepFun session is not activated (token has activated=false), please finish the login',
         }
       }
 

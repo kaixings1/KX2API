@@ -218,6 +218,11 @@ export class StreamProcessor {
       console.log(`[STREAM-PROC] text_delta idx=${event.index} len=${delta.text.length} text="${delta.text.slice(0, 50)}"`)
       return { type: "content_block_delta", chunk }
     }
+    if (delta.type === "thinking_delta" || delta.type === "reasoning_delta") {
+      const chunk = { type: "thinking", text: delta.text || '', index: event.index }
+      this.buffer.push(chunk)
+      return { type: "content_block_delta", chunk }
+    }
     if (delta.type === "input_json_delta") {
       const chunk = { type: "tool_use", id: this.currentBlock.id, name: this.currentBlock.name, inputDelta: delta.partial_json, index: event.index }
       this.buffer.push(chunk)
@@ -233,6 +238,11 @@ export class StreamProcessor {
     if (this.currentBlock.type === "text") {
       const fullText = blockChunks.filter((c) => c.type === "text").map((c) => c.text || "").join("")
       this.currentBlock.text = fullText
+    }
+    if (this.currentBlock.type === "thinking" || this.currentBlock.type === "reasoning") {
+      const reasonText = blockChunks.filter((c) => c.type === "thinking").map((c) => c.text || "").join("")
+      this.currentBlock.text = reasonText
+      blockChunks.push({ type: "thinking", text: reasonText, index: event.index })
     }
     if (this.currentBlock.type === "tool_use") {
       if (this.currentBlock.input === null || this.currentBlock.input === undefined) {

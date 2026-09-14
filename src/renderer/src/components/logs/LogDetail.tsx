@@ -87,7 +87,7 @@ export function LogDetail() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Badge
-                    className={cn('text-white', levelColors[selectedLog.level])}
+                    className={cn('text-[var(--text-primary)]', levelColors[selectedLog.level])}
                   >
                     {selectedLog.level.toUpperCase()}
                   </Badge>

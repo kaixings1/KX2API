@@ -459,13 +459,19 @@ router.post('/completions', async (ctx: Context) => {
 
         result.stream.pipe(wrapperStream, { end: false })
 
-        // When source stream ends or closes, update log and end wrapper
+        // When source stream ends or closes, update log and end wrapper.
+        // Avoid emitting a duplicate `[DONE]`: some adapters (e.g. StepFun)
+        // already write their own terminating `[DONE]`, so appending another
+        // data: [DONE] here would send two terminator frames to the client and
+        // can make the frontend stop rendering or hang.
         let streamEnded = false
         const endWrapperStream = () => {
           if (streamEnded) return
           streamEnded = true
+          const alreadyDone = collectedContent.trimEnd().endsWith('data: [DONE]') ||
+            collectedContent.trimEnd().endsWith('data:[DONE]')
           if (wrapperStream.writable) {
-            wrapperStream.end('data: [DONE]\n\n')
+            wrapperStream.end(alreadyDone ? '' : 'data: [DONE]\n\n')
           }
           if (logEntryId) {
             storeManager.updateRequestLog(logEntryId, {

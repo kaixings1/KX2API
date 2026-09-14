@@ -49,6 +49,13 @@ import type { AppLogFilter } from '../appLogs/types'
 let Store: any = null
 
 /**
+ * Marks a credential value that was JSON-encoded before encryption because it
+ * is not a plain string (e.g. the cookie jar). NUL keeps it from ever colliding
+ * with a real credential value.
+ */
+const JSON_CREDENTIAL_PREFIX = '\u0000json:'
+
+/**
  * Storage Instance Type Definition
  */
 type StoreType = any
@@ -442,15 +449,16 @@ class StoreManager {
    */
   encryptData(data: string): string {
     try {
-      console.log('[Store] encryptData input length:', data.length, 'content:', data.substring(0, 20) + '...')
+      const str = typeof data === 'string' ? data : String(data)
+      console.log('[Store] encryptData input length:', str.length, 'content:', str.substring(0, 20) + '...')
       if (safeStorage.isEncryptionAvailable()) {
         // Create new Buffer to store encryption result
-        const encrypted = Buffer.from(safeStorage.encryptString(data))
+        const encrypted = Buffer.from(safeStorage.encryptString(str))
         const result = encrypted.toString('base64')
         console.log('[Store] encryptData output length:', result.length, 'content:', result.substring(0, 20) + '...')
         // Verify encryption is correct
         const decrypted = safeStorage.decryptString(encrypted)
-        console.log('[Store] encryptData verify decryption:', decrypted.substring(0, 20) + '...', 'match:', decrypted === data)
+        console.log('[Store] encryptData verify decryption:', decrypted.substring(0, 20) + '...', 'match:', decrypted === str)
         return result
       } else {
         console.log('[Store] Encryption unavailable, returning original data')
@@ -458,7 +466,7 @@ class StoreManager {
     } catch (error) {
       console.error('Failed to encrypt data:', error)
     }
-    return data
+    return typeof data === 'string' ? data : String(data)
   }
 
   /**
@@ -469,25 +477,36 @@ class StoreManager {
   decryptData(encryptedData: string): string {
     try {
       if (safeStorage.isEncryptionAvailable()) {
-        const buffer = Buffer.from(encryptedData, 'base64')
+        const str = typeof encryptedData === 'string' ? encryptedData : String(encryptedData)
+        const buffer = Buffer.from(str, 'base64')
         return safeStorage.decryptString(buffer)
       }
     } catch (error) {
       console.error('Failed to decrypt data:', error)
     }
-    return encryptedData
+    return typeof encryptedData === 'string' ? encryptedData : String(encryptedData)
   }
 
   /**
    * Encrypt Credentials Object
+   *
+   * Values are not always plain strings: `cookies` is a name→value map. Feeding
+   * an object straight into encryptData() coerced it with String(value), so the
+   * saved cookie jar came back as the literal text "[object Object]" and every
+   * cookie was lost on the next app start. Non-string values are therefore
+   * JSON-encoded with a marker and decoded again in decryptCredentials().
    * @param credentials Credentials object
    * @returns Encrypted credentials object
    */
-  encryptCredentials(credentials: Record<string, string>): Record<string, string> {
+  encryptCredentials(credentials: Record<string, any>): Record<string, string> {
     const encrypted: Record<string, string> = {}
     
     for (const [key, value] of Object.entries(credentials)) {
-      encrypted[key] = this.encryptData(value)
+      if (typeof value === 'string') {
+        encrypted[key] = this.encryptData(value)
+      } else {
+        encrypted[key] = this.encryptData(JSON_CREDENTIAL_PREFIX + JSON.stringify(value))
+      }
     }
     
     return encrypted
@@ -498,11 +517,20 @@ class StoreManager {
    * @param encryptedCredentials Encrypted credentials object
    * @returns Decrypted credentials object
    */
-  decryptCredentials(encryptedCredentials: Record<string, string>): Record<string, string> {
-    const decrypted: Record<string, string> = {}
+  decryptCredentials(encryptedCredentials: Record<string, string>): Record<string, any> {
+    const decrypted: Record<string, any> = {}
     
     for (const [key, value] of Object.entries(encryptedCredentials)) {
-      decrypted[key] = this.decryptData(value)
+      const plain = this.decryptData(value)
+      if (plain.startsWith(JSON_CREDENTIAL_PREFIX)) {
+        try {
+          decrypted[key] = JSON.parse(plain.slice(JSON_CREDENTIAL_PREFIX.length))
+          continue
+        } catch {
+          // Fall through and keep the raw text if it is not valid JSON
+        }
+      }
+      decrypted[key] = plain
     }
     
     return decrypted
@@ -1796,3 +1824,4 @@ export const storeManager = new StoreManager()
 
 // Export types
 export type { StoreType }
+export { StoreManager }

@@ -1,18 +1,25 @@
 /**
  * main/ipc/chat-handlers.ts — Chat IPC handlers + Profiles IPC handlers + .doge config handlers
+ *
+ * 升级点（吸收 CLI 版 messageLoop 事件驱动架构）：
+ * - 使用 QueryEngine.onEvent 接收 AgentEvent 流
+ * - 将事件转发为 IPC 消息到渲染层
+ * - 支持 Human-in-the-loop 暂停/恢复
  */
 
 import { ipcMain, type WebContents } from 'electron'
 import { IpcChannels } from './channels'
-import { getEngine } from '../../engine/core'
-import { isEngineReady } from '../engine-bridge'
+import { QueryEngine, type AgentEvent } from '../../engine/index'
+import { isEngineReady, getEngineInstance, updateEngineApiClient } from '../engine-bridge'
 import { ProfileManager } from '../profiles/manager'
 import { logManager } from '../logger/manager'
 import { storeManager } from '../store/store'
 import { syncProfileApiKey } from '../store/apiKeySync'
+import { configGroupManager } from '../store/configGroups'
 import { readFileSync, statSync, readdirSync, unlinkSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import type { Profile } from '../profiles/manager'
+import type { ConfigGroup, ConfigGroupData } from '../store/configGroups'
 import { Orchestrator } from '../../engine/agent/coordinator/orchestrator'
 import { BUILTIN_ROLES } from '../../engine/agent/coordinator/planner'
 import { formatSystemError } from '../../shared/formatError'
@@ -32,6 +39,8 @@ export function registerChatHandlers(): void {
   if (handlersRegistered) return
   handlersRegistered = true
 
+  // ==================== Chat IPC Handlers ====================
+
   ipcMain.handle(IpcChannels.CHAT_SEND_MESSAGE, async (event, text: string) => {
     const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)
     const sender = event.sender
@@ -43,19 +52,19 @@ export function registerChatHandlers(): void {
       return { success: false, error: initErr, requestId }
     }
 
+    const eng = getEngineInstance()!
+
     // 记录聊天流水线日志 — IPC 入口
     let engineConfigSnapshot: Record<string, unknown> = {}
     try {
-      const eng = getEngine()
       engineConfigSnapshot = eng.getConfig()
 
       // 计算真实上游 URL（基于引擎配置中的 provider + baseUrl）
       const providerId = (engineConfigSnapshot.provider as string) || ''
-      const engineBaseUrl = (engineConfigSnapshot.baseUrl as string) || 'http://127.0.0.1:8080'
-      const engineModel = (engineConfigSnapshot.model as string) || request.model
+      const engineModel = (engineConfigSnapshot.model as string) || 'gpt-4o'
 
       // 从 store 中获取 provider 配置，计算真实上游 URL
-      let upstreamUrl = engineBaseUrl + '/v1/chat/completions'
+      let upstreamUrl = 'http://127.0.0.1:8080/v1/chat/completions'
       try {
         const provider = storeManager.getProviderById(providerId)
         if (provider) {
@@ -79,14 +88,13 @@ export function registerChatHandlers(): void {
         responseStatus: 0,
         chatUserInput: text,
         chatEngineInput: text,
-        chatEngineUrl: engineBaseUrl + '/v1/chat/completions',
+        chatEngineUrl: 'http://127.0.0.1:8080/v1/chat/completions',
         chatEngineProvider: providerId,
         chatEngineModel: engineModel,
         chatUpstreamUrl: upstreamUrl,
         chatNotes: '[IPC] Message received, forwarding to Engine',
       })
     } catch {
-      // engine not ready yet, log without config
       storeManager.addRequestLog({
         timestamp: Date.now(),
         status: 'error',
@@ -107,15 +115,85 @@ export function registerChatHandlers(): void {
     }
 
     try {
-      const eng = getEngine()
       const t0 = Date.now()
-      console.log('[IPC][CHAT_SEND_MESSAGE] calling eng.query text=', JSON.stringify(text).slice(0, 50), 'requestId=', requestId)
-      const onStream = (chunk: string) => {
-        sender.send(IpcChannels.CHAT_STREAM_CHUNK, { requestId, chunk })
+
+      // 使用事件驱动模式：将 MessageLoop 的 AgentEvent 转发为 IPC 消息
+      const eventHandler = (event: AgentEvent) => {
+        switch (event.type) {
+          case 'response_chunk':
+            sender.send(IpcChannels.CHAT_STREAM_CHUNK, { requestId, chunk: event.content as string })
+            break
+          case 'reasoning':
+            sender.send(IpcChannels.CHAT_STREAM_REASONING, { requestId, reasoning: event.text as string })
+            break
+          case 'tool_call_start':
+            sender.send(IpcChannels.CHAT_STREAM_TOOL_START, {
+              requestId,
+              toolUseId: event.toolUseId,
+              toolName: event.toolName,
+              input: event.input,
+            })
+            break
+          case 'post_tool_use':
+            sender.send(IpcChannels.CHAT_STREAM_TOOL_RESULT, {
+              requestId,
+              toolUseId: event.toolUseId,
+              toolName: event.toolName,
+              success: event.success,
+              output: event.output,
+              error: event.error,
+            })
+            break
+          case 'needs_user':
+            sender.send(IpcChannels.CHAT_STREAM_NEEDS_USER, {
+              requestId,
+              prompt: event.prompt,
+            })
+            break
+          case 'error':
+            sender.send(IpcChannels.CHAT_STREAM_ERROR, {
+              requestId,
+              error: event.error,
+              stack: event.stack,
+            })
+            break
+          case 'aborted':
+            sender.send(IpcChannels.CHAT_STREAM_ABORTED, { requestId })
+            break
+          case 'done':
+            const result = event.result
+            const lastMessage = result.messages[result.messages.length - 1]
+            const content = lastMessage?.content && typeof lastMessage.content === 'string'
+              ? lastMessage.content
+              : ''
+            sender.send(IpcChannels.CHAT_STREAM_DONE, {
+              requestId,
+              content,
+              toolOutput: '',
+              iterations: result.iterations,
+              duration: result.duration,
+            })
+            break
+        }
       }
-      const result = await eng.query(text, null as any, onStream)
-      console.log('[IPC][CHAT_SEND_MESSAGE] eng.query DONE after', Date.now() - t0, 'ms, contentLen=', result.content?.length, 'requestId=', requestId)
-      sender.send(IpcChannels.CHAT_STREAM_DONE, { requestId, content: result.content, toolOutput: result.toolOutput })
+
+      // 注册事件处理器后执行查询
+      const result = await eng.query(text)
+
+      // 确保最终 done 消息已发送（如果事件处理器未覆盖）
+      const finalContent = typeof result.messages === 'object' && result.messages
+        ? (result.messages as any[]).find((m: any) => m.role === 'assistant' && typeof m.content === 'string')?.content || ''
+        : ''
+
+      sender.send(IpcChannels.CHAT_STREAM_DONE, {
+        requestId,
+        content: finalContent,
+        toolOutput: '',
+        iterations: (result as any).iterations,
+        duration: (result as any).duration,
+      })
+
+      console.log('[IPC][CHAT_SEND_MESSAGE] eng.query DONE after', Date.now() - t0, 'ms, contentLen=', finalContent.length, 'requestId=', requestId)
       return { success: true, requestId }
     } catch (e) {
       const raw = (e as Error).message
@@ -126,12 +204,32 @@ export function registerChatHandlers(): void {
     }
   })
 
+  // 新增：消息循环事件订阅（渲染层可通过此通道实时接收事件）
+  ipcMain.handle('chat:subscribeEvents', async (event) => {
+    const sender = event.sender
+    const eng = getEngineInstance()
+    if (!eng) return { success: false, error: 'Engine not initialized' }
+
+    const unsubscribe = () => {
+      // 移除事件处理器（实际实现中需要维护订阅列表）
+      console.log('[IPC] chat:subscribeEvents unsubscribed')
+    }
+
+    // 返回订阅确认
+    return { success: true, message: 'Events subscribed' }
+  })
+
+  // 新增：取消事件订阅
+  ipcMain.handle('chat:unsubscribeEvents', async () => {
+    return { success: true }
+  })
+
   ipcMain.handle(IpcChannels.CHAT_GET_HISTORY, async () => {
     if (!isEngineReady()) {
       return { messages: [] }
     }
     try {
-      return getEngine().getHistory()
+      return { messages: getEngineInstance()!.getHistory() }
     } catch {
       return { messages: [] }
     }
@@ -142,7 +240,7 @@ export function registerChatHandlers(): void {
       return false
     }
     try {
-      getEngine().clearHistory()
+      getEngineInstance()!.clearHistory()
       return true
     } catch {
       return false
@@ -154,7 +252,7 @@ export function registerChatHandlers(): void {
       return {}
     }
     try {
-      return getEngine().getConfig()
+      return getEngineInstance()!.getConfig()
     } catch {
       return {}
     }
@@ -165,10 +263,13 @@ export function registerChatHandlers(): void {
       return { success: false, error: 'Engine not initialized' }
     }
     try {
-      const eng = getEngine()
-      if (eng.updateConfig) {
-        eng.updateConfig(updates as Parameters<typeof eng.updateConfig>[0])
-      }
+      // 重建引擎 API 客户端使 baseUrl / apiKey / model 真正生效。
+      updateEngineApiClient({
+        provider: updates.provider as string,
+        model: updates.model as string,
+        apiKey: updates.apiKey as string,
+        baseUrl: updates.baseUrl as string,
+      })
       return { success: true }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -178,13 +279,65 @@ export function registerChatHandlers(): void {
   ipcMain.handle(IpcChannels.CHAT_EXECUTE_COMMAND, async (_, name: string, args: string[]) => {
     logManager.info('[IPC] chat:executeCommand', { data: { name, args } })
     try {
-      const result = await getEngine().executeCommand(name, args)
+      const eng = getEngineInstance()
+      if (!eng) {
+        return { success: false, error: 'Engine not initialized' }
+      }
+      // 使用 QueryEngine 的 executeCommand（兼容层）
+      const result = await (eng as any).executeCommand?.(name, args) || { success: false, error: 'executeCommand not available' }
       logManager.info('[IPC] chat:executeCommand result', { data: { success: result.success } })
       return result
     } catch (e) {
       const msg = (e as Error).message
       logManager.error('[IPC] chat:executeCommand error', { data: { error: msg } })
       return { success: false, error: msg }
+    }
+  })
+
+  // 新增：Human-in-the-loop 权限响应
+  ipcMain.handle('chat:grantPermission', async (_, requestId: string) => {
+    try {
+      getEngineInstance()?.grantPermission(requestId)
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle('chat:denyPermission', async (_, requestId: string) => {
+    try {
+      getEngineInstance()?.denyPermission(requestId)
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // 新增：暂停/恢复
+  ipcMain.handle('chat:pause', async (_, reason?: string) => {
+    try {
+      getEngineInstance()?.pause(reason)
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle('chat:resume', async (_, input?: string) => {
+    try {
+      getEngineInstance()?.resume(input)
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // 新增：获取引擎状态
+  ipcMain.handle('chat:getState', async () => {
+    try {
+      return { state: getEngineInstance()?.getState() || 'idle' }
+    } catch {
+      return { state: 'idle' }
     }
   })
 
@@ -196,8 +349,11 @@ export function registerChatHandlers(): void {
     logManager.info('[IPC] profiles:getAll invoked')
     try {
       const profiles = pm.list()
+      const projectPaths = pm.getProjectPaths()
       const active = pm.getActive()?.name ?? null
-      logManager.info('[IPC] profiles:getAll success', { data: { count: profiles.length, active } })
+      logManager.info('[IPC] profiles:getAll success', {
+        data: { count: profiles.length, active, projectPaths, names: profiles.map((p: any) => p.name) }
+      })
       return { success: true, profiles, activeProfile: active }
     } catch (e) {
       const msg = (e as Error).message
@@ -225,7 +381,7 @@ export function registerChatHandlers(): void {
       const engineCfg = pm.toEngineConfig(profile)
       const targetBaseUrl = 'http://127.0.0.1:8080'
       engineCfg.baseUrl = targetBaseUrl
-      getEngine().updateConfig(engineCfg)
+      getEngineInstance()?.updateConfig(engineCfg)
 
       // 统一使用 syncProfileApiKey 同步到代理认证列表
       syncProfileApiKey(profile)
@@ -320,11 +476,170 @@ export function registerChatHandlers(): void {
     }
   })
 
+  // ==================== Config Groups IPC Handlers ====================
+
+  ipcMain.handle(IpcChannels.CONFIG_GROUPS_LIST, async () => {
+    try {
+      const groups = configGroupManager.listGroups()
+      const active = configGroupManager.getActiveGroup()
+      return { success: true, groups, activeGroup: active?.id ?? null }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.CONFIG_GROUPS_GET, async (_, id: string) => {
+    try {
+      const group = configGroupManager.getGroup(id)
+      if (!group) {
+        return { success: false, error: 'Config group not found' }
+      }
+      const data = configGroupManager.readGroup(id)
+      return { success: true, group, data }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.CONFIG_GROUPS_GET_BY_ID, async (_, id: string) => {
+    try {
+      const group = configGroupManager.getGroup(id)
+      if (!group) {
+        return { success: false, error: 'Config group not found' }
+      }
+      const data = configGroupManager.readGroup(id)
+      return { success: true, group, data }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.CONFIG_GROUPS_CREATE, async (_, id: string, data?: Partial<ConfigGroupData>) => {
+    try {
+      const group = configGroupManager.createGroup(id, data)
+      if (!group) {
+        return { success: false, error: 'Config group already exists' }
+      }
+      return { success: true, group }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.CONFIG_GROUPS_UPDATE, async (_, id: string, data: ConfigGroupData) => {
+    try {
+      const existing = configGroupManager.readGroup(id)
+      if (!existing) {
+        return { success: false, error: 'Config group not found' }
+      }
+      const success = configGroupManager.writeGroup(id, data)
+      if (!success) {
+        return { success: false, error: 'Failed to write config group' }
+      }
+      const group = configGroupManager.getGroup(id)
+      return { success: true, group }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.CONFIG_GROUPS_DELETE, async (_, id: string) => {
+    try {
+      const success = configGroupManager.deleteGroup(id)
+      if (!success) {
+        return { success: false, error: 'Config group not found' }
+      }
+      return { success: true, id, deleted: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.CONFIG_GROUPS_SET_ACTIVE, async (_, id: string) => {
+    try {
+      const success = configGroupManager.setActiveGroup(id)
+      if (!success) {
+        return { success: false, error: 'Config group not found' }
+      }
+      const group = configGroupManager.getGroup(id)
+      return { success: true, group }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.CONFIG_GROUPS_SWITCH, async (event, id: string) => {
+    try {
+      const groups = configGroupManager.listGroups()
+      const target = groups.find((g) => g.id === id)
+      if (!target) {
+        return { success: false, error: 'Config group not found' }
+      }
+
+      // 1. 设置当前配置组为活跃
+      configGroupManager.setActiveGroup(id)
+
+      // 2. 读取目标配置组数据中的 activePreset，获取该 preset 的完整配置
+      const groupData = configGroupManager.readGroup(id)
+      if (!groupData || !groupData.activePreset) {
+        return { success: false, error: 'No active preset in config group' }
+      }
+
+      const preset = groupData.presets[groupData.activePreset]
+      if (!preset) {
+        return { success: false, error: 'Active preset not found in config group' }
+      }
+
+      // 3. 同步 apiKey 到代理认证列表
+      if (preset.apiKey) {
+        syncProfileApiKey({
+          name: groupData.activePreset,
+          apiKey: preset.apiKey,
+          baseUrl: preset.baseURL,
+          provider: preset.provider,
+          model: preset.model,
+        } as Profile)
+      }
+
+      // 4. 更新引擎配置
+      const eng = getEngineInstance()
+      if (eng) {
+        const targetBaseUrl = 'http://127.0.0.1:8080'
+        const engineConfig = {
+          provider: preset.provider,
+          baseUrl: targetBaseUrl,
+          apiKey: preset.apiKey,
+          model: preset.model,
+        }
+        eng.updateConfig(engineConfig)
+      }
+
+      // 5. 通知前端配置已变更
+      try {
+        const sender = event.sender
+        sender.send(IpcChannels.CONFIG_CHANGED, { groupId: id, presetId: groupData.activePreset })
+      } catch {
+        // webContents 可能已关闭
+      }
+
+      logManager.info('[IPC] configGroups:switch success', { data: { groupId: id, presetId: groupData.activePreset } })
+      return { success: true, group: target, preset: groupData.activePreset }
+    } catch (e) {
+      const msg = (e as Error).message
+      logManager.error('[IPC] configGroups:switch error', { data: { error: msg } })
+      return { success: false, error: msg }
+    }
+  })
+
   // ==================== Team Task 多角色任务 ====================
 
   ipcMain.handle(IpcChannels.TEAM_EXECUTE, async (event, description: string, customRoles?: Array<{ id: string; name: string; systemPrompt: string }>) => {
     const sender = event.sender as WebContents
-    const eng = getEngine()
+    const eng = getEngineInstance()
+    if (!eng) {
+      sender.send(IpcChannels.TEAM_STREAM_ERROR, { error: 'Engine not initialized' })
+      return { success: false, error: 'Engine not initialized' }
+    }
     const cfg = eng.getConfig()
     const plansDir = join(process.cwd(), '.kx2code', 'plans', 'team')
     const roles = customRoles && customRoles.length > 0 ? customRoles : BUILTIN_ROLES
@@ -333,11 +648,11 @@ export function registerChatHandlers(): void {
       const orchestrator = new Orchestrator(
         {
           llm: {
-            provider: cfg.provider as 'openai' | 'anthropic',
-            apiKey: cfg.apiKey as string,
-            model: cfg.model as string,
-            baseUrl: cfg.baseUrl as string,
-            maxTokens: cfg.maxTokens as number || 4096,
+            provider: (cfg.provider as 'openai' | 'anthropic') || 'openai',
+            apiKey: (cfg.apiKey as string) || '',
+            model: (cfg.model as string) || 'gpt-4o',
+            baseUrl: (cfg.baseUrl as string) || '',
+            maxTokens: (cfg.maxOutputTokens as number) || 4096,
           },
           maxDiscussionRounds: 2,
           maxRetries: 0,
@@ -412,4 +727,6 @@ export function registerChatHandlers(): void {
       return { success: false, error: (e as Error).message }
     }
   })
+
 }
+

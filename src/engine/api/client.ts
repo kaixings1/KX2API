@@ -39,6 +39,7 @@ export interface StreamCallbacks {
   onToolUse: (block: ContentBlock) => void
   onDone: (fullContent: string, toolCalls: ContentBlock[]) => void
   onError: (error: string) => void
+  onReasoning?: (text: string) => void
 }
 
 export interface ToolDefinition {
@@ -137,6 +138,8 @@ async function sendAnthropicStream(
             if (delta.type === 'text_delta') {
               fullText += delta.text
               callbacks.onText(delta.text)
+            } else if (delta.type === 'thinking_delta') {
+              if (callbacks.onReasoning) callbacks.onReasoning(delta.thinking || delta.text || '')
             } else if (delta.type === 'input_json_delta') {
               const lastTool = toolCalls[toolCalls.length - 1]
               if (lastTool && lastTool.type === 'tool_use') {
@@ -239,6 +242,10 @@ async function sendOpenAIStream(
           if (delta) {
             fullText += delta
             callbacks.onText(delta)
+          }
+          const reasonChunk = (parsed.choices[0].delta?.reasoning_content || parsed.choices[0].delta?.reasoning || parsed.choices[0].delta?.thinking || '') as string
+          if (reasonChunk && callbacks.onReasoning) {
+            callbacks.onReasoning(reasonChunk)
           }
         } catch (e) { /* skip */ }
       }
@@ -392,7 +399,7 @@ export async function sendOpenAIStreamWithTools(
         chunkCount++
         rawBytes += chunk.length
         if (chunkCount <= 3) {
-          console.log(`[API][STREAM] chunk#${chunkCount} rawHex=${chunk.slice(0, 120).toString('hex')}`)
+          // console.log(`[API][STREAM] chunk#${chunkCount} rawHex=${chunk.slice(0, 120).toString('hex')}`)
         }
 
         buffer += chunk.toString()
@@ -405,13 +412,13 @@ export async function sendOpenAIStreamWithTools(
           dataLines++
           const raw = line.slice(6).trim()
           if (raw === '[DONE]') {
-            console.log(`[API][STREAM] received [DONE] sseLines=${sseLines} dataLines=${dataLines}`)
+            // console.log(`[API][STREAM] received [DONE] sseLines=${sseLines} dataLines=${dataLines}`)
             continue
           }
           try {
             const parsed = JSON.parse(raw)
             if (!parsed.choices?.length) {
-              console.log(`[API][STREAM] no choices, event=${parsed?.object || parsed?.event?.type || 'unknown'}`)
+              // console.log(`[API][STREAM] no choices, event=${parsed?.object || parsed?.event?.type || 'unknown'}`)
               continue
             }
             const delta = parsed.choices[0].delta
@@ -446,17 +453,21 @@ export async function sendOpenAIStreamWithTools(
               fullText += text
               callbacks.onText(text)
             }
+            const reasoning = (delta?.reasoning_content || delta?.reasoning || delta?.thinking || '') as string
+            if (reasoning && callbacks.onReasoning) {
+              callbacks.onReasoning(reasoning)
+            }
             if (dataLines <= 3 || text) {
-              console.log(`[API][STREAM] dataLine#${dataLines} textLen=${text.length} finishReason=${delta?.finish_reason || 'null'}`)
+              // console.log(`[API][STREAM] dataLine#${dataLines} textLen=${text.length} finishReason=${delta?.finish_reason || 'null'}`)
             }
           } catch (e) {
-            console.log(`[API][STREAM] parse error:`, (e as Error).message, 'raw=', raw.slice(0, 100))
+            console.error(`[API][STREAM] parse error:`, (e as Error).message, 'raw=', raw.slice(0, 100))
           }
         }
       })
 
       httpStream.on('end', () => {
-        console.log(`[API][STREAM] END chunkCount=${chunkCount} rawBytes=${rawBytes} sseLines=${sseLines} dataLines=${dataLines} fullTextLen=${fullText.length} toolCalls=${toolCalls.length}`)
+        // console.log(`[API][STREAM] END chunkCount=${chunkCount} rawBytes=${rawBytes} sseLines=${sseLines} dataLines=${dataLines} fullTextLen=${fullText.length} toolCalls=${toolCalls.length}`)
         resolve()
       })
       httpStream.on('error', (err) => {
@@ -464,7 +475,7 @@ export async function sendOpenAIStreamWithTools(
         reject(err)
       })
       httpStream.on('close', () => {
-        console.log(`[API][STREAM] CLOSE chunkCount=${chunkCount} rawBytes=${rawBytes}`)
+        // console.log(`[API][STREAM] CLOSE chunkCount=${chunkCount} rawBytes=${rawBytes}`)
       })
     })
 

@@ -1,0 +1,222 @@
+/**
+ * StepFun Adapter
+ * Implements StepFun (阶跃星辰) API key authentication
+ */
+
+import axios from 'axios'
+import { shell } from 'electron'
+import { BaseOAuthAdapter } from './base'
+import { OAuthResult, OAuthOptions, TokenValidationResult, AdapterConfig } from '../types'
+
+const STEPFUN_API_BASE = 'https://api.stepfun.com'
+const STEPFUN_PLATFORM = 'https://platform.stepfun.com'
+
+const STEPFUN_HEADERS = {
+  Accept: '*/*',
+  'Accept-Encoding': 'gzip, deflate, br, zstd',
+  'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+}
+
+export class StepFunOAuthAdapter extends BaseOAuthAdapter {
+  constructor(config: AdapterConfig) {
+    super({
+      ...config,
+      providerType: 'stepfun',
+      authMethods: ['manual', 'browser'],
+      loginUrl: STEPFUN_PLATFORM,
+      apiUrl: STEPFUN_API_BASE,
+    })
+  }
+
+  /**
+   * Start login flow - Open default browser to platform.stepfun.com
+   */
+  async startLogin(options: OAuthOptions): Promise<OAuthResult> {
+    this.emitProgress('pending', 'Opening browser...')
+
+    try {
+      await shell.openExternal(STEPFUN_PLATFORM)
+      this.emitProgress('pending', 'Please log in via browser, the token will be auto-extracted from localStorage')
+
+      return {
+        success: false,
+        providerId: options.providerId,
+        providerType: 'stepfun',
+        error: 'Please log in via browser, token will be auto-extracted from localStorage',
+      }
+    } catch (error) {
+      console.error('[StepFun] startLogin error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to open browser'
+      this.emitProgress('error', errorMessage)
+
+      return {
+        success: false,
+        providerId: options.providerId,
+        providerType: 'stepfun',
+        error: errorMessage,
+      }
+    }
+  }
+
+  /**
+   * Complete authentication with API key
+   */
+  async loginWithToken(providerId: string, token: string): Promise<OAuthResult> {
+    this.emitProgress('pending', 'Validating API key...')
+
+    try {
+      const validation = await this.validateToken({ token })
+
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: validation.error || 'Invalid API key',
+        }
+      }
+
+      this.emitProgress('success', 'API key validated successfully')
+
+      return {
+        success: true,
+        providerId,
+        providerType: 'stepfun',
+        credentials: { token },
+      }
+    } catch (error) {
+      this.emitProgress('error', error instanceof Error ? error.message : 'Unknown error')
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  /**
+   * Validate token - supports both API key (sk-*) and session token (Oasis-Token)
+   * Oasis-Token can be JWT or other formats; web API accepts it via Cookie header
+   */
+  async validateToken(credentials: Record<string, string>): Promise<TokenValidationResult> {
+    // Extract token from various possible field names
+    const token = credentials.token || credentials['Oasis-Token'] || credentials.oasisToken || credentials.web_id
+
+    if (!token) {
+      return {
+        valid: false,
+        error: 'Token is required',
+      }
+    }
+
+    // API key format (sk-*)
+    if (token.startsWith('sk-')) {
+      return this.validateApiKey(token)
+    }
+
+    // JWT session token format (eyJ...)
+    if (token.startsWith('eyJ')) {
+      return this.validateJwtToken(token, credentials)
+    }
+
+    // For web API mode: accept any non-empty token as valid session token
+    // The token will be validated by the platform API when used
+    // This handles Oasis-Token formats that are not JWTs
+    console.log('[StepFun] Accepting non-JWT session token (web API mode)')
+    return {
+      valid: true,
+    }
+  }
+
+  private async validateApiKey(token: string): Promise<TokenValidationResult> {
+    try {
+      const response = await axios.get(`${STEPFUN_API_BASE}/v1/models`, {
+        headers: {
+          ...STEPFUN_HEADERS,
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: 15000,
+        validateStatus: () => true,
+      })
+
+      if (response.status === 200) {
+        return {
+          valid: true,
+        }
+      }
+
+      if (response.status === 401) {
+        return {
+          valid: false,
+          error: 'Invalid API key',
+        }
+      }
+
+      return {
+        valid: false,
+        error: `HTTP ${response.status}: ${response.data?.error?.message || response.data?.message || 'Unknown error'}`,
+      }
+    } catch (error) {
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      }
+    }
+  }
+
+  private async validateJwtToken(token: string, allCredentials: Record<string, string>): Promise<TokenValidationResult> {
+    try {
+      // Decode JWT payload to check expiration and extract account info
+      let accountInfo
+      let isExpired = false
+      try {
+        const parts = token.split('.')
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString())
+          console.log('[StepFun] JWT payload:', JSON.stringify(payload).substring(0, 300))
+
+          // Check expiration
+          if (payload.exp) {
+            const expTime = payload.exp * 1000
+            const now = Date.now()
+            if (now > expTime) {
+              isExpired = true
+              console.log('[StepFun] JWT expired:', new Date(expTime).toISOString())
+            } else {
+              console.log('[StepFun] JWT valid until:', new Date(expTime).toISOString())
+            }
+          }
+
+          accountInfo = {
+            name: payload.name || payload.nickname || payload.username,
+            email: payload.email,
+          }
+        }
+      } catch {
+        // Ignore JWT decode errors
+      }
+
+      if (isExpired) {
+        return {
+          valid: false,
+          error: 'Session token expired, please login again',
+        }
+      }
+
+      // Note: StepFun API (api.stepfun.com) only accepts sk-* API keys for authentication.
+      // Session JWT tokens (Oasis-Token) are valid for the platform website but not for the API.
+      // Since the token was obtained from a successful browser login, we accept it based on
+      // structural validity and non-expiration. Users who need API access should use sk-* keys.
+      console.log('[StepFun] JWT token accepted (local validation passed, API does not accept session cookies)')
+
+      return {
+        valid: true,
+        accountInfo,
+      }
+    } catch (error) {
+      console.log('[StepFun] Validation error:', error)
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      }
+    }
+  }
+}

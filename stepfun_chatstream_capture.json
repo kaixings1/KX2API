@@ -1,0 +1,34 @@
+{
+  "page_url": "https://chat.stepfun.com/chats/287993928874524672",
+  "cookies": {
+    "INGRESSCOOKIE": "1789307262.87.6887.280509|6dddace56d2f031536c7d069dc23901c",
+    "WS-AFFINITY": "1789308243.117.7132.25109|1c61397e53fe2e0a82a69cacb306ef22",
+    "i18next": "zh",
+    "Oasis-Webid": "0d1595c5e16cb2154f2a92a5ff7db6804ff80657",
+    "sidebar_state": "false",
+    "Oasis-Token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY3RpdmF0ZWQiOnRydWUsImFnZSI6MTIsImJhbmVkIjpmYWxzZSwiY3JlYXRlX2F0IjoxNzg5MzA3MjYwLCJleHAiOjE3ODkzMDkwNjAsIm1vZGUiOjIsIm9hc2lzX2lkIjozODg1NzczMzQwNDE3NTE1NTIsIm9yZ2FuaXphdGlvbl9pZCI6MCwicm9sZV9pbl9vcmdhbml6YXRpb24iOjAsInZlcnNpb24iOjN9.hFJmVsBfnrRFXCY6SUtYCECxnNQ0tJn9scB2arQuKSo...eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOjEwMjAwLCJkZXZpY2VfaWQiOiIwZDE1OTVjNWUxNmNiMjE1NGYyYTkyYTVmZjdkYjY4MDRmZjgwNjU3IiwiZXhwIjoxNzkxODc1NDE4LCJvYXNpc19pZCI6Mzg4NTc3MzM0MDQxNzUxNTUyLCJvYXNpc19yX2F0IjoxNzg0MDk3MzQzLCJwbGF0Zm9ybSI6IndlYiIsInZlcnNpb24iOjN9.F0bYdyJMVaeo4QjO87f5xf9uxIBcL8mZFRg66Q2cVqA"
+  },
+  "http_requests": [
+    {
+      "requestId": "44224.4441",
+      "url": "https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/ChatStream",
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "Referer": "https://chat.stepfun.com/chats/287993928874524672",
+        "sec-ch-ua": "\"Microsoft Edge\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+        "sec-ch-ua-mobile": "?0",
+        "canary": "false",
+        "connect-protocol-version": "1",
+        "oasis-appid": "10200",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+        "content-type": "application/connect+json",
+        "oasis-platform": "web",
+        "oasis-language": "zh"
+      },
+      "headersText": "",
+      "postData": "\u0000\u0000\u0000\u0000µ{\"message\":{\"chatSessionId\":\"287993928874524672\",\"content\":{\"userMessage\":{\"qa\":{\"content\":\"ä½ å¥½ï¼\"}}}},\"config\":{\"model\":\"step-auto\",\"enableReasoning\":true,\"enableSearch\":true}}"
+    }
+  ],
+  "ws_frames": []
+}

@@ -44,6 +44,7 @@ export const IpcChannels = {
   ACCOUNTS_VALIDATE_TOKEN: 'accounts:validateToken',
   ACCOUNTS_GET_CREDITS: 'accounts:getCredits',
   ACCOUNTS_CLEAR_CHATS: 'accounts:clearChats',
+  ACCOUNTS_RESET_STATUS: 'accounts:resetStatus',
 
   OAUTH_START_LOGIN: 'oauth:startLogin',
   OAUTH_CANCEL_LOGIN: 'oauth:cancelLogin',
@@ -123,6 +124,7 @@ export const IpcChannels = {
 
   CHAT_SEND_MESSAGE: 'chat:sendMessage',
   CHAT_STREAM_CHUNK: 'chat:streamChunk',
+  CHAT_STREAM_REASONING: 'chat:streamReasoning',
   CHAT_STREAM_DONE: 'chat:streamDone',
   CHAT_STREAM_ERROR: 'chat:streamError',
   CHAT_GET_HISTORY: 'chat:getHistory',
@@ -151,6 +153,16 @@ export const IpcChannels = {
   TEAM_STREAM_DONE: 'team:streamDone',
   TEAM_STREAM_ERROR: 'team:streamError',
   TEAM_GET_RESULT: 'team:getResult',
+
+  // ==================== Config Groups ====================
+  CONFIG_GROUPS_LIST: 'configGroups:list',
+  CONFIG_GROUPS_GET: 'configGroups:get',
+  CONFIG_GROUPS_GET_BY_ID: 'configGroups:getById',
+  CONFIG_GROUPS_CREATE: 'configGroups:create',
+  CONFIG_GROUPS_UPDATE: 'configGroups:update',
+  CONFIG_GROUPS_DELETE: 'configGroups:delete',
+  CONFIG_GROUPS_SET_ACTIVE: 'configGroups:setActive',
+  CONFIG_GROUPS_SWITCH: 'configGroups:switch',
 
   // Cookie Session Management
   COOKIE_SESSION_OPEN_LOGIN: 'cookie:session:openLogin',
@@ -245,6 +257,8 @@ export const IpcChannels = {
   PLUGINS_DISABLE: 'plugins:disable',
   PLUGINS_UPDATE: 'plugins:update',
   PLUGINS_GET_BY_ID: 'plugins:getById',
+  PLUGINS_GET_ENABLED_LIST: 'plugins:getEnabledList',
+  PLUGINS_SET_ENABLED_LIST: 'plugins:setEnabledList',
 
   // ==================== Other Config ====================
   OTHER_CONFIG_GET: 'otherConfig:get',

@@ -16,19 +16,21 @@ import {
   AccountDetail,
   ProviderFilter,
 } from '@/components/providers'
+import { ConfigGroupView } from '@/components/providers/ConfigGroupView'
 import { ModelEditor } from '@/components/models/ModelEditor'
-import type { 
-  Provider, 
-  ProviderStatus, 
+import type {
+  Provider,
+  ProviderStatus,
   BuiltinProviderConfig,
   CustomProviderFormData,
   Account,
+  ProviderVendor,
 } from '@/types/electron'
 import { FilterType, StatusFilter } from '@/components/providers/ProviderFilter'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Server, ArrowLeft } from 'lucide-react'
+import { Server, ArrowLeft, Settings2 } from 'lucide-react'
 
-type ViewMode = 'providers' | 'accounts' | 'account-detail'
+type ViewMode = 'providers' | 'accounts' | 'account-detail' | 'config-groups'
 
 export function Providers() {
   const { t } = useTranslation()
@@ -538,6 +540,55 @@ export function Providers() {
     return await window.electronAPI.accounts.validateToken(providerId, credentials)
   }
 
+  const handleReloginAccount = async (providerId: string, accountId: string) => {
+    try {
+      const result = await window.electronAPI?.oauth.startInAppLogin(
+        providerId,
+        providerId as ProviderVendor
+      )
+
+      if (result?.success && result.credentials) {
+        let mappedCredentials = result.credentials
+        if (providerId === 'stepfun') {
+          mappedCredentials = {
+            ...result.credentials,
+            web_id: result.credentials.device_id || result.credentials.web_id || '',
+          }
+        }
+
+        await window.electronAPI.accounts.update(accountId, {
+          credentials: mappedCredentials,
+        })
+
+        store.updateAccount(accountId, { credentials: mappedCredentials, status: 'active' })
+
+        const providerAccounts = store.getAccountsByProvider(providerId)
+        store.updateAccountCount(
+          providerId,
+          providerAccounts.length,
+          providerAccounts.filter(a => a.status === 'active').length
+        )
+
+        toast({
+          title: t('providers.reloginSuccess'),
+          description: t('providers.reloginSuccessDesc'),
+        })
+      } else {
+        toast({
+          title: t('providers.reloginFailed'),
+          description: result?.error || t('providers.reloginFailedDesc'),
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      toast({
+        title: t('providers.reloginFailed'),
+        description: error instanceof Error ? error.message : t('providers.reloginFailedDesc'),
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleViewAccountDetail = (account: Account) => {
     store.setSelectedAccountId(account.id)
     setViewMode('account-detail')
@@ -552,6 +603,10 @@ export function Providers() {
   const handleBackToAccounts = () => {
     setViewMode('accounts')
     store.setSelectedAccountId(null)
+  }
+
+  const handleShowConfigGroups = () => {
+    setViewMode('config-groups')
   }
 
   const stats = {
@@ -597,6 +652,9 @@ export function Providers() {
           }}
           onDelete={() => handleDeleteAccount(selectedAccount.id)}
           onValidate={() => handleValidateAccount(selectedAccount.id)}
+          onRelogin={async () => {
+            await handleReloginAccount(selectedProvider.id, selectedAccount.id)
+          }}
         />
       </div>
     )
@@ -616,7 +674,7 @@ export function Providers() {
         </div>
 
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--accent-primary)]">
             {selectedProvider.name} - {t('providers.accountManagement')}
           </h2>
           <p className="text-muted-foreground">
@@ -663,18 +721,46 @@ export function Providers() {
         </div>
       </div>
 
-      <ProviderFilter
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        typeFilter={typeFilter}
-        onTypeFilterChange={setTypeFilter}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        onRefresh={handleCheckAllStatus}
-        onAddProvider={() => setShowAddProviderDialog(true)}
-        isRefreshing={isRefreshing}
-        stats={stats}
-      />
+      <div className="flex items-center gap-1 border-b">
+        <button
+          onClick={() => setViewMode('providers')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            viewMode === 'providers'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Providers
+        </button>
+        <button
+          onClick={handleShowConfigGroups}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+            viewMode === 'config-groups'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Settings2 className="h-3.5 w-3.5" />
+          API 配置组
+        </button>
+      </div>
+
+      {viewMode === 'config-groups' && <ConfigGroupView />}
+
+      {viewMode === 'providers' && (
+        <ProviderFilter
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          onRefresh={handleCheckAllStatus}
+          onAddProvider={() => setShowAddProviderDialog(true)}
+          isRefreshing={isRefreshing}
+          stats={stats}
+        />
+      )}
 
       {filteredProviders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

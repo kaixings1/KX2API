@@ -30,6 +30,7 @@ export interface APIEvent {
 export class ResponseHandler {
   private streamProcessor = new StreamProcessor();
   onChunk?: (chunk: { type: string; text?: string }) => void;
+  onReasoning?: (text: string) => void;
 
   async handle(stream: AsyncIterable<APIEvent>): Promise<ProcessedResponse> {
     const reqId = `rh-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
@@ -50,6 +51,12 @@ export class ResponseHandler {
           }
           break;
         case "content_block_stop":
+          if (processed.block && (processed.block.type === "thinking" || processed.block.type === "reasoning")) {
+            // 推理块聚合后旁路透传，不进入 chunks（避免污染正文聚合）
+            if (processed.block.text && this.onReasoning) {
+              this.onReasoning(processed.block.text);
+            }
+          }
           if (processed.block && processed.block.type === "tool_use") {
             toolCalls.push({
               id: processed.block.id,

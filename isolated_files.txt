@@ -1,0 +1,1776 @@
+Total isolated files: 1240
+
+
+bootstrap/
+  - state.ts
+
+bridge/
+  - bridgeApi.ts
+  - bridgeConfig.ts
+  - bridgeDebug.ts
+  - bridgeEnabled.ts
+  - bridgeMain.ts
+  - bridgeMessaging.ts
+  - bridgePermissionCallbacks.ts
+  - bridgePointer.ts
+  - bridgeStatusUtil.ts
+  - bridgeUI.ts
+  - capacityWake.ts
+  - codeSessionApi.ts
+  - createSession.ts
+  - debugUtils.ts
+  - envLessBridgeConfig.ts
+  - flushGate.ts
+  - inboundAttachments.ts
+  - inboundMessages.ts
+  - initReplBridge.ts
+  - jwtUtils.ts
+  - localBridge.ts
+  - mobileBridge.ts
+  - mobileProtocol.ts
+  - mobileSession.ts
+  - peerSessions.ts
+  - pollConfig.ts
+  - pollConfigDefaults.ts
+  - remoteBridgeCore.ts
+  - replBridge.ts
+  - replBridgeHandle.ts
+  - replBridgeTransport.ts
+  - sessionIdCompat.ts
+  - sessionRunner.ts
+  - trustedDevice.ts
+  - types.ts
+  - webhookSanitizer.ts
+  - workSecret.ts
+
+bridge\bridge/
+  - bridgeApi.ts
+  - bridgeConfig.ts
+  - bridgeDebug.ts
+  - bridgeEnabled.ts
+  - bridgeMain.ts
+  - bridgeMessaging.ts
+  - bridgePermissionCallbacks.ts
+  - bridgePointer.ts
+  - bridgeStatusUtil.ts
+  - bridgeUI.ts
+  - capacityWake.ts
+  - codeSessionApi.ts
+  - createSession.ts
+  - debugUtils.ts
+  - envLessBridgeConfig.ts
+  - flushGate.ts
+  - inboundAttachments.ts
+  - inboundMessages.ts
+  - initReplBridge.ts
+  - jwtUtils.ts
+  - localBridge.ts
+  - mobileBridge.ts
+  - mobileProtocol.ts
+  - mobileSession.ts
+  - peerSessions.ts
+  - pollConfig.ts
+  - pollConfigDefaults.ts
+  - remoteBridgeCore.ts
+  - replBridge.ts
+  - replBridgeHandle.ts
+  - replBridgeTransport.ts
+  - sessionIdCompat.ts
+  - sessionRunner.ts
+  - trustedDevice.ts
+  - types.ts
+  - webhookSanitizer.ts
+  - workSecret.ts
+
+buddy/
+  - CompanionCard.tsx
+  - CompanionSprite.tsx
+  - companion.ts
+  - companionReact.ts
+  - prompt.ts
+  - sprites.ts
+  - types.ts
+  - useBuddyNotification.tsx
+
+cli/
+  - bg.ts
+  - exit.ts
+  - ndjsonSafeStringify.ts
+  - print.ts
+  - remoteIO.ts
+  - rollback.ts
+  - structuredIO.ts
+  - test-import.ts
+  - up.ts
+  - update.ts
+
+cli\handlers/
+  - agents.ts
+  - ant.ts
+  - auth.ts
+  - autoMode.ts
+  - mcp.tsx
+  - plugins.ts
+  - templateJobs.ts
+  - util.tsx
+
+cli\transports/
+  - HybridTransport.ts
+  - SSETransport.ts
+  - SerialBatchEventUploader.ts
+  - Transport.ts
+  - WebSocketTransport.ts
+  - WorkerStateUploader.ts
+  - ccrClient.ts
+  - transportUtils.ts
+
+commands/
+  - brief.ts
+  - createMovedToPluginCommand.ts
+  - force-snip.ts
+  - insights.ts
+  - install.tsx
+  - proactive.ts
+  - subscribe-pr.ts
+  - torch.ts
+  - ultraplan.tsx
+
+commands\clear\clear/
+  - caches.ts
+  - conversation.ts
+
+commands\compact\src\bootstrap/
+  - state.ts
+
+commands\install-github-app\src\utils/
+  - config.ts
+
+commands\plancppwin/
+  - plancppwin.tsx
+
+commands\review/
+  - UltrareviewOverageDialog.tsx
+  - reviewRemote.ts
+  - ultrareviewCommand.tsx
+  - ultrareviewEnabled.ts
+
+commands\terminalSetup\src\utils/
+  - theme.ts
+
+components\ClaudeCodeHint/
+  - PluginHintMenu.tsx
+
+components\DesktopUpsell/
+  - DesktopUpsellStartup.tsx
+
+components\FeedbackSurvey/
+  - FeedbackSurvey.tsx
+  - FeedbackSurveyView.tsx
+  - TranscriptSharePrompt.tsx
+  - submitTranscriptShare.ts
+  - useDebouncedDigitInput.ts
+  - useFeedbackSurvey.tsx
+  - useFrustrationDetection.ts
+  - useMemorySurvey.tsx
+  - usePostCompactSurvey.tsx
+  - useSurveyState.tsx
+  - utils.ts
+
+components\HelpV2/
+  - Commands.tsx
+  - General.tsx
+  - HelpV2.tsx
+
+components\HighlightedCode/
+  - Fallback.tsx
+
+components\LogoV2/
+  - AnimatedAsterisk.tsx
+  - AnimatedClawd.tsx
+  - ChannelsNotice.tsx
+  - Clawd.tsx
+  - CondensedLogo.tsx
+  - EmergencyTip.tsx
+  - Feed.tsx
+  - FeedColumn.tsx
+  - GuestPassesUpsell.tsx
+  - KirakiraNotice.tsx
+  - LogoV2.tsx
+  - Opus1mMergeNotice.tsx
+  - OverageCreditUpsell.tsx
+  - VoiceModeNotice.tsx
+  - WelcomeV2-bak.tsx
+  - WelcomeV2.tsx
+  - feedConfigs.tsx
+
+components\LspRecommendation/
+  - LspRecommendationMenu.tsx
+
+components\ManagedSettingsSecurityDialog/
+  - ManagedSettingsSecurityDialog.tsx
+  - utils.ts
+
+components\Passes/
+  - Passes.tsx
+
+components\PromptInput/
+  - HistorySearchInput.tsx
+  - IssueFlagBanner.tsx
+  - Notifications.tsx
+  - PromptInput.tsx
+  - PromptInputFooter.tsx
+  - PromptInputFooterLeftSide.tsx
+  - PromptInputFooterSuggestions.tsx
+  - PromptInputHelpMenu.tsx
+  - PromptInputModeIndicator.tsx
+  - PromptInputQueuedCommands.tsx
+  - PromptInputStashNotice.tsx
+  - SandboxPromptFooterHint.tsx
+  - ShimmeredInput.tsx
+  - VoiceIndicator.tsx
+  - inputModes.ts
+  - inputPaste.ts
+  - useMaybeTruncateInput.ts
+  - usePromptInputPlaceholder.ts
+  - useShowFastIconHint.ts
+  - useSwarmBanner.ts
+  - utils.ts
+
+components\Settings/
+  - Config.tsx
+  - Settings.tsx
+  - Status.tsx
+  - Usage.tsx
+
+components\StructuredDiff/
+  - Fallback.tsx
+  - colorDiff.ts
+
+components\TrustDialog/
+  - TrustDialog.tsx
+  - utils.ts
+
+components\agents/
+  - AgentDetail.tsx
+  - AgentEditor.tsx
+  - AgentNavigationFooter.tsx
+  - AgentsList.tsx
+  - AgentsMenu.tsx
+  - ColorPicker.tsx
+  - ModelSelector.tsx
+  - SnapshotUpdateDialog.ts
+  - SnapshotUpdateDialog.tsx
+  - ToolSelector.tsx
+  - agentFileUtils.ts
+  - generateAgent.ts
+  - types.ts
+  - utils.ts
+  - validateAgent.ts
+
+components\agents\new-agent-creation/
+  - CreateAgentWizard.tsx
+  - types.ts
+
+components\agents\new-agent-creation\wizard-steps/
+  - ColorStep.tsx
+  - ConfirmStep.tsx
+  - ConfirmStepWrapper.tsx
+  - DescriptionStep.tsx
+  - GenerateStep.tsx
+  - LocationStep.tsx
+  - MemoryStep.tsx
+  - MethodStep.tsx
+  - ModelStep.tsx
+  - PromptStep.tsx
+  - ToolsStep.tsx
+  - TypeStep.tsx
+
+components\design-system/
+  - Byline.tsx
+  - Dialog.tsx
+  - Divider.tsx
+  - FuzzyPicker.tsx
+  - KeyboardShortcutHint.tsx
+  - ListItem.tsx
+  - LoadingState.tsx
+  - Pane.tsx
+  - ProgressBar.tsx
+  - Ratchet.tsx
+  - StatusIcon.tsx
+  - Tabs.tsx
+  - ThemeProvider.tsx
+  - ThemedBox.tsx
+  - ThemedText.tsx
+  - color.ts
+
+components\diff/
+  - DiffDetailView.tsx
+  - DiffDialog.tsx
+  - DiffFileList.tsx
+
+components\grove/
+  - Grove.tsx
+
+components\hooks/
+  - HooksConfigMenu.tsx
+  - PromptDialog.tsx
+  - SelectEventMode.tsx
+  - SelectHookMode.tsx
+  - SelectMatcherMode.tsx
+  - ViewHookMode.tsx
+
+components\mcp\utils/
+  - reconnectHelpers.tsx
+
+components\memory/
+  - MemoryFileSelector.tsx
+  - MemoryUpdateNotification.tsx
+
+components\messages/
+  - AdvisorMessage.tsx
+  - AssistantRedactedThinkingMessage.tsx
+  - AssistantTextMessage.tsx
+  - AssistantThinkingMessage.tsx
+  - AssistantToolUseMessage.tsx
+  - AttachmentMessage.tsx
+  - CollapsedReadSearchContent.tsx
+  - CompactBoundaryMessage.tsx
+  - GroupedToolUseContent.tsx
+  - HighlightedThinkingText.tsx
+  - HookProgressMessage.tsx
+  - PlanApprovalMessage.tsx
+  - RateLimitMessage.tsx
+  - ShutdownMessage.tsx
+  - SnipBoundaryMessage.tsx
+  - SystemAPIErrorMessage.tsx
+  - SystemTextMessage.tsx
+  - TaskAssignmentMessage.tsx
+  - UserAgentNotificationMessage.tsx
+  - UserBashInputMessage.tsx
+  - UserBashOutputMessage.tsx
+  - UserChannelMessage.tsx
+  - UserCommandMessage.tsx
+  - UserCrossSessionMessage.tsx
+  - UserForkBoilerplateMessage.tsx
+  - UserGitHubWebhookMessage.tsx
+  - UserImageMessage.tsx
+  - UserLocalCommandOutputMessage.tsx
+  - UserMemoryInputMessage.tsx
+  - UserPlanMessage.tsx
+  - UserPromptMessage.tsx
+  - UserResourceUpdateMessage.tsx
+  - UserTeammateMessage.tsx
+  - UserTextMessage.tsx
+  - nullRenderingAttachments.ts
+  - teamMemCollapsed.tsx
+  - teamMemSaved.ts
+
+components\messages\UserToolResultMessage/
+  - RejectedPlanMessage.tsx
+  - RejectedToolUseMessage.tsx
+  - UserToolCanceledMessage.tsx
+  - UserToolErrorMessage.tsx
+  - UserToolRejectMessage.tsx
+  - UserToolResultMessage.tsx
+  - UserToolSuccessMessage.tsx
+  - utils.tsx
+
+components\permissions/
+  - FallbackPermissionRequest.tsx
+  - PermissionDecisionDebugInfo.tsx
+  - PermissionDialog.tsx
+  - PermissionExplanation.tsx
+  - PermissionPrompt.tsx
+  - PermissionRequest.tsx
+  - PermissionRequestTitle.tsx
+  - PermissionRuleExplanation.tsx
+  - SandboxPermissionRequest.tsx
+  - WorkerBadge.tsx
+  - WorkerPendingPermission.tsx
+  - hooks.ts
+  - shellPermissionHelpers.tsx
+  - useShellPermissionFeedback.ts
+  - utils.ts
+
+components\permissions\AskUserQuestionPermissionRequest/
+  - AskUserQuestionPermissionRequest.tsx
+  - PreviewBox.tsx
+  - PreviewQuestionView.tsx
+  - QuestionNavigationBar.tsx
+  - QuestionView.tsx
+  - SubmitQuestionsView.tsx
+  - use-multiple-choice-state.ts
+
+components\permissions\BashPermissionRequest/
+  - BashPermissionRequest.tsx
+  - bashToolUseOptions.tsx
+
+components\permissions\ComputerUseApproval/
+  - ComputerUseApproval.tsx
+
+components\permissions\EnterPlanModePermissionRequest/
+  - EnterPlanModePermissionRequest.tsx
+
+components\permissions\ExitPlanModePermissionRequest/
+  - ExitPlanModePermissionRequest.tsx
+
+components\permissions\FileEditPermissionRequest/
+  - FileEditPermissionRequest.tsx
+
+components\permissions\FilePermissionDialog/
+  - FilePermissionDialog.tsx
+  - ideDiffConfig.ts
+  - permissionOptions.tsx
+  - useFilePermissionDialog.ts
+  - usePermissionHandler.ts
+
+components\permissions\FileWritePermissionRequest/
+  - FileWritePermissionRequest.tsx
+  - FileWriteToolDiff.tsx
+
+components\permissions\FilesystemPermissionRequest/
+  - FilesystemPermissionRequest.tsx
+
+components\permissions\MonitorPermissionRequest/
+  - MonitorPermissionRequest.tsx
+
+components\permissions\NotebookEditPermissionRequest/
+  - NotebookEditPermissionRequest.tsx
+  - NotebookEditToolDiff.tsx
+
+components\permissions\PowerShellPermissionRequest/
+  - PowerShellPermissionRequest.tsx
+  - powershellToolUseOptions.tsx
+
+components\permissions\ReviewArtifactPermissionRequest/
+  - ReviewArtifactPermissionRequest.tsx
+
+components\permissions\SedEditPermissionRequest/
+  - SedEditPermissionRequest.tsx
+
+components\permissions\SkillPermissionRequest/
+  - SkillPermissionRequest.tsx
+
+components\permissions\WebFetchPermissionRequest/
+  - WebFetchPermissionRequest.tsx
+
+components\permissions\rules/
+  - AddPermissionRules.tsx
+  - AddWorkspaceDirectory.tsx
+  - PermissionRuleDescription.tsx
+  - PermissionRuleInput.tsx
+  - PermissionRuleList.tsx
+  - RecentDenialsTab.tsx
+  - RemoveWorkspaceDirectory.tsx
+  - WorkspaceTab.tsx
+
+components\sandbox/
+  - SandboxConfigTab.tsx
+  - SandboxDependenciesTab.tsx
+  - SandboxDoctorSection.tsx
+  - SandboxOverridesTab.tsx
+  - SandboxSettings.tsx
+
+components\shell/
+  - ExpandShellOutputContext.tsx
+  - OutputLine.tsx
+  - ShellProgressMessage.tsx
+  - ShellTimeDisplay.tsx
+
+components\skills/
+  - SkillsMenu.tsx
+
+components\tasks/
+  - AsyncAgentDetailDialog.tsx
+  - BackgroundTask.tsx
+  - BackgroundTaskStatus.tsx
+  - BackgroundTasksDialog.tsx
+  - DreamDetailDialog.tsx
+  - InProcessTeammateDetailDialog.tsx
+  - MonitorMcpDetailDialog.tsx
+  - RemoteSessionDetailDialog.tsx
+  - RemoteSessionProgress.tsx
+  - ShellDetailDialog.tsx
+  - ShellProgress.tsx
+  - WorkflowDetailDialog.tsx
+  - renderToolActivity.tsx
+  - taskStatusUtils.tsx
+
+components\teams/
+  - TeamStatus.tsx
+  - TeamsDialog.tsx
+
+components\tools/
+  - ToolOutputBlock.tsx
+
+components\ui/
+  - OrderedList.tsx
+  - OrderedListItem.tsx
+  - TreeSelect.tsx
+  - option.ts
+  - option.tsx
+
+constants/
+  - errorIds.ts
+
+context/
+  - QueuedMessageContext.tsx
+  - fpsMetrics.tsx
+  - mailbox.tsx
+  - modalContext.tsx
+  - notifications.tsx
+  - overlayContext.tsx
+  - promptOverlayContext.tsx
+  - stats.tsx
+  - voice.tsx
+
+coordinator/
+  - coordinatorMode.ts
+  - workerAgent.ts
+
+desktop/
+  - desktopUI.tsx
+  - types.ts
+
+desktop-electron/
+  - launch-electron.ts
+
+dev/
+  - installRuntimeGlobals.ts
+
+engine\agent/
+  - command-runners.d.ts
+  - command-runners.js
+  - dispatcher.d.ts
+  - dispatcher.js
+  - dispatcher.ts
+  - task-decomposer.d.ts
+  - task-decomposer.js
+  - task-executor.d.ts
+  - task-executor.js
+
+engine\agent\coordinator/
+  - orchestrator.d.ts
+  - planner.d.ts
+  - types.d.ts
+  - types.js
+
+engine\api/
+  - client.d.ts
+  - client.js
+
+engine\commands/
+  - impl.d.ts
+  - impl.js
+  - impl.ts
+  - importer.d.ts
+  - registry.d.ts
+
+engine\services/
+  - awaySummary.ts
+
+engine\utils/
+  - exec.d.ts
+  - exec.js
+
+entrypoints/
+  - agentSdkTypes.ts
+  - cli.tsx
+  - dev-cli.tsx
+  - dev-mcp.ts
+  - init.ts
+  - mcp.ts
+  - sandboxTypes.ts
+
+entrypoints\sdk/
+  - controlSchemas.ts
+  - controlTypes.ts
+  - coreSchemas.ts
+  - coreTypes.generated.ts
+  - coreTypes.ts
+  - runtimeTypes.ts
+  - sdkUtilityTypes.ts
+  - settingsTypes.generated.ts
+  - toolTypes.ts
+
+generated/
+  - globals.d.ts
+  - macro.ts
+  - status-line-embedded.ts
+
+hooks/
+  - fileSuggestions.ts
+  - notifications.ts
+  - renderPlaceholder.ts
+  - unifiedSuggestions.ts
+  - useAfterFirstRender.ts
+  - useApiKeyVerification.ts
+  - useArrowKeyHistory.tsx
+  - useAssistantHistory.ts
+  - useAwaySummary.ts
+  - useBackgroundTaskNavigation.ts
+  - useBlink.ts
+  - useCanUseTool.tsx
+  - useCancelRequest.ts
+  - useChromeExtensionNotification.tsx
+  - useClaudeCodeHintRecommendation.tsx
+  - useClipboardImageHint.ts
+  - useCommandKeybindings.ts
+  - useCommandKeybindings.tsx
+  - useCommandQueue.ts
+  - useCopyOnSelect.ts
+  - useDeferredHookMessages.ts
+  - useDesktopVimInput.ts
+  - useDiffData.ts
+  - useDiffInIDE.ts
+  - useDirectConnect.ts
+  - useDoublePress.ts
+  - useDynamicConfig.ts
+  - useElapsedTime.ts
+  - useExitOnCtrlCD.ts
+  - useExitOnCtrlCDWithKeybindings.ts
+  - useFileHistorySnapshotInit.ts
+  - useGlobalKeybindings.tsx
+  - useHistorySearch.ts
+  - useIDEIntegration.tsx
+  - useIdeAtMentioned.ts
+  - useIdeConnectionStatus.ts
+  - useIdeLogging.ts
+  - useIdeSelection.ts
+  - useInboxPoller.ts
+  - useInputBuffer.ts
+  - useIssueFlagBanner.ts
+  - useLogMessages.ts
+  - useLspPluginRecommendation.tsx
+  - useMailboxBridge.ts
+  - useMainLoopModel.ts
+  - useManagePlugins.ts
+  - useMemoryUsage.ts
+  - useMergedClients.ts
+  - useMergedCommands.ts
+  - useMergedTools.ts
+  - useMinDisplayTime.ts
+  - useOfficialMarketplaceNotification.tsx
+  - usePackageUpdateNotice.ts
+  - usePasteHandler.ts
+  - usePluginRecommendationBase.tsx
+  - usePrStatus.ts
+  - usePromptSuggestion.ts
+  - usePromptsFromClaudeInChrome.tsx
+  - useQueueProcessor.ts
+  - useRemoteSession.ts
+  - useReplBridge.tsx
+  - useSSHSession.ts
+  - useScheduledTasks.ts
+  - useSearchInput.ts
+  - useSessionBackgrounding.ts
+  - useSettings.ts
+  - useSettingsChange.ts
+  - useSkillImprovementSurvey.ts
+  - useSkillsChange.ts
+  - useSwarmInitialization.ts
+  - useSwarmPermissionPoller.ts
+  - useTaskListWatcher.ts
+  - useTasksV2.ts
+  - useTeammateViewAutoExit.ts
+  - useTeleportResume.tsx
+  - useTerminalSize.ts
+  - useTextInput.ts
+  - useTurnDiffs.ts
+  - useTypeahead.tsx
+  - useUpdateNotification.ts
+  - useVimInput.ts
+  - useVirtualScroll.ts
+  - useVoice.ts
+  - useVoiceEnabled.ts
+  - useVoiceIntegration.tsx
+
+hooks\notifs/
+  - useAntOrgWarningNotification.ts
+  - useAutoModeUnavailableNotification.ts
+  - useCanSwitchToExistingSubscription.tsx
+  - useDeprecationWarningNotification.tsx
+  - useFastModeNotification.tsx
+  - useIDEStatusIndicator.tsx
+  - useInstallMessages.tsx
+  - useLspInitializationNotification.tsx
+  - useMcpConnectivityStatus.tsx
+  - useModelMigrationNotifications.tsx
+  - useNpmDeprecationNotification.tsx
+  - usePluginAutoupdateNotification.tsx
+  - usePluginInstallationStatus.tsx
+  - useRateLimitWarningNotification.tsx
+  - useSettingsErrors.tsx
+  - useStartupNotification.ts
+  - useTeammateShutdownNotification.ts
+
+hooks\toolPermission/
+  - PermissionContext.ts
+  - permissionLogging.ts
+
+hooks\toolPermission\handlers/
+  - coordinatorHandler.ts
+  - interactiveHandler.ts
+  - swarmWorkerHandler.ts
+
+ink/
+  - Ansi.tsx
+  - bidi.ts
+  - clearTerminal.ts
+  - colorize.ts
+  - constants.ts
+  - cursor.ts
+  - devtools.ts
+  - dom.ts
+  - focus.ts
+  - frame.ts
+  - get-max-width.ts
+  - global.ts
+  - hit-test.ts
+  - ink.tsx
+  - instances.ts
+  - line-width-cache.ts
+  - log-update.ts
+  - measure-element.ts
+  - measure-text.ts
+  - node-cache.ts
+  - optimizer.ts
+  - parse-keypress.ts
+  - reconciler.ts
+  - render-border.ts
+  - render-to-screen.ts
+  - renderer.ts
+  - root.ts
+  - screen.ts
+  - searchHighlight.ts
+  - selection.ts
+  - squash-text-nodes.ts
+  - stringWidth.ts
+  - styles.ts
+  - supports-hyperlinks.ts
+  - tabstops.ts
+  - terminal-focus-state.ts
+  - terminal-querier.ts
+  - terminal.ts
+  - termio.ts
+  - useTerminalNotification.ts
+  - warn.ts
+  - widest-line.ts
+  - wrap-text.ts
+  - wrapAnsi.ts
+
+ink\events/
+  - click-event.ts
+  - dispatcher.ts
+  - emitter.ts
+  - event-handlers.ts
+  - event.ts
+  - focus-event.ts
+  - input-event.ts
+  - keyboard-event.ts
+  - paste-event.ts
+  - resize-event.ts
+  - terminal-event.ts
+  - terminal-focus-event.ts
+
+ink\hooks/
+  - use-animation-frame.ts
+  - use-app.ts
+  - use-declared-cursor.ts
+  - use-input.ts
+  - use-interval.ts
+  - use-search-highlight.ts
+  - use-selection.ts
+  - use-stdin.ts
+  - use-tab-status.ts
+  - use-terminal-focus.ts
+  - use-terminal-title.ts
+  - use-terminal-viewport.ts
+
+ink\termio/
+  - ansi.ts
+  - csi.ts
+  - dec.ts
+  - esc.ts
+  - osc.ts
+  - parser.ts
+  - sgr.ts
+  - tokenize.ts
+  - types.ts
+
+jobs/
+  - classifier.ts
+
+keybindings/
+  - KeybindingContext.tsx
+  - KeybindingProviderSetup.tsx
+  - defaultBindings.ts
+  - loadUserBindings.ts
+  - match.ts
+  - parser.ts
+  - reservedShortcuts.ts
+  - resolver.ts
+  - schema.ts
+  - shortcutFormat.ts
+  - template.ts
+  - types.ts
+  - useKeybinding.ts
+  - useShortcutDisplay.ts
+  - validate.ts
+
+main\agent\action/
+  - sampler.d.ts
+  - types.d.ts
+
+main\agent\team/
+  - team.d.ts
+  - types.d.ts
+
+main\agents/
+  - agentsService.ts
+
+main\appLogs/
+  - manager.d.ts
+  - types.d.ts
+
+main\data/
+  - builtin-prompts.d.ts
+
+main\lib/
+  - challenge.d.ts
+
+main\logger/
+  - categoryFilter.ts
+  - manager.d.ts
+
+main\otherConfig/
+  - otherConfigService.ts
+
+main\plugins/
+  - pluginsService.ts
+
+main\profiles/
+  - manager.d.ts
+
+main\proxy\adapters\__mocks__/
+  - deepseek-stream.d.ts
+  - deepseek-stream.ts
+  - deepseek.d.ts
+  - deepseek.ts
+  - glm.d.ts
+  - glm.ts
+  - kimi.d.ts
+  - kimi.ts
+  - mimo.d.ts
+  - mimo.ts
+  - minimax.d.ts
+  - minimax.ts
+  - perplexity-stream.d.ts
+  - perplexity-stream.ts
+  - perplexity.d.ts
+  - perplexity.ts
+  - qwen-ai.d.ts
+  - qwen-ai.ts
+  - qwen.d.ts
+  - qwen.ts
+  - stepfun-stream.d.ts
+  - stepfun-stream.ts
+  - stepfun.d.ts
+  - stepfun.ts
+  - zai.d.ts
+  - zai.ts
+
+main\proxy\adapters\transformers/
+  - anthropic.ts
+  - gemini.ts
+  - openai.ts
+
+main\proxy\config/
+  - modelProfiles.d.ts
+  - modelProfiles.ts
+
+main\proxy\constants/
+  - signatures.d.ts
+
+main\proxy\middleware/
+  - managementAuth.d.ts
+
+main\proxy\services/
+  - contextManagementService.d.ts
+  - contextManagementService.ts
+  - promptGenerator.d.ts
+  - promptInjectionService.d.ts
+
+main\proxy\toolCalling/
+  - ToolCallingEngine.d.ts
+  - ToolStreamParser.d.ts
+  - browserToolExtractor.d.ts
+  - browserToolExtractor.ts
+  - diagnostics.d.ts
+  - diagnostics.ts
+  - historyGuard.d.ts
+  - providerProfiles.d.ts
+  - runtimePlan.d.ts
+  - toolCallExtractor.d.ts
+  - toolChoicePolicy.d.ts
+  - toolChoicePolicy.ts
+  - types.d.ts
+
+main\proxy\tools/
+  - streamingToolExecutor.ts
+  - toolCallCache.ts
+  - toolCollection.d.ts
+  - toolOrchestrator.ts
+
+main\requestLogs/
+  - manager.d.ts
+  - sanitizer.d.ts
+  - sanitizer.ts
+  - types.d.ts
+
+main\tools/
+  - toolsService.ts
+
+main\types/
+  - ali-oss.d.ts
+  - electron.d.ts
+
+main\workflows/
+  - workflowsService.ts
+
+memdir/
+  - findRelevantMemories.ts
+  - memdir.ts
+  - memoryAge.ts
+  - memoryScan.ts
+  - memoryShapeTelemetry.ts
+  - memoryTypes.ts
+  - paths.ts
+  - teamMemPaths.ts
+  - teamMemPrompts.ts
+
+memory/
+  - memoryTool.ts
+
+migrations/
+  - migrateAutoUpdatesToSettings.ts
+  - migrateBypassPermissionsAcceptedToSettings.ts
+  - migrateEnableAllProjectMcpServersToSettings.ts
+  - migrateFennecToOpus.ts
+  - migrateLegacyOpusToCurrent.ts
+  - migrateOpusToOpus1m.ts
+  - migrateReplBridgeEnabledToRemoteControlAtStartup.ts
+  - migrateSonnet1mToSonnet45.ts
+  - migrateSonnet45ToSonnet46.ts
+  - resetAutoModeOptInForDefaultOffer.ts
+  - resetProToOpusDefault.ts
+
+moreright/
+  - useMoreRight.tsx
+
+polyfills/
+  - bun-bundle-polyfill.ts
+  - bun-sqlite-polyfill.ts
+
+query/
+  - config.ts
+  - deps.ts
+  - emptyContentHandler.ts
+  - stopHooks.ts
+  - tokenBudget.ts
+  - transitions.ts
+
+remote/
+  - RemoteSessionManager.ts
+  - SessionsWebSocket.ts
+  - remotePermissionBridge.ts
+  - sdkMessageAdapter.ts
+
+renderer\src\components\Tray/
+  - TrayView.tsx
+
+renderer\src\components\ui/
+  - alert.tsx
+  - back-button.tsx
+  - badge.tsx
+  - breadcrumb.tsx
+  - button.tsx
+  - card.tsx
+  - combobox.tsx
+  - dialog.tsx
+  - dropdown-menu.tsx
+  - input.tsx
+  - label.tsx
+  - progress.tsx
+  - scroll-area.tsx
+  - select.tsx
+  - separator.tsx
+  - sheet.tsx
+  - skeleton.tsx
+  - slider.tsx
+  - switch.tsx
+  - table.tsx
+  - tabs.tsx
+  - textarea.tsx
+  - toast.tsx
+  - toaster.tsx
+  - tooltip.tsx
+
+renderer\src\hooks/
+  - use-toast.ts
+  - usePerformance.ts
+  - useTheme.ts
+
+renderer\src\lib/
+  - utils.ts
+
+renderer\src\pages/
+  - ApiKeys.tsx
+  - CookieSessionPage.tsx
+  - Dashboard.tsx
+  - Logs.tsx
+  - Models.tsx
+  - Profiles.tsx
+  - Providers.tsx
+  - ProxySettings.tsx
+  - SessionManagement.tsx
+  - Settings.tsx
+
+renderer\src\pages\AgentManagement/
+  - AgentDetailPage.tsx
+  - AgentManagementPage.tsx
+
+renderer\src\pages\Chat/
+  - ChatPage.tsx
+
+renderer\src\pages\CommandManagement/
+  - CommandManagementPage.tsx
+
+renderer\src\pages\GitManagement/
+  - GitManagementPage.tsx
+
+renderer\src\pages\McpManagement/
+  - McpManagementPage.tsx
+  - McpServerDetailPage.tsx
+
+renderer\src\pages\OtherConfig/
+  - OtherConfigPage.tsx
+
+renderer\src\pages\PlanManagement/
+  - PlanDetailPage.tsx
+  - PlanManagementPage.tsx
+
+renderer\src\pages\PluginManagement/
+  - PluginDetailPage.tsx
+  - PluginManagementPage.tsx
+
+renderer\src\pages\Prompts/
+  - PromptsManagement.tsx
+
+renderer\src\pages\TaskManagement/
+  - TaskManagementPage.tsx
+
+renderer\src\pages\TeamTask/
+  - TeamTaskPage.tsx
+
+renderer\src\pages\ToolManagement/
+  - ToolDetailPage.tsx
+  - ToolManagementPage.tsx
+
+renderer\src\pages\WorkflowManagement/
+  - WorkflowDetailPage.tsx
+  - WorkflowManagementPage.tsx
+
+renderer\src\stores/
+  - dashboardStore.ts
+  - logsStore.ts
+  - navigationStore.ts
+  - promptsStore.ts
+  - providersStore.ts
+  - proxyStore.ts
+  - settingsStore.ts
+
+renderer\src\types/
+  - electron.d.ts
+
+schemas/
+  - hooks.ts
+
+screens/
+  - Doctor.tsx
+  - REPL-minimal.js
+  - REPL.tsx
+  - ResumeConversation.tsx
+
+server/
+  - connectHeadless.ts
+  - createDirectConnectSession.ts
+  - directConnectManager.ts
+  - lockfile.ts
+  - parseConnectUrl.ts
+  - server.ts
+  - serverBanner.ts
+  - serverLog.ts
+  - sessionManager.ts
+  - types.ts
+  - web-term.ts
+
+server\backends/
+  - dangerousBackend.ts
+
+services/
+  - awaySummary.ts
+  - claudeAiLimits.ts
+  - claudeAiLimitsHook.ts
+  - diagnosticTracking.ts
+  - internalLogging.ts
+  - mcpDiscovery.ts
+  - mcpServerApproval.tsx
+  - mockRateLimits.ts
+  - notifier.ts
+  - preventSleep.ts
+  - rateLimitMessages.ts
+  - rateLimitMocking.ts
+  - tokenEstimation.ts
+  - vcr.ts
+  - voice.ts
+  - voiceKeyterms.ts
+  - voiceStreamSTT.ts
+
+services\AgentSummary/
+  - agentSummary.ts
+
+services\MagicDocs/
+  - magicDocs.ts
+  - prompts.ts
+
+services\PromptSuggestion/
+  - promptSuggestion.ts
+  - speculation.ts
+
+services\SessionMemory/
+  - prompts.ts
+  - sessionMemory.ts
+  - sessionMemoryUtils.ts
+
+services\api/
+  - adminRequests.ts
+  - bootstrap.ts
+  - claude.ts
+  - client.ts
+  - dumpPrompts.ts
+  - emptyUsage.ts
+  - errorUtils.ts
+  - errors.ts
+  - filesApi.ts
+  - firstTokenDate.ts
+  - grove.ts
+  - logging.ts
+  - metricsOptOut.ts
+  - openaiCompat.ts
+  - overageCreditGrant.ts
+  - promptCacheBreakDetection.ts
+  - referral.ts
+  - sessionIngress.ts
+  - ultrareviewQuota.ts
+  - usage.ts
+  - withRetry.ts
+
+services\autoDream/
+  - autoDream.ts
+  - config.ts
+  - consolidationLock.ts
+  - consolidationPrompt.ts
+
+services\bridgeSessions/
+  - sessionManager.ts
+
+services\compact/
+  - apiMicrocompact.ts
+  - autoCompact.ts
+  - cachedMCConfig.ts
+  - cachedMicrocompact.ts
+  - compact.ts
+  - compactWarningHook.ts
+  - compactWarningState.ts
+  - grouping.ts
+  - microCompact.ts
+  - postCompactCleanup.ts
+  - prompt.ts
+  - reactiveCompact.ts
+  - sessionMemoryCompact.ts
+  - snipCompact.ts
+  - snipProjection.ts
+  - timeBasedMCConfig.ts
+
+services\extractMemories/
+  - extractMemories.ts
+  - prompts.ts
+
+services\lsp/
+  - LSPClient.ts
+  - LSPDiagnosticRegistry.ts
+  - LSPServerInstance.ts
+  - LSPServerManager.ts
+  - config.ts
+  - manager.ts
+  - passiveFeedback.ts
+  - types.ts
+
+services\mcp/
+  - InProcessTransport.ts
+  - MCPConnectionManager.tsx
+  - SdkControlTransport.ts
+  - auth.ts
+  - channelAllowlist.ts
+  - channelNotification.ts
+  - channelPermissions.ts
+  - claudeai.ts
+  - client.ts
+  - config.ts
+  - elicitationHandler.ts
+  - envExpansion.ts
+  - headersHelper.ts
+  - mcpStringUtils.ts
+  - normalization.ts
+  - oauthPort.ts
+  - officialRegistry.ts
+  - types.ts
+  - useManageMCPConnections.ts
+  - utils.ts
+  - vscodeSdkMcp.ts
+  - xaa.ts
+  - xaaIdpLogin.ts
+
+services\notebook/
+  - database.ts
+  - schema.ts
+
+services\plugins/
+  - PluginInstallationManager.ts
+  - pluginCliCommands.ts
+  - pluginOperations.ts
+
+services\sessionTranscript/
+  - sessionTranscript.ts
+
+services\skillSearch/
+  - featureCheck.ts
+  - localSearch.ts
+  - prefetch.ts
+  - remoteSkillLoader.ts
+  - remoteSkillState.ts
+  - signals.ts
+  - telemetry.ts
+
+services\tips/
+  - tipHistory.ts
+  - tipRegistry.ts
+  - tipScheduler.ts
+  - types.ts
+
+services\toolUseSummary/
+  - toolUseSummaryGenerator.ts
+
+services\tools/
+  - StreamingToolExecutor.ts
+  - toolExecution.ts
+  - toolHooks.ts
+  - toolOrchestration.ts
+
+shared/
+  - toolCalling.d.ts
+  - types.d.ts
+
+skills/
+  - bundledSkills.ts
+  - loadSkillsDir.ts
+  - mcpSkillBuilders.ts
+  - mcpSkills.ts
+
+skills\bundled\code-analyzer/
+  - ReportGenerator.ts
+
+ssh/
+  - SSHSessionManager.ts
+  - createSSHSession.ts
+
+state/
+  - AppState.tsx
+  - AppStateStore.ts
+  - onChangeAppState.ts
+  - selectors.ts
+  - store.ts
+  - teammateViewHelpers.ts
+
+stubs\ant/
+  - claudeForChromeMcp.ts
+
+tasks/
+  - LocalMainSessionTask.ts
+  - pillLabel.ts
+  - stopTask.ts
+  - types.ts
+
+tasks\DreamTask/
+  - DreamTask.ts
+
+tasks\InProcessTeammateTask/
+  - InProcessTeammateTask.tsx
+  - types.ts
+
+tasks\LocalAgentTask/
+  - LocalAgentTask.tsx
+
+tasks\LocalShellTask/
+  - LocalShellTask.tsx
+  - guards.ts
+  - killShellTasks.ts
+
+tasks\LocalWorkflowTask/
+  - LocalWorkflowTask.ts
+
+tasks\MonitorMcpTask/
+  - MonitorMcpTask.ts
+
+tasks\RemoteAgentTask/
+  - RemoteAgentTask.tsx
+
+tools/
+  - progressEmitter.ts
+  - utils.ts
+
+tools\AdvisorTool/
+  - AdvisorTool.ts
+
+tools\AgentTool/
+  - AgentTool.tsx
+  - UI.tsx
+  - agentColorManager.ts
+  - agentDisplay.ts
+  - agentMemory.ts
+  - agentMemorySnapshot.ts
+  - agentToolUtils.ts
+  - builtInAgents.ts
+  - constants.ts
+  - forkSubagent.ts
+  - loadAgentsDir.ts
+  - prompt.ts
+  - resumeAgent.ts
+  - runAgent.ts
+
+tools\AgentTool\built-in/
+  - claudeCodeGuideAgent.ts
+  - exploreAgent.ts
+  - generalPurposeAgent.ts
+  - planAgent.ts
+  - statuslineSetup.ts
+  - verificationAgent.ts
+
+tools\AskUserQuestionTool/
+  - AskUserQuestionTool.tsx
+  - prompt.ts
+
+tools\BackupTool/
+  - BackupTool.ts
+
+tools\BashTool/
+  - BashTool.tsx
+  - BashToolResultMessage.tsx
+  - UI.tsx
+  - bashCommandHelpers.ts
+  - bashPermissions.ts
+  - bashSecurity.ts
+  - commandSemantics.ts
+  - commentLabel.ts
+  - destructiveCommandWarning.ts
+  - modeValidation.ts
+  - pathValidation.ts
+  - prompt.ts
+  - readOnlyValidation.ts
+  - sedEditParser.ts
+  - sedValidation.ts
+  - shouldUseSandbox.ts
+  - toolName.ts
+  - utils.ts
+
+tools\BranchTool/
+  - BranchTool.ts
+
+tools\BriefTool/
+  - BriefTool.ts
+  - UI.tsx
+  - attachments.ts
+  - prompt.ts
+  - upload.ts
+
+tools\CacheTool/
+  - CacheTool.ts
+
+tools\CompareTool/
+  - CompareTool.ts
+
+tools\ConfigTool/
+  - ConfigTool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+  - supportedSettings.ts
+
+tools\ContextCollapseTool/
+  - ContextCollapseTool.ts
+
+tools\CronTool/
+  - CronTool.ts
+
+tools\CtxInspectTool/
+  - CtxInspectTool.ts
+
+tools\DatabaseTool/
+  - DatabaseTool.ts
+
+tools\DiscoverSkillsTool/
+  - prompt.ts
+
+tools\EffortTool/
+  - EffortTool.ts
+
+tools\EnterPlanModeTool/
+  - EnterPlanModeTool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+
+tools\EnterWorktreeTool/
+  - EnterWorktreeTool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+
+tools\EventStreamTool/
+  - EventStreamTool.ts
+
+tools\ExitPlanModeTool/
+  - ExitPlanModeV2Tool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+
+tools\ExitWorktreeTool/
+  - ExitWorktreeTool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+
+tools\FileEditTool/
+  - FileEditTool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+  - types.ts
+  - utils.ts
+
+tools\FileReadTool/
+  - FileReadTool.ts
+  - UI.tsx
+  - imageProcessor.ts
+  - limits.ts
+  - prompt.ts
+
+tools\FileWatcherTool/
+  - FileWatcherTool.ts
+
+tools\FileWriteTool/
+  - FileWriteTool.ts
+  - UI.tsx
+  - prompt.ts
+
+tools\GlobTool/
+  - GlobTool.ts
+  - UI.tsx
+  - prompt.ts
+
+tools\GraphqlTool/
+  - GraphqlTool.ts
+
+tools\GrepTool/
+  - GrepTool.ts
+  - UI.tsx
+  - prompt.ts
+
+tools\HttpTool/
+  - HttpTool.ts
+
+tools\LSPTool/
+  - LSPTool.ts
+  - UI.tsx
+  - formatters.ts
+  - prompt.ts
+  - schemas.ts
+  - symbolContext.ts
+
+tools\LessPermissionPromptsTool/
+  - LessPermissionPromptsTool.ts
+
+tools\ListMcpResourcesTool/
+  - ListMcpResourcesTool.ts
+  - UI.tsx
+  - prompt.ts
+
+tools\ListPeersTool/
+  - ListPeersTool.ts
+
+tools\LoggerTool/
+  - LoggerTool.ts
+
+tools\MCPTool/
+  - MCPTool.ts
+  - UI.tsx
+  - classifyForCollapse.ts
+  - prompt.ts
+
+tools\McpAuthTool/
+  - McpAuthTool.ts
+
+tools\McpToolSearchTool/
+  - McpToolSearchTool.ts
+
+tools\MetricsTool/
+  - MetricsTool.ts
+
+tools\MonitorTool/
+  - MonitorTool.ts
+
+tools\MultiFileEditTool/
+  - MultiFileEditTool.ts
+
+tools\MultiSearchTool/
+  - MultiSearchTool.ts
+  - types.ts
+
+tools\NotebookEditTool/
+  - NotebookEditTool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+
+tools\OverflowTestTool/
+  - OverflowTestTool.ts
+
+tools\PlanModeTool/
+  - PlanModeTool.ts
+
+tools\PowerShellTool/
+  - PowerShellTool.tsx
+  - UI.tsx
+  - clmTypes.ts
+  - commandSemantics.ts
+  - commonParameters.ts
+  - destructiveCommandWarning.ts
+  - gitSafety.ts
+  - modeValidation.ts
+  - pathValidation.ts
+  - powershellPermissions.ts
+  - powershellSecurity.ts
+  - prompt.ts
+  - readOnlyValidation.ts
+  - toolName.ts
+
+tools\PushNotificationTool/
+  - PushNotificationTool.ts
+
+tools\QueueTool/
+  - QueueTool.ts
+
+tools\REPLTool/
+  - constants.ts
+  - primitiveTools.ts
+
+tools\ReadMcpResourceTool/
+  - ReadMcpResourceTool.ts
+  - UI.tsx
+  - prompt.ts
+
+tools\RefactorTool/
+  - RefactorTool.ts
+
+tools\RemoteTriggerTool/
+  - RemoteTriggerTool.ts
+  - UI.tsx
+  - prompt.ts
+
+tools\ReviewArtifactTool/
+  - ReviewArtifactTool.ts
+
+tools\ScheduleCronTool/
+  - CronCreateTool.ts
+  - CronDeleteTool.ts
+  - CronListTool.ts
+  - UI.tsx
+  - prompt.ts
+
+tools\ScheduleTool/
+  - ScheduleTool.ts
+
+tools\SendMessageTool/
+  - SendMessageTool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+
+tools\SendUserFileTool/
+  - SendUserFileTool.ts
+  - prompt.ts
+
+tools\ShellTool/
+  - ShellTool.ts
+
+tools\SkillTool/
+  - SkillTool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+
+tools\SleepTool/
+  - SleepTool.ts
+  - prompt.ts
+
+tools\SnipTool/
+  - SnipTool.ts
+  - prompt.ts
+
+tools\SubscribePRTool/
+  - SubscribePRTool.ts
+
+tools\SyntheticOutputTool/
+  - SyntheticOutputTool.ts
+
+tools\TaskCreateTool/
+  - TaskCreateTool.ts
+  - constants.ts
+  - prompt.ts
+
+tools\TaskGetTool/
+  - TaskGetTool.ts
+  - constants.ts
+  - prompt.ts
+
+tools\TaskListTool/
+  - TaskListTool.ts
+  - constants.ts
+  - prompt.ts
+
+tools\TaskOutputTool/
+  - TaskOutputTool.tsx
+  - constants.ts
+
+tools\TaskStopTool/
+  - TaskStopTool.ts
+  - UI.tsx
+  - prompt.ts
+
+tools\TaskUpdateTool/
+  - TaskUpdateTool.ts
+  - constants.ts
+  - prompt.ts
+
+tools\TeamCreateTool/
+  - TeamCreateTool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+
+tools\TeamDeleteTool/
+  - TeamDeleteTool.ts
+  - UI.tsx
+  - constants.ts
+  - prompt.ts
+
+tools\TerminalCaptureTool/
+  - TerminalCaptureTool.ts
+  - prompt.ts
+
+tools\TerminalPanelTool/
+  - TerminalPanelTool.ts
+
+tools\ThemeTool/
+  - ThemeTool.ts
+
+tools\TodoWriteTool/
+  - TodoWriteTool.ts
+  - constants.ts
+  - prompt.ts
+
+tools\ToolSearchTool/
+  - ToolSearchTool.ts
+  - constants.ts
+  - prompt.ts
+
+tools\TungstenTool/
+  - TungstenLiveMonitor.tsx
+  - TungstenTool.ts
+  - TungstenTool.tsx
+
+tools\UltrareviewTool/
+  - UltrareviewTool.ts
+
+tools\VerifyPlanExecutionTool/
+  - constants.ts
+
+tools\VimVisualModeTool/
+  - VimVisualModeTool.ts
+
+tools\WebBrowserTool/
+  - WebBrowserPanel.tsx
+  - WebBrowserTool.ts
+
+tools\WebFetchTool/
+  - UI.tsx
+  - WebFetchTool.ts
+  - preapproved.ts
+  - prompt.ts
+  - utils.ts
+
+tools\WebSearchTool/
+  - UI.tsx
+  - WebSearchTool.ts
+  - prompt.ts
+
+tools\WebSocketTool/
+  - WebSocketTool.ts
+
+tools\WorkflowTool/
+  - WorkflowPermissionRequest.ts
+  - WorkflowPermissionRequest.tsx
+  - WorkflowTool.ts
+  - constants.ts
+  - createWorkflowCommand.ts
+
+tools\shared/
+  - gitOperationTracking.ts
+  - spawnMultiAgent.ts
+
+tools\testing/
+  - TestingPermissionTool.tsx
+
+types/
+  - zstd-codec.d.ts
+
+upstreamproxy/
+  - relay.ts
+  - upstreamproxy.ts
+
+utils/
+  - diff.ts
+  - format.ts
+  - stringUtils.ts
+
+vim/
+  - motions.ts
+  - operators.ts
+  - textObjects.ts
+  - transitions.ts
+  - types.ts
+
+voice/
+  - voiceModeEnabled.ts

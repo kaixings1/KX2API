@@ -61,21 +61,61 @@ function detectToolBlocks(content: string): { type: 'text' | 'tool-result'; text
 }
 
 function ToolResultView({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false)
-  return (
-    <div className="tool-result-block">
-      <div className="tool-result-header" onClick={() => setExpanded(p => !p)}>
-        <span>{expanded ? '▼' : '▶'}</span>
-        <span>工具调用结果</span>
-        <span style={{ opacity: 0.5, fontSize: 11 }}>
-          {expanded ? '点击收起' : '点击展开'}
+  const isSuccess = !text.includes('error') && !text.includes('Error') && !text.includes('失败')
+
+  // Format 0: search-result lines — "6: content", "85: content", "88: content"
+  const lines = text.split('\n').filter(l => l.trim())
+  const searchLineMatch = lines.find(l => /^\s*\d+:\s/.test(l))
+  if (searchLineMatch) {
+    return (
+      <div className="claude-tool-result-search">
+        <div className="claude-tool-result-line">
+          <span className="claude-tool-result-prefix">⎿</span>
+          <span className="claude-tool-result-text">
+            {lines.length} 条匹配
+          </span>
+        </div>
+        <div className="claude-tool-result-search-lines">
+          {lines.slice(0, 20).map((line, i) => (
+            <div key={i} className="claude-tool-result-search-line">{line}</div>
+          ))}
+          {lines.length > 20 && (
+            <div className="claude-tool-result-search-more">... 还有 {lines.length - 20} 行</div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Format 1: edit-style — "新增 N行，✗ 删除 N行" or "新增 N行，删除 N行"
+  const addMatch = text.match(/(?:新增|added|inserted)\s*[:：]?\s*(\d+)\s*行/)
+  const delMatch = text.match(/(?:删除|deleted|removed)\s*[:：]?\s*(\d+)\s*行/)
+  if (addMatch || delMatch) {
+    const parts: string[] = []
+    if (addMatch) parts.push(`✓ 新增 ${addMatch[1]}行`)
+    if (delMatch) parts.push(`✗ 删除 ${delMatch[1]}行`)
+    return (
+      <div className="claude-tool-result-line">
+        <span className="claude-tool-result-prefix">⎿</span>
+        <span className="claude-tool-result-text">
+          {parts.join('，')}
         </span>
       </div>
-      {expanded && (
-        <div className="tool-result-body">
-          <code>{text || '(空)'}</code>
-        </div>
-      )}
+    )
+  }
+
+  // Format 2: read-style — "读取 N 行" or extract N 行 from text
+  const lineMatch = text.match(/(\d+)\s*行/) || text.match(/read\s+(\d+)\s*lines/i)
+  const lineInfo = lineMatch ? lineMatch[1] : null
+  const iconClass = isSuccess ? 'claude-tool-result-icon-success' : 'claude-tool-result-icon-error'
+
+  return (
+    <div className="claude-tool-result-line">
+      <span className="claude-tool-result-prefix">⎿</span>
+      <span className={iconClass}>{isSuccess ? '✓' : '✗'}</span>
+      <span className="claude-tool-result-text">
+        {lineInfo ? `读取 ${lineInfo} 行` : text.slice(0, 120) || '(空)'}
+      </span>
     </div>
   )
 }
@@ -193,23 +233,45 @@ function ToolUseBlock({ tool }: { tool: ParsedTool }) {
     // leave as raw text
   }
 
+  // Extract a human-readable call string, e.g. read("path") or bash("cmd")
+  let callStr = tool.name
+  let displayArgs = ''
+  if (parsedArgs) {
+    const parts: string[] = []
+    if (parsedArgs.file_path) parts.push(parsedArgs.file_path as string)
+    else if (parsedArgs.path) parts.push(parsedArgs.path as string)
+    else if (parsedArgs.command) parts.push(parsedArgs.command as string)
+    else if (parsedArgs.input) parts.push(typeof parsedArgs.input === 'string' ? parsedArgs.input : JSON.stringify(parsedArgs.input))
+    else if (parsedArgs.query) parts.push(parsedArgs.query as string)
+    if (parts.length > 0) {
+      displayArgs = parts.map(p => '"' + String(p).replace(/"/g, '\\"').slice(0, 60) + '"').join(', ')
+    }
+  } else if (tool.arguments) {
+    displayArgs = tool.arguments.slice(0, 80)
+  }
+  if (displayArgs) {
+    callStr += '(' + displayArgs + ')'
+  }
+
   return (
-    <div className="tool-use-block">
-      <div className="tool-use-header" onClick={() => setExpanded(p => !p)}>
-        <span className="tool-use-arrow">{expanded ? '▼' : '▶'}</span>
-        <span className="tool-use-name">{tool.name}</span>
-        <span className="tool-use-toggle">
-          {expanded ? '收起参数' : '展开参数'}
+    <div className="claude-tool-use-block">
+      <div className="claude-tool-use-header" onClick={() => setExpanded(p => !p)}>
+        <span className="claude-tool-use-bullet">●</span>
+        <div className="claude-tool-use-name-wrap">
+          <span className="claude-tool-use-name">{callStr}</span>
+        </div>
+        <span className="claude-tool-use-toggle">
+          {expanded ? '收起' : '展开'}
         </span>
       </div>
       {expanded && (
-        <div className="tool-use-body">
+        <div className="claude-tool-use-body">
           {parsedArgs ? (
-            <pre className="tool-use-args-pre">
+            <pre className="claude-tool-use-args-pre">
               <code>{JSON.stringify(parsedArgs, null, 2)}</code>
             </pre>
           ) : (
-            <pre className="tool-use-args-pre">
+            <pre className="claude-tool-use-args-pre">
               <code>{tool.arguments || '(无参数)'}</code>
             </pre>
           )}
@@ -461,6 +523,7 @@ export function ChatPage() {
   const [userScrolledUp, setUserScrolledUp] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [showHistory, setShowHistory] = useState(true)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -618,14 +681,17 @@ export function ChatPage() {
     if (!currentConversationId) {
       setCurrentConversationId(id)
     }
-    const conv: Conversation = {
-      id,
-      title: messages[0]?.content?.slice(0, 40) || '新对话',
-      messages,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }
+    const firstUser = messages.find(m => m.role === 'user')
+    const title = firstUser?.content?.slice(0, 40) || '新对话'
     setConversations(prev => {
+      const existing = prev.find(c => c.id === id)
+      const conv: Conversation = {
+        id,
+        title: existing?.title || title,
+        messages,
+        createdAt: existing?.createdAt ?? Date.now(),
+        updatedAt: Date.now(),
+      }
       const next = [conv, ...prev.filter(c => c.id !== id)].slice(0, 50)
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
       return next
@@ -806,6 +872,14 @@ export function ChatPage() {
       scheduleFlush()
     })
 
+    const cleanupReasoning = window.electronAPI.chat.onStreamReasoning(({ reasoning }) => {
+      // 逐段追加推理文本到当前 assistant 消息（实时可折叠预览）
+      streamingReasoningRef.current += reasoning
+      setMessages(prev => prev.map(m =>
+        m.id === assistantId ? { ...m, reasoning_content: streamingReasoningRef.current } : m
+      ))
+    })
+
     const cleanupDone = window.electronAPI.chat.onStreamDone(({ content, toolOutput }) => {
       // Flush any remaining buffered content
       if (rafIdRef.current) {
@@ -841,6 +915,7 @@ export function ChatPage() {
       cleanupChunk()
       cleanupDone()
       cleanupError()
+      cleanupReasoning()
     })
 
     const cleanupError = window.electronAPI.chat.onStreamError(({ error }) => {
@@ -858,6 +933,7 @@ export function ChatPage() {
       cleanupChunk()
       cleanupDone()
       cleanupError()
+      cleanupReasoning()
     })
 
     try {
@@ -872,6 +948,7 @@ export function ChatPage() {
         cleanupChunk()
         cleanupDone()
         cleanupError()
+        cleanupReasoning()
       }
     } catch (e) {
       const errMsg = (e as Error).message || '发送失败'
@@ -883,6 +960,7 @@ export function ChatPage() {
       cleanupChunk()
       cleanupDone()
       cleanupError()
+      cleanupReasoning()
     }
   }, [input])
 
@@ -903,14 +981,86 @@ export function ChatPage() {
     if (window.electronAPI?.chat?.clearHistory) {
       await window.electronAPI.chat.clearHistory()
     }
+    // 先落盘当前会话，再开启一条全新的空会话
+    setConversations(prev => {
+      const next = prev.map(c =>
+        c.id === currentConversationId ? { ...c, messages, updatedAt: Date.now() } : c
+      )
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
     setMessages([])
+    setCurrentConversationId(null)
     setUserScrolledUp(false)
-  }, [])
+  }, [currentConversationId, messages])
+
+  // 切换到一条已存在的对话：保存当前会话 → 载入目标会话
+  const switchConversation = useCallback((id: string) => {
+    setConversations(prev => {
+      // 1) 先把当前会话的最新消息落盘
+      const saved = prev.map(c =>
+        c.id === currentConversationId ? { ...c, messages, updatedAt: Date.now() } : c
+      )
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)) } catch { /* ignore */ }
+      return saved
+    })
+    const target = conversations.find(c => c.id === id)
+    if (!target) return
+    setMessages(target.messages)
+    setCurrentConversationId(target.id)
+    setUserScrolledUp(false)
+    setShowHistory(false)
+  }, [conversations, currentConversationId, messages])
+
+  const deleteConversation = useCallback((id: string) => {
+    setConversations(prev => {
+      const next = prev.filter(c => c.id !== id)
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+      return next
+    })
+    if (id === currentConversationId) {
+      setMessages([])
+      setCurrentConversationId(null)
+    }
+  }, [currentConversationId])
 
   const saveConfig = useCallback(async () => {
+    // 传入完整 provider / model / apiKey / baseUrl，并保存到引擎 API 客户端，
+    // 否则 baseUrl / apiKey / model 不会被实际用于请求。Base URL 为空时给本地代理默认值，
+    // 避免回退到不可达的 api.openai.com。
+    const baseUrl = (config.baseUrl || '').trim() || 'http://127.0.0.1:8080/v1/chat/completions'
     if (window.electronAPI?.chat?.setConfig) {
-      await window.electronAPI.chat.setConfig({ provider: config.provider, model: config.model })
+      await window.electronAPI.chat.setConfig({
+        provider: config.provider,
+        model: config.model,
+        apiKey: config.apiKey || '',
+        baseUrl,
+      })
     }
+    // 持久化到一个固定、无冲突的配置组并激活它：这样重启/切换下拉后仍保留，
+    // 也避免下拉框因 active 被清空而重置回旧配置。upsert 内部会把 activePreset 设为该组。
+    const persistName = '__dialog_config__'
+    try {
+      await window.electronAPI?.profiles?.upsert?.({
+        name: persistName,
+        provider: config.provider,
+        baseUrl,
+        apiKey: config.apiKey || '',
+        model: config.model,
+      })
+    } catch { /* ignore */ }
+    // 刷新下拉列表并保持选中已保存的配置组
+    if (window.electronAPI?.profiles?.getAll) {
+      const r = await window.electronAPI.profiles.getAll() as Record<string, unknown>
+      if (r.success && r.profiles) {
+        setProfiles(r.profiles as typeof profiles)
+        setActiveProfileName(r.activeProfile as string | null)
+      }
+    }
+    // 同步本地直连地址，并关闭配置弹窗
+    setDirectBaseUrl(baseUrl)
+    setShowConfig(false)
+    setActiveProfileName(persistName)
   }, [config])
 
   const handleProfileSwitch = useCallback(async (name: string) => {
@@ -1042,6 +1192,13 @@ export function ChatPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowHistory(p => !p)}
+            className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
+            title={showHistory ? '隐藏对话列表' : '显示对话列表'}
+          >
+            ☰
+          </button>
+          <button
             onClick={handleNewChat}
             className="text-xs px-2 py-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
           >
@@ -1054,6 +1211,57 @@ export function ChatPage() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
+        {/* 可折叠侧边栏：对话列表 */}
+        {showHistory && (
+          <aside className="w-56 border-r border-[var(--border)] bg-[var(--bg-secondary)] flex-shrink-0 flex flex-col">
+            <div className="flex items-center justify-between p-2 border-b border-[var(--border)]">
+              <span className="text-xs text-[var(--text-muted)] font-medium">对话列表</span>
+              <button
+                onClick={handleNewChat}
+                className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
+                title="新建对话"
+              >
+                + 新对话
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto py-1">
+              {conversations.length === 0 ? (
+                <div className="px-3 py-4 text-xs text-[var(--text-faint)] text-center">暂无历史对话</div>
+              ) : (
+                conversations.map(c => {
+                  const isActive = c.id === currentConversationId
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => switchConversation(c.id)}
+                      className={`group flex items-center gap-1 mx-1 px-2 py-1.5 rounded cursor-pointer transition-colors ${
+                        isActive ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]'
+                      }`}
+                      title={c.title}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-xs truncate ${isActive ? 'text-[var(--accent-primary)]' : 'text-[var(--text-primary)]'}`}>
+                          {c.title || '新对话'}
+                        </div>
+                        <div className="text-[10px] text-[var(--text-faint)] truncate">
+                          {formatTime(c.updatedAt)} · {c.messages.length} 条
+                        </div>
+                      </div>
+                      <button
+                        onClick={e => { e.stopPropagation(); deleteConversation(c.id) }}
+                        className="opacity-0 group-hover:opacity-100 text-[10px] text-[var(--text-muted)] hover:text-red-400 flex-shrink-0 px-1"
+                        title="删除对话"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </aside>
+        )}
+
         {/* 可折叠侧边栏：文件树 */}
         {showSidebar && (
           <aside className="w-52 border-r border-[var(--border)] bg-[var(--bg-secondary)] overflow-auto flex-shrink-0">
@@ -1162,7 +1370,7 @@ export function ChatPage() {
         <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-[var(--border)] bg-[#0a0a0a] flex flex-col" style={{ height: '45%' }}>
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10 flex-shrink-0">
             <span className="text-[var(--text-muted)] text-xs">终端</span>
-            <button onClick={() => setShowTerminal(false)} className="text-[var(--text-muted)] text-xs hover:text-white">✕</button>
+            <button onClick={() => setShowTerminal(false)} className="text-[var(--text-muted)] text-xs hover:text-[var(--text-primary)]">✕</button>
           </div>
           <pre
             ref={el => { if (el) el.scrollTop = el.scrollHeight }}

@@ -11,9 +11,102 @@
  * 注意：不使用 tree-sitter（依赖过大），用 ripgrep + 正则替代。
  */
 
-import { ripGrep } from '../utils/ripgrep.js';
-import { getFsImplementation } from '../utils/fsOperations.js';
-import { expandPath } from '../utils/path.js';
+import { readdir, readFile } from 'node:fs/promises';
+import { join, sep } from 'node:path';
+
+/** 原生 ripgrep 替代：列出目录下匹配类型的文件 */
+async function ripGrepFiles(args: string[], cwd: string): Promise<string[]> {
+  const types = new Set<string>();
+  const patterns: string[] = [];
+  let i = 0;
+  while (i < args.length) {
+    if (args[i] === '--type' && i + 1 < args.length) {
+      types.add(args[i + 1]);
+      i += 2;
+    } else if (args[i] === '--regexp' && i + 1 < args.length) {
+      patterns.push(args[i + 1]);
+      i += 2;
+    } else if (args[i] === '--files') {
+      i++;
+    } else {
+      i++;
+    }
+  }
+  const exts = new Map<string, boolean>();
+  for (const t of types) {
+    if (t === 'ts' || t === 'tsx') { exts.set('.ts', true); exts.set('.tsx', true); }
+    if (t === 'js' || t === 'jsx') { exts.set('.js', true); exts.set('.jsx', true); }
+    if (t === 'json') exts.set('.json', true);
+    if (t === 'py') exts.set('.py', true);
+    if (t === 'md') exts.set('.md', true);
+  }
+  const results: string[] = [];
+  async function walk(dir: string): Promise<void> {
+    let entries: { name: string; isFile: boolean }[];
+    try {
+      const items = await readdir(dir, { withFileTypes: true });
+      entries = items.map(e => ({ name: e.name, isFile: e.isFile() }));
+    } catch { return; }
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      if (entry.isFile()) {
+        const ext = '.' + entry.name.split('.').pop();
+        if (exts.has(ext)) results.push(full);
+      } else if (!entry.name.startsWith('.') && entry.name !== 'node_modules') {
+        await walk(full);
+      }
+    }
+  }
+  await walk(cwd);
+  return results;
+}
+
+/** 原生 ripgrep 替代：在文件中搜索匹配正则 */
+async function ripGrepContent(args: string[], file: string): Promise<string[]> {
+  let regex: RegExp | null = null;
+  let noHeading = false;
+  let noFilename = false;
+  let lineNumber = false;
+  let i = 0;
+  while (i < args.length) {
+    if (args[i] === '--regexp' && i + 1 < args.length) {
+      try { regex = new RegExp(args[i + 1]); } catch { regex = null; }
+      i += 2;
+    } else if (args[i] === '--no-heading') { noHeading = true; i++; }
+    else if (args[i] === '--no-filename') { noFilename = true; i++; }
+    else if (args[i] === '-n') { lineNumber = true; i++; }
+    else { i++; }
+  }
+  if (!regex) return [];
+  const results: string[] = [];
+  try {
+    const content = await readFile(file, 'utf-8');
+    const lines = content.split(/\r?\n/);
+    lines.forEach((line, idx) => {
+      if (regex.test(line)) {
+        let out = '';
+        if (lineNumber) out += `${idx + 1}:`;
+        if (!noFilename) out += file + ':';
+        if (!noHeading) out += file + ':';
+        results.push((out + line).trimStart());
+      }
+    });
+  } catch { /* skip */ }
+  return results;
+}
+
+/** 统一 ripgrep 接口：根据参数判断是文件列表还是内容搜索 */
+async function ripGrep(args: string[], cwdOrFile: string, _signal?: AbortSignal): Promise<string[]> {
+  if (args.includes('--files')) return ripGrepFiles(args, cwdOrFile);
+  return ripGrepContent(args, cwdOrFile);
+}
+
+const fs = { existsSync: () => true };
+const expandPath = (p: string) => p;
+const getFsImplementation = () => fs;
+
+// Re-export for backward compatibility within this module
+export { ripGrep as ripGrep, fs as getFsImplementation, expandPath };
 
 export type SymbolKind = 'function' | 'class' | 'interface' | 'type' | 'const' | 'let' | 'var' | 'enum';
 

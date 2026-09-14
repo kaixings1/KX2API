@@ -55,7 +55,6 @@ const PROVIDER_PRESETS: Record<string, { label: string; baseUrl: string; default
 }
 
 export function Profiles() {
-  console.log('[Profiles] Component mounted')
   const { t } = useTranslation()
   const { toast } = useToast()
   const [profiles, setProfiles] = useState<Profile[]>([])
@@ -100,7 +99,7 @@ export function Profiles() {
         setActiveName(result.activeProfile ?? null)
       }
     } catch (e) {
-      toast({ title: '加载失败', description: (e as Error).message, variant: 'destructive' })
+      toast({ title: t('profiles.loadFailed', '加载失败'), description: (e as Error).message, variant: 'destructive' })
     }
     setLoading(false)
   }
@@ -112,23 +111,23 @@ export function Profiles() {
       const result = await window.electronAPI.profiles.setActive(name)
       if (result.success) {
         setActiveName(name)
-        toast({ title: `已切换到 ${name}`, description: result.profile?.baseUrl })
+        toast({ title: t('profiles.switched', '已切换到') + ` ${name}`, description: result.profile?.baseUrl })
         await load()
       } else {
-        toast({ title: '切换失败', description: result.error, variant: 'destructive' })
+        toast({ title: t('profiles.switchFailed', '切换失败'), description: result.error, variant: 'destructive' })
       }
     } catch (e) {
-      toast({ title: '切换失败', description: (e as Error).message, variant: 'destructive' })
+      toast({ title: t('profiles.switchFailed', '切换失败'), description: (e as Error).message, variant: 'destructive' })
     }
   }
 
   const handleAdd = async () => {
     if (!newName.trim()) {
-      toast({ title: '名称不能为空', variant: 'destructive' })
+      toast({ title: t('profiles.nameRequired', '名称不能为空'), variant: 'destructive' })
       return
     }
     if (!newApiKey.trim()) {
-      toast({ title: 'API Key 不能为空', variant: 'destructive' })
+      toast({ title: t('profiles.apiKeyRequired', 'API Key 不能为空'), variant: 'destructive' })
       return
     }
     try {
@@ -145,10 +144,17 @@ export function Profiles() {
         setShowAdd(false)
         resetAddForm()
         await load()
-        toast({ title: `配置组 "${newName.trim()}" 已添加` })
+        toast({ title: `${t('profiles.profileAdded', '配置组')} "${newName.trim()}" ${t('profiles.added', '已添加')}` })
+      } else {
+        // 后端返回失败时明确提示，并带出具体原因，避免静默失败
+        toast({
+          title: t('profiles.addFailed', '添加失败'),
+          description: (result as { error?: string }).error || t('profiles.unknownError', '未知错误'),
+          variant: 'destructive',
+        })
       }
     } catch (e) {
-      toast({ title: '添加失败', description: (e as Error).message, variant: 'destructive' })
+      toast({ title: t('profiles.addFailed', '添加失败'), description: (e as Error).message, variant: 'destructive' })
     }
   }
 
@@ -165,7 +171,7 @@ export function Profiles() {
   const handleEditSave = async () => {
     if (!editing) return
     if (!editName.trim()) {
-      toast({ title: '名称不能为空', variant: 'destructive' })
+      toast({ title: t('profiles.nameRequired', '名称不能为空'), variant: 'destructive' })
       return
     }
     try {
@@ -181,10 +187,17 @@ export function Profiles() {
       if (result.success) {
         setEditing(null)
         await load()
-        toast({ title: `配置组 "${editName.trim()}" 已更新` })
+        toast({ title: `${t('profiles.profileUpdated', '配置组')} "${editName.trim()}" ${t('profiles.updated', '已更新')}` })
+      } else {
+        // 后端返回失败时也要明确提示，并带上具体原因
+        toast({
+          title: t('profiles.updateFailed', '更新失败'),
+          description: (result as { error?: string }).error || t('profiles.unknownError', '未知错误'),
+          variant: 'destructive',
+        })
       }
     } catch (e) {
-      toast({ title: '更新失败', description: (e as Error).message, variant: 'destructive' })
+      toast({ title: t('profiles.updateFailed', '更新失败'), description: (e as Error).message, variant: 'destructive' })
     }
   }
 
@@ -194,12 +207,12 @@ export function Profiles() {
       if (result.success) {
         setDeleteTarget(null)
         await load()
-        toast({ title: `配置组 "${name}" 已删除` })
+        toast({ title: `${t('profiles.profileDeleted', '配置组')} "${name}" ${t('profiles.deleted', '已删除')}` })
       } else {
-        toast({ title: '删除失败', description: result.error, variant: 'destructive' })
+        toast({ title: t('profiles.deleteFailed', '删除失败'), description: result.error, variant: 'destructive' })
       }
     } catch (e) {
-      toast({ title: '删除失败', description: (e as Error).message, variant: 'destructive' })
+      toast({ title: t('profiles.deleteFailed', '删除失败'), description: (e as Error).message, variant: 'destructive' })
     }
   }
 
@@ -219,14 +232,14 @@ export function Profiles() {
       {/* 头部 */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
         <div>
-          <h1 className="text-sm font-medium">API 配置组</h1>
+          <h1 className="text-sm font-medium">{t('profiles.title', 'API 配置组')}</h1>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            管理多组 API 接入点，切换后即时生效
+            {t('profiles.subtitle', '管理多组 API 接入点，切换后即时生效')}
           </p>
         </div>
         <Button size="sm" onClick={() => { resetAddForm(); setShowAdd(true) }}>
           <Plus className="w-3.5 h-3.5 mr-1" />
-          添加
+          {t('profiles.add', '添加')}
         </Button>
       </div>
 
@@ -237,8 +250,8 @@ export function Profiles() {
         ) : profiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
             <KeyRound className="w-8 h-8 mb-2 opacity-50" />
-            <p className="text-sm">暂无配置组</p>
-            <p className="text-xs mt-1">点击右上角"添加"创建第一个</p>
+            <p className="text-sm">{t('profiles.noProfiles', '暂无配置组')}</p>
+            <p className="text-xs mt-1">{t('profiles.noProfilesHint', '点击右上角"添加"创建第一个')}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -256,7 +269,7 @@ export function Profiles() {
                     <button
                       onClick={() => handleSwitch(p.name)}
                       className="mt-0.5 flex-shrink-0"
-                      title={p._active ? '当前激活' : '点击切换'}
+                      title={p._active ? t('profiles.active', '当前激活') : t('profiles.clickToSwitch', '点击切换')}
                     >
                       {p._active ? (
                         <CheckCircle2 className="w-4.5 h-4.5 text-[var(--accent)]" />
@@ -272,7 +285,7 @@ export function Profiles() {
                         </span>
                         {p._active && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--accent)]/20 text-[var(--accent)]">
-                            当前
+                            {t('profiles.current', '当前')}
                           </span>
                         )}
                       </div>
@@ -299,7 +312,7 @@ export function Profiles() {
                       size="icon"
                       className="h-7 w-7"
                       onClick={() => openEdit(p)}
-                      title="编辑"
+                      title={t('profiles.edit', '编辑')}
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                     </Button>
@@ -308,7 +321,7 @@ export function Profiles() {
                       size="icon"
                       className="h-7 w-7 text-red-400 hover:text-red-500"
                       onClick={() => setDeleteTarget(p.name)}
-                      title="删除"
+                      title={t('profiles.delete', '删除')}
                       disabled={profiles.length <= 1}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -325,9 +338,9 @@ export function Profiles() {
       <div className="border-t border-[var(--border)] mt-4">
         <div className="flex items-center justify-between px-4 py-3">
           <div>
-            <h3 className="text-sm font-medium">.doge 配置文件</h3>
+            <h3 className="text-sm font-medium">{t('profiles.dogeConfigTitle', '.doge 配置文件')}</h3>
             <p className="text-xs text-[var(--text-muted)] mt-0.5">
-              项目目录下的 JSON 配置文件
+              {t('profiles.dogeConfigDesc', '项目目录下的 JSON 配置文件')}
             </p>
           </div>
           <Button size="sm" variant="outline" onClick={async () => {
@@ -338,18 +351,18 @@ export function Profiles() {
                 setDogeFiles(result.files ?? [])
               }
             } catch (e) {
-              toast({ title: '加载配置失败', description: (e as Error).message, variant: 'destructive' })
+              toast({ title: t('profiles.loadDogeFailed', '加载配置失败'), description: (e as Error).message, variant: 'destructive' })
             }
             setDogeLoading(false)
           }}>
             <RefreshCw className={`w-3.5 h-3.5 mr-1 ${dogeLoading ? 'animate-spin' : ''}`} />
-            刷新
+            {t('profiles.refresh', '刷新')}
           </Button>
         </div>
         <ScrollArea className="px-4 pb-3 h-[200px]">
           {dogeFiles.length === 0 ? (
             <div className="text-xs text-[var(--text-muted)] py-4 text-center">
-              暂无配置文件
+              {t('profiles.noConfigFiles', '暂无配置文件')}
             </div>
           ) : (
             <div className="space-y-1">
@@ -377,10 +390,10 @@ export function Profiles() {
                             setViewingFile({ name: file.name, content: result.content ?? '' })
                             setShowRaw(false)
                           } else {
-                            toast({ title: '读取失败', description: result.error, variant: 'destructive' })
+                            toast({ title: t('profiles.readFailed', '读取失败'), description: result.error, variant: 'destructive' })
                           }
                         } catch (e) {
-                          toast({ title: '读取失败', description: (e as Error).message, variant: 'destructive' })
+                          toast({ title: t('profiles.readFailed', '读取失败'), description: (e as Error).message, variant: 'destructive' })
                         }
                       }}
                     >
@@ -398,14 +411,14 @@ export function Profiles() {
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm">添加配置组</DialogTitle>
+            <DialogTitle className="text-sm">{t('profiles.addTitle', '添加配置组')}</DialogTitle>
             <DialogDescription className="text-xs">
-              创建新的 API 接入点配置
+              {t('profiles.addDesc', '创建新的 API 接入点配置')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label className="text-xs">名称</Label>
+              <Label className="text-xs">{t('profiles.nameLabel', '名称')}</Label>
               <Input
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
@@ -414,7 +427,7 @@ export function Profiles() {
               />
             </div>
             <div>
-              <Label className="text-xs">服务商</Label>
+              <Label className="text-xs">{t('profiles.providerLabel', '服务商')}</Label>
               <Select value={newProvider} onValueChange={v => {
                 const provider = v as 'openai' | 'anthropic' | 'custom'
                 setNewProvider(provider)
@@ -432,7 +445,7 @@ export function Profiles() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Base URL</Label>
+              <Label className="text-xs">{t('profiles.baseUrlLabel', 'Base URL')}</Label>
               <Input
                 value={newBaseUrl}
                 onChange={e => setNewBaseUrl(e.target.value)}
@@ -441,7 +454,7 @@ export function Profiles() {
               />
             </div>
             <div>
-              <Label className="text-xs">API Key</Label>
+              <Label className="text-xs">{t('profiles.apiKeyLabel', 'API Key')}</Label>
               <Input
                 type="password"
                 value={newApiKey}
@@ -451,7 +464,7 @@ export function Profiles() {
               />
             </div>
             <div>
-              <Label className="text-xs">默认模型</Label>
+              <Label className="text-xs">{t('profiles.defaultModelLabel', '默认模型')}</Label>
               <Input
                 value={newModel}
                 onChange={e => setNewModel(e.target.value)}
@@ -460,7 +473,7 @@ export function Profiles() {
               />
             </div>
             <div>
-              <Label className="text-xs">工具调用最大轮次</Label>
+              <Label className="text-xs">{t('profiles.maxToolRoundsLabel', '工具调用最大轮次')}</Label>
               <Input
                 type="number"
                 min={1}
@@ -471,7 +484,7 @@ export function Profiles() {
               />
             </div>
             <div>
-              <Label className="text-xs">重复循环检测次数</Label>
+              <Label className="text-xs">{t('profiles.maxRepeatLabel', '重复循环检测次数')}</Label>
               <Input
                 type="number"
                 min={1}
@@ -483,8 +496,8 @@ export function Profiles() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>取消</Button>
-            <Button size="sm" onClick={handleAdd}>添加</Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>{t('profiles.cancel', '取消')}</Button>
+            <Button size="sm" onClick={handleAdd}>{t('profiles.add', '添加')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -493,14 +506,14 @@ export function Profiles() {
       <Dialog open={!!editing} onOpenChange={open => { if (!open) setEditing(null) }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm">编辑配置组</DialogTitle>
+            <DialogTitle className="text-sm">{t('profiles.editTitle', '编辑配置组')}</DialogTitle>
             <DialogDescription className="text-xs">
-              修改 {editing?.name} 的配置
+              {t('profiles.editDesc', '修改')} {editing?.name} {t('profiles.editDescSuffix', '的配置')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label className="text-xs">名称</Label>
+              <Label className="text-xs">{t('profiles.nameLabel', '名称')}</Label>
               <Input
                 value={editName}
                 onChange={e => setEditName(e.target.value)}
@@ -508,7 +521,7 @@ export function Profiles() {
               />
             </div>
             <div>
-              <Label className="text-xs">服务商</Label>
+              <Label className="text-xs">{t('profiles.providerLabel', '服务商')}</Label>
               <Select value={editProvider} onValueChange={v => {
                 const provider = v as 'openai' | 'anthropic' | 'custom'
                 setEditProvider(provider)
@@ -526,7 +539,7 @@ export function Profiles() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">Base URL</Label>
+              <Label className="text-xs">{t('profiles.baseUrlLabel', 'Base URL')}</Label>
               <Input
                 value={editBaseUrl}
                 onChange={e => setEditBaseUrl(e.target.value)}
@@ -534,7 +547,7 @@ export function Profiles() {
               />
             </div>
             <div>
-              <Label className="text-xs">API Key</Label>
+              <Label className="text-xs">{t('profiles.apiKeyLabel', 'API Key')}</Label>
               <Input
                 type="password"
                 value={editApiKey}
@@ -543,7 +556,7 @@ export function Profiles() {
               />
             </div>
             <div>
-              <Label className="text-xs">默认模型</Label>
+              <Label className="text-xs">{t('profiles.defaultModelLabel', '默认模型')}</Label>
               <Input
                 value={editModel}
                 onChange={e => setEditModel(e.target.value)}
@@ -551,7 +564,7 @@ export function Profiles() {
               />
             </div>
             <div>
-              <Label className="text-xs">工具调用最大轮次</Label>
+              <Label className="text-xs">{t('profiles.maxToolRoundsLabel', '工具调用最大轮次')}</Label>
               <Input
                 type="number"
                 min={1}
@@ -562,7 +575,7 @@ export function Profiles() {
               />
             </div>
             <div>
-              <Label className="text-xs">重复循环检测次数</Label>
+              <Label className="text-xs">{t('profiles.maxRepeatLabel', '重复循环检测次数')}</Label>
               <Input
                 type="number"
                 min={1}
@@ -574,8 +587,8 @@ export function Profiles() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>取消</Button>
-            <Button size="sm" onClick={handleEditSave}>保存</Button>
+            <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>{t('profiles.cancel', '取消')}</Button>
+            <Button size="sm" onClick={handleEditSave}>{t('profiles.save', '保存')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -584,19 +597,19 @@ export function Profiles() {
       <Dialog open={!!deleteTarget} onOpenChange={open => { if (!open) setDeleteTarget(null) }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm">删除配置组</DialogTitle>
+            <DialogTitle className="text-sm">{t('profiles.deleteTitle', '删除配置组')}</DialogTitle>
             <DialogDescription className="text-xs">
-              确定删除 "{deleteTarget}" 吗？此操作不可撤销。
+              {t('profiles.deleteDesc', '确定删除')} "{deleteTarget}" {t('profiles.deleteDescSuffix', '吗？此操作不可撤销。')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>取消</Button>
+            <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>{t('profiles.cancel', '取消')}</Button>
             <Button
               variant="destructive"
               size="sm"
               onClick={() => deleteTarget && handleDelete(deleteTarget)}
             >
-              删除
+              {t('profiles.delete', '删除')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -611,7 +624,7 @@ export function Profiles() {
               {viewingFile?.name}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              .doge 目录下的 JSON 配置文件
+              {t('profiles.jsonViewDesc', '.doge 目录下的 JSON 配置文件')}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
@@ -623,10 +636,10 @@ export function Profiles() {
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="ghost" size="sm" onClick={() => setShowRaw(!showRaw)}>
-              {showRaw ? '格式化' : '原始'}
+              {showRaw ? t('profiles.formatted', '格式化') : t('profiles.raw', '原始')}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => { setViewingFile(null); setShowRaw(false) }}>
-              关闭
+              {t('profiles.close', '关闭')}
             </Button>
           </DialogFooter>
         </DialogContent>
