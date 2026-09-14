@@ -238,6 +238,7 @@ export const IpcChannels = {
   PLUGINS_GET_ALL: 'plugins:getAll',
   PLUGINS_GET_BUILTIN: 'plugins:getBuiltin',
   PLUGINS_GET_INSTALLED: 'plugins:getInstalled',
+  PLUGINS_ADD: 'plugins:add',
   PLUGINS_INSTALL: 'plugins:install',
   PLUGINS_UNINSTALL: 'plugins:uninstall',
   PLUGINS_ENABLE: 'plugins:enable',

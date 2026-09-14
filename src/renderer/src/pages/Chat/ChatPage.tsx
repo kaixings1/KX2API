@@ -7,12 +7,13 @@
  * - 最小化状态，避免死循环
  */
 
-import { useState, useRef, useEffect, useCallback, memo } from 'react'
+import { useState, useRef, useEffect, useCallback, memo, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import type { Components } from 'react-markdown'
 import { FileTree } from './FileTree'
+import { StreamParser, type ParsedTool, parseToolsFromText } from './streamParser'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
 } from '@/components/ui/sheet'
@@ -25,6 +26,8 @@ interface Message {
   id: string
   role: 'user' | 'assistant' | 'error' | 'system'
   content: string
+  reasoning_content?: string
+  tool_calls?: ParsedTool[]
   timestamp: number
   _deleted?: boolean
 }
@@ -124,17 +127,135 @@ const mdComponents: Components = {
   code({ children, className }) {
     return <CodeBlock className={className}>{children as string}</CodeBlock>
   },
+  heading({ children, level }) {
+    const depth = typeof level === 'number' ? level : 1
+    const tag = `h${Math.min(depth, 6)}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
+    const cls = depth <= 6 ? `md-heading md-h${depth}` : 'md-heading md-h7'
+    const Tag = tag
+    return <Tag className={cls}>{children}</Tag>
+  },
 }
 
 function hasMarkdown(text: string): boolean {
   return /(^#{1,6}\s)|(\*\*[\s\S]*?\*\*)|(`{1,3}[\s\S]*?`{1,3})|(^[-*]\s)|(^>\s)|(^\d+\.\s)|(\[.+?\]\(.+?\))/m.test(text)
 }
 
-function MessageContent({ content, isStreaming }: { content: string; isStreaming: boolean }) {
+/**
+ * Merge two tool arrays, deduplicating by name + arguments.
+ * Keeps unique tool calls, preserving order.
+ */
+function mergeTools(a: ParsedTool[], b: ParsedTool[]): ParsedTool[] {
+  const seen = new Set<string>()
+  const merged: ParsedTool[] = []
+  for (const tool of [...a, ...b]) {
+    const key = tool.name + '::' + tool.arguments
+    if (!seen.has(key)) {
+      seen.add(key)
+      merged.push(tool)
+    }
+  }
+  return merged
+}
+
+// ─── Reasoning Block (collapsible) ───────────────────────────────────────────
+
+function ReasoningBlock({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  if (!text) return null
+  return (
+    <div className="reasoning-block">
+      <div className="reasoning-header" onClick={() => setExpanded(p => !p)}>
+        <span className="reasoning-icon">{expanded ? '🧠' : '🧠'}</span>
+        <span className="reasoning-label">推理过程</span>
+        <span className="reasoning-toggle">
+          {expanded ? '收起' : '展开'}
+        </span>
+      </div>
+      {expanded && (
+        <div className="reasoning-body">
+          <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.88em', lineHeight: 1.6, opacity: 0.8 }}>
+            {text}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Tool Use Block (merged) ─────────────────────────────────────────────────
+
+function ToolUseBlock({ tool }: { tool: ParsedTool }) {
+  const [expanded, setExpanded] = useState(false)
+  let parsedArgs: Record<string, unknown> | null = null
+  try {
+    parsedArgs = JSON.parse(tool.arguments)
+  } catch {
+    // leave as raw text
+  }
+
+  return (
+    <div className="tool-use-block">
+      <div className="tool-use-header" onClick={() => setExpanded(p => !p)}>
+        <span className="tool-use-arrow">{expanded ? '▼' : '▶'}</span>
+        <span className="tool-use-name">{tool.name}</span>
+        <span className="tool-use-toggle">
+          {expanded ? '收起参数' : '展开参数'}
+        </span>
+      </div>
+      {expanded && (
+        <div className="tool-use-body">
+          {parsedArgs ? (
+            <pre className="tool-use-args-pre">
+              <code>{JSON.stringify(parsedArgs, null, 2)}</code>
+            </pre>
+          ) : (
+            <pre className="tool-use-args-pre">
+              <code>{tool.arguments || '(无参数)'}</code>
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Message Content (main renderer) ─────────────────────────────────────────
+
+function MessageContent({
+  content,
+  isStreaming,
+  reasoning_content,
+  tool_calls,
+}: {
+  content: string
+  isStreaming: boolean
+  reasoning_content?: string
+  tool_calls?: ParsedTool[]
+}) {
   const blocks = detectToolBlocks(content)
   const lastBlockIdx = blocks.length - 1
+
+  const effectiveReasoning = reasoning_content || ''
+  const hasReasoning = !isStreaming || effectiveReasoning.length > 0
+  const effectiveTools = tool_calls || []
+
   return (
     <div>
+      {/* Reasoning section — shown above content, collapsible */}
+      {hasReasoning && (
+        <ReasoningBlock text={effectiveReasoning} />
+      )}
+
+      {/* Tool use section — shown above content, merged */}
+      {effectiveTools.length > 0 && !isStreaming && (
+        <div className="tool-uses-list">
+          {effectiveTools.map((tool) => (
+            <ToolUseBlock key={tool.id} tool={tool} />
+          ))}
+        </div>
+      )}
+
+      {/* Text content */}
       {blocks.map((block, i) => {
         if (block.type === 'tool-result') {
           return <ToolResultView key={i} text={block.text} />
@@ -142,8 +263,17 @@ function MessageContent({ content, isStreaming }: { content: string; isStreaming
         const text = block.text
         if (!text) return null
         const showCursor = isStreaming && i === lastBlockIdx
+        // During streaming: render as plain text for typewriter effect
+        // After streaming: render full Markdown
+        if (isStreaming) {
+          return (
+            <div key={i} className={`md-prose ${showCursor ? 'typing-cursor' : ''}`}>
+              <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</span>
+            </div>
+          )
+        }
         return (
-          <div key={i} className={`md-prose ${showCursor ? 'typing-cursor' : ''}`}>
+          <div key={i} className="md-prose">
             {hasMarkdown(text) ? (
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={mdComponents}>
                 {text}
@@ -158,7 +288,147 @@ function MessageContent({ content, isStreaming }: { content: string; isStreaming
   )
 }
 
+function formatTime(ts: number) {
+  const d = new Date(ts)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return isToday ? time : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${time}`
+}
+
 const MemoMessageContent = memo(MessageContent)
+
+// ─── Streaming parser instance ──────────────────────────────────────────────
+const streamParserRef = new StreamParser()
+
+// Memoized message row — only re-renders when its own content/role changes
+const MessageRow = memo(function MessageRow({ msg, isStreaming, setInput, setMessages, textareaRef }: { msg: Message; isStreaming: boolean; setInput: (v: string) => void; setMessages: React.Dispatch<React.SetStateAction<Message[]>>; textareaRef: React.RefObject<HTMLTextAreaElement | null> }) {
+  const roleClass = msg.role === 'user'
+    ? 'chat-msg-user'
+    : msg.role === 'error'
+      ? 'chat-msg-error'
+      : msg.role === 'system'
+        ? 'chat-msg-system'
+        : 'chat-msg-assistant'
+  return (
+    <div className={roleClass}>
+      {/* Role label */}
+      {msg.role !== 'system' && (
+        <div className="chat-msg-role">
+          {msg.role === 'user' ? '❯ 你' : msg.role === 'error' ? '⚠ 错误' : '● 助手'}
+          <span style={{ opacity: 0.5, marginLeft: 6 }}>
+            {formatTime(msg.timestamp)}
+          </span>
+        </div>
+      )}
+
+      {/* Bubble / content */}
+      <div className="chat-msg-bubble">
+        {msg.role === 'system' ? (
+          <span>{msg.content}</span>
+        ) : msg.role === 'assistant' ? (
+          <MemoMessageContent
+            content={msg.content}
+            isStreaming={isStreaming}
+            reasoning_content={msg.reasoning_content}
+            tool_calls={msg.tool_calls}
+          />
+        ) : (
+          <span className="whitespace-pre-wrap break-words">
+            {msg.content || <span className="text-[var(--text-faint)]">...</span>}
+          </span>
+        )}
+      </div>
+
+      {/* Actions row */}
+      {msg.role === 'user' && (
+        <div className="chat-msg-actions">
+          <button onClick={() => {
+            setInput(msg.content)
+            textareaRef.current?.focus()
+          }}>编辑</button>
+          <button onClick={() => {
+            setMessages(prev => {
+              const idx = prev.findIndex(m => m.id === msg.id)
+              if (idx >= 0) {
+                const next = [...prev]
+                if (idx < next.length - 1 && next[idx + 1]?.role === 'assistant') {
+                  next.splice(idx, 2)
+                } else {
+                  next.splice(idx, 1)
+                }
+                return next
+              }
+              return prev
+            })
+          }}>删除</button>
+        </div>
+      )}
+      {msg.role === 'assistant' && (
+        <div className="chat-msg-actions">
+          <button onClick={() => {
+            navigator.clipboard.writeText(msg.content).catch(() => {})
+          }}>复制</button>
+          <button onClick={async () => {
+            if (window.electronAPI?.chat?.executeCommand) {
+              const result = await window.electronAPI.chat.executeCommand('summarize', [])
+              if (result.success && result.output) {
+                setInput(result.output)
+                textareaRef.current?.focus()
+              }
+            }
+          }}>从此处开始总结</button>
+          <button onClick={() => {
+            setInput(msg.content)
+            textareaRef.current?.focus()
+          }}>编辑</button>
+          <button onClick={async () => {
+            if (window.electronAPI?.chat?.executeCommand) {
+              const result = await window.electronAPI.chat.executeCommand('regenerate', [])
+              if (result.success) {
+                setMessages(prev => {
+                  const idx = prev.findIndex(m => m.id === msg.id)
+                  if (idx >= 0) {
+                    const next = [...prev]
+                    next[idx] = { ...next[idx], content: '' }
+                    return next
+                  }
+                  return prev
+                })
+              }
+            }
+          }}>重新生成</button>
+          <button onClick={() => {
+            setMessages(prev => {
+              const idx = prev.findIndex(m => m.id === msg.id)
+              if (idx > 0 && prev[idx - 1]?.role === 'user') {
+                const next = [...prev]
+                next.splice(idx - 1, 2)
+                return next
+              }
+              return prev.filter(m => m.id !== msg.id)
+            })
+          }}>删除</button>
+        </div>
+      )}
+      {msg.role === 'error' && (
+        <div className="chat-msg-actions">
+          <button onClick={() => {
+            setMessages(prev => {
+              const idx = prev.findIndex(m => m.id === msg.id)
+              if (idx >= 0) {
+                const next = [...prev]
+                next.splice(idx, 1)
+                return next
+              }
+              return prev
+            })
+          }}>删除</button>
+        </div>
+      )}
+    </div>
+  )
+})
 
 // ---------- main page ----------
 
@@ -199,9 +469,62 @@ export function ChatPage() {
   const streamStatusRef = useRef<'idle' | 'streaming'>('idle')
   const messagesRef = useRef<Message[]>([])
 
+  // Streaming buffer: accumulates raw SSE chunks in ref, flushes parsed result via rAF
+  const streamBufferRef = useRef<string>('')
+  const rafIdRef = useRef<number>(0)
+  const streamingMsgIdRef = useRef<string>('')
+
+  // Refs to hold parsed streaming state (avoid re-render storms)
+  const streamingReasoningRef = useRef<string>('')
+  const streamingToolsRef = useRef<ParsedTool[]>([])
+
   // 同步 ref，避免 stale closure
   useEffect(() => { messagesRef.current = messages }, [messages])
   useEffect(() => { streamStatusRef.current = isStreaming ? 'streaming' : 'idle' }, [isStreaming])
+
+  // Cleanup rAF on unmount
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current)
+    }
+  }, [])
+
+  // Flush accumulated stream buffer to React state (batched via rAF)
+  const flushStreamBuffer = useCallback(() => {
+    const buf = streamBufferRef.current
+    if (!buf) return
+    streamBufferRef.current = ''
+    const msgId = streamingMsgIdRef.current
+
+    // Parse accumulated chunks through StreamParser
+    streamParserRef.append(buf)
+    const parsed = streamParserRef.parse()
+    streamingReasoningRef.current = parsed.reasoning
+    streamingToolsRef.current = parsed.tools
+
+    setMessages(prev => {
+      const idx = prev.findIndex(m => m.id === msgId)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = {
+          ...next[idx],
+          content: parsed.content,
+          reasoning_content: parsed.reasoning,
+          tool_calls: parsed.tools,
+        }
+        return next
+      }
+      return prev
+    })
+  }, [])
+
+  const scheduleFlush = useCallback(() => {
+    if (rafIdRef.current) return
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = 0
+      flushStreamBuffer()
+    })
+  }, [flushStreamBuffer])
 
   // 自动滚动到底部
   useEffect(() => {
@@ -258,12 +581,16 @@ export function ChatPage() {
     if (window.electronAPI?.chat?.getHistory) {
       window.electronAPI.chat.getHistory().then((history: { messages: Array<{ role: string; content: string }> }) => {
         if (history.messages?.length) {
-          const mapped = history.messages.map((m: { role: string; content: string }, i: number) => ({
-            id: `hist-${i}`,
-            role: m.role as Message['role'],
-            content: m.content,
-            timestamp: Date.now() - (history.messages.length - i) * 1000,
-          }))
+          const mapped = history.messages.map((m: { role: string; content: string }, i: number) => {
+            const tools = parseToolsFromText(m.content)
+            return {
+              id: `hist-${i}`,
+              role: m.role as Message['role'],
+              content: m.content,
+              tool_calls: tools.length > 0 ? tools : [],
+              timestamp: Date.now() - (history.messages.length - i) * 1000,
+            }
+          })
           setMessages(mapped)
         }
       })
@@ -455,37 +782,79 @@ export function ChatPage() {
     streamStatusRef.current = 'streaming'
     setUserScrolledUp(false)
 
+    // Reset stream parser for fresh parse
+    streamParserRef.reset()
+    streamingReasoningRef.current = ''
+    streamingToolsRef.current = []
+
     // 创建占位 assistant 消息
     setMessages(prev => [...prev, {
       id: assistantId,
       role: 'assistant',
       content: '',
+      reasoning_content: '',
+      tool_calls: [],
       timestamp: Date.now(),
     }] as Message[])
 
+    streamingMsgIdRef.current = assistantId
+    streamBufferRef.current = ''
+
     const cleanupChunk = window.electronAPI.chat.onStreamChunk(({ chunk }) => {
-      setMessages(prev => prev.map(m =>
-        m.id === assistantId ? { ...m, content: m.content + chunk } : m
-      ))
+      // Accumulate in ref, flush via rAF (batched, smooth typewriter effect)
+      streamBufferRef.current += chunk
+      scheduleFlush()
     })
 
     const cleanupDone = window.electronAPI.chat.onStreamDone(({ content, toolOutput }) => {
+      // Flush any remaining buffered content
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current)
+        rafIdRef.current = 0
+      }
+      // Final parse of any remaining buffer
+      streamParserRef.append(streamBufferRef.current)
+      streamBufferRef.current = ''
+      const finalParsed = streamParserRef.parse()
+
+      // Merge streaming tools with any from final parse (dedup by name+args)
+      const mergedTools = mergeTools(streamingToolsRef.current, finalParsed.tools)
+
+      const finalContent = content || toolOutput || finalParsed.content
+      const finalReasoning = finalParsed.reasoning || streamingReasoningRef.current
+
       setMessages(prev => prev.map(m =>
-        m.id === assistantId ? { ...m, content: content || toolOutput || '' } : m
+        m.id === assistantId
+          ? {
+              ...m,
+              content: finalContent,
+              reasoning_content: finalReasoning || '',
+              tool_calls: mergedTools.length > 0 ? mergedTools : [],
+            }
+          : m
       ))
       setIsStreaming(false)
       streamStatusRef.current = 'idle'
+      streamingMsgIdRef.current = ''
+      streamingReasoningRef.current = ''
+      streamingToolsRef.current = []
       cleanupChunk()
       cleanupDone()
       cleanupError()
     })
 
     const cleanupError = window.electronAPI.chat.onStreamError(({ error }) => {
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current)
+        rafIdRef.current = 0
+      }
+      flushStreamBuffer()
       setMessages(prev => prev.map(m =>
         m.id === assistantId ? { ...m, role: 'error' as const, content: error } : m
       ))
       setIsStreaming(false)
       streamStatusRef.current = 'idle'
+      streamingMsgIdRef.current = ''
       cleanupChunk()
       cleanupDone()
       cleanupError()
@@ -493,9 +862,10 @@ export function ChatPage() {
 
     try {
       const result = await window.electronAPI.chat.sendMessage(text)
-      if (!result.success && result.error) {
+      if (!result.success) {
+        const errorMsg = result.error || '请求失败'
         setMessages(prev => prev.map(m =>
-          m.id === assistantId ? { ...m, role: 'error' as const, content: result.error || '发送失败' } : m
+          m.id === assistantId ? { ...m, role: 'error' as const, content: errorMsg } : m
         ))
         setIsStreaming(false)
         streamStatusRef.current = 'idle'
@@ -555,33 +925,25 @@ export function ChatPage() {
     }
   }, [])
 
-  const formatTime = (ts: number) => {
-    const d = new Date(ts)
-    const now = new Date()
-    const isToday = d.toDateString() === now.toDateString()
-    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    return isToday ? time : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${time}`
-  }
-
   // 判断最后一条消息是否是正在流式输出的 assistant
   const lastMsg = messages[messages.length - 1]
   const isLastAssistantStreaming = isStreaming && lastMsg?.role === 'assistant' && !lastMsg?.content
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--bg-primary)]">
+    <div className="flex flex-col h-[90vh] bg-[var(--bg-primary)]">
       {/* 顶部工具栏 */}
-      <header className="flex items-center justify-between px-4 h-10 border-b border-[var(--border)] bg-[var(--bg-secondary)] flex-shrink-0">
+      <header className="flex items-center justify-between px-3 h-8 border-b border-[var(--border)] bg-[var(--bg-secondary)] flex-shrink-0">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSidebar(p => !p)}
-            className="p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
+            className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
             title="文件浏览器"
           >
             {showSidebar ? '◀' : '📁'}
           </button>
           <button
             onClick={() => setShowTerminal(p => !p)}
-            className="p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
+            className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
             title="终端"
           >
             {showTerminal ? '▼' : '⌨'}
@@ -590,7 +952,7 @@ export function ChatPage() {
           <Sheet open={showConfig} onOpenChange={setShowConfig}>
             <SheetTrigger asChild>
               <button
-                className="p-1.5 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
+                className="p-1 rounded hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
                 title="配置"
               >
                 ⚙
@@ -734,112 +1096,14 @@ export function ChatPage() {
             ) : (
               <div className="chat-messages-list py-4">
                 {messages.map((msg) => (
-                  <div key={msg.id} className={msg.role === 'user'
-                    ? 'chat-msg-user'
-                    : msg.role === 'error'
-                      ? 'chat-msg-error'
-                      : msg.role === 'system'
-                        ? 'chat-msg-system'
-                        : 'chat-msg-assistant'
-                  }>
-                    {/* Role label */}
-                    {msg.role !== 'system' && (
-                      <div className="chat-msg-role">
-                        {msg.role === 'user' ? '❯ 你' : msg.role === 'error' ? '⚠ 错误' : '● 助手'}
-                        <span style={{ opacity: 0.5, marginLeft: 6 }}>
-                          {formatTime(msg.timestamp)}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Bubble / content */}
-                    <div className="chat-msg-bubble">
-                      {msg.role === 'system' ? (
-                        <span>{msg.content}</span>
-                      ) : msg.role === 'assistant' ? (
-                        <MemoMessageContent
-                          content={msg.content}
-                          isStreaming={isStreaming && messages[messages.length - 1]?.id === msg.id}
-                        />
-                      ) : (
-                        <span className="whitespace-pre-wrap break-words">
-                          {msg.content || <span className="text-[var(--text-faint)]">...</span>}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Actions row */}
-                    {msg.role === 'user' && (
-                      <div className="chat-msg-actions">
-                        <button onClick={() => {
-                          setInput(msg.content)
-                          textareaRef.current?.focus()
-                        }}>编辑</button>
-                        <button onClick={() => {
-                          setMessages(prev => {
-                            const idx = prev.findIndex(m => m.id === msg.id)
-                            if (idx >= 0) {
-                              const next = [...prev]
-                              if (idx < next.length - 1 && next[idx + 1]?.role === 'assistant') {
-                                next.splice(idx, 2)
-                              } else {
-                                next.splice(idx, 1)
-                              }
-                              return next
-                            }
-                            return prev
-                          })
-                        }}>删除</button>
-                      </div>
-                    )}
-                    {msg.role === 'assistant' && (
-                      <div className="chat-msg-actions">
-                        <button onClick={() => {
-                          navigator.clipboard.writeText(msg.content).catch(() => {})
-                        }}>复制</button>
-                        <button onClick={async () => {
-                          if (window.electronAPI?.chat?.executeCommand) {
-                            const result = await window.electronAPI.chat.executeCommand('summarize', [])
-                            if (result.success && result.output) {
-                              setInput(result.output)
-                              textareaRef.current?.focus()
-                            }
-                          }
-                        }}>从此处开始总结</button>
-                        <button onClick={() => {
-                          setInput(msg.content)
-                          textareaRef.current?.focus()
-                        }}>编辑</button>
-                        <button onClick={async () => {
-                          if (window.electronAPI?.chat?.executeCommand) {
-                            const result = await window.electronAPI.chat.executeCommand('regenerate', [])
-                            if (result.success) {
-                              setMessages(prev => {
-                                const idx = prev.findIndex(m => m.id === msg.id)
-                                if (idx >= 0) {
-                                  const next = [...prev]
-                                  next[idx] = { ...next[idx], content: '' }
-                                  return next
-                                }
-                                return prev
-                              })
-                            }
-                          }
-                        }}>重新生成</button>
-                        <button onClick={() => {
-                          setMessages(prev => {
-                            const idx = prev.findIndex(m => m.id === msg.id)
-                            if (idx > 0 && prev[idx - 1]?.role === 'user') {
-                              const next = [...prev]
-                              next.splice(idx - 1, 2)
-                              return next
-                            }
-                            return prev.filter(m => m.id !== msg.id)
-                          })
-                        }}>删除</button>
-                      </div>
-                    )}
-                  </div>
+                  <MessageRow
+                    key={msg.id}
+                    msg={msg}
+                    isStreaming={isStreaming && messages[messages.length - 1]?.id === msg.id}
+                    setInput={setInput}
+                    setMessages={setMessages}
+                    textareaRef={textareaRef}
+                  />
                 ))}
                 <div ref={messagesEndRef} />
               </div>

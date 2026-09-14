@@ -1364,12 +1364,27 @@ export class StepFunAdapter {
       timeoutMs: 10000,
       tolerate: [404],
     })
+    // Transport failure: assume the session is fine rather than discarding a
+    // good id because of a flaky probe.
     if (!res) return true
     if (res.status === 404) return false
-    if (res.data?.chatSession?.chatSessionId) return true
-    // A well-formed 200 without a session means the id no longer resolves.
-    if (res.status >= 200 && res.status < 300 && res.text.includes('chatSession')) return true
-    return res.status >= 500
+
+    // A live session answers with {"chatSession":{"chatSessionId":"..."}}.
+    const returnedId = res.data?.chatSession?.chatSessionId
+    if (returnedId) return String(returnedId) === String(sessionId)
+
+    // A stale id answers HTTP 200 with the error at the TOP level:
+    //   {"code":"not_found","message":"chat session not found"}
+    // Note the code is not nested under "error", and the message itself
+    // contains the word "chatSession" — matching on that string is what made
+    // deleted sessions look alive.
+    const code = res.data?.code || res.data?.error?.code || res.data?.debug?.code || ''
+    if (/not_found/i.test(String(code))) return false
+    if (/not found/i.test(String(res.data?.message || ''))) return false
+
+    // Neither a session nor a recognisable error: treat as usable so a shape
+    // change never triggers needless session churn.
+    return res.status >= 500 || (res.status >= 200 && res.status < 300)
   }
 
   /**
@@ -2039,6 +2054,17 @@ export class StepFunAdapter {
       const errMsg = json.error.message || JSON.stringify(json.error)
       const errCode = json.error.code || 'unknown'
       console.error('[StepFun][CONNECT] error frame:', errMsg)
+
+      // Self-heal: the pre-flight check can only catch a stale id before the
+      // request goes out. If the server rejects it anyway, drop the cached id
+      // so the next turn creates a fresh session instead of failing the same
+      // way forever.
+      if (/not_found/i.test(String(errCode)) || /session not found/i.test(String(errMsg))) {
+        console.log('[StepFun][CONNECT] session rejected by server, clearing cached id')
+        this.chatSessionId = null
+        if (this.currentSessionKey) sessionCache.delete(this.currentSessionKey)
+      }
+
       const errorChunk = {
         id: messageIdState.current || Math.random().toString(36).slice(2),
         model,

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -8,16 +9,18 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Trash2, Play, CheckCircle2, Loader2, Calendar } from 'lucide-react'
+import { Plus, Trash2, Play, CheckCircle2, Loader2, Calendar, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ManagementToolbar } from '@/components/management'
+import { ImportExportDialog } from '@/components/management/ImportExportDialog'
 
 const tasksApi = window.electronAPI.tasks
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
-  todo: { label: '待办', variant: 'secondary' },
-  in_progress: { label: '进行中', variant: 'default' },
-  done: { label: '完成', variant: 'outline' },
-  cancelled: { label: '取消', variant: 'destructive' },
+  todo: { label: '○ 待办', variant: 'secondary' },
+  in_progress: { label: '● 进行中', variant: 'default' },
+  done: { label: '○ 完成', variant: 'outline' },
+  cancelled: { label: '○ 取消', variant: 'destructive' },
 }
 
 const PRIORITY_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
@@ -28,6 +31,7 @@ const PRIORITY_MAP: Record<string, { label: string; variant: 'default' | 'second
 
 export function TaskManagement() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [tasks, setTasks] = useState<TaskRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -41,6 +45,82 @@ export function TaskManagement() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [search, setSearch] = useState('')
+
+  // ==================== Import/Export ====================
+
+  const [ioOpen, setIoOpen] = useState(false)
+  const [ioMode, setIoMode] = useState<'import' | 'export' | 'backup' | 'restore'>('export')
+
+  const handleExport = async () => {
+    try {
+      const res = await window.electronAPI.mgmt.export('tasks', filtered)
+      if (res.success) {
+        const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `tasks_${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Export failed:', e)
+    }
+  }
+
+  const handleImport = async (jsonData: string) => {
+    try {
+      const res = await window.electronAPI.mgmt.import('tasks', jsonData)
+      if (res.success && res.data) {
+        for (const item of res.data) {
+          if (item?.title) {
+            await tasksApi.create({ ...item, status: item.status || 'todo' })
+          }
+        }
+        loadTasks()
+        return { success: true }
+      }
+      return { success: false, error: res.error }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  }
+
+  const handleBackup = async () => {
+    try {
+      const res = await window.electronAPI.mgmt.backup()
+      if (res.success) {
+        const blob = new Blob([JSON.stringify({ tasks: filtered }, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `tasks_backup_${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      console.error('Backup failed:', e)
+    }
+  }
+
+  const handleRestore = async (file: File) => {
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      if (!Array.isArray(data)) return { success: false, error: '数据格式错误' }
+      for (const item of data) {
+        if (item?.title) {
+          await tasksApi.create({ ...item, status: item.status || 'todo' })
+        }
+      }
+      loadTasks()
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  }
+
+  // ==================== Load ====================
 
   const loadTasks = useCallback(async () => {
     setLoading(true)
@@ -122,62 +202,46 @@ export function TaskManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{t('tasks.title', '任务管理')}</h2>
-          <p className="text-muted-foreground">{t('tasks.description', '跟踪和管理任务')} · 数据存储于 userData/data/tasks/</p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" />{t('tasks.create', '新建任务')}</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingTask ? t('tasks.edit', '编辑任务') : t('tasks.create', '新建任务')}</DialogTitle>
-              <DialogDescription>
-                {editingTask ? t('tasks.editDesc', '编辑任务配置') : t('tasks.createDesc', '创建一个新的任务')}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>{t('tasks.titleLabel', '标题')}</Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} />
-              </div>
-              <div>
-                <Label>{t('tasks.descriptionLabel', '描述')}</Label>
-                <Textarea value={description} onChange={e => setDescription(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>{t('tasks.priorityLabel', '优先级')}</Label>
-                  <Select value={priority} onValueChange={v => setPriority(v as 'low' | 'medium' | 'high')}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">{t('tasks.priorityLow', '低')}</SelectItem>
-                      <SelectItem value="medium">{t('tasks.priorityMedium', '中')}</SelectItem>
-                      <SelectItem value="high">{t('tasks.priorityHigh', '高')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>负责人</Label>
-                  <Input value={assignee} onChange={e => setAssignee(e.target.value)} placeholder="可选" />
-                </div>
-              </div>
-              <div>
-                <Label>截止日期</Label>
-                <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
-              </div>
-              <div>
-                <Label>{t('tasks.tagsLabel', '标签（逗号分隔）')}</Label>
-                <Input value={tagsText} onChange={e => setTagsText(e.target.value)} />
-              </div>
-              <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <ManagementToolbar
+        title={t('tasks.title', '任务管理')}
+        subtitle={t('tasks.description', '跟踪和管理任务')}
+        createLabel={<><Plus className="h-4 w-4 mr-1" />{t('tasks.create', '新建任务')}</>}
+        onCreate={openCreate}
+        onRefresh={loadTasks}
+        onExport={() => { setIoMode('export'); setIoOpen(true) }}
+        onImport={() => { setIoMode('import'); setIoOpen(true) }}
+        onBackup={() => { setIoMode('backup'); setIoOpen(true) }}
+        onRestore={() => { setIoMode('restore'); setIoOpen(true) }}
+        filters={{ search, status: filterStatus }}
+        onFiltersChange={(f) => { setSearch(f.search || ''); setFilterStatus(f.status || 'all') }}
+        filterOptions={[
+          { key: 'status', label: '状态', options: [
+            { value: 'all', label: '全部状态' },
+            { value: 'todo', label: '待办' },
+            { value: 'in_progress', label: '进行中' },
+            { value: 'done', label: '完成' },
+            { value: 'cancelled', label: '取消' },
+          ]},
+        ]}
+        totalCount={tasks.length}
+        filteredCount={filtered.length}
+        isLoading={loading}
+      />
 
+      <ImportExportDialog
+        open={ioOpen}
+        onOpenChange={setIoOpen}
+        mode={ioMode}
+        title="任务管理"
+        description={ioMode === 'export' ? '导出任务配置为 JSON 文件' : ioMode === 'import' ? '导入任务配置' : ioMode === 'backup' ? '备份所有任务数据' : '从备份恢复任务数据'}
+        data={filtered}
+        onExport={handleExport}
+        onImport={handleImport}
+        onBackup={handleBackup}
+        onRestore={handleRestore}
+      />
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-5 gap-3">
         {[
           { label: '全部', value: stats.total, key: 'all' },
@@ -195,17 +259,8 @@ export function TaskManagement() {
         ))}
       </div>
 
+      {/* Priority filter */}
       <div className="flex items-center gap-2">
-        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜索任务..." className="max-w-xs" />
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部状态</SelectItem>
-            {Object.entries(STATUS_MAP).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         <Select value={filterPriority} onValueChange={setFilterPriority}>
           <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -216,6 +271,54 @@ export function TaskManagement() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingTask ? t('tasks.edit', '编辑任务') : t('tasks.create', '新建任务')}</DialogTitle>
+            <DialogDescription>
+              {editingTask ? t('tasks.editDesc', '编辑任务配置') : t('tasks.createDesc', '创建一个新的任务')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>{t('tasks.titleLabel', '标题')}</Label>
+              <Input value={title} onChange={e => setTitle(e.target.value)} />
+            </div>
+            <div>
+              <Label>{t('tasks.descriptionLabel', '描述')}</Label>
+              <Textarea value={description} onChange={e => setDescription(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>{t('tasks.priorityLabel', '优先级')}</Label>
+                <Select value={priority} onValueChange={v => setPriority(v as 'low' | 'medium' | 'high')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">{t('tasks.priorityLow', '低')}</SelectItem>
+                    <SelectItem value="medium">{t('tasks.priorityMedium', '中')}</SelectItem>
+                    <SelectItem value="high">{t('tasks.priorityHigh', '高')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>负责人</Label>
+                <Input value={assignee} onChange={e => setAssignee(e.target.value)} placeholder="可选" />
+              </div>
+            </div>
+            <div>
+              <Label>截止日期</Label>
+              <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>{t('tasks.tagsLabel', '标签（逗号分隔）')}</Label>
+              <Input value={tagsText} onChange={e => setTagsText(e.target.value)} />
+            </div>
+            <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>

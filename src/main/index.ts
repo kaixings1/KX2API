@@ -17,6 +17,8 @@ import { UpdaterManager } from './updater'
 import { storeManager } from './store/store'
 import { ProviderManager } from './store/providers'
 import { logManager } from './logger/manager'
+import { planScheduler } from './plans/planScheduler'
+import { taskScheduler } from './tasks/taskScheduler'
 
 // Prevent uncaught exceptions from crashing the app
 process.on('uncaughtException', (error) => {
@@ -69,6 +71,7 @@ if (!gotTheLock) {
 }
 
 let trayManager: TrayManager | null = null
+let appInitialized = false
 
 // Parse --debug-file <filename> from command line
 function getDebugFilePath(): string | null {
@@ -120,6 +123,9 @@ async function initializeApp(): Promise<void> {
 }
 
 async function setupApp(): Promise<void> {
+  if (appInitialized) return
+  appInitialized = true
+
   const mainWindow = createWindow({
     width: 1200,
     height: 800,
@@ -131,6 +137,8 @@ async function setupApp(): Promise<void> {
 
   await logManager.initialize(debugFilePath)
   await registerIpcHandlers(mainWindow)
+  planScheduler.initialize(mainWindow)
+  taskScheduler.initialize(mainWindow)
   registerChatHandlers()
   await initEngineBridge(mainWindow)
 

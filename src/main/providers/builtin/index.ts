@@ -8,6 +8,7 @@ import qwenConfig from './qwen.ts'
 import qwenAiConfig from './qwen-ai.ts'
 import zaiConfig from './zai.ts'
 import stepfunConfig from './stepfun.ts'
+import stepfunStudioConfig from './stepfun-studio.ts'
 import openaiConfig from './openai.ts'
 import anthropicConfig from './anthropic.ts'
 import googleConfig from './google.ts'
@@ -31,6 +32,7 @@ export const builtinProviders: BuiltinProviderConfig[] = [
   qwenAiConfig,
   zaiConfig,
   stepfunConfig,
+  stepfunStudioConfig,
   openaiConfig,
   anthropicConfig,
   googleConfig,
@@ -54,6 +56,7 @@ export const builtinProviderMap: Record<string, BuiltinProviderConfig> = {
   'qwen-ai': qwenAiConfig,
   zai: zaiConfig,
   stepfun: stepfunConfig,
+  'stepfun-studio': stepfunStudioConfig,
   openai: openaiConfig,
   anthropic: anthropicConfig,
   google: googleConfig,
@@ -85,6 +88,7 @@ export {
   qwenAiConfig,
   zaiConfig,
   stepfunConfig,
+  stepfunStudioConfig,
   openaiConfig,
   anthropicConfig,
   googleConfig,

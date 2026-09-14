@@ -297,10 +297,17 @@ export class OAuthManager extends EventEmitter {
         })
       }
 
+      let stepfunPollTimer: NodeJS.Timeout | null = null
+
       const completeHandler = (result: { success: boolean; credentials?: Record<string, string>; error?: string }) => {
         inAppLoginManager.off('status', statusHandler)
         inAppLoginManager.off('tokenFound', tokenFoundHandler)
         inAppLoginManager.off('complete', completeHandler)
+
+        if (stepfunPollTimer) {
+          clearInterval(stepfunPollTimer)
+          stepfunPollTimer = null
+        }
 
         if (result.success && result.credentials) {
           this.emit('statusChange', 'success')
@@ -423,42 +430,52 @@ export class OAuthManager extends EventEmitter {
           const hasWebId = !!collectedTokens.web_id
           const hasDeviceId = !!collectedTokens.device_id || !!collectedTokens['Oasis-Webid']
 
-          if (!hasOasisToken || !hasWebId || !hasDeviceId) {
-            console.log('[OAuthManager] Waiting for all StepFun tokens...', {
+          if (hasOasisToken && hasWebId && hasDeviceId) {
+            if (!isValidating) {
+              console.log('[OAuthManager] All StepFun tokens collected, validating...')
+              if (validationTimeout) {
+                clearTimeout(validationTimeout)
+                validationTimeout = null
+              }
+              validateAndComplete()
+            }
+            return
+          }
+
+          // Missing pieces. Do NOT validate a partial set — an earlier version
+          // called validateAndComplete() unconditionally after 500ms, so a page
+          // holding only anonymous cookies looked like a finished login.
+          //
+          // Poll instead of giving up: the pieces appear at different times.
+          // The device id and Oasis-Token arrive while the page loads, and the
+          // token only becomes usable once the session finishes activating.
+          // Validation runs as soon as the set is complete; until then this
+          // keeps checking so the user does not have to act twice.
+          if (!stepfunPollTimer) {
+            console.log('[OAuthManager] StepFun login incomplete, polling...', {
               hasOasisToken,
               hasWebId,
               hasDeviceId,
             })
-
-            if (validationTimeout) {
-              clearTimeout(validationTimeout)
-            }
-
-            // Give the page more time, but do NOT validate with a partial set.
-            // An earlier version called validateAndComplete() unconditionally
-            // after 500ms, so a page that had only written anonymous cookies
-            // was treated as a finished login.
-            validationTimeout = setTimeout(() => {
-              if (hasOasisToken && hasWebId && hasDeviceId) {
-                console.log('[OAuthManager] StepFun tokens all present, validating')
-                validateAndComplete()
-              } else {
-                console.log('[OAuthManager] StepFun login not finished; still missing',
-                  { hasOasisToken, hasWebId, hasDeviceId })
+            const stopPolling = () => {
+              if (stepfunPollTimer) {
+                clearInterval(stepfunPollTimer)
+                stepfunPollTimer = null
               }
-            }, 2000)
-            return
-          }
-
-          // All tokens collected, trigger validation immediately
-          if (!isValidating) {
-            console.log('[OAuthManager] All StepFun tokens collected, validating...')
-            if (validationTimeout) {
-              clearTimeout(validationTimeout)
             }
-            validateAndComplete()
-            return
+            stepfunPollTimer = setInterval(() => {
+              const complete = !!collectedTokens['Oasis-Token'] && !!collectedTokens.web_id &&
+                !!(collectedTokens.device_id || collectedTokens['Oasis-Webid'])
+              if (!complete) return
+
+              stopPolling()
+              if (!isValidating) {
+                console.log('[OAuthManager] StepFun credentials completed while polling, validating')
+                validateAndComplete()
+              }
+            }, 1000)
           }
+          return
         }
 
         // For non-MiniMax/Mimo/StepFun providers, validate immediately when we have a token

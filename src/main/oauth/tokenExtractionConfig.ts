@@ -163,6 +163,19 @@ export const TOKEN_EXTRACTION_CONFIGS: Record<ProviderType, TokenExtractionConfi
     successUrlPatterns: [/perplexity\.ai/i],
     windowTitle: 'Perplexity Login - Please click Sign In to login',
   },
+  // StepFun stores its identity in three places that all have to agree for a
+  // session to work:
+  //
+  //   Oasis-Token (cookie)   the account, plus activated / exp
+  //   Oasis-Webid (cookie)   the device the token signature is checked against
+  //   deviceId    (localStorage) the same device id, used by the web client
+  //
+  // There is NO localStorage key named "web_id" — the app's own
+  // device-storage blob calls it deviceId, and reads looked for the wrong name
+  // so the login flow waited forever and then validated a partial set.
+  //
+  // deviceId is aliased to web_id because that is the credential field the
+  // adapter and the account store expect.
   stepfun: {
     loginUrl: 'https://chat.stepfun.com',
     tokenSources: [
@@ -171,13 +184,14 @@ export const TOKEN_EXTRACTION_CONFIGS: Record<ProviderType, TokenExtractionConfi
         key: 'Oasis-Token',
       },
       {
-        type: 'cookie',
-        key: 'Oasis-Webid',
-        alias: 'device_id', // Cookie 中的 Oasis-Webid 实际是 device_id (64字符)，不是 web_id
+        type: 'localStorage',
+        key: 'deviceId',
+        alias: 'web_id',
       },
       {
-        type: 'localStorage',
-        key: 'web_id',
+        type: 'cookie',
+        key: 'Oasis-Webid',
+        alias: 'device_id',
       },
     ],
     targetDomains: ['stepfun.com', 'chat.stepfun.com'],

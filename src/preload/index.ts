@@ -24,9 +24,10 @@ interface PlanRecord {
   title: string
   description: string
   status: 'pending' | 'running' | 'completed' | 'failed'
-  steps: Array<{ id: string; description: string; status: string; result?: string }>
+  steps: Array<{ id: string; description: string; status: string; result?: string | null }>
   createdAt: number
   completedAt?: number
+  updatedAt?: number
 }
 
 interface TaskRecord {
@@ -834,25 +835,25 @@ const electronAPI = {
   // ==================== Plans Management API ====================
   plans: {
     getAll: (): Promise<PlanRecord[]> =>
-      ipcRenderer.invoke(IpcChannels.PLANS_GET_ALL).then((r: any) => r.data as PlanRecord[]),
+      ipcRenderer.invoke(IpcChannels.PLANS_GET_ALL).then((r: any) => (r.success ? (r.data as PlanRecord[]) : [])),
 
     getById: (id: string): Promise<PlanRecord | null> =>
-      ipcRenderer.invoke(IpcChannels.PLANS_GET_BY_ID, id).then((r: any) => r.success ? (r.data as PlanRecord | null) : null),
+      ipcRenderer.invoke(IpcChannels.PLANS_GET_BY_ID, id).then((r: any) => (r.success ? (r.data as PlanRecord | null) : null)),
 
     create: (data: { title: string; description: string }): Promise<PlanRecord> =>
-      ipcRenderer.invoke(IpcChannels.PLANS_CREATE, data).then((r: any) => r.data as PlanRecord),
+      ipcRenderer.invoke(IpcChannels.PLANS_CREATE, data).then((r: any) => (r.success ? (r.data as PlanRecord) : null as any)),
 
     update: (id: string, updates: Partial<PlanRecord>): Promise<PlanRecord | null> =>
-      ipcRenderer.invoke(IpcChannels.PLANS_UPDATE, id, updates).then((r: any) => r.success ? (r.data as PlanRecord | null) : null),
+      ipcRenderer.invoke(IpcChannels.PLANS_UPDATE, id, updates).then((r: any) => (r.success ? (r.data as PlanRecord | null) : null)),
 
     delete: (id: string): Promise<boolean> =>
-      ipcRenderer.invoke(IpcChannels.PLANS_DELETE, id).then((r: any) => r.success as boolean),
+      ipcRenderer.invoke(IpcChannels.PLANS_DELETE, id).then((r: any) => (r.success ? true : false)),
 
     execute: (id: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke(IpcChannels.PLANS_EXECUTE, id).then((r: any) => ({ success: r.success, error: r.error })),
 
-    onPhaseChange: (callback: (event: { phase: string; detail: string }) => void): (() => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, event: { phase: string; detail: string }) => callback(event)
+    onPhaseChange: (callback: (event: { stepId: string; phase: string; detail: string; index: number; total: number }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, event: { stepId: string; phase: string; detail: string; index: number; total: number }) => callback(event)
       ipcRenderer.on(IpcChannels.PLANS_STREAM_PHASE, handler)
       return () => ipcRenderer.removeListener(IpcChannels.PLANS_STREAM_PHASE, handler)
     },
@@ -863,8 +864,8 @@ const electronAPI = {
       return () => ipcRenderer.removeListener(IpcChannels.PLANS_STREAM_DONE, handler)
     },
 
-    onError: (callback: (event: { error: string }) => void): (() => void) => {
-      const handler = (_event: Electron.IpcRendererEvent, event: { error: string }) => callback(event)
+    onError: (callback: (event: { error: string; step?: string }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, event: { error: string; step?: string }) => callback(event)
       ipcRenderer.on(IpcChannels.PLANS_STREAM_ERROR, handler)
       return () => ipcRenderer.removeListener(IpcChannels.PLANS_STREAM_ERROR, handler)
     },
@@ -1093,6 +1094,9 @@ const electronAPI = {
 
     update: (pluginId: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke(IpcChannels.PLUGINS_UPDATE, pluginId).then((r: any) => ({ success: r.success, error: r.error })),
+
+    add: (data: Omit<PluginRecord, 'id'>): Promise<PluginRecord> =>
+      ipcRenderer.invoke(IpcChannels.PLUGINS_ADD, data).then((r: any) => r.data as PluginRecord),
   },
 
   // ==================== Other Config API ====================

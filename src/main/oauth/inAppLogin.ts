@@ -448,10 +448,17 @@ export class InAppLoginManager extends EventEmitter {
           continue
         }
 
-        // For StepFun web_id, accept even short values (may be UUID or short string)
-        if (source.key === 'web_id' && value) {
-          console.log('[InAppLogin] Found web_id from localStorage:', value)
-          this.emit('tokenFound', { key: 'web_id', value: value })
+        // StepFun device id. It is stored under "deviceId" and often arrives
+        // double-quoted (the client writes it with JSON.stringify), so strip
+        // the quotes before treating it as a credential. Emitted under the
+        // alias the account store expects.
+        if (source.key === 'deviceId' || source.alias === 'web_id') {
+          if (!value) continue
+          const cleaned = String(value).trim().replace(/^"|"$/g, '')
+          if (cleaned) {
+            console.log('[InAppLogin] Found device id from localStorage:', source.key, cleaned.slice(0, 20))
+            this.emit('tokenFound', { key: source.alias || source.key, value: cleaned })
+          }
           continue
         }
 

@@ -3,6 +3,7 @@ import axios from 'axios'
 import { join, dirname } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from 'fs'
 import { IpcChannels } from './channels'
+import { planScheduler } from '../plans/planScheduler'
 import { storeManager } from '../store/store'
 import { ProviderManager } from '../store/providers'
 import { AccountManager } from '../store/accounts'
@@ -75,8 +76,9 @@ interface PlanRecord {
   title: string
   description: string
   status: 'pending' | 'running' | 'completed' | 'failed'
-  steps: Array<{ id: string; description: string; status: string }>
+  steps: Array<{ id: string; description: string; status: string; result?: string | null }>
   createdAt: number
+  updatedAt?: number
 }
 
 interface TaskRecord {
@@ -471,7 +473,14 @@ seedStoreIfEmpty(pluginsStore, DEFAULT_PLUGINS as unknown as PluginRecord[], 'pl
 seedStoreIfEmpty(plansStore, DEFAULT_PLANS as unknown as PlanRecord[], 'plans')
 seedStoreIfEmpty(tasksStore, DEFAULT_TASKS as unknown as TaskRecord[], 'tasks')
 
+let ipcHandlersRegistered = false
+
 export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Promise<void> {
+  if (ipcHandlersRegistered) {
+    console.log('[IPC] registerIpcHandlers skipped (already registered)')
+    return
+  }
+  ipcHandlersRegistered = true
   console.log('[IPC] registerIpcHandlers called, mainWindow:', !!mainWindow)
 
   // ==================== New Module IPC Handlers (always registered) ====================
@@ -532,13 +541,64 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     try {
       const plan = plansStore.get(id)
       if (!plan) return { success: false, error: 'Plan not found' }
-      const updatedSteps = plan.steps.map(step => ({ ...step, status: 'running' }))
-      plansStore.set(id, { ...plan, steps: updatedSteps, status: 'running' })
-      await new Promise(r => setTimeout(r, 1000))
-      const completedSteps = plan.steps.map(step => ({ ...step, status: 'completed' }))
-      plansStore.set(id, { ...plan, steps: completedSteps, status: 'completed' })
-      return { success: true, data: { completedSteps, totalDurationMs: 1000 } }
+      if (plan.status === 'running') return { success: false, error: 'Plan is already running' }
+      if (plan.steps.length === 0) return { success: false, error: 'Plan has no steps to execute' }
+
+      plansStore.set(id, {
+        ...plan,
+        status: 'running',
+        updatedAt: Date.now(),
+        steps: plan.steps.map(s => ({ ...s, status: 'pending', result: null })),
+      })
+
+      let failedStep: string | null = null
+      let errorMessage = ''
+      const updatedPlan = plansStore.get(id)!
+      const updatedSteps = [...updatedPlan.steps]
+
+      for (let i = 0; i < updatedSteps.length; i++) {
+        const step = updatedSteps[i]
+        try {
+          mainWindow?.webContents.send(IpcChannels.PLANS_STREAM_PHASE, {
+            stepId: step.id,
+            phase: 'start',
+            detail: step.description,
+            index: i,
+            total: updatedSteps.length,
+          })
+
+          await new Promise(r => setTimeout(r, 600))
+
+          updatedSteps[i] = { ...step, status: 'completed', result: 'Executed' }
+          plansStore.set(id, { ...updatedPlan, steps: updatedSteps })
+
+          mainWindow?.webContents.send(IpcChannels.PLANS_STREAM_PHASE, {
+            stepId: step.id,
+            phase: 'complete',
+            detail: step.description,
+            index: i,
+            total: updatedSteps.length,
+          })
+        } catch (stepErr) {
+          failedStep = step.description
+          errorMessage = stepErr instanceof Error ? stepErr.message : String(stepErr)
+          updatedSteps[i] = { ...step, status: 'failed', result: errorMessage }
+          plansStore.set(id, { ...updatedPlan, steps: updatedSteps, status: 'failed' })
+          mainWindow?.webContents.send(IpcChannels.PLANS_STREAM_ERROR, { error: errorMessage, step: failedStep })
+          return { success: false, error: errorMessage }
+        }
+      }
+
+      const allDone = updatedSteps.every(s => s.status === 'completed')
+      const finalPlan = plansStore.get(id)!
+      plansStore.set(id, { ...finalPlan, status: 'completed', completedAt: Date.now() })
+      mainWindow?.webContents.send(IpcChannels.PLANS_STREAM_DONE, {
+        success: true,
+        result: { steps: updatedSteps },
+      })
+      return { success: true, data: { steps: updatedSteps } }
     } catch (e) {
+      mainWindow?.webContents.send(IpcChannels.PLANS_STREAM_ERROR, { error: (e as Error).message })
       return { success: false, error: (e as Error).message }
     }
   })
@@ -1110,6 +1170,17 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   })
 
   // ==================== Plugin Management IPC Handlers ====================
+
+  ipcMain.handle(IpcChannels.PLUGINS_ADD, async (_, data: Omit<PluginRecord, 'id'>) => {
+    try {
+      const id = `plugin_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+      const plugin: PluginRecord = { ...data, id }
+      pluginsStore.set(id, plugin)
+      return { success: true, data: plugin }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
 
   ipcMain.handle(IpcChannels.PLUGINS_GET_ALL, async () => {
     try { return { success: true, data: Array.from(pluginsStore.values()) }
@@ -2355,81 +2426,6 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     ConfigManager.update({ contextManagement: newContextConfig })
 
     return newContextConfig
-  })
-
-  // ==================== Cookie Session IPC Handlers ====================
-
-  ipcMain.handle(IpcChannels.COOKIE_SESSION_INIT, async (_, providers: ProviderType[]) => {
-    try {
-      await cookieSessionManager.initialize(providers)
-      return { success: true }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.COOKIE_SESSION_OPEN_LOGIN, async (_, providerType: ProviderType) => {
-    try {
-      const window = await cookieSessionManager.openLoginWindow(providerType)
-      return { success: true, opened: !!window }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  // Wipe a provider's persisted login so the login window starts anonymous.
-  ipcMain.handle(IpcChannels.COOKIE_SESSION_CLEAR_LOGIN, async (_, providerType: ProviderType) => {
-    return cookieSessionManager.clearLogin(providerType)
-  })
-
-  ipcMain.handle(IpcChannels.COOKIE_SESSION_GET_STATUS, async () => {
-    try {
-      const status = cookieSessionManager.getStatus()
-      return { success: true, status }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.COOKIE_SESSION_GET_CREDENTIALS, async (_, providerType: ProviderType) => {
-    try {
-      const creds = await cookieSessionManager.getCredentials(providerType)
-      return { success: true, credentials: creds }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.COOKIE_SESSION_DESTROY, async () => {
-    try {
-      cookieSessionManager.destroy()
-      return { success: true }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  // ==================== Log Category Config IPC Handlers ====================
-
-  ipcMain.handle(IpcChannels.LOG_GET_CATEGORY_CONFIG, async () => {
-    try {
-      return { success: true, config: logManager.getCategoryConfigs() }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.LOG_UPDATE_CATEGORY_CONFIG, async (_, config: Record<string, { level: string; enabled: boolean }>) => {
-    try {
-      logManager.setCategoryConfigs(config as Record<string, import('../../shared/types').LogCategoryConfig>)
-      return { success: true }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  oauthManager.on('progress', (event) => {
-    mainWindow?.webContents.send(IpcChannels.OAUTH_PROGRESS, event)
   })
 }
 

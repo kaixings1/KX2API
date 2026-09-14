@@ -23,6 +23,7 @@ import { MiniMaxAdapter, MiniMaxStreamHandler } from './adapters/minimax'
 import { PerplexityAdapter } from './adapters/perplexity'
 import { PerplexityStreamHandler } from './adapters/perplexity-stream'
 import { StepFunAdapter, StepFunStreamHandler } from './adapters/stepfun'
+import { StepFunStudioAdapter } from './adapters/stepfun-studio'
 import { OpenAIAdapter } from './adapters/openai'
 import { OpenAIStreamHandler } from './adapters/openai-stream'
 import { AnthropicAdapter } from './adapters/anthropic'
@@ -140,6 +141,12 @@ export class RequestForwarder {
       matches: StepFunAdapter.isStepFunProvider,
       forward: (request, account, provider, actualModel, startTime) =>
         this.forwardStepFun(request, account, provider, actualModel, startTime),
+    },
+    {
+      name: 'stepfun-studio',
+      matches: StepFunStudioAdapter.isStepFunStudioProvider,
+      forward: (request, account, provider, actualModel, startTime) =>
+        this.forwardStepFunStudio(request, account, provider, actualModel, startTime),
     },
     {
       name: 'openai',
@@ -787,7 +794,7 @@ export class RequestForwarder {
 
     // Inject cookie session credentials if available (web-based auth)
     const mergedAccount = await this.maybeMergeCookieCredentials(account, provider)
-    console.log('[FWD] STEP-6 cookie merged, accountId=', mergedAccount.id, 'hasCredentials=', !!mergedAccount.credentials?.token)
+    console.log('[FWD] STEP-6 cookie merged, accountId=', mergedAccount.id, 'hasCredentials=', !!mergedAccount.credentials?.token, 'tokenPrefix=', mergedAccount.credentials?.token ? mergedAccount.credentials.token.slice(0, 30) : 'null')
 
     const dedicatedForwarder = this.providerForwarders.find(forwarder => forwarder.matches(provider))
     console.log('[FWD] STEP-7 matched forwarder=', dedicatedForwarder?.name || 'none', 'provider.id=', provider.id, 'apiEndpoint=', provider.apiEndpoint, 'provider.name=', provider.name)
@@ -1838,7 +1845,8 @@ export class RequestForwarder {
       }
       console.log('[StepFun][DIAG-FWD] toolCalling transformed, messageCount=', transformedRequest.messages?.length, 'toolCount=', transformedRequest.tools?.length)
 
-      const adapter = new StepFunAdapter(provider, account)
+      const decryptedAccount = storeManager.getAccountById(account.id, true) || account
+      const adapter = new StepFunAdapter(provider, decryptedAccount)
       console.log('[StepFun][DIAG-FWD] calling adapter.chatCompletion...')
       const result = await adapter.chatCompletion({
         model: actualModel,
@@ -2790,6 +2798,8 @@ export class RequestForwarder {
     try {
       const creds = await cookieSessionManager.getCredentials(providerType)
       if (!creds || Object.keys(creds).length === 0) return account
+
+      console.log(`[Forwarder][DIAG] cookie session creds for ${providerType}: keys=${Object.keys(creds).join(',')}, tokenLen=${creds.token?.length || creds['Oasis-Token']?.length || 0}`)
 
       // Cookie session credentials are the source of truth for session-based auth.
       // Always use the latest values from the live session (cookies may be refreshed).

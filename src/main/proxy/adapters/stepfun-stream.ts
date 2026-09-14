@@ -20,6 +20,9 @@ export class StepFunStreamHandler {
   private isFirstChunk: boolean = true
   private created: number
   private accumulatedContent: string = ''
+  private lastFinishReason: string | null = null
+  private sourceStream: any = null
+  private safetyTimerRef: ReturnType<typeof setTimeout> | null = null
 
   constructor(model: string, sessionId: any, plan: any) {
     this.model = model
@@ -36,7 +39,7 @@ export class StepFunStreamHandler {
     let dataChunkCount = 0
 
     // Safety timeout: if no data for 30s, end the stream to prevent infinite hang
-    const safetyTimer = setTimeout(() => {
+    this.safetyTimerRef = setTimeout(() => {
       console.error('[StepFun Stream][DIAG] SAFETY TIMEOUT: no data for 30s, ending stream. dataChunkCount=', dataChunkCount)
       if (!doneCalled) {
         doneCalled = true
@@ -47,6 +50,7 @@ export class StepFunStreamHandler {
     // The adapter emits SSE text format: "data: {json}\n\n"
     // Buffer incoming data and split by \n\n to get individual SSE messages
     let sseBuffer = ''
+    this.sourceStream = stream
     stream.on('data', (chunk: Buffer) => {
       dataChunkCount++
       sseBuffer += chunk.toString()
@@ -60,7 +64,7 @@ export class StepFunStreamHandler {
         if (!trimmed || !trimmed.startsWith('data:')) continue
         const data = trimmed.slice(5).trim()
         if (data === '[DONE]') {
-          clearTimeout(safetyTimer)
+          if (this.safetyTimerRef) { clearTimeout(this.safetyTimerRef); this.safetyTimerRef = null }
           if (!doneCalled) {
             doneCalled = true
             this.handleDone(transStream)
@@ -80,7 +84,7 @@ export class StepFunStreamHandler {
     })
 
     stream.on('end', () => {
-      clearTimeout(safetyTimer)
+      if (this.safetyTimerRef) { clearTimeout(this.safetyTimerRef); this.safetyTimerRef = null }
       // Process any remaining data in buffer
       if (sseBuffer.trim() && sseBuffer.trim().startsWith('data:')) {
         const data = sseBuffer.trim().slice(5).trim()
@@ -101,12 +105,24 @@ export class StepFunStreamHandler {
     })
 
     stream.on('error', (err) => {
-      clearTimeout(safetyTimer)
+      if (this.safetyTimerRef) { clearTimeout(this.safetyTimerRef); this.safetyTimerRef = null }
       console.error('[StepFun Stream] Stream error:', err)
       transStream.emit('error', err)
     })
 
     console.log('[StepFun Stream][DIAG] handleStream returning transStream, listeners attached')
+
+    // When transStream emits error, destroy the source to stop further data flow
+    transStream.on('error', () => {
+      if (this.sourceStream && !this.sourceStream.destroyed) {
+        this.sourceStream.destroy()
+      }
+      if (this.safetyTimerRef) {
+        clearTimeout(this.safetyTimerRef)
+        this.safetyTimerRef = null
+      }
+    })
+
     return transStream
   }
 
@@ -180,13 +196,20 @@ export class StepFunStreamHandler {
         }
 
         if (finishReason) {
+          this.lastFinishReason = finishReason
+          const isError = finishReason === 'error' || finishReason === 'content_filter'
+          if (isError) {
+            console.log('[StepFun Stream][ERROR-INJECT] finishReason=', finishReason, 'content=', JSON.stringify(content), 'injecting=', !content)
+          }
           const deltaChunk = {
             id: chunk.id || this.sessionId,
             model: this.model,
             object: 'chat.completion.chunk',
             choices: [{
               index: 0,
-              delta: {},
+              delta: isError && !content
+                ? { role: 'assistant', content: '[上游返回错误，请检查账户状态或重试]' }
+                : {},
               finish_reason: finishReason,
             }],
             created: this.created,
@@ -254,6 +277,30 @@ export class StepFunStreamHandler {
     const baseChunk = createBaseChunk(this.sessionId, this.model, this.created)
     const flushChunks = flushToolCallBuffer(this.toolCallState, baseChunk, 'stepfun')
     console.log('[StepFun Stream][DIAG] handleDone, flushChunks=', flushChunks.length, 'toolCallState.hasEmittedToolCall=', this.toolCallState.hasEmittedToolCall)
+
+    // If the source stream emitted an error finish_reason, propagate it as a stream error
+    // instead of sending a normal completion chunk. This allows the forwarder/engine
+    // to trigger onError rather than onDone, so the frontend shows the error message.
+    if (this.lastFinishReason === 'error' || this.lastFinishReason === 'content_filter') {
+      const errorMessage = this.lastFinishReason === 'error'
+        ? '[上游返回错误，请检查账户状态或重试]'
+        : '[内容被过滤]'
+      console.error('[StepFun Stream][ERROR-PROPAGATE] finishReason=', this.lastFinishReason, 'emitting error on transStream')
+
+      // Stop source stream to prevent any further data from flowing after the error
+      if (this.sourceStream && !this.sourceStream.destroyed) {
+        this.sourceStream.destroy()
+      }
+      if (this.safetyTimerRef) {
+        clearTimeout(this.safetyTimerRef)
+        this.safetyTimerRef = null
+      }
+
+      transStream.emit('error', new Error(errorMessage))
+      transStream.end()
+      return
+    }
+
     for (const outChunk of flushChunks) {
       transStream.write(`data: ${JSON.stringify(outChunk)}\n\n`)
     }
