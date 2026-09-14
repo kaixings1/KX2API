@@ -192,11 +192,13 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
     const subagents: Array<{ name: string; description: string }> = []
 
     if (active) {
+      const defaultSystem = '你是 KX2Code，一个智能编程助手。你可以使用工具帮助用户。当用户用中文提问时，请用中文回答。当用户询问文件、代码或项目结构时，请提供有用的分析和建议。'
+      const composed = composeSystemPrompt(active.systemPrompt, active.promptGroups)
       const opts: EngineOptions = {
         model: active.model || 'gpt-4o',
         provider: active.provider || 'openai',
         maxOutputTokens: 4096,
-        systemPrompt: '你是 KX2Code，一个智能编程助手。你可以使用工具帮助用户。当用户用中文提问时，请用中文回答。当用户询问文件、代码或项目结构时，请提供有用的分析和建议。',
+        systemPrompt: composed || defaultSystem,
         skills,
         agents,
         subagents,

@@ -264,12 +264,18 @@ export function registerChatHandlers(): void {
     }
     try {
       // 重建引擎 API 客户端使 baseUrl / apiKey / model 真正生效。
-      updateEngineApiClient({
+      const configUpdate: {
+        provider?: string; model?: string; apiKey?: string; baseUrl?: string
+        systemPrompt?: string; promptGroups?: Record<string, unknown>
+      } = {
         provider: updates.provider as string,
         model: updates.model as string,
         apiKey: updates.apiKey as string,
         baseUrl: updates.baseUrl as string,
-      })
+      }
+      if (typeof updates.systemPrompt === 'string') configUpdate.systemPrompt = updates.systemPrompt
+      if (updates.promptGroups && typeof updates.promptGroups === 'object') configUpdate.promptGroups = updates.promptGroups as Record<string, unknown>
+      updateEngineApiClient(configUpdate)
       return { success: true }
     } catch (e) {
       return { success: false, error: (e as Error).message }
