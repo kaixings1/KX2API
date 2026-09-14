@@ -6,11 +6,16 @@
  */
 
 import { spawn } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '../..')
+
+// electron-mock 需要以 file URL 形式传给 --import，避免硬编码绝对路径
+const electronMockUrl = pathToFileURL(
+  path.resolve(projectRoot, 'tests/setup/electron-mock.ts')
+).href
 
 const testFiles = [
   'tests/agent/tool-collection.test.ts',
@@ -22,7 +27,8 @@ const testFiles = [
 
 function runTest(file) {
   return new Promise((resolve) => {
-    const args = ['--import', 'file:///D:/KX2API/tests/setup/electron-mock.ts', '--test', file]
+    // 先用 tsx 加载器支持 .ts / 无扩展名导入，再挂载 electron mock
+    const args = ['--import', 'tsx', '--import', electronMockUrl, '--test', file]
     const proc = spawn(process.execPath, args, {
       cwd: projectRoot,
       stdio: ['pipe', 'pipe', 'pipe'],

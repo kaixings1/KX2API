@@ -267,6 +267,7 @@ export function getEngineInstance(): QueryEngine | null {
  */
 export function updateEngineApiClient(opts: {
   provider?: string; model?: string; apiKey?: string; baseUrl?: string
+  systemPrompt?: string; promptGroups?: Record<string, unknown>
 }): boolean {
   const eng = getEngineInstance()
   if (!eng) return false
@@ -274,12 +275,71 @@ export function updateEngineApiClient(opts: {
   const model = opts.model || 'gpt-4o'
   const baseUrl = opts.baseUrl
   const apiKey = opts.apiKey || ''
-  eng.updateConfig({ provider: provider as 'openai' | 'anthropic', model })
+  const systemPrompt = composeSystemPrompt(opts.systemPrompt, opts.promptGroups)
+  eng.updateConfig({
+    provider: provider as 'openai' | 'anthropic',
+    model,
+    ...(systemPrompt ? { systemPrompt } : {}),
+  })
   eng.setApiClient({
     sendMessage: createApiClientStream(provider, apiKey, model, baseUrl),
   })
-  console.log('[EngineBridge] API client rebuilt with provider=', provider, 'model=', model, 'baseUrl=', baseUrl || 'fallback')
+  console.log('[EngineBridge] API client rebuilt with provider=', provider, 'model=', model, 'baseUrl=', baseUrl || 'fallback', 'systemPromptLen=', systemPrompt ? systemPrompt.length : 0)
   return true
+}
+
+/**
+ * 将选中的提示词分组片段合成为一个 systemPrompt。
+ * 显式 systemPrompt 优先；否则按 promptGroups 的勾选状态拼装。
+ * KX2_PROMPT_GROUP 环境变量（逗号分隔分组 id）设置时，仅强制发送该集合的分组。
+ */
+export function composeSystemPrompt(systemPrompt?: string, promptGroups?: Record<string, unknown>): string | null {
+  if (typeof systemPrompt === 'string' && systemPrompt.trim().length > 0) return systemPrompt
+  if (!promptGroups || typeof promptGroups !== 'object') return null
+
+  const GROUPS: Array<{ id: string; items: Array<{ id: string; text: string; mandatory?: boolean }> }> = [
+    { id: 'programming', items: [
+      { id: 'prog-files', mandatory: true, text: '可使用文件工具：read_file / write_file / edit、目录列表 ls / dir / find、内容搜索 grep。' },
+      { id: 'prog-shell', text: '可用 bash / cmd / powershell 执行命令；Windows 环境请用 cmd 风格（dir / type / del）。' },
+      { id: 'prog-git', text: 'git 相关工具：status / diff / log / branch / commit，用于版本控制操作。' },
+    ]},
+    { id: 'document', items: [
+      { id: 'doc-text', text: '文档读写：支持文本文件读写、二进制/文本对比、系列 Office 文档解析。' },
+    ]},
+    { id: 'image', items: [
+      { id: 'img-draw', text: '画图：使用命令行绘图工具绘制示意图、流程图、UML 图等。' },
+    ]},
+    { id: 'reverse', items: [
+      { id: 'rev-crypto', text: '逆向：MD5 / SHA 等哈希、Base64 编码、加解密换算工具。' },
+    ]},
+    { id: 'webdev', items: [
+      { id: 'web-json', text: 'Web 前端：JSON 解析、格式化、校验等工具。' },
+    ]},
+  ]
+
+  const parts: string[] = []
+  const forced = process.env.KX2_PROMPT_GROUP
+    ? process.env.KX2_PROMPT_GROUP.split(',').map(s => s.trim()).filter(Boolean)
+    : null
+
+  for (const group of GROUPS) {
+    const cfg = promptGroups[group.id] as
+      | { enabled?: boolean; mandatoryItemIds?: string[]; optionalItemIds?: string[] }
+      | { [k: string]: unknown }
+    if (!cfg) continue
+    if (forced) {
+      if (!forced.includes(group.id)) continue
+    } else if (typeof (cfg as { enabled?: boolean }).enabled === 'boolean' && (cfg as { enabled?: boolean }).enabled === false) {
+      continue
+    }
+    const c = cfg as { mandatoryItemIds?: string[]; optionalItemIds?: string[] }
+    const wanted = new Set([...(c.mandatoryItemIds || []), ...(c.optionalItemIds || [])])
+    for (const item of group.items) {
+      if (item.mandatory || wanted.has(item.id)) parts.push(item.text)
+    }
+  }
+  if (parts.length === 0) return null
+  return parts.join('\n\n')
 }
 
 /** 检查引擎是否就绪 */
