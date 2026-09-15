@@ -94,6 +94,10 @@ export class MessageLoop {
   private gitContext: GitContextInjector | null = null;
   private lastToolCalls: Array<{ name: string }> = [];
   private autoContinueCount = 0;
+  /** 近期各轮的「有效工具签名集合」（名称:参数JSON，排序后）。用于检测模型是否陷入重复工具循环。 */
+  private toolSignatureHistory: string[] = [];
+  /** 连续几轮工具签名与上一轮完全相同（无进展的死循环）即切断 */
+  private static readonly TOOL_LOOP_THRESHOLD = 2;
 
   constructor(private deps: MessageLoopDeps) {
     if (!this.deps.onEvent) {
@@ -130,6 +134,7 @@ export class MessageLoop {
     this.deps.tokenBudget.resetIterationSnapshots?.()
     this.lastToolCalls = []
     this.autoContinueCount = 0
+    this.toolSignatureHistory = []
     this.deps.conversation.messages.push({ role: "user", content: userMessage } as InternalMessage);
     await this.deps.stateMachine.transition("responding", { message: userMessage });
     this.consecutiveToolFailures = 0;
@@ -292,6 +297,26 @@ export class MessageLoop {
         }
         await this.deps.stateMachine.transition("should_continue");
         return true;
+      }
+
+      const sigNow = validCalls
+        .map(tc => `${tc.name}:${JSON.stringify(tc.input ?? {})}`)
+        .sort()
+        .join('|')
+      const prevSig = this.toolSignatureHistory[this.toolSignatureHistory.length - 1] ?? ''
+      this.toolSignatureHistory.push(sigNow)
+      // 跨轮死循环检测：模型反复发出与上一轮完全相同的工具签名（且上轮已喂回过工具结果），
+      // 说明模型无视结果陷入重复请求。此时不再执行/回喂，把循环信息作为系统消息反馈并终止本轮，
+      // 避免无限重复同一工具调用（用户观察到的「死循环」）。
+      if (prevSig && prevSig === sigNow && this.toolSignatureHistory.length >= 2) {
+        engineLog('LOOP_GUARD', `模型重复请求完全相同工具调用（${sigNow}），切断工具循环`);
+        this.deps.conversation.messages.push({
+          role: "system",
+          content: "你已在前一轮请求过完全相同的工具调用且结果已返回，请直接基于已有工具结果回答用户，不要再重复发起相同的工具调用。",
+        } as InternalMessage);
+        await this.deps.stateMachine.transition("done");
+        this.deps.onEvent({ type: 'iteration_end', iteration: this.currentIteration, hasToolCalls: true });
+        return false;
       }
 
       engineLog('TOOL_CALLS', JSON.stringify(validCalls, null, 2).slice(0, 10000));

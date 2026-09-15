@@ -12,8 +12,12 @@ import { executeTask, abortTask, getRunningExecutions } from '../tasks/taskExecu
 import { tasksStore, type TaskRecord } from '../tasks/tasksStore'
 
 let mainWindow: BrowserWindow | null = null
+let handlersRegistered = false
 
 export function registerTaskHandlers(main: BrowserWindow): void {
+  if (handlersRegistered) return
+  handlersRegistered = true
+
   mainWindow = main
 
   // ==================== CRUD ====================

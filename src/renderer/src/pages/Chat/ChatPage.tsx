@@ -35,6 +35,58 @@ interface Message {
 
 // ---------- helpers ----------
 
+// ─── 工具调用「友好名称 → 功能描述」映射 ────────────────────────────────────────
+// 用户期望：执行工具时显示「正在执行 + 功能简述」，而不是裸的 <tool>…</tool> / JSON 乱码。
+const TOOL_FRIENDLY: Record<string, string> = {
+  // 文件/目录（系统提示词声明的核心命令）
+  ls: '列出目录文件',
+  dir: '列出目录文件',
+  cat: '读取文件内容',
+  pwd: '显示当前工作目录',
+  find: '查找文件',
+  findstr: '在文件中搜索文本',
+  grep: '搜索文件内容',
+  tree: '展示目录树',
+  echo: '输出文本',
+  date: '显示当前日期时间',
+  env: '显示环境变量',
+  ps: '列出进程',
+  where: '定位命令路径',
+  // 版本控制
+  'git-status': '查看 Git 状态',
+  'git-diff': '查看 Git 差异',
+  'git-branch': '查看 Git 分支',
+  'git-log': '查看 Git 提交历史',
+  memory: '管理记忆',
+  config: '读取系统配置',
+  // 文件读写/编辑工具
+  read_file: '读取文件',
+  readfile: '读取文件',
+  get_file: '读取文件',
+  write_file: '写入文件',
+  edit_file: '编辑文件',
+  edit: '编辑文件',
+  glob: '文件匹配',
+  // 常见 MCP / 自造工具名（映射到友好说明）
+  'filesystem.list_directory': '列出目录文件',
+  list_directory: '列出目录文件',
+  local_list_directory: '列出目录文件',
+  local_dir_list: '列出目录文件',
+  'fs::list': '列出目录文件',
+  'filesystem.read_file': '读取文件',
+  readfile: '读取文件',
+}
+
+/** 归一化工具名 → 友好功能描述；未命中返回 null */
+function describeTool(name: string): string | null {
+  if (!name) return null
+  const lower = name.toLowerCase()
+  // 剥命名空间前缀后匹配末段（filesystem.list_directory → list_directory）
+  const base = name.split(/[./:\\]+/).pop() ?? name
+  const baseLower = base.toLowerCase()
+  return TOOL_FRIENDLY[name] ?? TOOL_FRIENDLY[lower] ?? TOOL_FRIENDLY[base] ?? TOOL_FRIENDLY[baseLower] ?? null
+}
+
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text).catch(() => {})
 }
@@ -416,12 +468,16 @@ function ToolUseBlock({ tool }: { tool: ParsedTool }) {
     callStr += '(' + displayArgs + ')'
   }
 
+  const friendly = describeTool(tool.name)
   return (
     <div className="claude-tool-use-block">
       <div className="claude-tool-use-header" onClick={() => setExpanded(p => !p)}>
         <span className="claude-tool-use-bullet">●</span>
         <div className="claude-tool-use-name-wrap">
-          <span className="claude-tool-use-name">{callStr}</span>
+          <span className="claude-tool-use-name">{friendly ? `正在执行：${friendly}` : callStr}</span>
+          {friendly && tool.name !== friendly && (
+            <span className="claude-tool-use-sub">{tool.name}</span>
+          )}
         </div>
         <span className="claude-tool-use-toggle">
           {expanded ? '收起' : '展开'}

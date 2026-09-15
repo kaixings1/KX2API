@@ -91,6 +91,7 @@ export class ResponseHandler {
     if (toolCalls.length === 0) {
       console.log(`[RESP-HANDLER] no structured tool_calls, attempting plain-text repair. contentLen=${fullContent.length} preview="${fullContent.slice(0, 300)}"`)
       let converted = 0;
+      const seen = new Set<string>();
       const pushBlocks = (blocks: PlainTextToolCallBlock[]) => {
         for (const block of blocks) {
           // 将参数值转换为字符串（工具执行器期望字符串类型）
@@ -98,6 +99,14 @@ export class ResponseHandler {
           for (const [key, val] of Object.entries(block.arguments)) {
             stringArgs[key] = typeof val === 'string' ? val : JSON.stringify(val);
           }
+          // 去重：同一轮 text 里反复出现的「同名 + 同参数」调用（模型常把同一 JSON 重复写多遍）
+          // 只保留第一个，避免同一次响应被拆成 N 个相同工具调用全部执行，造成重复执行 / 死循环。
+          const sig = block.name + ':' + JSON.stringify(stringArgs);
+          if (seen.has(sig)) {
+            console.log(`[RESP-HANDLER] 去重纯文本工具调用: ${sig}`);
+            continue;
+          }
+          seen.add(sig);
           toolCalls.push({
             id: `toolu_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             name: block.name,
