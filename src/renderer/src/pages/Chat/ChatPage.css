@@ -480,13 +480,6 @@
 
 /* ===== llama.cpp inspired design ===== */
 
-/* Chat messages — centered column layout */
-.chat-messages-list {
-  max-width: 38rem;
-  margin: 0 auto;
-  width: 100%;
-  padding: 0.3rem 0.75rem;
-}
 
 /* User message — right aligned bubble */
 .chat-msg-user {
@@ -608,13 +601,6 @@
   line-height: 1.5;
 }
 
-/* Input area — pill shaped, glass effect */
-.chat-input-area {
-  max-width: 38rem;
-  margin: 0 auto;
-  width: 100%;
-  padding: 0 0.75rem 0.4rem;
-}
 .chat-input-wrapper {
   display: flex;
   align-items: flex-end;

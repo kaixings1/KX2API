@@ -189,7 +189,8 @@ function mergeTools(a: ParsedTool[], b: ParsedTool[]): ParsedTool[] {
   const seen = new Set<string>()
   const merged: ParsedTool[] = []
   for (const tool of [...a, ...b]) {
-    const key = tool.name + '::' + tool.arguments
+    // 只按工具名去重，避免「同名不同参数」的多次调用在流式与 done 合并时被误丢一次。
+    const key = tool.name
     if (!seen.has(key)) {
       seen.add(key)
       merged.push(tool)
@@ -534,9 +535,11 @@ export function ChatPage() {
   const streamStatusRef = useRef<'idle' | 'streaming'>('idle')
   const messagesRef = useRef<Message[]>([])
 
-  // Streaming buffer: accumulates raw SSE chunks in ref, flushes parsed result via rAF
+  // Streaming buffer: accumulates raw SSE chunks in ref, flushed via timer batch.
+  // 用 setTimeout 而非 requestAnimationFrame：rAF 在窗口未聚焦/最小化/后台或无渲染帧时
+  // 会被暂停，导致 buffer 迟迟不刷，界面看似「卡死」，等下次有帧才一次性吐出。
   const streamBufferRef = useRef<string>('')
-  const rafIdRef = useRef<number>(0)
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const streamingMsgIdRef = useRef<string>('')
 
   // Refs to hold parsed streaming state (avoid re-render storms)
@@ -547,48 +550,50 @@ export function ChatPage() {
   useEffect(() => { messagesRef.current = messages }, [messages])
   useEffect(() => { streamStatusRef.current = isStreaming ? 'streaming' : 'idle' }, [isStreaming])
 
-  // Cleanup rAF on unmount
+  // Cleanup flush timer on unmount
   useEffect(() => {
     return () => {
-      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current)
+      if (flushTimerRef.current) clearTimeout(flushTimerRef.current)
     }
   }, [])
 
-  // Flush accumulated stream buffer to React state (batched via rAF)
+  // flush 累积的流式缓冲区到 React state（rAF 批处理）
   const flushStreamBuffer = useCallback(() => {
     const buf = streamBufferRef.current
     if (!buf) return
     streamBufferRef.current = ''
     const msgId = streamingMsgIdRef.current
 
-    // Parse accumulated chunks through StreamParser
+    // 主进程送来的 response_chunk 是「纯文本增量」（responseHandler 的 text chunk），
+    // 不是带 "content":"..." 的原始 SSE JSON 行。StreamParser 是按 SSE JSON 写的
+    // （/\"content\"\s*:\s*\"(.*?)\"/g），拿纯文本去解析会匹配不到 → content 恒为空。
+    // 因此「正文」直接用纯文本累积；StreamParser 仅用于从正文里提取 XML 工具块。
+    // 注意：streamParser 是从 rawAccumulated 累积解析，必须 append 后再 parse 工具。
     streamParserRef.append(buf)
-    const parsed = streamParserRef.parse()
-    streamingReasoningRef.current = parsed.reasoning
-    streamingToolsRef.current = parsed.tools
-
+    const parsedTools = streamParserRef.parse().tools
+    // 往前端消息追加纯文本正文（打字机效果）
     setMessages(prev => {
       const idx = prev.findIndex(m => m.id === msgId)
-      if (idx >= 0) {
-        const next = [...prev]
-        next[idx] = {
-          ...next[idx],
-          content: parsed.content,
-          reasoning_content: parsed.reasoning,
-          tool_calls: parsed.tools,
-        }
-        return next
+      if (idx < 0) return prev
+      const next = [...prev]
+      const cur = next[idx] as Message
+      next[idx] = {
+        ...cur,
+        content: (cur.content || '') + buf,
+        reasoning_content: streamingReasoningRef.current || cur.reasoning_content || '',
+        tool_calls: parsedTools.length > 0 ? mergeTools(cur.tool_calls || [], parsedTools) : (cur.tool_calls || []),
       }
-      return prev
+      return next
     })
   }, [])
 
   const scheduleFlush = useCallback(() => {
-    if (rafIdRef.current) return
-    rafIdRef.current = requestAnimationFrame(() => {
-      rafIdRef.current = 0
+    if (flushTimerRef.current) return
+    // 用 setTimeout ~16ms（约 60fps）稳定触发；即时累积到一定量也立即刷，保证打字机节奏
+    flushTimerRef.current = setTimeout(() => {
+      flushTimerRef.current = null
       flushStreamBuffer()
-    })
+    }, 16)
   }, [flushStreamBuffer])
 
   // 自动滚动到底部
@@ -893,10 +898,12 @@ export function ChatPage() {
 
     const cleanupDone = window.electronAPI.chat.onStreamDone(({ content, toolOutput }) => {
       // Flush any remaining buffered content
-      if (rafIdRef.current) {
-        cancelAnimationFrame(rafIdRef.current)
-        rafIdRef.current = 0
+      if (flushTimerRef.current) {
+        clearTimeout(flushTimerRef.current)
+        flushTimerRef.current = null
       }
+      // Final parse followed by immediate flush of residual buffer
+      flushStreamBuffer()
       // Final parse of any remaining buffer
       streamParserRef.append(streamBufferRef.current)
       streamBufferRef.current = ''
@@ -905,19 +912,23 @@ export function ChatPage() {
       // Merge streaming tools with any from final parse (dedup by name+args)
       const mergedTools = mergeTools(streamingToolsRef.current, finalParsed.tools)
 
-      const finalContent = content || toolOutput || finalParsed.content
+      // 流式累积的正文是纯文本（已于 flush 阶段写入消息 content），主进程 done 事件
+      // 的 content 是最终完整答复；取其中非空者，避免把已显示的正文覆盖为空。
       const finalReasoning = finalParsed.reasoning || streamingReasoningRef.current
 
-      setMessages(prev => prev.map(m =>
-        m.id === assistantId
-          ? {
-              ...m,
-              content: finalContent,
-              reasoning_content: finalReasoning || '',
-              tool_calls: mergedTools.length > 0 ? mergedTools : [],
-            }
-          : m
-      ))
+      setMessages(prev => prev.map(m => {
+        if (m.id !== assistantId) return m
+        const streamingText = (m as Message).content || ''
+        const doneContent = (typeof content === 'string' && content.trim())
+          ? content
+          : (toolOutput || '')
+        return {
+          ...m,
+          content: doneContent || streamingText,
+          reasoning_content: finalReasoning || '',
+          tool_calls: mergedTools.length > 0 ? mergedTools : [],
+        }
+      }))
       setIsStreaming(false)
       streamStatusRef.current = 'idle'
       streamingMsgIdRef.current = ''
@@ -930,9 +941,9 @@ export function ChatPage() {
     })
 
     const cleanupError = window.electronAPI.chat.onStreamError(({ error }) => {
-      if (rafIdRef.current) {
-        cancelAnimationFrame(rafIdRef.current)
-        rafIdRef.current = 0
+      if (flushTimerRef.current) {
+        clearTimeout(flushTimerRef.current)
+        flushTimerRef.current = null
       }
       flushStreamBuffer()
       setMessages(prev => prev.map(m =>
@@ -1402,7 +1413,7 @@ export function ChatPage() {
                 </div>
               </div>
             ) : (
-              <div className="chat-messages-list py-4">
+              <div className="w-full px-3 py-4">
                 {messages.map((msg) => (
                   <MessageRow
                     key={msg.id}
@@ -1428,7 +1439,7 @@ export function ChatPage() {
           )}
 
           {/* ===== 输入区域 — 圆角胶囊 + 毛玻璃 ===== */}
-          <div className="chat-input-area pb-3 pt-2 flex-shrink-0">
+          <div className="w-full pb-3 pt-2 flex-shrink-0">
             <div className="chat-input-wrapper">
               <textarea
                 ref={textareaRef}
@@ -1436,7 +1447,7 @@ export function ChatPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={isStreaming ? 'AI 正在回复...' : (config.apiKey ? '输入消息... (Enter 发送, Shift+Enter 换行)' : '请先在下方配置 API Key...')}
-                rows={1}
+                rows={3}
                 autoFocus
                 onInput={(e) => {
                   const el = e.target as HTMLTextAreaElement
