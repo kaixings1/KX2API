@@ -315,7 +315,7 @@ body {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--glass-border);
-  border-radius: 16px;
+  border-radius: var(--radius);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   isolation: isolate;
   box-shadow: var(--soft-sm);
@@ -326,11 +326,20 @@ body {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 24px;
+  border-radius: var(--radius);
   box-shadow:
     0 4px 12px rgba(166, 160, 148, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Card entrance animation utility */
+.animate-card-in {
+  animation: cardIn 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .glass-card-hover:hover {
@@ -350,6 +359,22 @@ body {
     0 12px 28px rgba(166, 160, 148, 0.22),
     inset 0 2px 0 rgba(255, 255, 255, 0.9);
   border-color: rgba(122, 158, 126, 0.2);
+}
+
+/* Card stagger animation */
+.glass-card {
+  animation: cardIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.glass-card:nth-child(1) { animation-delay: 0.05s; }
+.glass-card:nth-child(2) { animation-delay: 0.1s; }
+.glass-card:nth-child(3) { animation-delay: 0.15s; }
+.glass-card:nth-child(4) { animation-delay: 0.2s; }
+.glass-card:nth-child(5) { animation-delay: 0.25s; }
+.glass-card:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .glass-sidebar {
@@ -704,6 +729,22 @@ body {
   -webkit-backdrop-filter: blur(24px);
 }
 
+/* Popup overlays (Sheet/Dialog) — ensure opaque background so content behind doesn't bleed through */
+[data-state="open"] [class*="fixed"][class*="z-50"]:not([class*="backdrop"]):not([data-remove]),
+[data-state="open"] .glass-card,
+[data-state="open"] [class*="glass"] {
+  background: var(--bg-secondary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+[data-state="open"]::backdrop,
+[data-state="open"] + div[data-state="open"],
+[data-state="open"][class*="fixed"][class*="inset-0"] {
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 .border-subtle {
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -779,6 +820,15 @@ body {
   * {
     border-color: var(--border-color, transparent);
   }
+}
+
+/* Page enter animation */
+.page-enter {
+  animation: pageIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .sidebar-logo-container {
@@ -872,12 +922,14 @@ body {
   color: var(--text-primary);
   background: var(--glass-bg-hover);
   border-color: var(--glass-border-hover);
+  transform: translateX(2px);
 }
 
 [data-theme="light"] .sidebar-nav-item.inactive:hover {
   color: var(--text-primary);
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.05);
+  transform: translateX(2px);
 }
 
 .sidebar-status-container {
