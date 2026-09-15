@@ -81,7 +81,7 @@ export class ProxyServer {
           }
           console.log(`\n[CLI→Proxy] ${reqTimeStr} ${ctx.method} ${ctx.path}`)
           console.log(`  Headers: ${JSON.stringify(safeHeaders, null, 2).slice(0, 800)}`)
-          console.log(`  Body: ${reqBody.slice(0, 2000)}${reqBody.length > 2000 ? ' ...(truncated)' : ''}`)
+          console.log(`  Body: ${reqBody.slice(0, 20000)}${reqBody.length > 20000 ? ' ...(truncated)' : ''}`)
         } catch { /* ignore */ }
       }
 
@@ -115,7 +115,7 @@ export class ProxyServer {
             })
           } else {
             const rb = JSON.stringify(ctx.body ?? {})
-            console.log(`  Body: ${rb.slice(0, 2000)}${rb.length > 2000 ? ' ...(truncated)' : ''}`)
+            console.log(`  Body: ${rb.slice(0, 20000)}${rb.length > 20000 ? ' ...(truncated)' : ''}`)
           }
         }
       } catch { /* ignore */ }

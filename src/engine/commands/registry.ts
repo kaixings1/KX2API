@@ -16,6 +16,8 @@ export interface CommandResult {
 export interface Command {
   name: string
   description: string
+  /** 工具分组，留空则属于 "default" 组 */
+  group?: string
   execute: (args: string[]) => Promise<CommandResult>
 }
 
@@ -40,6 +42,18 @@ class CommandRegistry {
 
   getNames(): string[] {
     return Array.from(this.commands.keys())
+  }
+
+  getByGroup(group: string): Command[] {
+    return Array.from(this.commands.values()).filter(c => (c as any).group === group || (!(c as any).group && group === 'default'))
+  }
+
+  getAllGroups(): string[] {
+    const groups = new Set<string>()
+    for (const c of Array.from(this.commands.values())) {
+      groups.add((c as any).group || 'default')
+    }
+    return Array.from(groups)
   }
 }
 

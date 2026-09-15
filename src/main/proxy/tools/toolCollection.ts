@@ -13,6 +13,8 @@ export interface ToolResult {
 export interface Command {
   name: string
   description: string
+  /** 工具分组，留空则属于 "default" 组 */
+  group?: string
   execute: (args: string[]) => Promise<{ success: boolean; output?: string; error?: string }>
 }
 
@@ -55,6 +57,36 @@ export class ToolCollection {
 
   getToolNames(): string[] {
     return Array.from(this.tools.keys())
+  }
+
+  getByGroup(group: string): Command[] {
+    return Array.from(this.tools.values()).filter(c => (c as any).group === group || (!(c as any).group && group === 'default'))
+  }
+
+  getAllGroups(): string[] {
+    const groups = new Set<string>()
+    for (const c of Array.from(this.tools.values())) {
+      groups.add((c as any).group || 'default')
+    }
+    return Array.from(groups)
+  }
+
+  /**
+   * 按分组过滤工具。如果 enabledGroups 为空数组，则返回所有工具（默认行为）。
+   * 传入选定的分组数组，只返回属于这些组的工具。
+   */
+  getFilteredTools(enabledGroups: string[]): Command[] {
+    if (enabledGroups.length === 0) {
+      return this.getAllTools()
+    }
+    const result: Command[] = []
+    for (const tool of this.tools.values()) {
+      const g = (tool as any).group || 'default'
+      if (enabledGroups.includes(g)) {
+        result.push(tool)
+      }
+    }
+    return result
   }
 
   async execute(name: string, args: string[] = []): Promise<ToolResult> {

@@ -11,6 +11,7 @@
  */
 
 import type { ToolPlugin } from './toolPluginRegistry.ts'
+import { memoryToolPlugin } from './memoryToolPlugin.ts'
 
 // ==================== Core 工具（默认启用） ====================
 
@@ -430,9 +431,97 @@ export const advancedToolPlugins: ToolPlugin[] = [
   },
 ]
 
+// ==================== Specialized 工具（默认禁用） ====================
+
+export const specializedToolPlugins: ToolPlugin[] = [
+  {
+    id: 'memory',
+    name: '记忆管理',
+    description: '查看、创建、编辑、删除记忆文件（Claude Cookbooks memory_tool）',
+    legacyDir: 'memory',
+    enabledByDefault: true,
+    lazy: false,
+    toolDefinitions: [
+      {
+        name: 'memory_view',
+        description: '查看记忆文件或目录内容（路径以 /memories 开头）',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: '记忆路径，如 /memories/notes.md 或 /memories/' },
+          },
+          required: ['path'],
+        },
+      },
+      {
+        name: 'memory_create',
+        description: '创建记忆文件',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: '记忆路径，如 /memories/notes.md' },
+            file_text: { type: 'string', description: '文件内容' },
+          },
+          required: ['path', 'file_text'],
+        },
+      },
+      {
+        name: 'memory_str_replace',
+        description: '在记忆文件中替换文本（精确匹配，只替换一处）',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: '记忆路径' },
+            old_str: { type: 'string', description: '要被替换的文本' },
+            new_str: { type: 'string', description: '替换后的文本' },
+          },
+          required: ['path', 'old_str', 'new_str'],
+        },
+      },
+      {
+        name: 'memory_insert',
+        description: '在记忆文件中指定行号插入文本',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: '记忆路径' },
+            insert_line: { type: 'number', description: '要插入的行号（0-indexed）' },
+            insert_text: { type: 'string', description: '要插入的文本' },
+          },
+          required: ['path', 'insert_line', 'insert_text'],
+        },
+      },
+      {
+        name: 'memory_delete',
+        description: '删除记忆文件或目录',
+        parameters: {
+          type: 'object',
+          properties: {
+            path: { type: 'string', description: '记忆路径，不能为 /memories（根目录）' },
+          },
+          required: ['path'],
+        },
+      },
+      {
+        name: 'memory_rename',
+        description: '重命名记忆文件或目录',
+        parameters: {
+          type: 'object',
+          properties: {
+            old_path: { type: 'string', description: '原路径' },
+            new_path: { type: 'string', description: '新路径' },
+          },
+          required: ['old_path', 'new_path'],
+        },
+      },
+    ],
+  },
+]
+
 // ==================== 导出 ====================
 
 export const allLegacyToolPlugins: ToolPlugin[] = [
   ...coreToolPlugins,
   ...advancedToolPlugins,
+  ...specializedToolPlugins,
 ]

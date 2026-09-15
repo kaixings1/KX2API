@@ -19,6 +19,8 @@ import { ProviderManager } from './store/providers'
 import { logManager } from './logger/manager'
 import { planScheduler } from './plans/planScheduler'
 import { taskScheduler } from './tasks/taskScheduler'
+import { proxyServer } from './proxy/server'
+import { proxyStatusManager } from './proxy/status'
 
 // Prevent uncaught exceptions from crashing the app
 process.on('uncaughtException', (error) => {

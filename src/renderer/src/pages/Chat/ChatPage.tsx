@@ -630,8 +630,13 @@ export function ChatPage() {
     if (window.electronAPI?.profiles?.getAll) {
       window.electronAPI.profiles.getAll().then((r: Record<string, unknown>) => {
         if (r.success && r.profiles) {
-          setProfiles(r.profiles as typeof profiles)
-          setActiveProfileName(r.activeProfile as string | null)
+          const list = r.profiles as typeof profiles
+          const activeName = r.activeProfile as string | null
+          setProfiles(list)
+          setActiveProfileName(activeName)
+          // 记住当前配置组的直连地址，供「直连」模式切换使用
+          const activeProfile = list.find(p => p.name === activeName)
+          if (activeProfile?.baseUrl) setDirectBaseUrl(activeProfile.baseUrl)
         }
       })
     }
@@ -1032,9 +1037,18 @@ export function ChatPage() {
 
   const saveConfig = useCallback(async () => {
     // 传入完整 provider / model / apiKey / baseUrl，并保存到引擎 API 客户端，
-    // 否则 baseUrl / apiKey / model 不会被实际用于请求。Base URL 为空时给本地代理默认值，
-    // 避免回退到不可达的 api.openai.com。
-    const baseUrl = (config.baseUrl || '').trim() || 'http://127.0.0.1:8080/v1/chat/completions'
+    // 否则 baseUrl / apiKey / model 不会被实际用于请求。
+    // Base URL 留空时按 provider 的官方地址补齐（而不是偷偷指向本地代理，
+    // 否则代理没启动就会 ECONNREFUSED 127.0.0.1:8080）。代理模式请用模式开关。
+    const PROVIDER_DEFAULT_BASE_URL: Record<string, string> = {
+      openai: 'https://api.openai.com',
+      anthropic: 'https://api.anthropic.com',
+      custom: 'http://127.0.0.1:8080',
+    }
+    const baseUrl =
+      (config.baseUrl || '').trim() ||
+      PROVIDER_DEFAULT_BASE_URL[config.provider] ||
+      'https://api.openai.com'
     // 合成提示词：显式 systemPrompt 为空时，用勾选分组合成片段
     const finalSystemPrompt = (config.systemPrompt || '').trim() || buildPromptText(promptGroups)
     if (window.electronAPI?.chat?.setConfig) {
@@ -1196,7 +1210,7 @@ export function ChatPage() {
                         }
                         return { ...prev, [g.id]: { ...cur, mandatoryItemIds: mandatory, optionalItemIds: optional } }
                       })
-                    })
+                    }
                     return (
                       <div key={g.id} className="border border-[var(--border)] rounded p-2">
                         <label className="flex items-center gap-2 text-xs">
@@ -1250,9 +1264,17 @@ export function ChatPage() {
               const next = proxyMode === 'standard' ? 'proxy' : 'standard'
               setProxyMode(next)
               if (next === 'proxy') {
-                window.electronAPI.chat.setConfig({ baseUrl: 'http://127.0.0.1:8080' })
+                // 本地代理只提供 OpenAI 兼容协议，provider 固定为 openai；
+                // model / apiKey 由主进程沿用当前值（不会被打回默认）。
+                window.electronAPI.chat.setConfig({ provider: 'openai', baseUrl: 'http://127.0.0.1:8080' })
               } else {
-                window.electronAPI.chat.setConfig({ baseUrl: directBaseUrl })
+                // 直连：恢复当前配置组自己的 provider / model / apiKey / baseUrl
+                window.electronAPI.chat.setConfig({
+                  provider: config.provider,
+                  model: config.model,
+                  apiKey: config.apiKey,
+                  baseUrl: directBaseUrl || config.baseUrl,
+                })
               }
             }}
             className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${

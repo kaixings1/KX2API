@@ -19,6 +19,7 @@ import { SubAgentManager } from "./subagent/subAgentManager.ts";
 import { AutoFixLoop } from "./autoFixLoop.ts";
 import { GitContextInjector, type GitContextConfig } from "./gitContext.ts";
 import { createSandboxedExecutor, type SandboxConfig, type SandboxPolicy, getDefaultSandboxPolicy, createDefaultSandboxConfig } from "./sandbox/index.ts";
+import { createSecurityEnhancer } from "./securityEnhancer.ts";
 import {
   buildSystemPrompt as buildEnhancedSystemPrompt,
   normalizeMessagesForAPI,
@@ -207,7 +208,9 @@ export class QueryEngine {
         }
       : createDefaultSandboxConfig(false)
     const sandboxExecutor = createSandboxedExecutor(selfHealingExecutor, sandboxConfig)
-    const executor: ToolExecutor = sandboxExecutor
+    // 安全增强层：在沙箱之上再叠加输出净化 + 命令过滤 + 路径保护
+    const securityEnhancedExecutor = createSecurityEnhancer(sandboxExecutor)
+    const executor: ToolExecutor = securityEnhancedExecutor
     const registry = opts.tools ?? this.buildRegistry();
 
     // 注册旧版工具插件（同步注册定义，异步加载实现）
@@ -461,6 +464,7 @@ export * from "./requestBuilder.ts";
 export * from "./responseHandler.ts";
 export * from "./toolScheduler.ts";
 export * from "./sandbox/index.ts";
+export { createSecurityEnhancer } from "./securityEnhancer.ts";
 export * from "./tokenBudgetManager.ts";
 export * from "./autoCompactor.ts";
 export * from "./errors/index.ts";

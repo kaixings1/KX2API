@@ -20,7 +20,42 @@ vi.mock('electron', () => ({
   safeStorage: { encrypt: (d: Buffer) => d, decrypt: (d: Buffer) => d },
 }))
 
-import { getEnabledPluginsFromStore } from '../engine-bridge'
+import { getEnabledPluginsFromStore, mergeApiSettings, updateEngineApiClient } from '../engine-bridge'
+
+/**
+ * 回归：切模式/选配置组时的「局部更新」不能把 apiKey / model 打回默认值。
+ * 以前 updateEngineApiClient 用 `opts.apiKey || ''`，导致切一次代理模式后
+ * 直连请求就丢掉了 apiKey，model 也被打回 gpt-4o。
+ */
+describe('mergeApiSettings（API 连接参数局部更新）', () => {
+  const current = { provider: 'anthropic', model: 'claude-sonnet-4', apiKey: 'sk-live', baseUrl: 'https://api.anthropic.com' }
+
+  it('只传 baseUrl 时保留 provider / model / apiKey', () => {
+    const merged = mergeApiSettings(current, { baseUrl: 'http://127.0.0.1:8080' })
+    expect(merged).toEqual({ ...current, baseUrl: 'http://127.0.0.1:8080' })
+  })
+
+  it('显式传空 apiKey 表示真的清空', () => {
+    expect(mergeApiSettings(current, { apiKey: '' }).apiKey).toBe('')
+  })
+
+  it('不传 apiKey / baseUrl 时沿用旧值', () => {
+    const merged = mergeApiSettings(current, { model: 'gpt-4o' })
+    expect(merged.apiKey).toBe('sk-live')
+    expect(merged.baseUrl).toBe('https://api.anthropic.com')
+    expect(merged.model).toBe('gpt-4o')
+  })
+
+  it('没有历史值时回退到默认 provider / model', () => {
+    const merged = mergeApiSettings({ provider: '', model: '', apiKey: '' }, {})
+    expect(merged.provider).toBe('openai')
+    expect(merged.model).toBe('gpt-4o')
+  })
+
+  it('引擎未初始化时 updateEngineApiClient 返回 false（不会崩）', () => {
+    expect(updateEngineApiClient({ baseUrl: 'https://api.openai.com' })).toBe(false)
+  })
+})
 
 // 构造最小化的 AppConfig（只含 enabledPlugins）
 const makeConfig = (enabledPlugins: string[]): Record<string, unknown> => ({ enabledPlugins })

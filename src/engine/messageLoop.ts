@@ -216,6 +216,12 @@ export class MessageLoop {
     this.deps.responseHandler.onReasoning = (text: string) => {
       if (this.deps.onEvent) this.deps.onEvent({ type: 'reasoning', text });
     };
+    // 流式正文实时透传：把增量文本作为 response_chunk 事件发给上层（前端逐字显示）
+    this.deps.responseHandler.onChunk = (chunk: { type: string; text?: string }) => {
+      if (chunk.type === 'text' && chunk.text && this.deps.onEvent) {
+        this.deps.onEvent({ type: 'response_chunk', content: chunk.text });
+      }
+    };
     const processed = await this.deps.responseHandler.handle(stream as AsyncIterable<{ type: string; [k: string]: unknown }>);
 
     if (processed.usage) {

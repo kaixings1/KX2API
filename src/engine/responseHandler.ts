@@ -89,6 +89,7 @@ export class ResponseHandler {
     //   1) 整段文本 100% 是工具调用 -> parsePlainTextToolCalls，正文清空
     //   2) 工具调用与正文混杂 -> extractPlainTextToolCalls 提取 + strip 剥离
     if (toolCalls.length === 0) {
+      console.log(`[RESP-HANDLER] no structured tool_calls, attempting plain-text repair. contentLen=${fullContent.length} preview="${fullContent.slice(0, 300)}"`)
       let converted = 0;
       const pushBlocks = (blocks: PlainTextToolCallBlock[]) => {
         for (const block of blocks) {

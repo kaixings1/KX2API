@@ -8,6 +8,7 @@
 import axios, { type AxiosInstance } from 'axios'
 import { createParser } from 'eventsource-parser'
 import { formatSystemError } from '../../shared/formatError'
+import { parsePlainTextToolCalls } from '../../utils/plainTextToolCallRepair'
 
 export interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -32,6 +33,8 @@ export interface ApiConfig {
   maxTokens?: number
   maxToolRounds?: number
   maxRepeat?: number
+  /** 启用的工具分组列表，空数组表示使用所有工具 */
+  enabledToolGroups?: string[]
 }
 
 export interface StreamCallbacks {
@@ -251,18 +254,83 @@ async function sendOpenAIStream(
       }
     }
   }
+  // 简单模式下若正文含 XML/纯文本工具调用，直接提取并执行一次，把结果作为最终输出返回
+  if (fullText) {
+    try {
+      const xmlCalls = parsePlainTextToolCalls(fullText)
+      if (xmlCalls && xmlCalls.length > 0) {
+        const collected: string[] = []
+        for (const call of xmlCalls) {
+          const r = await executeLocalTool(call.name, typeof call.arguments === 'object' ? Object.values(call.arguments as Record<string, unknown>).map(String) : [])
+          collected.push(`[${call.name}]\n${r.output}`)
+        }
+        console.log('[API][OpenAI-simple] 从正文提取并执行 XML 工具调用', xmlCalls.map(t => t.name).join(', '))
+        callbacks.onDone(collected.join('\n\n'), [])
+        return
+      }
+    } catch (e) { /* 提取失败则按原文返回 */ }
+  }
   callbacks.onDone(fullText, [])
 }
 
 /**
- * 执行单个本地工具命令（通过 commandRegistry + AgentDispatcher）
- * needsAgent 命令会通过 AgentDispatcher 获得真实执行能力
+ * 把模型/XML 中常见的「工具名」归一化为可注册命令的真实命令名。
+ * 很多模型（尤其被 XML 工具协议引导时）会自造工具名（如下划线前缀、动词短语、
+ * 驼峰），与实际注册命令不一致，导致 executeLocalTool 查不到而报「未知命令」。
+ * 这里做语义别名映射，优先精确命中，再按别名 / 子串回退。
  */
+const TOOL_ALIASES: Record<string, string> = {
+  // 目录 / 文件列举（映射到真实的 pwd / ls / dir）
+  '_current_directory': 'pwd',
+  'current_directory': 'pwd',
+  'get_current_directory': 'pwd',
+  'list_current_directory': 'ls',
+  'list_directory': 'ls',
+  'dir_list': 'dir',
+  'list_dir': 'ls',
+  'list_files': 'ls',
+  'ls_dir': 'ls',
+  'read_directory': 'ls',
+  'show_directory': 'ls',
+  // 文件读取 / 写入 / 搜索
+  'read_file': 'cat',
+  'readfile': 'cat',
+  'get_file': 'cat',
+  'write_file': 'echo',
+  'edit_file': 'echo',
+  'search_files': 'grep',
+  'grep_search': 'grep',
+  'find_file': 'find',
+  'find_files': 'find',
+  'search_text': 'findstr',
+  'findstr_search': 'findstr',
+  // 系统 / 环境
+  'current_path': 'pwd',
+  'print_directory': 'pwd',
+  'print_working_directory': 'pwd',
+  'environment': 'env',
+  'show_env': 'env',
+  // 其它常见
+  'process_list': 'ps',
+  'list_process': 'ps',
+  'docker': 'docker',
+  'git_branch': 'git-branch',
+  'git_diff': 'git-diff',
+  'git_log': 'git-log',
+  'git_status': 'git-status',
+}
+
 export async function executeLocalTool(name: string, args: string[]): Promise<ToolCallResult> {
   const { commandRegistry } = await import('../commands/registry')
-  const cmd = commandRegistry.get(name)
+  const resolved = await resolveToolName(name)
+  const normalized = resolved ?? name
+  const cmd = commandRegistry.get(normalized)
   if (!cmd) {
-    return { tool_use_id: '', output: `错误: 未知命令 /${name}` }
+    console.log(`[executeLocalTool] 名称归一化失败 name="${name}" → normalized="${normalized}"（命令不在注册表）`)
+    return { tool_use_id: '', output: `错误: 未知命令 /${name}（可用命令见 /help）` }
+  }
+  if (normalized !== name) {
+    console.log(`[executeLocalTool] 名称归一化："${name}" → "/${normalized}"`)
   }
 
   // 直接执行命令
@@ -271,7 +339,7 @@ export async function executeLocalTool(name: string, args: string[]): Promise<To
   // needsAgent 命令通过 AgentDispatcher 获得真实能力
   if (result.needsAgent && !result.error) {
     try {
-      const { AgentDispatcher } = await import('../agent/dispatcher.ts')
+      const { AgentDispatcher } = await import('../agent/dispatcher')
       const dispatcher = new AgentDispatcher({
         provider: 'openai',
         apiKey: '',
@@ -279,7 +347,7 @@ export async function executeLocalTool(name: string, args: string[]): Promise<To
         baseUrl: 'http://127.0.0.1:8080',
         maxTokens: 4096,
       })
-      const agentResult = await dispatcher.dispatch(name, args)
+      const agentResult = await dispatcher.dispatch(normalized, args)
       return {
         tool_use_id: '',
         output: agentResult.error || agentResult.output || '(Agent 执行完成)',
@@ -293,14 +361,48 @@ export async function executeLocalTool(name: string, args: string[]): Promise<To
 }
 
 /**
+ * 将「模型/XML 中的工具名」归一化为可注册命令的真实命令名。
+ * 复用 executeLocalTool 的别名/模糊匹配逻辑，但不执行命令。
+ * 命中返回归一化后的命令名，未命中返回 null。
+ */
+export async function resolveToolName(name: string): Promise<string | null> {
+  const { commandRegistry } = await import('../commands/registry')
+  let normalized = name
+  // 精确命中
+  if (commandRegistry.get(normalized)) return normalized
+  // 别名命中
+  const alias = TOOL_ALIASES[normalized.toLowerCase()]
+  if (alias && commandRegistry.get(alias)) return alias
+  if (alias) normalized = alias
+  // 去掉下划线/连字符后模糊匹配
+  const flat = normalized.replace(/[_\-]/g, '')
+  for (const candidate of commandRegistry.getNames()) {
+    if (candidate.replace(/[_\-]/g, '') === flat) return candidate
+  }
+  return null
+}
+
+/**
+ * 判断提取到的「候选工具名」是否能真正执行（能解析到注册命令）。
+ * 用于发送前保护：当 AI 最终回复里的 XML 片段只是文档示例、名字根本不在
+ * 注册表时，不把它当作工具调用，从而保住真实正文，避免整段被清空吞掉。
+ */
+export async function canResolveToolName(name: string): Promise<boolean> {
+  if (!name || typeof name !== 'string') return false
+  return (await resolveToolName(name)) !== null
+}
+
+/**
  * 从 ToolCollection 构建 OpenAI tools 定义
  * 使用 toolCollection 统一管理工具，消除硬编码白名单
  * 使用动态 import 避免与 registry.ts 形成循环依赖
  */
-export async function buildToolsFromRegistry(): Promise<ToolDefinition[]> {
-  const { toolCollection } = await import('../../main/proxy/tools/toolCollection.ts')
+export async function buildToolsFromRegistry(enabledGroups: string[] = []): Promise<ToolDefinition[]> {
+  const { toolCollection } = await import('../../main/proxy/tools/toolCollection')
   const tools: ToolDefinition[] = []
-  for (const cmd of toolCollection.getAllTools()) {
+  const filtered = toolCollection.getFilteredTools(enabledGroups)
+  console.log('[API] Tool filtering: total=', toolCollection.getAllTools().length, 'filtered=', filtered.length, 'groups=', enabledGroups.length === 0 ? 'all' : enabledGroups.join(','))
+  for (const cmd of filtered) {
     tools.push({
       type: 'function',
       function: {
@@ -329,7 +431,7 @@ export async function sendOpenAIStreamWithTools(
   signal?: AbortSignal,
   reqId?: number,
 ): Promise<void> {
-  const tools = await buildToolsFromRegistry()
+  const tools = await buildToolsFromRegistry(config.enabledToolGroups || [])
   console.log('[API] Tool mode enabled, tools:', tools.map(t => t.function.name).join(', '))
 
   let apiMessages = messages.map(m => ({
@@ -481,6 +583,40 @@ export async function sendOpenAIStreamWithTools(
 
     await streamDone
 
+    // 若本轮未收到结构化 tool_calls，尝试从正文中提取 XML/纯文本工具调用
+    // （一些模型在 system prompt 学过 XML 工具协议后会把工具调用写成 <toolCall>..</toolCall> 文本）。
+    if (toolCalls.length === 0 && fullText) {
+      try {
+        const xmlCalls = parsePlainTextToolCalls(fullText)
+        if (xmlCalls && xmlCalls.length > 0) {
+          // 守门：只有当提取到的工具名「能真正解析到注册命令」时，才认定为工具调用。
+          // 否则极可能是 AI 最终正文里的接口/HTML/XML 文档示例（如 <name>用户</name>、
+          // <response><id>..</id></response>），此时必须保留全文作为 AI 答案，绝不吞掉。
+          let resolvableCount = 0
+          for (const call of xmlCalls) {
+            if (await canResolveToolName(call.name)) resolvableCount++
+          }
+          if (resolvableCount === 0) {
+            console.log(`[API] 提取到 ${xmlCalls.length} 个候选但均无法解析到命令（视为 AI 正文，保留全文返回）:`, xmlCalls.map(t => t.name).join(', '))
+          } else {
+            console.log(`[API] 从正文中提取到 XML/纯文本工具调用 ${xmlCalls.length} 个, 可解析 ${resolvableCount} 个:`, xmlCalls.map(t => t.name).join(', '))
+            for (const call of xmlCalls) {
+              toolCalls.push({
+                type: 'tool_use',
+                id: `tc_${Date.now()}_${toolCalls.length}`,
+                name: call.name,
+                input: call.arguments ?? {},
+              })
+            }
+            // 已被识别为工具调用，不要再把这段 XML 当作正文文本喂回下一轮
+            fullText = ''
+          }
+        }
+      } catch (e) {
+        console.error('[API] XML tool extraction failed:', (e as Error).message)
+      }
+    }
+
     if (toolCalls.length === 0) {
       callbacks.onDone(fullText, [])
       return
@@ -503,6 +639,13 @@ export async function sendOpenAIStreamWithTools(
       console.log(`[API] Executing tool: /${tc.name}`, { args, input: JSON.stringify(tc.input).slice(0, 50) })
       const result = await executeLocalTool(tc.name, args)
       toolResults.push({ role: 'tool', content: result.output, tool_call_id: tc.id || '' })
+
+      // 实时把工具执行结果反馈给前端（半流式），确保即使模型后续不转述，
+      // 用户也一定能立刻看到命令输出（如目录列表）。
+      if (result.output) {
+        callbacks.onText(result.output)
+        callbacks.onText('\n\n')
+      }
     }
 
     const currentSignature = toolSignature(toolCalls)

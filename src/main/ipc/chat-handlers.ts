@@ -385,14 +385,23 @@ export function registerChatHandlers(): void {
         return { success: false, error: '配置组 "' + name + '" 不存在' }
       }
       const engineCfg = pm.toEngineConfig(profile)
-      const targetBaseUrl = 'http://127.0.0.1:8080'
-      engineCfg.baseUrl = targetBaseUrl
-      getEngineInstance()?.updateConfig(engineCfg)
+      // 用配置组自己的 provider / baseUrl / apiKey / model 重建引擎 API 客户端（直连）。
+      // 注意：engine.updateConfig() 不处理 baseUrl / apiKey，只有 updateEngineApiClient()
+      // 会重建 sendMessage 闭包，所以以前写死的 127.0.0.1:8080 既无效、又会让
+      // 「选配置组后直连」悄悄变成访问本地代理。代理模式请用 UI 的模式开关。
+      updateEngineApiClient({
+        provider: engineCfg.provider,
+        model: engineCfg.model,
+        apiKey: engineCfg.apiKey,
+        baseUrl: engineCfg.baseUrl,
+        ...(engineCfg.systemPrompt ? { systemPrompt: engineCfg.systemPrompt } : {}),
+        ...(engineCfg.promptGroups ? { promptGroups: engineCfg.promptGroups } : {}),
+      })
 
       // 统一使用 syncProfileApiKey 同步到代理认证列表
       syncProfileApiKey(profile)
 
-      logManager.info('[IPC] profiles:setActive success', { data: { proxyUrl: targetBaseUrl } })
+      logManager.info('[IPC] profiles:setActive success', { data: { baseUrl: engineCfg.baseUrl, model: engineCfg.model } })
       return { success: true, profile }
     } catch (e) {
       const msg = (e as Error).message
@@ -607,18 +616,13 @@ export function registerChatHandlers(): void {
         } as Profile)
       }
 
-      // 4. 更新引擎配置
-      const eng = getEngineInstance()
-      if (eng) {
-        const targetBaseUrl = 'http://127.0.0.1:8080'
-        const engineConfig = {
-          provider: preset.provider,
-          baseUrl: targetBaseUrl,
-          apiKey: preset.apiKey,
-          model: preset.model,
-        }
-        eng.updateConfig(engineConfig)
-      }
+      // 4. 更新引擎配置（同样需要重建 API 客户端，否则 baseUrl / apiKey 不生效）
+      updateEngineApiClient({
+        provider: preset.provider,
+        baseUrl: preset.baseURL,
+        apiKey: preset.apiKey,
+        model: preset.model,
+      })
 
       // 5. 通知前端配置已变更
       try {

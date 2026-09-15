@@ -65,6 +65,49 @@ let engineReady = false
 let engineError: string | null = null
 
 /**
+ * 最近一次真正生效的 API 连接参数。
+ * updateEngineApiClient 允许只传部分字段（例如切模式时只改 baseUrl），
+ * 未传入的字段必须从这里补齐，否则 provider/model/apiKey 会被重置成默认值，
+ * 表现为「切一次代理模式后直连就不带 key / 模型被打回 gpt-4o」。
+ */
+let lastApiSettings: { provider: string; model: string; apiKey: string; baseUrl?: string } = {
+  provider: 'openai',
+  model: 'gpt-4o',
+  apiKey: '',
+  baseUrl: undefined,
+}
+
+/** 引擎实际使用的 API 连接参数 */
+export interface ApiSettings {
+  provider: string
+  model: string
+  apiKey: string
+  baseUrl?: string
+}
+
+/**
+ * 合并一次局部更新：未传入的字段沿用 previous。
+ * apiKey / baseUrl 用 !== undefined 判断，因为显式传空串 = 「真的没有」；
+ * provider / model 为空时沿用旧值，避免被打成默认值。
+ */
+export function mergeApiSettings(
+  previous: ApiSettings,
+  opts: { provider?: string; model?: string; apiKey?: string; baseUrl?: string },
+): ApiSettings {
+  return {
+    provider: opts.provider || previous.provider || 'openai',
+    model: opts.model || previous.model || 'gpt-4o',
+    apiKey: opts.apiKey !== undefined ? opts.apiKey : previous.apiKey,
+    baseUrl: opts.baseUrl !== undefined ? opts.baseUrl : previous.baseUrl,
+  }
+}
+
+/** 读取当前生效的 API 连接参数（供 UI / 日志排查用） */
+export function getEngineApiSettings(): ApiSettings {
+  return { ...lastApiSettings }
+}
+
+/**
  * 将 sendMessageStream 的回调式 SSE 流转换为 MessageLoop 所需的 AsyncIterable<unknown> 事件流
  */
 function createApiClientStream(
@@ -72,11 +115,34 @@ function createApiClientStream(
   apiKey: string,
   model: string,
   baseUrl?: string,
+  enabledToolGroups: string[] = [],
 ): (req: unknown) => Promise<AsyncIterable<unknown>> {
+  // 仅记录关键参数，避免日志过长
+  console.log('[EngineBridge] createApiClientStream provider=', provider, 'model=', model, 'baseUrl=', baseUrl || 'fallback', 'toolGroups=', enabledToolGroups.length === 0 ? 'all' : enabledToolGroups.join(','))
   return async (request: unknown): Promise<AsyncIterable<unknown>> => {
     const messages = (request as Record<string, unknown>).messages as Array<Record<string, unknown>>
 
-    const events: unknown[] = []
+    const queue: unknown[] = []
+    let streamEnded = false
+    let waiters: (() => void)[] = []
+    const pushEvent = (ev: unknown): void => {
+      queue.push(ev)
+      if (waiters.length > 0) {
+        const w = waiters
+        waiters = []
+        for (const r of w) r()
+      }
+    }
+    const signalEnd = (): void => {
+      streamEnded = true
+      if (waiters.length > 0) {
+        const w = waiters
+        waiters = []
+        for (const r of w) r()
+      }
+    }
+    const waitPush = (): Promise<void> => new Promise<void>(resolve => waiters.push(resolve))
+    const events: unknown[] = queue
     let fullText = ''
     // 当前文本块的索引。StreamProcessor 用 delta.index 与 content_block_stop.index
     // 对应来按块聚合文本，因此每个内容块占用一个递增的 index。
@@ -91,30 +157,39 @@ function createApiClientStream(
     // 最终页面 contentLen=0 无任何反馈。
     const closeTextBlock = (): void => {
       if (!textBlockOpen) return
-      events.push({ type: 'content_block_stop', index: blockIndex })
+      pushEvent({ type: 'content_block_stop', index: blockIndex })
       blockIndex++
       textBlockOpen = false
     }
     const ensureTextBlock = (): void => {
       if (textBlockOpen) return
-      events.push({ type: 'content_block_start', index: blockIndex, content_block: { type: 'text' } })
+      pushEvent({ type: 'content_block_start', index: blockIndex, content_block: { type: 'text' } })
       textBlockOpen = true
     }
     const closeReasonBlock = (): void => {
       if (!reasonBlockOpen) return
-      events.push({ type: 'content_block_stop', index: blockIndex })
+      pushEvent({ type: 'content_block_stop', index: blockIndex })
       blockIndex++
       reasonBlockOpen = false
     }
     const ensureReasonBlock = (): void => {
       if (reasonBlockOpen) return
       if (textBlockOpen) return // 推理块与文本块互斥，避免共享 index 冲突
-      events.push({ type: 'content_block_start', index: blockIndex, content_block: { type: 'thinking' } })
+      pushEvent({ type: 'content_block_start', index: blockIndex, content_block: { type: 'thinking' } })
       reasonBlockOpen = true
     }
 
-    await sendMessageStream(
-      { provider: provider as ApiConfig['provider'], apiKey, model, baseUrl },
+    // 后台启动发送（不 await 阻塞），回调实时 push 进队列，实现流式输出
+    const sendResult = sendMessageStream(
+      {
+        provider: provider as ApiConfig['provider'],
+        apiKey,
+        model,
+        baseUrl,
+        maxToolRounds: 5,
+        maxRepeat: 3,
+        enabledToolGroups,
+      },
       messages.map(m => ({
         role: m.role as 'user' | 'assistant' | 'system',
         content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
@@ -123,11 +198,11 @@ function createApiClientStream(
         onText: (text: string) => {
           fullText += text
           ensureTextBlock()
-          events.push({ type: 'content_block_delta', index: blockIndex, delta: { type: 'text_delta', text } })
+          pushEvent({ type: 'content_block_delta', index: blockIndex, delta: { type: 'text_delta', text } })
         },
         onReasoning: (text: string) => {
           ensureReasonBlock()
-          events.push({ type: 'content_block_delta', index: blockIndex, delta: { type: 'thinking_delta', text } })
+          pushEvent({ type: 'content_block_delta', index: blockIndex, delta: { type: 'thinking_delta', text } })
         },
         onToolUse: (block) => {
           // 工具已由 sendMessageStream 内的多轮循环自行执行并将结果喂回，
@@ -140,30 +215,68 @@ function createApiClientStream(
         onDone: () => {
           closeTextBlock()
           closeReasonBlock()
-          events.push({ type: 'message_stop' })
-          events.push({ type: 'message_delta', stopReason: 'end_turn', usage: { inputTokens: 0, outputTokens: fullText.length } })
+          pushEvent({ type: 'message_stop' })
+          pushEvent({ type: 'message_delta', stopReason: 'end_turn', usage: { inputTokens: 0, outputTokens: fullText.length } })
+          signalEnd()
         },
         onError: (error: string) => {
-          events.push({ type: 'error', error })
+          pushEvent({ type: 'error', error })
+          signalEnd()
         },
       },
     )
+    // 捕获 sendMessageStream 内部异常，避免未处理的 rejection；正常结束时无需额外处理
+    void sendResult.catch((e) => {
+      console.error('[EngineBridge][API] sendMessageStream rejected:', (e as Error)?.message || e)
+      pushEvent({ type: 'error', error: (e as Error)?.message || '请求失败' })
+    })
 
-    // 如果没有事件（异常被 catch），至少发出 done
-    if (events.length === 0) {
-      events.push({ type: 'message_stop' })
-      events.push({ type: 'message_delta', stopReason: 'end_turn', usage: { inputTokens: 0, outputTokens: 0 } })
-    }
-
-    async function* generator() {
-      for (const event of events) {
-        yield event
+    async function* generator(): AsyncGenerator<unknown, void, unknown> {
+      let ended = false
+      const terminal = (): void => {
+        if (ended) return
+        ended = true
+        pushEvent({ type: 'message_stop' })
+        pushEvent({ type: 'message_delta', stopReason: 'end_turn', usage: { inputTokens: 0, outputTokens: fullText.length } })
+        signalEnd()
+      }
+      try {
+        while (true) {
+          while (queue.length > 0) {
+            yield queue.shift()
+          }
+          if (streamEnded) {
+            terminal()
+            return
+          }
+          await waitPush()
+        }
+      } catch (e) {
+        // 消费者提前终止（如上层结束循环）时，兜底结束，避免悬挂
+        terminal()
+        throw e
+      } finally {
+        // 确保后台 Promise 不被悬挂
+        await sendResult.catch(() => {})
       }
     }
 
     return generator()
   }
 }
+
+/**
+ * 基础系统提示词（默认）：
+ * 在既有「你是 KX2Code」文案之后，追加 XML 工具调用协议说明，引导模型输出
+ * 可被系统解析的标准工具调用（避免模型自造工具名导致无法执行）。
+ */
+export const BASE_SYSTEM_PROMPT =
+  '你是 KX2Code，一个智能编程助手。你可以使用工具帮助用户。当用户用中文提问时，请用中文回答。当用户询问文件、代码或项目结构时，请提供有用的分析和建议。\n\n' +
+  '【工具调用协议】\n' +
+  '当你需要执行操作（如读取文件、运行命令、搜索目录）时，请输出如下格式的标准工具调用 XML，不要写成正文：\n' +
+  '<tool_call>\n  <toolName>ls</toolName>\n  <arguments><path>.</path><showHidden>false</showHidden></arguments>\n</tool_call>\n' +
+  '可用工具名（务必使用这些确切名字，勿自造）：pwd、ls、dir、find、findstr、grep、cat、tree、echo、date、env、ps、where、git-status、git-diff、git-branch、git-log、memory、config。\n' +
+  '参数用 <key>value</key> 子标签形式；无参数的命令可省略 arguments。禁止把工具调用作为普通正文输出，系统会识别并执行它。'
 
 export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promise<void> {
   try {
@@ -192,7 +305,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
     const subagents: Array<{ name: string; description: string }> = []
 
     if (active) {
-      const defaultSystem = '你是 KX2Code，一个智能编程助手。你可以使用工具帮助用户。当用户用中文提问时，请用中文回答。当用户询问文件、代码或项目结构时，请提供有用的分析和建议。'
+      const defaultSystem = BASE_SYSTEM_PROMPT
       const composed = composeSystemPrompt(active.systemPrompt, active.promptGroups)
       const opts: EngineOptions = {
         model: active.model || 'gpt-4o',
@@ -210,6 +323,12 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
       engine.setApiClient({
         sendMessage: createApiClientStream(opts.provider!, active.apiKey || '', opts.model!, active.baseUrl),
       })
+      lastApiSettings = {
+        provider: opts.provider!,
+        model: opts.model!,
+        apiKey: active.apiKey || '',
+        baseUrl: active.baseUrl,
+      }
 
       // 同步 apiKey 到代理认证列表（统一使用 apiKeySync 工具）
       syncProfileApiKey(active)
@@ -218,7 +337,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         model: 'gpt-4o',
         provider: 'openai',
         maxOutputTokens: 4096,
-        systemPrompt: '你是 KX2Code，一个智能编程助手。你可以使用工具帮助用户。当用户用中文提问时，请用中文回答。当用户询问文件、代码或项目结构时，请提供有用的分析和建议。',
+        systemPrompt: BASE_SYSTEM_PROMPT,
         skills,
         agents,
         subagents,
@@ -229,6 +348,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
       engine.setApiClient({
         sendMessage: createApiClientStream('openai', '', 'gpt-4o'),
       })
+      lastApiSettings = { provider: 'openai', model: 'gpt-4o', apiKey: '', baseUrl: undefined }
     }
 
     const commandCount = await importCommands()
@@ -273,11 +393,14 @@ export function updateEngineApiClient(opts: {
 }): boolean {
   const eng = getEngineInstance()
   if (!eng) return false
-  const provider = (opts.provider || 'openai') as 'openai' | 'anthropic' | 'custom'
-  const model = opts.model || 'gpt-4o'
-  const baseUrl = opts.baseUrl
-  const apiKey = opts.apiKey || ''
+  // 局部更新：未传入的字段沿用上一次生效的值（而不是硬编码默认值）
+  const merged = mergeApiSettings(lastApiSettings, opts)
+  const provider = merged.provider as 'openai' | 'anthropic' | 'custom'
+  const model = merged.model
+  const baseUrl = merged.baseUrl
+  const apiKey = merged.apiKey
   const systemPrompt = composeSystemPrompt(opts.systemPrompt, opts.promptGroups)
+  lastApiSettings = merged
   eng.updateConfig({
     provider: provider as 'openai' | 'anthropic',
     model,
@@ -286,7 +409,7 @@ export function updateEngineApiClient(opts: {
   eng.setApiClient({
     sendMessage: createApiClientStream(provider, apiKey, model, baseUrl),
   })
-  console.log('[EngineBridge] API client rebuilt with provider=', provider, 'model=', model, 'baseUrl=', baseUrl || 'fallback', 'systemPromptLen=', systemPrompt ? systemPrompt.length : 0)
+  console.log('[EngineBridge] API client rebuilt with provider=', provider, 'model=', model, 'baseUrl=', baseUrl || 'fallback', 'apiKeyLen=', apiKey ? apiKey.length : 0, 'systemPromptLen=', systemPrompt ? systemPrompt.length : 0)
   return true
 }
 
