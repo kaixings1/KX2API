@@ -14,6 +14,7 @@ import {
   Wrench, FolderOpen, Lightbulb, Check, Search, RefreshCw, Download, Upload, ArrowRight, Info,
 } from 'lucide-react'
 import { ImportExportDialog, ManagementToolbar } from '@/components/management'
+import { ToolGroupsPanel } from './ToolGroupsPanel'
 
 // ==================== Types ====================
 
@@ -330,6 +331,11 @@ export function ToolManagementPage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* 生效组：决定实际发给模型的工具有哪些（改完下一条消息立即生效） */}
+      {!loading && (
+        <ToolGroupsPanel tools={tools} groups={groups} onChanged={loadAll} />
+      )}
 
       {message && (
         <div className="flex items-center gap-2 text-sm text-green-400 bg-green-400/10 px-3 py-2 rounded">

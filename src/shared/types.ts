@@ -109,6 +109,8 @@ export interface AppConfig {
   retryCount: number
   apiKeys: ApiKey[]
   enableApiKey: boolean
+  /** 当前生效的工具组 id（空数组 = 全局组，发送所有已启用的工具） */
+  enabledToolGroups?: string[]
   oauthProxyMode: 'system' | 'none'
   sessionConfig: SessionConfig
   toolCallingConfig: ToolCallingConfig
@@ -428,6 +430,7 @@ export interface ConfigUpdateRequest {
   requestTimeout?: number
   retryCount?: number
   enableApiKey?: boolean
+  enabledToolGroups?: string[]
   oauthProxyMode?: 'system' | 'none'
   sessionConfig?: SessionConfig
   toolCallingConfig?: Partial<ToolCallingConfig>

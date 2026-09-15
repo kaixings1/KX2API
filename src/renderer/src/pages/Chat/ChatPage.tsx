@@ -871,7 +871,11 @@ export function ChatPage() {
     // 因此「正文」直接用纯文本累积；StreamParser 仅用于从正文里提取 XML 工具块。
     // 注意：streamParser 是从 rawAccumulated 累积解析，必须 append 后再 parse 工具。
     streamParserRef.append(buf)
-    const parsedTools = streamParserRef.parse().tools
+    const parsed = streamParserRef.parse()
+    const parsedTools = parsed.tools
+    if (parsed.reasoning) {
+      streamingReasoningRef.current = parsed.reasoning
+    }
     // 往前端消息追加纯文本正文（打字机效果）
     setMessages(prev => {
       const idx = prev.findIndex(m => m.id === msgId)

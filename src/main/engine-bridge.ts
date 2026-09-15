@@ -13,6 +13,7 @@ import { BrowserWindow } from 'electron'
 import { QueryEngine, type EngineOptions, type Tool } from '../engine/index.ts'
 import { commandRegistry } from '../engine/commands/registry'
 import { importCommands } from '../engine/commands/importer'
+import { commandToolsToMap } from '../engine/commands/commandToolAdapter'
 import { registerChatHandlers } from './ipc/chat-handlers'
 import { ProfileManager } from './profiles/manager'
 import { syncProfileApiKey } from './store/apiKeySync'
@@ -142,14 +143,39 @@ function createApiClientStream(
   apiKey: string,
   model: string,
   baseUrl?: string,
-  enabledToolGroups: string[] = [],
 ): (req: unknown) => Promise<AsyncIterable<unknown>> {
   // 校验并修正 model-provider 不匹配
   const resolvedModel = resolveModelForProvider(provider, model, baseUrl)
   // 仅记录关键参数，避免日志过长
-  console.log('[EngineBridge] createApiClientStream provider=', provider, 'model=', resolvedModel, 'baseUrl=', baseUrl || 'fallback', 'toolGroups=', enabledToolGroups.length === 0 ? 'all' : enabledToolGroups.join(','))
+  console.log('[EngineBridge] createApiClientStream provider=', provider, 'model=', resolvedModel, 'baseUrl=', baseUrl || 'fallback')
   return async (request: unknown): Promise<AsyncIterable<unknown>> => {
-    const messages = (request as Record<string, unknown>).messages as Array<Record<string, unknown>>
+    const rawMessages = (request as Record<string, unknown>).messages as Array<Record<string, unknown>>
+
+    // 工具组必须在「每次请求」时解析：以前把 enabledToolGroups 捕获进闭包，
+    // 切换分组后旧客户端依旧用老值，于是「配置改了不生效」。
+    let enabledToolGroups: string[] = []
+    let toolHint = ''
+    try {
+      const { resolveActiveToolsFromStore, buildToolHint } = await import('./tools/toolRuntime.ts')
+      const { resolved } = await resolveActiveToolsFromStore()
+      enabledToolGroups = resolved.groupIds
+      toolHint = buildToolHint(resolved)
+      console.log('[EngineBridge] tools for this request:', resolved.tools.length, resolved.isGlobal ? '(全局组)' : `(${resolved.groupNames.join('+')})`)
+    } catch (e) {
+      console.warn('[EngineBridge] 工具组解析失败，回退为全局组:', (e as Error).message)
+    }
+
+    // 把「本组可用工具」提示拼进 system 消息，让模型准确知道有哪些工具、怎么用
+    const messages = rawMessages.map(m => ({ ...m }))
+    if (toolHint) {
+      const sysIdx = messages.findIndex(m => m.role === 'system')
+      if (sysIdx >= 0) {
+        const base = typeof messages[sysIdx].content === 'string' ? messages[sysIdx].content as string : ''
+        messages[sysIdx] = { ...messages[sysIdx], content: base ? `${base}\n\n${toolHint}` : toolHint }
+      } else {
+        messages.unshift({ role: 'system', content: toolHint })
+      }
+    }
 
     const queue: unknown[] = []
     let streamEnded = false
@@ -309,7 +335,7 @@ export const BASE_SYSTEM_PROMPT =
   '【工具调用协议】\n' +
   '当你需要执行操作（如读取文件、运行命令、搜索目录）时，请输出如下格式的标准工具调用 XML，不要写成正文：\n' +
   '<tool_call>\n  <toolName>ls</toolName>\n  <arguments><path>.</path><showHidden>false</showHidden></arguments>\n</tool_call>\n' +
-  '可用工具名（务必使用这些确切名字，勿自造）：pwd、ls、dir、find、findstr、grep、cat、tree、echo、date、env、ps、where、git-status、git-diff、git-branch、git-log、memory、config。\n' +
+  '可用工具清单随每次请求动态附加（见消息末尾的【工具】块），务必只使用其中列出的确切名字，勿自造。\n' +
   '参数用 <key>value</key> 子标签形式；无参数的命令可省略 arguments。禁止把工具调用作为普通正文输出，系统会识别并执行它。'
 
 /**
@@ -356,6 +382,21 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
     const agents: Array<{ name: string; description: string; model?: string }> = []
     const subagents: Array<{ name: string; description: string }> = []
 
+    // 先加载命令注册表，并把命令包装成 Tool 注入 Engine。
+    // 关键：若不注入 opts.tools，engine 的 _toolDefinitions（MessageLoop availableTools）
+    // 只含插件工具（read_file/bash/grep…），模型按 system prompt 发出的 ls/dir/cat 等
+    // 命令工具会被误判 invalid、且 scheduler 无对应 registry 无法真正执行。
+    const commandCount = await importCommands()
+    // 只把 system prompt 里声明可用的核心命令 + 工具名归一化目标命令 包装成 Tool，
+    // 避免 registry 中数百条 CLI 命令全部涌入 _toolDefinitions 并塞进发送给模型的 system prompt。
+    const TOOL_COMMAND_WHITELIST = [
+      'pwd', 'ls', 'dir', 'find', 'findstr', 'grep', 'cat', 'tree', 'echo',
+      'date', 'env', 'ps', 'where', 'git-status', 'git-diff', 'git-branch', 'git-log',
+      'memory', 'config', 'read_file', 'write_file', 'edit', 'bash', 'glob', 'web_search', 'web_fetch',
+    ]
+    const commandTools = await commandToolsToMap(commandRegistry, TOOL_COMMAND_WHITELIST)
+    console.log('[EngineBridge] Command tools registered:', commandTools.size, '(' + Array.from(commandTools.keys()).slice(0, 20).join(', ') + (commandTools.size > 20 ? '…' : '') + ')')
+
     if (active) {
       const defaultSystem = BASE_SYSTEM_PROMPT
       const composed = composeSystemPrompt(active.systemPrompt, active.promptGroups)
@@ -367,18 +408,16 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         skills,
         agents,
         subagents,
+        tools: commandTools,
       }
       engine = new QueryEngine(opts)
       console.log('[EngineBridge] Active profile:', active.name, 'provider:', opts.provider, 'baseUrl:', active.baseUrl, 'model:', opts.model)
 
-      // 收集启用的工具分组（Profile → AppConfig → 默认全量）
-      const enabledToolGroups = (active as any).enabledToolGroups
-        ?? ConfigManager.get().enabledToolGroups
-        ?? []
-
+      // 工具组不再在启动时定死：由 createApiClientStream 在每次请求时从配置解析，
+      // 这样在「工具管理」里切组能立即生效（以前把值捕获进闭包，改了不生效）。
       // 注入真实 API 客户端（将 sendMessageStream 桥接为 MessageLoop 所需的 AsyncIterable）
       engine.setApiClient({
-        sendMessage: createApiClientStream(opts.provider!, active.apiKey || '', opts.model!, active.baseUrl, enabledToolGroups),
+        sendMessage: createApiClientStream(opts.provider!, active.apiKey || '', opts.model!, active.baseUrl),
       })
       lastApiSettings = {
         provider: opts.provider!,
@@ -398,18 +437,16 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         skills,
         agents,
         subagents,
+        tools: commandTools,
       })
       console.log('[EngineBridge] No active profile, using defaults')
 
       // 注入默认 API 客户端
-      const defaultEnabledGroups = ConfigManager.get().enabledToolGroups ?? []
       engine.setApiClient({
-        sendMessage: createApiClientStream('openai', '', 'gpt-4o', '', defaultEnabledGroups),
+        sendMessage: createApiClientStream('openai', '', 'gpt-4o', ''),
       })
       lastApiSettings = { provider: 'openai', model: 'gpt-4o', apiKey: '', baseUrl: undefined }
     }
-
-    const commandCount = await importCommands()
 
     // 加载用户勾选的工具插件
     const pluginTools = await loadLegacyPluginTools()
@@ -448,7 +485,6 @@ export function updateEngineApiClient(opts: {
   const baseUrl = merged.baseUrl
   const apiKey = merged.apiKey
   const systemPrompt = withLayoutGuard(composeSystemPrompt(opts.systemPrompt, opts.promptGroups) ?? '')
-  const enabledToolGroups = ConfigManager.get().enabledToolGroups ?? []
   lastApiSettings = merged
   eng.updateConfig({
     provider: provider as 'openai' | 'anthropic',
@@ -456,7 +492,7 @@ export function updateEngineApiClient(opts: {
     ...(systemPrompt ? { systemPrompt } : {}),
   })
   eng.setApiClient({
-    sendMessage: createApiClientStream(provider, apiKey, model, baseUrl, enabledToolGroups),
+    sendMessage: createApiClientStream(provider, apiKey, model, baseUrl),
   })
   console.log('[EngineBridge] API client rebuilt with provider=', provider, 'model=', model, 'baseUrl=', baseUrl || 'fallback', 'apiKeyLen=', apiKey ? apiKey.length : 0, 'systemPromptLen=', systemPrompt ? systemPrompt.length : 0)
   return true

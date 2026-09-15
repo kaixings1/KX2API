@@ -446,15 +446,51 @@ export async function canResolveToolName(name: string): Promise<boolean> {
 }
 
 /**
- * 从 ToolCollection 构建 OpenAI tools 定义
- * 使用 toolCollection 统一管理工具，消除硬编码白名单
- * 使用动态 import 避免与 registry.ts 形成循环依赖
+ * 构建本次请求要发的 OpenAI tools 定义。
+ *
+ * 数据源：工具管理（toolManager）的分组/启停/平台配置 —— 以前这里用的是
+ * commandRegistry 里未分组的全量命令，且 enabledGroups 永远是空数组 = 不过滤（全发），
+ * 所以「工具管理」里选的组从来没生效过。
+ *
+ * 兼容：toolRuntime 不可用（或工具 store 为空）时，回退到旧的 ToolCollection 逻辑。
  */
 export async function buildToolsFromRegistry(enabledGroups: string[] = []): Promise<ToolDefinition[]> {
+  try {
+    const { resolveActiveTools, buildOpenAIToolDefinitions, applyToolEnvVars } = await import(
+      '../../main/tools/toolRuntime.ts'
+    )
+    const { toolManager } = await import('../../main/tools/toolManager.ts')
+    const allManaged = toolManager.getAllTools()
+    if (allManaged.length > 0) {
+      const resolved = resolveActiveTools({
+        groupIds: enabledGroups,
+        tools: allManaged,
+        groups: toolManager.getAllGroups(),
+      })
+      // 同步环境变量：组内=1，其余=0
+      applyToolEnvVars(resolved, allManaged)
+      console.log(
+        '[API] Tool filtering: total=',
+        allManaged.length,
+        'active=',
+        resolved.tools.length,
+        'scope=',
+        resolved.isGlobal ? 'global' : resolved.groupNames.join('+'),
+        resolved.platformSkipped.length ? `平台过滤: ${resolved.platformSkipped.join(',')}` : '',
+        resolved.disabledSkipped.length ? `已关闭: ${resolved.disabledSkipped.join(',')}` : ''
+      )
+      if (resolved.tools.length > 0) {
+        return buildOpenAIToolDefinitions(resolved.tools) as unknown as ToolDefinition[]
+      }
+    }
+  } catch (e) {
+    console.warn('[API] toolRuntime 解析失败，回退到 ToolCollection:', (e as Error).message)
+  }
+
   const { toolCollection } = await import('../../main/proxy/tools/toolCollection')
   const tools: ToolDefinition[] = []
   const filtered = toolCollection.getFilteredTools(enabledGroups)
-  console.log('[API] Tool filtering: total=', toolCollection.getAllTools().length, 'filtered=', filtered.length, 'groups=', enabledGroups.length === 0 ? 'all' : enabledGroups.join(','))
+  console.log('[API] Tool filtering (fallback): total=', toolCollection.getAllTools().length, 'filtered=', filtered.length)
   for (const cmd of filtered) {
     tools.push({
       type: 'function',

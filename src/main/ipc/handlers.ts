@@ -1660,6 +1660,18 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.CONFIG_UPDATE, async (_, updates: Partial<AppConfig>) => {
     const newConfig = storeManager.updateConfig(updates)
 
+    // 切换工具组时立即同步环境变量（KX2_TOOL_DEF_*），
+    // 请求链路本来就会重新解析，这里只是让 env 状态即时可查。
+    if (updates && 'enabledToolGroups' in updates) {
+      try {
+        const { resolveActiveToolsFromStore } = await import('../tools/toolRuntime.ts')
+        const { resolved } = await resolveActiveToolsFromStore()
+        console.log('[ToolRuntime] 生效工具组已切换:', resolved.isGlobal ? '全局组' : resolved.groupNames.join('+'), '工具数=', resolved.tools.length)
+      } catch (e) {
+        console.warn('[ToolRuntime] 同步工具组失败:', (e as Error).message)
+      }
+    }
+
     BrowserWindow.getAllWindows().forEach((win) => {
       if (!win.isDestroyed()) {
         win.webContents.send(IpcChannels.CONFIG_CHANGED, newConfig)
