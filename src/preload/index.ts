@@ -15,6 +15,7 @@ import type {
   SystemPrompt,
   PromptType,
   EffectiveModel,
+  AgentRecord,
 } from '../shared/types'
 
 // ==================== New Module Types ====================
@@ -58,17 +59,6 @@ interface GitBranch {
   current: boolean
   ahead: number
   behind: number
-}
-
-interface AgentRecord {
-  id: string
-  name: string
-  role: string
-  systemPrompt: string
-  model?: string
-  status: 'idle' | 'running' | 'error'
-  createdAt: number
-  lastActiveAt?: number
 }
 
 interface CommandRecord {

@@ -112,17 +112,6 @@ interface GitBranch {
   behind: number
 }
 
-interface AgentRecord {
-  id: string
-  name: string
-  role: string
-  systemPrompt: string
-  model: string | null
-  status: 'idle' | 'running' | 'error'
-  createdAt: number
-  updatedAt: number
-}
-
 interface CommandRecord {
   id: string
   name: string
@@ -173,49 +162,6 @@ interface OtherConfig {
 }
 
 // ==================== Default Data Seeding ====================
-
-const DEFAULT_AGENTS: AgentRecord[] = [
-  {
-    id: 'agent_code_reviewer',
-    name: '代码审查员',
-    role: 'Code Reviewer',
-    systemPrompt: '你是一位经验丰富的代码审查员。请检查代码中的潜在问题：安全漏洞、性能瓶颈、可读性、边界条件、错误处理。给出具体行号和建议的修复方案。',
-    model: null,
-    status: 'idle',
-    createdAt: Date.now() - 86400000 * 3,
-    updatedAt: Date.now() - 86400000 * 3,
-  },
-  {
-    id: 'agent_refactor',
-    name: '重构助手',
-    role: 'Refactoring Assistant',
-    systemPrompt: '你是一位软件重构专家。分析代码结构，识别重复代码、过长函数、深层嵌套等问题，提供逐步重构建议。保持行为不变的前提下提升可维护性。',
-    model: null,
-    status: 'idle',
-    createdAt: Date.now() - 86400000 * 2,
-    updatedAt: Date.now() - 86400000 * 2,
-  },
-  {
-    id: 'agent_test_gen',
-    name: '测试生成器',
-    role: 'Test Generator',
-    systemPrompt: '你是一位测试工程师。根据给定的代码逻辑生成全面的单元测试，覆盖正常路径、边界条件和异常情况。输出可直接运行的测试代码。',
-    model: null,
-    status: 'idle',
-    createdAt: Date.now() - 86400000,
-    updatedAt: Date.now() - 86400000,
-  },
-  {
-    id: 'agent_docs_writer',
-    name: '文档编写员',
-    role: 'Documentation Writer',
-    systemPrompt: '你是一位技术文档专家。根据代码和注释生成清晰、完整的文档，包括 API 说明、使用示例、参数描述和注意事项。',
-    model: null,
-    status: 'idle',
-    createdAt: Date.now() - 3600000,
-    updatedAt: Date.now() - 3600000,
-  },
-]
 
 const DEFAULT_WORKFLOWS: WorkflowRecord[] = [
   {
@@ -460,14 +406,12 @@ import { ModuleDataStore } from './ModuleDataStore'
 
 const plansStore = new ModuleDataStore<PlanRecord>('plans')
 const tasksStore = new ModuleDataStore<TaskRecord>('tasks')
-const agentsStore = new ModuleDataStore<AgentRecord>('agents')
 const commandsStore = new ModuleDataStore<CommandRecord>('commands')
 const workflowsStore = new ModuleDataStore<WorkflowRecord>('workflows')
 const mcpServersStore = new ModuleDataStore<McpServerConfig>('mcp-servers')
 const pluginsStore = new ModuleDataStore<PluginRecord>('plugins')
 
 // Seed default data on startup
-seedStoreIfEmpty(agentsStore, DEFAULT_AGENTS as unknown as AgentRecord[], 'agents')
 seedStoreIfEmpty(workflowsStore, DEFAULT_WORKFLOWS as unknown as WorkflowRecord[], 'workflows')
 seedStoreIfEmpty(mcpServersStore, DEFAULT_MCP_SERVERS as unknown as McpServerConfig[], 'mcp-servers')
 seedStoreIfEmpty(pluginsStore, DEFAULT_PLUGINS as unknown as PluginRecord[], 'plugins')
@@ -673,67 +617,6 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       gitService.setRepoPath(repoPath)
       gitService.checkout(branch)
       return { success: true }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  // ==================== Agent Management IPC Handlers ====================
-
-  ipcMain.handle(IpcChannels.AGENTS_GET_ALL, async () => {
-    try { return { success: true, data: Array.from(agentsStore.values()) }
-    } catch (e) { return { success: false, error: (e as Error).message } }
-  })
-
-  ipcMain.handle(IpcChannels.AGENTS_GET_BY_ID, async (_, id: string) => {
-    try {
-      const agent = agentsStore.get(id)
-      if (agent) return { success: true, data: agent }
-      return { success: false, error: 'Agent not found' }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.AGENTS_CREATE, async (_, data: Omit<AgentRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      const id = `agent_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
-      const agent: AgentRecord = { ...data, id, createdAt: Date.now(), updatedAt: Date.now() }
-      agentsStore.set(id, agent)
-      return { success: true, data: agent }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.AGENTS_UPDATE, async (_, id: string, data: Partial<AgentRecord>) => {
-    try {
-      const existing = agentsStore.get(id)
-      if (!existing) return { success: false, error: 'Agent not found' }
-      const updated = { ...existing, ...data, updatedAt: Date.now() }
-      agentsStore.set(id, updated)
-      return { success: true, data: updated }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.AGENTS_DELETE, async (_, id: string) => {
-    try {
-      return { success: agentsStore.delete(id) }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.AGENTS_EXECUTE, async (_, id: string) => {
-    try {
-      const agent = agentsStore.get(id)
-      if (!agent) return { success: false, error: 'Agent not found' }
-      agentsStore.set(id, { ...agent, status: 'running', updatedAt: Date.now() })
-      await new Promise(r => setTimeout(r, 500))
-      agentsStore.set(id, { ...agent, status: 'idle', updatedAt: Date.now() })
-      return { success: true, data: { output: 'Agent executed successfully' } }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
@@ -1068,7 +951,6 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       ensureBackupDir()
       const backup: Record<string, any> = {}
       const modules = [
-        { key: 'agents', store: agentsStore },
         { key: 'workflows', store: workflowsStore },
         { key: 'mcp-servers', store: mcpServersStore },
         { key: 'tools', store: (toolManager as any)?.store },
@@ -1100,7 +982,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
           if (item?.id) {
             try {
               const storeMap: Record<string, any> = {
-                'agents': agentsStore, 'workflows': workflowsStore,
+                'workflows': workflowsStore,
                 'mcp-servers': mcpServersStore, 'plugins': pluginsStore,
                 'plans': plansStore, 'tasks': tasksStore,
               }
@@ -1375,6 +1257,12 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     try {
       const removed = toolManager.removeGroup(id)
       if (!removed) return { success: false, error: 'Cannot remove builtin group' }
+      // 若删除的是当前生效组，从 enabledToolGroups 中剔除该悬空 id
+      const config = storeManager.getConfig()
+      const active = config.enabledToolGroups || []
+      if (active.includes(id)) {
+        storeManager.updateConfig({ enabledToolGroups: active.filter(gid => gid !== id) })
+      }
       return { success: true }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1442,6 +1330,11 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_RESET, async () => {
     try {
       toolManager.resetToDefault()
+      // 重置后回落到全局组，避免 enabledToolGroups 指向已被清空的分组 id 造成悬空
+      const config = storeManager.getConfig()
+      if (config.enabledToolGroups && config.enabledToolGroups.length > 0) {
+        storeManager.updateConfig({ enabledToolGroups: [] })
+      }
       return { success: true }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1450,8 +1343,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
 
   ipcMain.handle(IpcChannels.TOOLS_GET_BY_ID, async (_, id: string) => {
     try {
-      const res = await toolManager.getAll()
-      const tool = res.tools?.find(t => t.id === id)
+      const tool = toolManager.getTool(id)
       if (tool) return { success: true, data: tool }
       return { success: false, error: 'Tool not found' }
     } catch (e) {

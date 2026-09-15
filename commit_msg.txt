@@ -1,0 +1,7 @@
+refactor(ipc): remove duplicate task handlers from handlers.ts
+
+Task handlers now live exclusively in task-handlers.ts via registerTaskHandlers.
+Remove stale TASKS_* registrations from the legacy handlers file to prevent
+duplicate channel registration.
+
+Co-Authored-By: kaixings <30445355@qq.com>

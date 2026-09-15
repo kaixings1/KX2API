@@ -500,6 +500,47 @@ function ToolUseBlock({ tool }: { tool: ParsedTool }) {
   )
 }
 
+// ─── 识别「正文里嵌入的工具调用」并显示为友好「正在执行」块 ─────────────────────
+// 模型有时把工具调用写成纯文本 JSON 工具包或 <tool_call> XML（而非结构化 tool_calls），
+// 若直接原样渲染会显示成 <> 或裸 JSON 乱码。这里识别它们，折叠成「正在执行：功能」。
+function extractToolInvocation(text: string): string | null {
+  if (!text) return null
+  // JSON 工具包：{"tool":"filesystem.list_directory","parameters":{...},"call_id":...}
+  const jsonM = text.match(/"\s*tool\s*"\s*:\s*"([^"]+)"\s*,\s*"\s*(?:parameters|input|arguments)\s*"\s*:/)
+  if (jsonM) return jsonM[1]
+  // XML：<tool_call><toolName>...</toolName> 或 <toolName>...</toolName>
+  const xmlM = text.match(/<(?:tool_call|toolname|tool_name)\s*>[\s\S]*?<\s*\/?\s*(?:toolCall|toolName|tool_name|tool_call)\s*>/i)
+  if (xmlM) {
+    const name = text.match(/<(?:tool_name|toolName)>\s*([^<\s]+)/i)
+    if (name) return name[1]
+  }
+  return null
+}
+
+/** 工具调用友好块（折叠展示 + 隐藏原始 JSON/XML） */
+function ToolInvocationInline({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const toolName = extractToolInvocation(text) ?? 'tool'
+  const friendly = describeTool(toolName) ?? toolName
+  return (
+    <div className="claude-tool-use-block claude-tool-inline">
+      <div className="claude-tool-use-header" onClick={() => setExpanded(p => !p)}>
+        <span className="claude-tool-use-bullet">⚙</span>
+        <div className="claude-tool-use-name-wrap">
+          <span className="claude-tool-use-name">正在执行：{friendly}</span>
+          {toolName !== friendly && <span className="claude-tool-use-sub">{toolName}</span>}
+        </div>
+        <span className="claude-tool-use-toggle">{expanded ? '收起' : '查看'}</span>
+      </div>
+      {expanded && (
+        <div className="claude-tool-use-body">
+          <pre className="claude-tool-use-args-pre"><code>{text}</code></pre>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Message Content (main renderer) ─────────────────────────────────────────
 
 function MessageContent({
@@ -547,6 +588,10 @@ function MessageContent({
         // 结束后识别为工具结果卡片，避免裸 JSON 堆积
         if (!isStreaming && isToolResultJson(text)) {
           return <ToolResultCard key={i} text={text} />
+        }
+        // 识别「工具调用 JSON / XML 包」：显示为「正在执行」友好块，避免 <> / 裸 JSON 乱码
+        if (!isStreaming && extractToolInvocation(text)) {
+          return <ToolInvocationInline key={i} text={text} />
         }
         const showCursor = isStreaming && i === lastBlockIdx
         // During streaming: render as plain text for typewriter effect

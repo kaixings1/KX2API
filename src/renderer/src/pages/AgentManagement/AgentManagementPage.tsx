@@ -33,7 +33,9 @@ export function AgentManagement() {
   const [systemPrompt, setSystemPrompt] = useState('')
   const [model, setModel] = useState('')
   const [executeInput, setExecuteInput] = useState('')
-  const [executeId, setExecuteId] = useState<string | null>(null)
+  const [showExecuteInput, setShowExecuteInput] = useState<string | null>(null)
+  const [executingId, setExecutingId] = useState<string | null>(null)
+  const [outputs, setOutputs] = useState<Record<string, string>>({})
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
 
@@ -85,9 +87,33 @@ export function AgentManagement() {
   }
 
   const handleExecute = async (id: string) => {
+    setExecutingId(id)
+    setOutputs(prev => ({ ...prev, [id]: '' }))
+
+    const unsubOutput = agentsApi.onOutput(({ agentId, content }) => {
+      setOutputs(prev => ({ ...prev, [agentId]: (prev[agentId] || '') + content }))
+    })
+
+    const unsubDone = agentsApi.onDone(({ agentId, success, output, error }) => {
+      unsubOutput()
+      unsubDone()
+      unsubError()
+      setExecutingId(null)
+      if (success) {
+        setOutputs(prev => ({ ...prev, [agentId]: output }))
+      }
+      loadAgents()
+    })
+
+    const unsubError = agentsApi.onError(({ agentId, error }) => {
+      unsubOutput()
+      unsubDone()
+      unsubError()
+      setExecutingId(null)
+      setOutputs(prev => ({ ...prev, [agentId]: `错误: ${error}` }))
+    })
+
     await agentsApi.execute(id, executeInput || '请执行任务')
-    setExecuteId(null)
-    loadAgents()
   }
 
   const filtered = agents.filter(a => {
@@ -279,15 +305,23 @@ export function AgentManagement() {
                   <span>创建: {new Date(agent.createdAt).toLocaleDateString()}</span>
                 </div>
                 <div className="flex gap-1 mt-2" onClick={e => e.stopPropagation()}>
-                  <Button size="sm" variant="outline" onClick={() => setExecuteId(executeId === agent.id ? null : agent.id)} disabled={executeId === agent.id}>
+                  <Button size="sm" variant="outline" onClick={() => { setShowExecuteInput(showExecuteInput === agent.id ? null : agent.id); setExecuteInput('') }} disabled={executingId === agent.id}>
                     <Play className="h-3 w-3 mr-1" />{t('agents.execute', '执行')}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => openEdit(agent)}>{t('common.edit', '编辑')}</Button>
                   <Button size="sm" variant="destructive" onClick={() => handleDelete(agent.id)}><Trash2 className="h-3 w-3" /></Button>
                 </div>
-                {executeId === agent.id && (
-                  <div className="mt-3">
+                {showExecuteInput === agent.id && (
+                  <div className="mt-3 flex gap-2">
                     <Input value={executeInput} onChange={e => setExecuteInput(e.target.value)} placeholder={t('agents.executeInput', '输入执行指令...')} />
+                    <Button size="sm" onClick={() => handleExecute(agent.id)} disabled={executingId === agent.id}>
+                      {executingId === agent.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                )}
+                {outputs[agent.id] && (
+                  <div className="mt-2 p-2 bg-black/30 rounded text-xs font-mono whitespace-pre-wrap max-h-40 overflow-auto">
+                    {outputs[agent.id]}
                   </div>
                 )}
               </CardContent>
