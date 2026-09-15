@@ -1,0 +1,5 @@
+fix(ui): replace semi-transparent glass backgrounds with opaque solid colors
+
+All glass-* classes now use var(--bg-*) solid backgrounds instead of
+rgba/color-mix with transparent. Removed aggressive [data-state="open"]
+global override. Dialog/Sheet already fixed in prior commit.

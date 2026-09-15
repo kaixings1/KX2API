@@ -22,8 +22,8 @@ html[data-theme="dark"] {
   --glass-border-hover: rgba(255, 255, 255, 0.12);
 
   --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --bg-tertiary: #1a1a25;
+  --bg-secondary: #1a1a28;
+  --bg-tertiary: #22223a;
   --bg-deep: #0f0f18;
 
   --accent-primary: #3b82f6;
@@ -32,9 +32,9 @@ html[data-theme="dark"] {
   --accent-tertiary: #ec4899;
   --accent-teal: #14b8a6;
 
-  --text-primary: #a1a1aa;
-  --text-muted: rgba(161, 161, 170, 0.55);
-  --text-dim: rgba(161, 161, 170, 0.3);
+  --text-primary: #d4d4d8;
+  --text-muted: rgba(212, 212, 216, 0.65);
+  --text-dim: rgba(212, 212, 216, 0.4);
 
   --success: #10b981;
   --error: #ef4444;

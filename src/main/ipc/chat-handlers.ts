@@ -119,61 +119,64 @@ export function registerChatHandlers(): void {
 
       // 使用事件驱动模式：将 MessageLoop 的 AgentEvent 转发为 IPC 消息
       const eventHandler = (event: AgentEvent) => {
-        switch (event.type) {
-          case 'response_chunk':
-            sender.send(IpcChannels.CHAT_STREAM_CHUNK, { requestId, chunk: event.content as string })
-            break
-          case 'reasoning':
-            sender.send(IpcChannels.CHAT_STREAM_REASONING, { requestId, reasoning: event.text as string })
-            break
-          case 'tool_call_start':
-            sender.send(IpcChannels.CHAT_STREAM_TOOL_START, {
-              requestId,
-              toolUseId: event.toolUseId,
-              toolName: event.toolName,
-              input: event.input,
-            })
-            break
-          case 'post_tool_use':
-            sender.send(IpcChannels.CHAT_STREAM_TOOL_RESULT, {
-              requestId,
-              toolUseId: event.toolUseId,
-              toolName: event.toolName,
-              success: event.success,
-              output: event.output,
-              error: event.error,
-            })
-            break
-          case 'needs_user':
-            sender.send(IpcChannels.CHAT_STREAM_NEEDS_USER, {
-              requestId,
-              prompt: event.prompt,
-            })
-            break
-          case 'error':
-            sender.send(IpcChannels.CHAT_STREAM_ERROR, {
-              requestId,
-              error: event.error,
-              stack: event.stack,
-            })
-            break
-          case 'aborted':
-            sender.send(IpcChannels.CHAT_STREAM_ABORTED, { requestId })
-            break
-          case 'done':
-            const result = event.result
-            const lastMessage = result.messages[result.messages.length - 1]
-            const content = lastMessage?.content && typeof lastMessage.content === 'string'
-              ? lastMessage.content
-              : ''
-            sender.send(IpcChannels.CHAT_STREAM_DONE, {
-              requestId,
-              content,
-              toolOutput: '',
-              iterations: result.iterations,
-              duration: result.duration,
-            })
-            break
+        // 防御：sender 可能在窗口关闭后失效，避免 Electron 抛出 Missing required channel argument
+        if (!sender?.isDestroyed?.()) {
+          switch (event.type) {
+            case 'response_chunk':
+              sender.send(IpcChannels.CHAT_STREAM_CHUNK, { requestId, chunk: event.content as string })
+              break
+            case 'reasoning':
+              sender.send(IpcChannels.CHAT_STREAM_REASONING, { requestId, reasoning: event.text as string })
+              break
+            case 'tool_call_start':
+              sender.send(IpcChannels.CHAT_STREAM_TOOL_START, {
+                requestId,
+                toolUseId: event.toolUseId,
+                toolName: event.toolName,
+                input: event.input,
+              })
+              break
+            case 'post_tool_use':
+              sender.send(IpcChannels.CHAT_STREAM_TOOL_RESULT, {
+                requestId,
+                toolUseId: event.toolUseId,
+                toolName: event.toolName,
+                success: event.success,
+                output: event.output,
+                error: event.error,
+              })
+              break
+            case 'needs_user':
+              sender.send(IpcChannels.CHAT_STREAM_NEEDS_USER, {
+                requestId,
+                prompt: event.prompt,
+              })
+              break
+            case 'error':
+              sender.send(IpcChannels.CHAT_STREAM_ERROR, {
+                requestId,
+                error: event.error,
+                stack: event.stack,
+              })
+              break
+            case 'aborted':
+              sender.send(IpcChannels.CHAT_STREAM_ABORTED, { requestId })
+              break
+            case 'done':
+              const result = event.result
+              const lastMessage = result.messages[result.messages.length - 1]
+              const content = lastMessage?.content && typeof lastMessage.content === 'string'
+                ? lastMessage.content
+                : ''
+              sender.send(IpcChannels.CHAT_STREAM_DONE, {
+                requestId,
+                content,
+                toolOutput: '',
+                iterations: result.iterations,
+                duration: result.duration,
+              })
+              break
+          }
         }
       }
 

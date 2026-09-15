@@ -156,11 +156,29 @@ function createApiClientStream(
     let enabledToolGroups: string[] = []
     let toolHint = ''
     try {
-      const { resolveActiveToolsFromStore, buildToolHint } = await import('./tools/toolRuntime.ts')
+      const { resolveActiveToolsFromStore, buildToolHint, buildOpenAIToolDefinitions } = await import('./tools/toolRuntime.ts')
       const { resolved } = await resolveActiveToolsFromStore()
       enabledToolGroups = resolved.groupIds
-      toolHint = buildToolHint(resolved)
-      console.log('[EngineBridge] tools for this request:', resolved.tools.length, resolved.isGlobal ? '(全局组)' : `(${resolved.groupNames.join('+')})`)
+      // 关键修复：只把引擎实际注册的工具（白名单命令 + 插件工具）发给模型，
+      // 避免 toolManager 里数百条 CLI 命令涌入导致模型混淆、无效工具名、repeat loop。
+      const engineToolNames = new Set(
+        (engine?.getTools?.() ?? []).map(t => t.name),
+      )
+      const filteredResolved = {
+        ...resolved,
+        tools: resolved.tools.filter(t => engineToolNames.has(t.name)),
+        names: resolved.tools.filter(t => engineToolNames.has(t.name)).map(t => t.name),
+        platformSkipped: resolved.tools.filter(t => !engineToolNames.has(t.name)).map(t => t.name),
+      }
+      const engineDefs = buildOpenAIToolDefinitions(filteredResolved.tools)
+      if (engine && engineDefs.length > 0) {
+        ;(engine as unknown as { setToolDefinitions: (defs: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>) => void }).setToolDefinitions(
+          engineDefs.map(d => ({ name: d.function.name, description: d.function.description, input_schema: d.function.parameters })),
+        )
+      }
+      // toolHint 用过滤后的工具集生成，避免展示未注册的工具名
+      toolHint = buildToolHint(filteredResolved)
+      console.log('[EngineBridge] tools for this request:', filteredResolved.tools.length, filteredResolved.isGlobal ? '(全局组)' : `(${resolved.groupNames.join('+')})`, 'engineDefs synced:', engineDefs.length, 'total available:', resolved.tools.length)
     } catch (e) {
       console.warn('[EngineBridge] 工具组解析失败，回退为全局组:', (e as Error).message)
     }

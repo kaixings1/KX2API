@@ -407,6 +407,16 @@ export class QueryEngine {
     return this._toolDefinitions;
   }
 
+  /** 更新引擎的工具定义列表（由 toolManager/toolRuntime 驱动，使配置切换立即生效） */
+  setToolDefinitions(defs: ToolDefinition[]): void {
+    this._toolDefinitions = defs
+    // 同步更新 messageLoop deps，否则当前轮请求仍用旧值
+    const loop = this as unknown as { messageLoop: { deps: { toolDefinitions: ToolDefinition[] } } }
+    if (loop?.messageLoop?.deps) {
+      loop.messageLoop.deps.toolDefinitions = defs
+    }
+  }
+
   getHistory(): Array<{ role: string; content: string }> {
     return this._conversation.messages.map((m) => ({
       role: m.role,
