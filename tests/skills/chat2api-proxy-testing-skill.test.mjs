@@ -51,7 +51,7 @@ test('versioned Chat2API testing skills exist and have trigger-only descriptions
     // Skill frontmatter is a discovery contract; keep exact names and descriptions stable.
     assert.match(
       text,
-      new RegExp(`^---\\nname: ${escapeRegExp(name)}\\ndescription: ${escapeRegExp(description)}\\n---`, 'm'),
+      new RegExp(`^---\\r?\\nname: ${escapeRegExp(name)}\\r?\\ndescription: ${escapeRegExp(description)}\\r?\\n---`, 'm'),
       file,
     )
     assert.doesNotMatch(text, /T[B]D|FI[X]ME|deferred work/, file)

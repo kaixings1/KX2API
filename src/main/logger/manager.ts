@@ -17,7 +17,7 @@ interface LogFilter {
   offset?: number
 }
 
-class LogManager {
+export class LogManager {
   private logs: LogEntry[] = []
   private logFile: string
   private debugFileStream: fs.WriteStream | null = null

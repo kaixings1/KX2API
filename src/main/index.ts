@@ -44,6 +44,9 @@ if (process.platform === 'darwin' && process.arch === 'arm64') {
   app.commandLine.appendSwitch('disable-gpu-sandbox')
 }
 
+// Suppress DevTools CDP warning: "Autofill.enable wasn't found"
+app.commandLine.appendSwitch('disable-features', 'Autofill')
+
 // Automatically add --no-sandbox flag when running as root user
 if (process.getuid && process.getuid() === 0) {
   console.log('Detected running as root user, sandbox settings have been automatically handled')

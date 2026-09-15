@@ -50,7 +50,9 @@ export function parseSlashCommand(input: string): ParsedSlashCommand | null {
     argsStartIndex = 2
   }
 
-  const args = words.slice(argsStartIndex).join(' ')
+  // 命令名与参数之间可能有多个空格（'/search  foo'），空 token 要丢掉，
+  // 否则 args 会带上多余的前导空格（单测 parseSlashCommand: trims whitespace 覆盖）
+  const args = words.slice(argsStartIndex).filter(Boolean).join(' ')
 
   return {
     commandName,

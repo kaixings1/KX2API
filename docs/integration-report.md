@@ -1,6 +1,6 @@
 # 代码接入体检报告
 
-生成时间：2026/9/15 20:02:06
+生成时间：2026/9/15 21:53:43
 
 三档口径：**应用引用**（从 4 个真实入口可达）／**仅测试引用**／**孤儿**（两边都不可达）。
 
@@ -8,10 +8,10 @@
 
 | 顶层项 | 分类 | 文件数 | 大小 | 应用引用 | 说明 |
 | --- | --- | ---: | ---: | ---: | --- |
-| `legacy/` | 旧代码归档（已移出构建链路） | 2914 | 18.7MB | 0 ⚠️ | 旧代码归档：从 src/ 移出的未接入代码，保留供移植参考，不参与构建 |
-| `src/` | 应用运行时 | 782 | 6.2MB | 379 | 主源码 |
-| `tests/` | 测试链路 | 50 | 295.8KB | 0 ⚠️ | 测试用例（node:test / 独立脚本两套） |
-| `out/` | 构建/打包 | 41 | 13.7MB | 0 ⚠️ | electron-vite 构建产物（生成物） |
+| `legacy/` | 旧代码归档（已移出构建链路） | 2915 | 18.7MB | 0 ⚠️ | 旧代码归档：从 src/ 移出的未接入代码，保留供移植参考，不参与构建 |
+| `src/` | 应用运行时 | 808 | 5.6MB | 392 | 主源码 |
+| `tests/` | 测试链路 | 52 | 301.2KB | 0 ⚠️ | 测试用例（node:test / 独立脚本两套） |
+| `out/` | 构建/打包 | 38 | 13.6MB | 0 ⚠️ | electron-vite 构建产物（生成物） |
 | `docs/` | 文档 | 27 | 3.3MB | 0 ⚠️ | 文档 |
 | `capture/` | 人工使用（脚本/参考数据） | 22 | 86.6KB | 0 ⚠️ | 抓包脚本（配合 Edge 9222 调试端口），手动运行 |
 | `project/` | 人工使用（脚本/参考数据） | 17 | 23.7KB | 0 ⚠️ | 独立的小项目/示例，未被主程序引用 |
@@ -21,22 +21,25 @@
 | `build/` | 构建/打包 | 9 | 1.2MB | 0 ⚠️ | 打包资源（icon 等），被 electron-builder 使用 |
 | `config/` | 人工使用（脚本/参考数据） | 4 | 1.4KB | 0 ⚠️ | 配置样例/预设，未被代码读取 |
 | `self-test-patch-project/` | 人工使用（脚本/参考数据） | 3 | 1.2KB | 0 ⚠️ | 自测用补丁样例项目 |
-| `debug.txt` | 生成物/日志（可删） | 1 | 4.2MB | 0 ⚠️ |  |
+| `debug.txt` | 生成物/日志（可删） | 1 | 83.1MB | 0 ⚠️ |  |
+| `0` | 生成物/日志（可删） | 1 | 1008.0KB | 0 ⚠️ |  |
 | `dev/` | 人工使用（脚本/参考数据） | 1 | 467.9KB | 0 ⚠️ | 开发用临时脚本 |
-| `package-lock.json` | 构建/打包 | 1 | 341.0KB | 0 ⚠️ | 构建/运行配置 |
-| `0` | 生成物/日志（可删） | 1 | 198.8KB | 0 ⚠️ |  |
+| `package-lock.json` | 构建/打包 | 1 | 356.1KB | 0 ⚠️ | 构建/运行配置 |
 | `LICENSE` | 文档 | 1 | 173.9KB | 0 ⚠️ |  |
 | `stepfun_connect_headers.json` | 一次性产物（可删） | 1 | 38.6KB | 0 ⚠️ |  |
 | `stepfun_ws_frames.json` | 一次性产物（可删） | 1 | 17.2KB | 0 ⚠️ |  |
 | `stepfun_session_create.json` | 一次性产物（可删） | 1 | 12.8KB | 0 ⚠️ |  |
+| `TASK.md` | 文档 | 1 | 10.1KB | 0 ⚠️ |  |
 | `stepfun_api.proto` | 一次性产物（可删） | 1 | 8.0KB | 0 ⚠️ |  |
-| `TASK.md` | 文档 | 1 | 7.9KB | 0 ⚠️ |  |
+| `fix_teamtask3.py` | 未分类 | 1 | 7.3KB | 0 ⚠️ |  |
+| `CLAUDE.md` | 文档 | 1 | 6.8KB | 0 ⚠️ |  |
 | `diagnose_stepfun_auth.js` | 未分类 | 1 | 6.7KB | 0 ⚠️ |  |
 | `diagnostic_tool/` | 人工使用（脚本/参考数据） | 1 | 6.3KB | 0 ⚠️ | 诊断脚本（Python） |
-| `CLAUDE.md` | 文档 | 1 | 5.5KB | 0 ⚠️ |  |
 | `diagnose_stepfun_auth.cjs` | 一次性产物（可删） | 1 | 5.4KB | 0 ⚠️ |  |
 | `diagnose_token_expiry.cjs` | 一次性产物（可删） | 1 | 4.2KB | 0 ⚠️ |  |
 | `diagnose_token_parse.cjs` | 一次性产物（可删） | 1 | 3.9KB | 0 ⚠️ |  |
+| `fix_teamtask2.py` | 未分类 | 1 | 3.9KB | 0 ⚠️ |  |
+| `fix_teamtask.py` | 未分类 | 1 | 3.9KB | 0 ⚠️ |  |
 | `PLANNING.md` | 文档 | 1 | 3.4KB | 0 ⚠️ |  |
 | `REFACTOR_PLAN.md` | 文档 | 1 | 2.3KB | 0 ⚠️ |  |
 | `stepfun_chatstream_capture.json` | 一次性产物（可删） | 1 | 2.1KB | 0 ⚠️ |  |
@@ -44,31 +47,32 @@
 | `tool_queue_extractor/` | 人工使用（脚本/参考数据） | 1 | 1.1KB | 0 ⚠️ | 抓包用的工具队列提取器（Python） |
 | `vitest.config.ts` | 构建/打包 | 1 | 1.0KB | 0 ⚠️ | 构建/运行配置 |
 | `README.md` | 文档 | 1 | 731B | 0 ⚠️ |  |
-| `_verify.cjs` | 一次性产物（可删） | 1 | 708B | 0 ⚠️ |  |
-| `tailwind.config.ts` | 构建/打包 | 1 | 280B | 0 ⚠️ | 构建/运行配置 |
-| `_scan_i18n.cjs` | 一次性产物（可删） | 1 | 279B | 0 ⚠️ |  |
+| `tailwind.config.ts` | 构建/打包 | 1 | 261B | 0 ⚠️ | 构建/运行配置 |
 | `run_prod.bat` | 构建/打包 | 1 | 185B | 0 ⚠️ | 构建/运行配置 |
 | `postcss.config.cjs` | 构建/打包 | 1 | 82B | 0 ⚠️ | 构建/运行配置 |
 | `run.bat` | 构建/打包 | 1 | 79B | 0 ⚠️ | 构建/运行配置 |
-| `package.json` | 构建/打包 | 1 | 4.2KB | 1 | 构建/运行配置 |
+| `package.json` | 构建/打包 | 1 | 4.4KB | 1 | 构建/运行配置 |
+| `-p/` | 未分类 | 0 | 0B | 0 ⚠️ |  |
 
 ## 二、src/ 各目录接入情况
 
 | 目录 | 文件数 | 应用引用 | 仅测试 | 孤儿 |
 | --- | ---: | ---: | ---: | ---: |
-| `src/main` | 471 | 194 | 0 | 277 |
-| `src/renderer` | 154 | 135 | 0 | 19 |
-| `src/engine` | 120 | 40 | 0 | 80 |
+| `src/main` | 472 | 197 | 0 | 275 |
+| `src/renderer` | 167 | 145 | 0 | 22 |
+| `src/engine` | 132 | 40 | 0 | 92 |
 | `src/__tests__` | 10 | 0 | 0 | 10 |
 | `src/security` | 9 | 3 | 0 | 6 |
-| `src/shared` | 8 | 4 | 0 | 4 |
+| `src/shared` | 7 | 4 | 0 | 3 |
 | `src/utils` | 5 | 1 | 0 | 4 |
-| `src/preload` | 3 | 1 | 0 | 2 |
 | `src/memory` | 2 | 1 | 0 | 1 |
+| `src/preload` | 2 | 1 | 0 | 1 |
+| `src/generated` | 1 | 0 | 0 | 1 |
+| `src/globals.d.ts` | 1 | 0 | 0 | 1 |
 
-## 三、孤儿文件清单（403 个）
+## 三、孤儿文件清单（416 个）
 
-<details><summary><code>src/main/proxy</code> — 164 个</summary>
+<details><summary><code>src/main/proxy</code> — 161 个</summary>
 
 - `src/main/proxy/adapters/deepseek-stream.d.ts`
 - `src/main/proxy/adapters/deepseek.d.ts`
@@ -98,12 +102,9 @@
 - `src/main/proxy/adapters/qwen.d.ts`
 - `src/main/proxy/adapters/stepfun-stream.d.ts`
 - `src/main/proxy/adapters/stepfun.d.ts`
-- `src/main/proxy/adapters/stepfun_1786.js`
-- `src/main/proxy/adapters/stepfun_console_tools.js`
 - `src/main/proxy/adapters/stepfun_download.py`
 - `src/main/proxy/adapters/stepfun_download2.py`
 - `src/main/proxy/adapters/stepfun_download3.py`
-- `src/main/proxy/adapters/stepfun_main_app.js`
 - `src/main/proxy/adapters/transformers/anthropic.ts`
 - `src/main/proxy/adapters/transformers/gemini.ts`
 - `src/main/proxy/adapters/transformers/openai.ts`
@@ -148,7 +149,6 @@
 - `src/main/proxy/prompt/index.d.ts`
 - `src/main/proxy/prompt/index.ts`
 - `src/main/proxy/prompt/types.d.ts`
-- `src/main/proxy/prompt/variants/create_default.js`
 - `src/main/proxy/prompt/variants/deepseek.d.ts`
 - `src/main/proxy/prompt/variants/default.d.ts`
 - `src/main/proxy/prompt/variants/glm.d.ts`
@@ -233,6 +233,7 @@
 - `src/main/proxy/utils/tools.d.ts`
 - `src/main/proxy/utils/unifiedToolParser.d.ts`
 - `src/main/proxy/utils/unifiedToolParser.ts`
+- `src/main/proxy/utils/__tests__/streamQueueDetector.smoke.ts`
 - `src/main/proxy/__tests__/apiKeyAuth.test.ts`
 
 </details>
@@ -275,7 +276,7 @@
 
 </details>
 
-<details><summary><code>src/main/oauth</code> — 21 个</summary>
+<details><summary><code>src/main/oauth</code> — 22 个</summary>
 
 - `src/main/oauth/adapters/base.d.ts`
 - `src/main/oauth/adapters/deepseek.d.ts`
@@ -298,10 +299,11 @@
 - `src/main/oauth/manager.d.ts`
 - `src/main/oauth/tokenExtractionConfig.d.ts`
 - `src/main/oauth/types.d.ts`
+- `src/main/oauth/__tests__/stepfun-session-token.test.ts`
 
 </details>
 
-<details><summary><code>src/renderer/src</code> — 18 个</summary>
+<details><summary><code>src/renderer/src</code> — 21 个</summary>
 
 - `src/renderer/src/components/logs/LogDetail.tsx`
 - `src/renderer/src/components/logs/LogDetailModal.tsx`
@@ -315,7 +317,10 @@
 - `src/renderer/src/components/oauth/TokenInput.tsx`
 - `src/renderer/src/components/providers/LoginGuideDialog.tsx`
 - `src/renderer/src/hooks/usePerformance.ts`
+- `src/renderer/src/pages/McpManagement/__tests__/McpManagement.test.ts`
 - `src/renderer/src/pages/Prompts/__tests__/PromptsManagement.test.ts`
+- `src/renderer/src/pages/TaskManagement/__tests__/TaskManagement.test.ts`
+- `src/renderer/src/pages/ToolManagement/__tests__/ToolManagement.test.ts`
 - `src/renderer/src/stores/logsStore.ts`
 - `src/renderer/src/stores/promptsStore.ts`
 - `src/renderer/src/stores/__tests__/promptsStore.test.ts`
@@ -344,22 +349,22 @@
 
 </details>
 
-<details><summary><code>src/engine/agent</code> — 14 个</summary>
+<details><summary><code>src/engine/tool-harness</code> — 14 个</summary>
 
-- `src/engine/agent/command-runners.d.ts`
-- `src/engine/agent/command-runners.js`
-- `src/engine/agent/coordinator/orchestrator.d.ts`
-- `src/engine/agent/coordinator/orchestrator.js`
-- `src/engine/agent/coordinator/planner.d.ts`
-- `src/engine/agent/coordinator/planner.js`
-- `src/engine/agent/coordinator/types.d.ts`
-- `src/engine/agent/coordinator/types.js`
-- `src/engine/agent/dispatcher.d.ts`
-- `src/engine/agent/dispatcher.js`
-- `src/engine/agent/task-decomposer.d.ts`
-- `src/engine/agent/task-decomposer.js`
-- `src/engine/agent/task-executor.d.ts`
-- `src/engine/agent/task-executor.js`
+- `src/engine/tool-harness/index.ts`
+- `src/engine/tool-harness/repair/defaults.ts`
+- `src/engine/tool-harness/repair/fuzzy-enum.ts`
+- `src/engine/tool-harness/repair/index.ts`
+- `src/engine/tool-harness/repair/json-repair.ts`
+- `src/engine/tool-harness/repair/key-normalize.ts`
+- `src/engine/tool-harness/repair/levenshtein.ts`
+- `src/engine/tool-harness/repair/semantic-enum.ts`
+- `src/engine/tool-harness/repair/structured-error.ts`
+- `src/engine/tool-harness/repair/synonym-table.ts`
+- `src/engine/tool-harness/repair/type-coerce.ts`
+- `src/engine/tool-harness/types.ts`
+- `src/engine/tool-harness/__tests__/repair-layer.test.ts`
+- `src/engine/tool-harness/__tests__/repair.test.ts`
 
 </details>
 
@@ -379,20 +384,6 @@
 - `src/main/utils/stripAnsi.ts`
 - `src/main/utils/timeouts.ts`
 - `src/main/utils/withResolvers.ts`
-
-</details>
-
-<details><summary><code>src/engine/commands</code> — 9 个</summary>
-
-- `src/engine/commands/impl.d.ts`
-- `src/engine/commands/impl.js`
-- `src/engine/commands/impl.ts`
-- `src/engine/commands/importer.d.ts`
-- `src/engine/commands/importer.js`
-- `src/engine/commands/registry.d.ts`
-- `src/engine/commands/registry.js`
-- `src/engine/commands/__tests__/executeCommand.test.ts`
-- `src/engine/commands/__tests__/init.test.ts`
 
 </details>
 
@@ -424,6 +415,30 @@
 
 </details>
 
+<details><summary><code>src/engine/agent</code> — 7 个</summary>
+
+- `src/engine/agent/command-runners.d.ts`
+- `src/engine/agent/coordinator/orchestrator.d.ts`
+- `src/engine/agent/coordinator/planner.d.ts`
+- `src/engine/agent/coordinator/types.d.ts`
+- `src/engine/agent/dispatcher.d.ts`
+- `src/engine/agent/task-decomposer.d.ts`
+- `src/engine/agent/task-executor.d.ts`
+
+</details>
+
+<details><summary><code>src/engine/tool-history-guard</code> — 7 个</summary>
+
+- `src/engine/tool-history-guard/fix.ts`
+- `src/engine/tool-history-guard/index.ts`
+- `src/engine/tool-history-guard/tests/fix.test.ts`
+- `src/engine/tool-history-guard/tests/validate.test.ts`
+- `src/engine/tool-history-guard/types.ts`
+- `src/engine/tool-history-guard/utils.ts`
+- `src/engine/tool-history-guard/validate.ts`
+
+</details>
+
 <details><summary><code>src/main/security</code> — 7 个</summary>
 
 - `src/main/security/AuditLogger.ts`
@@ -433,6 +448,17 @@
 - `src/main/security/InputValidator.ts`
 - `src/main/security/OutputSanitizer.ts`
 - `src/main/security/PathGuard.ts`
+
+</details>
+
+<details><summary><code>src/engine/commands</code> — 6 个</summary>
+
+- `src/engine/commands/impl.d.ts`
+- `src/engine/commands/impl.ts`
+- `src/engine/commands/importer.d.ts`
+- `src/engine/commands/registry.d.ts`
+- `src/engine/commands/__tests__/executeCommand.test.ts`
+- `src/engine/commands/__tests__/init.test.ts`
 
 </details>
 
@@ -464,15 +490,6 @@
 
 </details>
 
-<details><summary><code>src/main/agents</code> — 4 个</summary>
-
-- `src/main/agents/AgentExecutor.ts`
-- `src/main/agents/agentsService.ts`
-- `src/main/agents/AgentStore.ts`
-- `src/main/agents/index.ts`
-
-</details>
-
 <details><summary><code>src/main/requestLogs</code> — 4 个</summary>
 
 - `src/main/requestLogs/manager.d.ts`
@@ -488,6 +505,30 @@
 - `src/main/tray/index.ts`
 - `src/main/tray/TrayManager.d.ts`
 - `src/main/tray/TrayWindow.d.ts`
+
+</details>
+
+<details><summary><code>src/engine/llm-tool-parser</code> — 3 个</summary>
+
+- `src/engine/llm-tool-parser/index.ts`
+- `src/engine/llm-tool-parser/parser.ts`
+- `src/engine/llm-tool-parser/__tests__/parser.test.ts`
+
+</details>
+
+<details><summary><code>src/main/agents</code> — 3 个</summary>
+
+- `src/main/agents/agentsService.ts`
+- `src/main/agents/AgentStore.ts`
+- `src/main/agents/index.ts`
+
+</details>
+
+<details><summary><code>src/main/tools</code> — 3 个</summary>
+
+- `src/main/tools/toolsService.ts`
+- `src/main/tools/__tests__/toolManager.test.ts`
+- `src/main/tools/__tests__/toolRuntime.test.ts`
 
 </details>
 
@@ -507,13 +548,6 @@
 
 </details>
 
-<details><summary><code>src/engine/api</code> — 2 个</summary>
-
-- `src/engine/api/client.d.ts`
-- `src/engine/api/client.js`
-
-</details>
-
 <details><summary><code>src/engine/subagent</code> — 2 个</summary>
 
 - `src/engine/subagent/config.js.map`
@@ -521,10 +555,10 @@
 
 </details>
 
-<details><summary><code>src/engine/utils</code> — 2 个</summary>
+<details><summary><code>src/engine/token-counter</code> — 2 个</summary>
 
-- `src/engine/utils/exec.d.ts`
-- `src/engine/utils/exec.js`
+- `src/engine/token-counter/index.ts`
+- `src/engine/token-counter/__tests__/index.test.ts`
 
 </details>
 
@@ -542,13 +576,6 @@
 
 </details>
 
-<details><summary><code>src/main/tools</code> — 2 个</summary>
-
-- `src/main/tools/toolsService.ts`
-- `src/main/tools/__tests__/toolRuntime.test.ts`
-
-</details>
-
 <details><summary><code>src/main/types</code> — 2 个</summary>
 
 - `src/main/types/ali-oss.d.ts`
@@ -563,15 +590,15 @@
 
 </details>
 
-<details><summary><code>src/engine/cli.d.ts</code> — 1 个</summary>
+<details><summary><code>src/engine/api</code> — 1 个</summary>
 
-- `src/engine/cli.d.ts`
+- `src/engine/api/client.d.ts`
 
 </details>
 
-<details><summary><code>src/engine/cli.js</code> — 1 个</summary>
+<details><summary><code>src/engine/cli.d.ts</code> — 1 个</summary>
 
-- `src/engine/cli.js`
+- `src/engine/cli.d.ts`
 
 </details>
 
@@ -599,21 +626,15 @@
 
 </details>
 
-<details><summary><code>src/engine/core.js</code> — 1 个</summary>
-
-- `src/engine/core.js`
-
-</details>
-
 <details><summary><code>src/engine/index.d.ts</code> — 1 个</summary>
 
 - `src/engine/index.d.ts`
 
 </details>
 
-<details><summary><code>src/engine/index.js</code> — 1 个</summary>
+<details><summary><code>src/engine/progress-engine</code> — 1 个</summary>
 
-- `src/engine/index.js`
+- `src/engine/progress-engine/index.ts`
 
 </details>
 
@@ -644,6 +665,24 @@
 <details><summary><code>src/engine/types.ts</code> — 1 个</summary>
 
 - `src/engine/types.ts`
+
+</details>
+
+<details><summary><code>src/engine/utils</code> — 1 个</summary>
+
+- `src/engine/utils/exec.d.ts`
+
+</details>
+
+<details><summary><code>src/generated/globals.d.ts</code> — 1 个</summary>
+
+- `src/generated/globals.d.ts`
+
+</details>
+
+<details><summary><code>src/globals.d.ts</code> — 1 个</summary>
+
+- `src/globals.d.ts`
 
 </details>
 
@@ -719,12 +758,6 @@
 
 </details>
 
-<details><summary><code>src/preload/index.js</code> — 1 个</summary>
-
-- `src/preload/index.js`
-
-</details>
-
 <details><summary><code>src/renderer/favicon.png</code> — 1 个</summary>
 
 - `src/renderer/favicon.png`
@@ -773,9 +806,9 @@
 
 </details>
 
-<details><summary><code>src/shared/toolCalling.js</code> — 1 个</summary>
+<details><summary><code>src/shared/types</code> — 1 个</summary>
 
-- `src/shared/toolCalling.js`
+- `src/shared/types/agents.ts`
 
 </details>
 
@@ -785,21 +818,15 @@
 
 </details>
 
-<details><summary><code>src/shared/types.js</code> — 1 个</summary>
-
-- `src/shared/types.js`
-
-</details>
-
 <details><summary><code>src/utils/diff.ts</code> — 1 个</summary>
 
 - `src/utils/diff.ts`
 
 </details>
 
-<details><summary><code>src/utils/file.js</code> — 1 个</summary>
+<details><summary><code>src/utils/file.ts</code> — 1 个</summary>
 
-- `src/utils/file.js`
+- `src/utils/file.ts`
 
 </details>
 

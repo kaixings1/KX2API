@@ -277,12 +277,12 @@ export function PlanManagement() {
           {filtered.map(plan => {
             const progress = getProgress(plan)
             return (
-              <Card key={plan.id}>
-                <CardHeader>
+              <div key={plan.id} className="group rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] hover:border-primary/30 transition-colors">
+                <div className="pt-4 pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <GripVertical className="h-4 w-4 text-muted-foreground" />
-                      <CardTitle className="text-lg">{plan.title}</CardTitle>
+                      <h3 className="text-lg font-medium">{plan.title}</h3>
                       <Badge variant={STATUS_MAP[plan.status]?.variant || 'secondary'}>{STATUS_MAP[plan.status]?.label || plan.status}</Badge>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -296,34 +296,32 @@ export function PlanManagement() {
                       <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${progress}%` }} />
                     </div>
                   )}
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 mb-4">
-                    {plan.steps.map((step, i) => (
-                      <div
-                        key={step.id}
-                        className={cn(
-                          "flex items-center gap-2 text-sm cursor-pointer group",
-                          step.status === 'completed' && 'text-muted-foreground'
-                        )}
-                        onClick={() => handleStepToggle(plan.id, step.id)}
-                      >
-                        {step.status === 'completed'
-                          ? <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          : <Circle className="h-4 w-4 group-hover:text-primary" />}
-                        <span className={cn(step.status === 'completed' && 'line-through')}>{i + 1}. {step.description}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
+                </div>
+                <div className="px-4 pb-4 space-y-2">
+                  {plan.steps.map((step, i) => (
+                    <div
+                      key={step.id}
+                      className={cn(
+                        "flex items-center gap-2 text-sm cursor-pointer group/step",
+                        step.status === 'completed' && 'text-muted-foreground'
+                      )}
+                      onClick={() => handleStepToggle(plan.id, step.id)}
+                    >
+                      {step.status === 'completed'
+                        ? <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        : <Circle className="h-4 w-4 group-hover/step:text-primary" />}
+                      <span className={cn(step.status === 'completed' && 'line-through')}>{i + 1}. {step.description}</span>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 pt-2">
                     <Button size="sm" variant="outline" onClick={() => openEdit(plan)}>{t('common.edit', '编辑')}</Button>
                     <Button size="sm" variant="outline" onClick={() => handleExecute(plan.id)} disabled={plan.status === 'running'}>
                       <Play className="h-3 w-3 mr-1" />{t('plans.execute', '执行')}
                     </Button>
                     <Button size="sm" variant="destructive" onClick={() => handleDelete(plan.id)}><Trash2 className="h-3 w-3" /></Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )
           })}
         </div>

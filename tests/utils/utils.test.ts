@@ -246,6 +246,8 @@ test('withResolvers: creates promise + resolvers', async () => {
 test('withResolvers: reject works', async () => {
   const { promise, reject } = withResolvers<number>()
   let errored = false
+  // 必须真的 reject，否则 await promise 永远不返回（这个测试以前会挂住整个 runner）
+  reject(new Error('boom'))
   try {
     await promise
   } catch {

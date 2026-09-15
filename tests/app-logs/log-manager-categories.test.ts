@@ -51,7 +51,19 @@ function makeRoot(): string {
 }
 
 function destroyRoot(root: string): void {
-  rmSync(root, { recursive: true, force: true })
+  // LogManager 内部有定时落盘，可能刚好在删除时又写出文件，
+  // 直接 rmSync 会偶发 ENOTEMPTY（表现为随机失败）。这里重试几次。
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      rmSync(root, { recursive: true, force: true })
+      return
+    } catch (e) {
+      if (attempt === 4) throw e
+      // 忙等一小会儿，让写入结束
+      const until = Date.now() + 50
+      while (Date.now() < until) { /* spin */ }
+    }
+  }
 }
 
 function makeManager(logFile: string): LogManager {
@@ -320,6 +332,7 @@ test('LogManager.getCategoryConfigs returns defaults on fresh instance', async (
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
 
   const configs = mgr.getCategoryConfigs()
@@ -333,6 +346,7 @@ test('LogManager: disabled category blocks logs', async (t) => {
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
   mgr.setCategoryConfigs({ proxy: { level: 'info', enabled: false } })
 
@@ -345,6 +359,7 @@ test('LogManager: level threshold blocks lower-priority logs', async (t) => {
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
   mgr.setCategoryConfigs({ cookie: { level: 'info', enabled: true } })
 
@@ -358,6 +373,7 @@ test('LogManager: getLogs filters by category and level', async (t) => {
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
 
   log(mgr, 'app info', 'info', 'app')
@@ -380,6 +396,7 @@ test('LogManager: setCategoryConfigs merges with defaults', async (t) => {
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
 
   mgr.setCategoryConfigs({ app: { level: 'warn', enabled: false } })
@@ -397,6 +414,7 @@ test('LogManager: getStats returns per-category breakdown', async (t) => {
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
 
   log(mgr, 'app info', 'info', 'app')
@@ -415,6 +433,7 @@ test('LogManager: empty state — getLogs, getStats, getTrend all empty', async 
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
 
   assert.deepEqual(mgr.getLogs(), [])
@@ -427,6 +446,7 @@ test('LogManager: maxLogs FIFO eviction', async (t) => {
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
   mgr.setMaxLogs(5)
 
@@ -447,6 +467,7 @@ test('LogManager: all categories disabled → zero logs', async (t) => {
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
 
   const allOff: Record<string, { level: LogLevel; enabled: boolean }> = {}
@@ -467,6 +488,7 @@ test('LogManager: exportLogs includes category field', async (t) => {
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
 
   log(mgr, 'startup', 'info', 'app')
@@ -484,6 +506,7 @@ test('LogManager: log entry carries all metadata fields', async (t) => {
   t.after(() => destroyRoot(root))
 
   const mgr = makeManager(join(root, 'app.log'))
+  t.after(() => mgr.destroy())
   await mgr.initialize()
 
   const entry = mgr.log('info', 'done', {

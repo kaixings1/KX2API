@@ -98,3 +98,4 @@ Cookies
 # 抓包/一次性分析产物
 loop-request-task-*.json
 loop-response-task-*.json
+.test-home/

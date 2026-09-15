@@ -117,6 +117,13 @@ html[data-theme="light"] {
     inset -4px -4px 10px rgba(255, 255, 255, 0.8),
     inset -1px -1px 3px rgba(255, 255, 255, 0.5);
 
+  --soft-sm: 0 2px 8px rgba(166, 160, 148, 0.2);
+  --soft-lg: 0 8px 24px rgba(166, 160, 148, 0.3);
+
+  --bg-hover: var(--bg-tertiary);
+
+  --text-warning: var(--warning);
+
   --overlay-bg: rgba(255, 255, 255, 0.6);
 
   --background: 40 30% 96%;
@@ -371,11 +378,6 @@ body {
 .glass-card:nth-child(4) { animation-delay: 0.2s; }
 .glass-card:nth-child(5) { animation-delay: 0.25s; }
 .glass-card:nth-child(6) { animation-delay: 0.3s; }
-
-@keyframes cardIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
 
 .glass-sidebar {
   background: var(--bg-primary);

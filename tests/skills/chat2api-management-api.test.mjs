@@ -3,6 +3,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import test from 'node:test'
 
 const script = 'skills/chat2api-management-api/scripts/management-api.mjs'
@@ -84,7 +85,7 @@ globalThis.fetch = async (url, options = {}) => {
       KX2API_BASE_URL: 'http://mock.local',
       KX2API_MGMT_SECRET: 'mgmt_super_secret_value',
     }, {
-      nodeArgs: ['--import', mockFile],
+      nodeArgs: ['--import', pathToFileURL(mockFile).href],
     })
 
     assert.notEqual(result.status, 0)

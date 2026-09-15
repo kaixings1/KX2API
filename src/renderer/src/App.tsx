@@ -82,7 +82,6 @@ function App() {
           <Route path="/prompts" element={<Suspense fallback={<PageLoader />}><PromptsManagement /></Suspense>} />
           <Route path="/tools" element={<Suspense fallback={<PageLoader />}><ToolManagement /></Suspense>} />
           <Route path="/tools/:id" element={<Suspense fallback={<PageLoader />}><ToolDetailPage /></Suspense>} />
-          <Route path="/plans" element={<Suspense fallback={<PageLoader />}><PlanManagement /></Suspense>} />
           <Route path="/plans/:id" element={<Suspense fallback={<PageLoader />}><PlanDetailPage /></Suspense>} />
           <Route path="/team" element={<Suspense fallback={<PageLoader />}><TeamTask /></Suspense>} />
           <Route path="/about" element={<Suspense fallback={<PageLoader />}><About /></Suspense>} />

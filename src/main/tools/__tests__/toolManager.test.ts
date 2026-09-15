@@ -9,18 +9,18 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import type { ToolDefinition, ToolGroup, ToolHintRule } from '../types'
 
-// mock store 层：getConfig 返回可控的内存 store
-const mockConfig: { store: { toolManagement?: unknown } } = { store: {} }
+// 通过 vi.hoisted 创建模块级共享的可变 store，供 vi.mock 工厂与测试体安全访问
+const mockStore: { data: Record<string, unknown> } = vi.hoisted(() => ({ data: {} }))
 
-vi.mock('../store/store', () => ({
+vi.mock('../../store/store', () => ({
   storeManager: {
-    getConfig: () => mockConfig.store,
+    getConfig: () => mockStore.data,
     updateConfig: () => ({}),
   },
 }))
 
 // mock 命令注册表：只返回空的工具列表，避免拖入真实引擎依赖
-vi.mock('../../engine/commands/registry', () => ({
+vi.mock('../../../engine/commands/registry', () => ({
   commandRegistry: { getAll: () => [] },
 }))
 
@@ -69,7 +69,7 @@ function hintRule(over: Partial<ToolHintRule> & { id: string }): ToolHintRule {
 /** 新建一个从给定初始数据启动的 ToolManager，隔离 store */
 function fresh(initial?: Partial<ToolManagementStore>): ToolManager {
   const empty: ToolManagementStore = { tools: [], groups: [], hintRules: [] }
-  mockConfigState.store = { toolManagement: { ...empty, ...(initial ?? {}) } }
+  mockStore.data = { toolManagement: { ...empty, ...(initial ?? {}) } }
   return new ToolManager()
 }
 

@@ -54,9 +54,17 @@ test('OpenAI tools plus DeepSeek choose managed prompt', () => {
   assert.equal(result.plan.mode, 'managed')
   assert.equal(result.plan.protocol, 'managed_xml')
   assert.equal(result.plan.shouldInjectPrompt, true)
-  assert.equal(result.tools, undefined)
+  // managed 模式下实现会显式把 tools 置为 null（ToolCallingEngine.transformRequest）
+  assert.equal(result.tools, null)
   assert.equal(result.plan.tools.length, 2)
-  assert.match(result.messages[0].content as string, /<\|KX2API\|tool_calls>/)
+  // DeepSeek 走 managed 协议时注入「工具清单 + XML 调用协议」模板
+  // （当前实现用 <tool_use>/<name>/<arguments>，见 promptAdapters，改模板时请同步这里）
+  const injected = result.messages[0].content as string
+  assert.match(injected, /## Available Tools/)
+  assert.match(injected, /default_api:read_file/)
+  assert.match(injected, /default_api:list_dir/)
+  assert.match(injected, /<tool_use>/)
+  assert.match(injected, /<name>exact_tool_name_from_list<\/name>/)
 })
 
 test('explicit Cherry Studio MCP adapter uses managed prompt and preserves tool names', () => {

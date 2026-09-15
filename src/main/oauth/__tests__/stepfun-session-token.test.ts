@@ -26,9 +26,9 @@ vi.mock('electron', () => ({
   },
 }))
 
-import { StepFunOAuthAdapter } from '../../src/main/oauth/adapters/stepfun'
-import { InAppLoginManager } from '../../src/main/oauth/inAppLogin'
-import { StoreManager } from '../../src/main/store/store'
+import { StepFunOAuthAdapter } from '../adapters/stepfun'
+import { InAppLoginManager } from '../inAppLogin'
+import { StoreManager } from '../../store/store'
 
 const b64url = (obj: Record<string, unknown>) =>
   Buffer.from(JSON.stringify(obj)).toString('base64url')
