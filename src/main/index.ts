@@ -9,6 +9,7 @@ import { createWindow, getMainWindow, loadUrl, loadFile, openDevTools } from './
 import { createTrayManager, TrayManager } from './tray/TrayManager'
 import { registerIpcHandlers } from './ipc/handlers'
 import { registerChatHandlers } from './ipc/chat-handlers'
+import { registerTaskHandlers } from './ipc/task-handlers'
 import { initEngineBridge } from './engine-bridge'
 import { kimiSessionManager } from './oauth/kimiSessionManager'
 import { stepfunSessionManager } from './oauth/stepfunSessionManager'
@@ -139,6 +140,7 @@ async function setupApp(): Promise<void> {
 
   await logManager.initialize(debugFilePath)
   await registerIpcHandlers(mainWindow)
+  registerTaskHandlers(mainWindow)
   planScheduler.initialize(mainWindow)
   taskScheduler.initialize(mainWindow)
   registerChatHandlers()

@@ -893,6 +893,21 @@ const electronAPI = {
 
     setStatus: (id: string, status: TaskRecord['status']): Promise<TaskRecord | null> =>
       ipcRenderer.invoke(IpcChannels.TASKS_SET_STATUS, id, status).then((r: any) => r.success ? (r.data as TaskRecord | null) : null),
+
+    execute: (taskId: string): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.TASKS_EXECUTE, taskId).then((r: any) => ({ success: r.success, error: r.error })),
+
+    abort: (taskId: string): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke(IpcChannels.TASKS_ABORT, taskId).then((r: any) => ({ success: r.success })),
+
+    getRunning: (): Promise<{ taskId: string; aborted: boolean }[]> =>
+      ipcRenderer.invoke(IpcChannels.TASKS_GET_RUNNING).then((r: any) => r),
+
+    onStreamEvent: (callback: (event: { type: string; taskId?: string; detail?: string; logEntry?: { time: number; event: string; detail?: string }; task?: TaskRecord }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, event: { type: string; taskId?: string; detail?: string; logEntry?: { time: number; event: string; detail?: string }; task?: TaskRecord }) => callback(event)
+      ipcRenderer.on(IpcChannels.TASKS_STREAM_EVENT, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.TASKS_STREAM_EVENT, handler)
+    },
   },
 
   // ==================== Git Management API ====================

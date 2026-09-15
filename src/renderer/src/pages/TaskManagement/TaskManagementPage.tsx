@@ -9,12 +9,14 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Trash2, Play, CheckCircle2, Loader2, Calendar, Info } from 'lucide-react'
+import { Plus, Trash2, Play, Square, CheckCircle2, Loader2, Calendar, Info, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ManagementToolbar } from '@/components/management'
 import { ImportExportDialog } from '@/components/management/ImportExportDialog'
 
 const tasksApi = window.electronAPI.tasks
+
+type StreamEvent = { type: string; taskId?: string; detail?: string; logEntry?: { time: number; event: string; detail?: string }; task?: any }
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
   todo: { label: '○ 待办', variant: 'secondary' },
@@ -45,6 +47,100 @@ export function TaskManagement() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [search, setSearch] = useState('')
+
+  const [executingIds, setExecutingIds] = useState<Set<string>>(new Set())
+  const [logMap, setLogMap] = useState<Record<string, Array<{ time: number; event: string; detail?: string }>>>({})
+  const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set())
+  const [runningTasks, setRunningTasks] = useState<Array<{ taskId: string; aborted: boolean }>>([])
+
+  // ==================== Stream Event Listener ====================
+  useEffect(() => {
+    const unsubscribe = tasksApi.onStreamEvent((event: StreamEvent) => {
+      if (!event.taskId) return
+
+      setLogMap(prev => {
+        const logs = [...(prev[event.taskId] || [])]
+        if (event.logEntry) {
+          logs.push(event.logEntry)
+        } else if (event.type === 'done' || event.type === 'error' || event.type === 'aborted') {
+          logs.push({ time: Date.now(), event: event.type, detail: event.detail || '' })
+        } else {
+          logs.push({ time: Date.now(), event: event.type, detail: event.detail || '' })
+        }
+        return { ...prev, [event.taskId]: logs }
+      })
+
+      if (event.task) {
+        setTasks(prev => prev.map(t => t.id === event.taskId ? event.task : t))
+      }
+
+      if (event.type === 'done' || event.type === 'error' || event.type === 'aborted') {
+        setExecutingIds(prev => {
+          const next = new Set(prev)
+          next.delete(event.taskId)
+          return next
+        })
+        loadTasks()
+      }
+    })
+
+    const pollRunning = async () => {
+      try {
+        const running = await tasksApi.getRunning()
+        setRunningTasks(running)
+        setExecutingIds(new Set(running.map(r => r.taskId)))
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    pollRunning()
+    const timer = setInterval(pollRunning, 3000)
+
+    return () => {
+      unsubscribe()
+      clearInterval(timer)
+    }
+  }, [])
+
+  const toggleLog = (taskId: string) => {
+    setExpandedLogs(prev => {
+      const next = new Set(prev)
+      if (next.has(taskId)) next.delete(taskId)
+      else next.add(taskId)
+      return next
+    })
+  }
+
+  const handleExecute = async (taskId: string) => {
+    setExecutingIds(prev => new Set(prev).add(taskId))
+    setLogMap(prev => ({ ...prev, [taskId]: [] }))
+    setExpandedLogs(prev => {
+      const next = new Set(prev)
+      next.add(taskId)
+      return next
+    })
+    try {
+      await tasksApi.execute(taskId)
+    } catch (e) {
+      console.error('Execute task failed:', e)
+      setExecutingIds(prev => {
+        const next = new Set(prev)
+        next.delete(taskId)
+        return next
+      })
+    }
+  }
+
+  const handleAbort = async (taskId: string) => {
+    try {
+      await tasksApi.abort(taskId)
+    } catch (e) {
+      console.error('Abort task failed:', e)
+    }
+  }
+
+  const isExecuting = (taskId: string) => executingIds.has(taskId)
 
   // ==================== Import/Export ====================
 
@@ -353,14 +449,36 @@ export function TaskManagement() {
                   </div>
                 )}
                 <div className="flex gap-1 mt-3">
-                  {task.status === 'todo' && <Button size="sm" variant="outline" onClick={() => handleSetStatus(task.id, 'in_progress')}><Play className="h-3 w-3" /></Button>}
-                  {task.status === 'in_progress' && <Button size="sm" variant="outline" onClick={() => handleSetStatus(task.id, 'done')}><CheckCircle2 className="h-3 w-3" /></Button>}
-                  {task.status !== 'done' && task.status !== 'cancelled' && (
-                    <Button size="sm" variant="outline" onClick={() => handleSetStatus(task.id, 'cancelled')}>取消</Button>
+                  {!isExecuting(task.id) && task.status === 'todo' && (
+                    <Button size="sm" variant="default" onClick={() => handleExecute(task.id)}><Play className="h-3 w-3 mr-1" />执行</Button>
+                  )}
+                  {isExecuting(task.id) && (
+                    <Button size="sm" variant="destructive" onClick={() => handleAbort(task.id)}><Square className="h-3 w-3 mr-1" />中止</Button>
+                  )}
+                  {!isExecuting(task.id) && task.status === 'in_progress' && (
+                    <Button size="sm" variant="default" onClick={() => handleExecute(task.id)}><Play className="h-3 w-3 mr-1" />继续执行</Button>
+                  )}
+                  {(logMap[task.id] || []).length > 0 && (
+                    <Button size="sm" variant="ghost" onClick={() => toggleLog(task.id)}>
+                      {expandedLogs.has(task.id) ? <ChevronDown className="h-3 w-3 mr-1" /> : <ChevronRight className="h-3 w-3 mr-1" />}
+                      日志
+                    </Button>
                   )}
                   <Button size="sm" variant="outline" onClick={() => openEdit(task)}>{t('common.edit', '编辑')}</Button>
                   <Button size="sm" variant="destructive" onClick={() => handleDelete(task.id)}><Trash2 className="h-3 w-3" /></Button>
                 </div>
+
+                {expandedLogs.has(task.id) && (logMap[task.id] || []).length > 0 && (
+                  <div className="mt-3 p-2 rounded border bg-black/5 dark:bg-white/5 text-xs max-h-60 overflow-y-auto">
+                    {logMap[task.id].map((entry, idx) => (
+                      <div key={idx} className="flex gap-2 py-1 border-b border-black/5 dark:border-white/5 last:border-0">
+                        <span className="text-muted-foreground shrink-0">{new Date(entry.time).toLocaleTimeString()}</span>
+                        <span className="font-mono">{entry.event}</span>
+                        {entry.detail && <span className="text-muted-foreground truncate">{entry.detail}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

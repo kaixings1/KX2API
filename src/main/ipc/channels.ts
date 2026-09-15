@@ -199,6 +199,10 @@ export const IpcChannels = {
   TASKS_UPDATE: 'tasks:update',
   TASKS_DELETE: 'tasks:delete',
   TASKS_SET_STATUS: 'tasks:setStatus',
+  TASKS_EXECUTE: 'tasks:execute',
+  TASKS_ABORT: 'tasks:abort',
+  TASKS_GET_RUNNING: 'tasks:getRunning',
+  TASKS_STREAM_EVENT: 'tasks:streamEvent',
 
   // ==================== Git Management ====================
   GIT_GET_STATUS: 'git:getStatus',
