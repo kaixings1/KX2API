@@ -15,8 +15,9 @@ import type {
   SystemPrompt,
   PromptType,
   EffectiveModel,
-  AgentRecord,
 } from '../shared/types'
+
+import type { AgentRecord } from '../main/agents/types'
 
 // ==================== New Module Types ====================
 
@@ -943,6 +944,12 @@ const electronAPI = {
 
     execute: (id: string, input: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke(IpcChannels.AGENTS_EXECUTE, id, input).then((r: any) => ({ success: r.success, error: r.error })),
+
+    abort: (id: string): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke(IpcChannels.AGENTS_ABORT, id).then((r: any) => ({ success: r.success })),
+
+    getRunning: (): Promise<{ success: boolean; data?: string[] }> =>
+      ipcRenderer.invoke(IpcChannels.AGENTS_GET_RUNNING).then((r: any) => r),
 
     onOutput: (callback: (data: { agentId: string; content: string }) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, data: { agentId: string; content: string }) => callback(data)

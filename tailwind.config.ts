@@ -7,7 +7,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        border: 'var(--border-color, transparent)',
+        border: 'var(--border)',
       },
     },
   },

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { ImportExportDialog, ManagementToolbar } from '@/components/management'
 import { ToolGroupsPanel } from './ToolGroupsPanel'
+import { ParameterEditor, type ToolParameter } from './ParameterEditor'
 
 // ==================== Types ====================
 
@@ -25,6 +26,7 @@ interface ToolDef {
   description: string
   usage: string
   platform: string
+  parameters?: ToolParameter[]
   tags: string[]
   enabled: boolean
   builtin: boolean
@@ -64,7 +66,7 @@ export function ToolManagementPage() {
 
   // Tool form
   const [editingTool, setEditingTool] = useState<string | null>(null)
-  const [toolForm, setToolForm] = useState({ name: '', displayName: '', description: '', usage: '', platform: 'all' as string, tags: '' })
+  const [toolForm, setToolForm] = useState<{ name: string; displayName: string; description: string; usage: string; platform: string; tags: string; parameters: ToolParameter[] }>({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '', parameters: [] })
 
   // Group form
   const [editingGroup, setEditingGroup] = useState<string | null>(null)
@@ -114,10 +116,11 @@ export function ToolManagementPage() {
       description: toolForm.description,
       usage: toolForm.usage,
       platform: toolForm.platform,
+      parameters: toolForm.parameters.filter(p => p.name.trim().length > 0),
       tags: toolForm.tags.split(',').map(s => s.trim()).filter(Boolean),
       enabled: true,
     })
-    if (res.success) { showMsg(t('tools.toolAdded', '工具已添加')); setToolForm({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '' }); loadAll() }
+    if (res.success) { showMsg(t('tools.toolAdded', '工具已添加')); setToolForm({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '', parameters: [] }); loadAll() }
   }
 
   const handleUpdateTool = async (id: string) => {
@@ -371,6 +374,10 @@ export function ToolManagementPage() {
                     </select>
                   </div>
                   <div className="col-span-2"><Label>{t('tools.tagsLabel', '标签 (逗号分隔)')}</Label><Input value={toolForm.tags} onChange={e => setToolForm(p => ({ ...p, tags: e.target.value }))} placeholder="file, search" /></div>
+                  <div className="col-span-2">
+                    <Label>{t('tools.parametersLabel', '参数 (JSON Schema)')}</Label>
+                    <ParameterEditor value={toolForm.parameters} onChange={params => setToolForm(p => ({ ...p, parameters: params }))} />
+                  </div>
                   <div className="col-span-2"><Button onClick={handleAddTool} size="sm"><Plus className="w-4 h-4 mr-1" /> {t('tools.addToolBtn', '添加工具')}</Button></div>
                 </div>
               </CardContent>
@@ -403,7 +410,7 @@ export function ToolManagementPage() {
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingTool(null)}><X className="w-3 h-3" /></Button>
                         </>
                       ) : (
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingTool(tool.id); setToolForm({ name: tool.name, displayName: tool.displayName, description: tool.description, usage: tool.usage, platform: tool.platform, tags: tool.tags.join(', ') }) }}><Edit3 className="w-3 h-3" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingTool(tool.id); setToolForm({ name: tool.name, displayName: tool.displayName, description: tool.description, usage: tool.usage, platform: tool.platform, tags: tool.tags.join(', '), parameters: tool.parameters || [] }) }}><Edit3 className="w-3 h-3" /></Button>
                       )}
                       {!tool.builtin && <Button size="icon" variant="ghost" className="h-7 w-7 text-red-400" onClick={() => handleRemoveTool(tool.id)}><Trash2 className="w-3 h-3" /></Button>}
                     </div>

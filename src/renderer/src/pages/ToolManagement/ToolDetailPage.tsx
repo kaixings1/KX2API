@@ -14,6 +14,14 @@ import { Trash2, Loader2, FolderOpen } from 'lucide-react'
 
 const api = window.electronAPI.tools
 
+interface ToolParameter {
+  name: string
+  type: 'string' | 'number' | 'boolean' | 'array'
+  required: boolean
+  description: string
+  defaultValue?: string
+}
+
 interface ToolDef {
   id: string
   name: string
@@ -21,6 +29,7 @@ interface ToolDef {
   description: string
   usage: string
   platform: string
+  parameters?: ToolParameter[]
   tags: string[]
   enabled: boolean
   builtin: boolean
@@ -226,6 +235,31 @@ export function ToolDetailPage() {
             <div className="flex gap-2 flex-wrap">
               {tool.tags.map(tag => (
                 <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {Array.isArray(tool.parameters) && tool.parameters.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">{t('tools.parametersTitle', '参数')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {tool.parameters.map((p, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2 rounded border border-[var(--border)] p-2 text-sm">
+                  <code className="font-mono">{p.name}</code>
+                  <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
+                  {p.required && <Badge variant="secondary" className="text-[10px]">必填</Badge>}
+                  {p.defaultValue != null && p.defaultValue !== '' && (
+                    <span className="text-xs text-[var(--text-muted)]">默认: {p.defaultValue}</span>
+                  )}
+                  {p.description != null && p.description !== '' && (
+                    <span className="text-xs text-[var(--text-dim)]">{p.description}</span>
+                  )}
+                </div>
               ))}
             </div>
           </CardContent>

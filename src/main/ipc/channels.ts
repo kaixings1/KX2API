@@ -220,6 +220,8 @@ export const IpcChannels = {
   AGENTS_UPDATE: 'agents:update',
   AGENTS_DELETE: 'agents:delete',
   AGENTS_EXECUTE: 'agents:execute',
+  AGENTS_ABORT: 'agents:abort',
+  AGENTS_GET_RUNNING: 'agents:getRunning',
   AGENTS_STREAM_OUTPUT: 'agents:streamOutput',
   AGENTS_STREAM_DONE: 'agents:streamDone',
   AGENTS_STREAM_ERROR: 'agents:streamError',

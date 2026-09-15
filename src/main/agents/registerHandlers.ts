@@ -8,8 +8,9 @@
 
 import { ipcMain, BrowserWindow } from 'electron'
 import { IpcChannels } from '../ipc/channels'
-import type { AgentRecord, AgentExecutionEvent } from './types'
+import type { AgentRecord } from './types'
 import { ModuleDataStore } from '../ipc/ModuleDataStore'
+import { setExecutorMainWindow, startExecution, stopExecution, getRunningAgentIds, onComplete, onError } from './ExecutorRunner'
 
 let mainWindow: BrowserWindow | null = null
 let handlersRegistered = false
@@ -75,6 +76,7 @@ export function registerAgentHandlers(main: BrowserWindow): void {
   handlersRegistered = true
 
   mainWindow = main
+  setExecutorMainWindow(main)
   seedIfEmpty()
 
   // CRUD
@@ -120,62 +122,53 @@ export function registerAgentHandlers(main: BrowserWindow): void {
 
   ipcMain.handle(IpcChannels.AGENTS_DELETE, async (_, id: string) => {
     try {
+      // 如果正在执行，先中止
+      stopExecution(id)
       return { success: agentsStore.delete(id) }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
   })
 
-  // Execute — 流式输出
+  // Execute — 启动异步执行，立即返回
 
-  ipcMain.handle(IpcChannels.AGENTS_EXECUTE, async (event, id: string, input: string) => {
+  ipcMain.handle(IpcChannels.AGENTS_EXECUTE, async (_, id: string, input: string) => {
     try {
       const agent = agentsStore.getById(id)
       if (!agent) return { success: false, error: 'Agent not found' }
 
-      const sender = event.sender
-      const sendEvent = (data: Record<string, unknown>) => {
-        if (!sender.isDestroyed()) {
-          sender.send(IpcChannels.AGENTS_STREAM_OUTPUT, data)
-        }
+      if (agent.status === 'running') {
+        return { success: false, error: 'Agent is already running' }
       }
 
-      const sendDone = (data: Record<string, unknown>) => {
-        if (!sender.isDestroyed()) {
-          sender.send(IpcChannels.AGENTS_STREAM_DONE, data)
-        }
-      }
-
-      const sendError = (data: Record<string, unknown>) => {
-        if (!sender.isDestroyed()) {
-          sender.send(IpcChannels.AGENTS_STREAM_ERROR, data)
-        }
-      }
-
-      // TODO: 替换为真实的 AgentExecutor
-      // 当前为基本实现：模拟流式输出
-      agentsStore.set(id, { ...agent, status: 'running', updatedAt: Date.now() })
-
-      try {
-        const output = `[${agent.name}] 执行结果:\n\n根据你的输入「${input}」，我已完成分析。\n\n建议：\n1. 检查代码结构\n2. 优化性能瓶颈\n3. 添加错误处理`
-
-        const words = output.split('')
-        for (const char of words) {
-          sendEvent({ agentId: id, content: char })
-          await new Promise(r => setTimeout(r, 10))
-        }
-
-        agentsStore.set(id, { ...agent, status: 'idle', updatedAt: Date.now(), lastActiveAt: Date.now() })
-        sendDone({ agentId: id, success: true, output, error: '' })
-        return { success: true }
-      } catch (execError) {
-        agentsStore.set(id, { ...agent, status: 'error', updatedAt: Date.now() })
-        const msg = (execError as Error).message
-        sendError({ agentId: id, error: msg })
-        return { success: false, error: msg }
-      }
+      startExecution(id, input)
+      return { success: true }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
   })
+
+  // Abort — 中止执行
+
+  ipcMain.handle(IpcChannels.AGENTS_ABORT, async (_, id: string) => {
+    try {
+      const success = stopExecution(id)
+      return { success }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // Get Running — 获取正在执行的 Agent 列表
+
+  ipcMain.handle(IpcChannels.AGENTS_GET_RUNNING, async () => {
+    try {
+      const ids = getRunningAgentIds()
+      return { success: true, data: ids }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // Stream listeners（通过 ExecutorRunner 注册内部监听器，IPC 推送在 runner 内部处理）
 }

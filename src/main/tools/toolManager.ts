@@ -216,6 +216,7 @@ export class ToolManager {
   addTool(tool: Omit<ToolDefinition, 'id' | 'createdAt' | 'updatedAt' | 'builtin'>): ToolDefinition {
     const newTool: ToolDefinition = {
       ...tool,
+      parameters: tool.parameters || [],
       id: tool.name,
       builtin: false,
       createdAt: Date.now(),

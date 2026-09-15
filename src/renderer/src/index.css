@@ -789,7 +789,7 @@ body {
 
 @layer base {
   * {
-    border-color: var(--border-color, transparent);
+    border-color: var(--border);
   }
 }
 

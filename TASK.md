@@ -130,3 +130,17 @@
 
 说明：各翻译键仍沿用 i18next fallback 默认值风格，未改 locale JSON。
 验证：ts.transpileModule 语法校验通过；错误引用扫描无残留。运行时效果待 npm run dev 人工确认。
+
+## 工具参数（JSON Schema）编辑打通（2026-09-15）
+
+里程碑 3：让自定义工具能配置命令参数（parameters），打通 后端到前端 全链路。
+
+改动文件：
+1. src/main/tools/toolManager.ts — addTool 补 parameters 空数组兜底（避免 undefined）。
+2. src/renderer/src/pages/ToolManagement/ParameterEditor.tsx — 新增结构化参数编辑器组件（name/type/required/description/defaultValue，支持增删改行 + 类型选择）。
+3. src/renderer/src/pages/ToolManagement/ToolManagementPage.tsx — ToolDef/toolForm 加 parameters；添加/行内编辑透传 parameters（过滤空名占位行）；接入 ParameterEditor。
+4. src/renderer/src/pages/ToolManagement/ToolDetailPage.tsx — 详情页新增参数展示卡片（类型/必填/默认值/描述）。
+
+链路：UI（ParameterEditor）→ toolManager.addTool/updateTool（透传 parameters）→ toolRuntime.buildParameterSchema 生成函数 JSON Schema → 发请求给模型。
+
+验证：四个文件 ts.transpileModule 语法校验通过；setToolForm 一致性与 import 扫描通过。运行时待 npm run dev 人工确认。

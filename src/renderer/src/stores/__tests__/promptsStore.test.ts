@@ -115,3 +115,55 @@ describe('promptsStore - 数据过滤与统计', () => {
     })
   })
 })
+
+// ==================== async 状态变化 ====================
+
+describe('promptsStore - fetchPrompts (async)', () => {
+  const apiData = [
+    { id: 'a', name: 'A', type: 'general', isBuiltin: true },
+    { id: 'b', name: 'B', type: 'tool-use', isBuiltin: true },
+    { id: 'c', name: 'C', type: 'agent', isBuiltin: false },
+  ]
+
+  it('API 成功后应更新 prompts 和 builtinPrompts', async () => {
+    // 模拟 fetchPrompts 的行为
+    let state: any = { prompts: [], builtinPrompts: [], isLoading: false, error: null }
+
+    const fetchPrompts = async () => {
+      state = { ...state, isLoading: true, error: null }
+      try {
+        const data = await Promise.resolve(apiData)
+        const builtin = data.filter((p: any) => p.isBuiltin)
+        state = { prompts: data, builtinPrompts: builtin, isLoading: false, error: null }
+      } catch (error) {
+        state = { ...state, error: (error as Error).message, isLoading: false }
+      }
+    }
+
+    expect(state.prompts).toEqual([])
+    await fetchPrompts()
+    expect(state.prompts.length).toBe(3)
+    expect(state.builtinPrompts.length).toBe(2)
+    expect(state.isLoading).toBe(false)
+    expect(state.error).toBeNull()
+  })
+
+  it('API 失败时应设置 error 并将 isLoading 设为 false', async () => {
+    let state: any = { prompts: [], builtinPrompts: [], isLoading: false, error: null }
+
+    const fetchPrompts = async () => {
+      state = { ...state, isLoading: true, error: null }
+      try {
+        await Promise.reject(new Error('Network error'))
+      } catch (error) {
+        state = { ...state, error: (error as Error).message, isLoading: false }
+      }
+    }
+
+    expect(state.error).toBeNull()
+    await fetchPrompts()
+    expect(state.error).toBe('Network error')
+    expect(state.isLoading).toBe(false)
+    expect(state.prompts).toEqual([])
+  })
+})

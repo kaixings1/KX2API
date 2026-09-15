@@ -82,3 +82,19 @@ release/
 *.py
 *.bat
 *.js.tmp
+
+# 旧代码归档（不参与构建，保留在磁盘上供移植参考）
+legacy/
+
+# 调试/性能转储（由运行中的实例持续写入，勿提交）
+debug.txt
+/0
+latest
+log.txt
+trace.log
+Cookies
+*.rar
+
+# 抓包/一次性分析产物
+loop-request-task-*.json
+loop-response-task-*.json
