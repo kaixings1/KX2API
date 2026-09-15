@@ -301,6 +301,23 @@ const TOOL_ALIASES: Record<string, string> = {
   'ls_dir': 'ls',
   'read_directory': 'ls',
   'show_directory': 'ls',
+  // local_* 系（部分模型被引导用 local_ 前缀表达"本地文件系统"工具）
+  'local_dir': 'ls',
+  'local_directory': 'ls',
+  'local_dirs': 'ls',
+  'local_list': 'ls',
+  'local_list_dir': 'ls',
+  'local_dir_list': 'dir',
+  'local_list_directory': 'ls',
+  'local_files': 'ls',
+  'local_file': 'cat',
+  'local_cat': 'cat',
+  'local_read': 'cat',
+  'local_grep': 'grep',
+  'local_search': 'find',
+  'local_find': 'find',
+  'local_pwd': 'pwd',
+  'local_tree': 'tree',
   // 文件读取 / 写入 / 搜索
   'read_file': 'cat',
   'readfile': 'cat',
@@ -376,18 +393,45 @@ export async function executeLocalTool(name: string, args: string[]): Promise<To
  */
 export async function resolveToolName(name: string): Promise<string | null> {
   const { commandRegistry } = await import('../commands/registry')
-  let normalized = name
-  // 精确命中
-  if (commandRegistry.get(normalized)) return normalized
-  // 别名命中
-  const alias = TOOL_ALIASES[normalized.toLowerCase()]
-  if (alias && commandRegistry.get(alias)) return alias
-  if (alias) normalized = alias
-  // 去掉下划线/连字符后模糊匹配
-  const flat = normalized.replace(/[_\-]/g, '')
-  for (const candidate of commandRegistry.getNames()) {
-    if (candidate.replace(/[_\-]/g, '') === flat) return candidate
+
+  // 候选名集合：原始名、剥离时间戳/数字后缀、剥离命名空间前缀后的末段名。
+  // 覆盖模型/框架常自造的名：
+  //   - local_dir_list_20260915    （动词短语 + 时间戳）
+  //   - filesystem.list_directory  （命名空间 + 点分段）
+  //   - fs::read_file / list::dir   （冒号命名空间）
+  const candidates = new Set<string>([name])
+  // 1) 剥离尾部数字 / 时间戳 / 长后缀
+  const stripped = name
+    .replace(/_(?:20\d{2}|19\d{2})\d{4,}$/, '')
+    .replace(/_\d{4,}$/, '')
+    .replace(/_\w{6,}$/, '')
+  if (stripped !== name) candidates.add(stripped)
+  // 2) 剥掉命名空间前缀（点 / 冒号 / 斜杠分段），取最后一段作为基础名
+  const baseSeg = name.split(/[.\/:\\]+/).pop()
+  if (baseSeg && baseSeg !== name) candidates.add(baseSeg)
+  // 3) 对剥离时间戳后的名再取一次末段（filesystem.list_directory_2026 → list_directory）
+  const strippedSeg = stripped.split(/[.\/:\\]+/).pop()
+  if (strippedSeg && strippedSeg !== stripped && strippedSeg !== baseSeg) candidates.add(strippedSeg)
+
+  for (const cand of candidates) {
+    // 精确命中
+    if (commandRegistry.get(cand)) return cand
+    // 别名命中（含 list_directory / local_* 等）
+    const lo = cand.toLowerCase()
+    const alias = TOOL_ALIASES[lo]
+    if (alias && commandRegistry.get(alias)) return alias
   }
+
+  // 4) 去掉下划线 / 连字符 / 点 / 冒号等分隔符后的扁平名模糊匹配
+  const flatten = (s: string) => s.replace(/[_\-.\/:\\]/g, '')
+  const flat = flatten(name)
+  for (const candBase of [...candidates]) {
+    const candFlat = flatten(candBase)
+    for (const candidate of commandRegistry.getNames()) {
+      if (flatten(candidate) === candFlat) return candidate
+    }
+  }
+  if (flat && !candidates.has(name)) { /* flat 已由上面 candFlat 覆盖 */ }
   return null
 }
 

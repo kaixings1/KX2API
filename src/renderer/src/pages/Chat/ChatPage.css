@@ -17,22 +17,23 @@
   letter-spacing: 0.02em;
   line-height: 1.4;
 }
+/* 1~8 级「#」标题统一作小标题：字号紧凑（接近正文）、仅以颜色层级区分，不做大标题放大 */
 .md-h1 {
-  font-size: 1.5em;
+  font-size: 1.06em;
   color: #f0abfc;
   border-bottom: 1px solid var(--glass-border);
-  padding-bottom: 0.25em;
+  padding-bottom: 0.2em;
 }
 .md-h2 {
-  font-size: 1.3em;
+  font-size: 1.04em;
   color: #c084fc;
 }
 .md-h3 {
-  font-size: 1.15em;
+  font-size: 1.02em;
   color: #a78bfa;
 }
 .md-h4 {
-  font-size: 1.05em;
+  font-size: 1.01em;
   color: #818cf8;
 }
 .md-h5 {
@@ -40,11 +41,11 @@
   color: #60a5fa;
 }
 .md-h6 {
-  font-size: 0.95em;
+  font-size: 1em;
   color: #38bdf8;
 }
 .md-h7 {
-  font-size: 0.9em;
+  font-size: 1em;
   color: #22d3ee;
   font-weight: 600;
 }
@@ -54,6 +55,8 @@
   border-radius: 4px;
   font-family: "SF Mono", "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.9em;
+  font-weight: 600;
+  color: #f59e0b;
 }
 .md-prose pre {
   background: var(--bg-deep);
@@ -198,7 +201,8 @@
   border-radius: 4px;
   font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
   font-size: 0.88em;
-  color: var(--accent-primary);
+  font-weight: 600;
+  color: #f59e0b;
   border: 1px solid var(--glass-border);
 }
 
@@ -332,7 +336,8 @@
 }
 .reasoning-label {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
+  color: #60a5fa;
 }
 .reasoning-toggle {
   font-size: 11px;
@@ -384,8 +389,8 @@
 .claude-tool-use-name {
   font-family: "SF Mono", "JetBrains Mono", monospace;
   font-size: 12.5px;
-  color: #a78bfa;
-  font-weight: 500;
+  color: #c084fc;
+  font-weight: 700;
   white-space: pre-wrap;
   word-break: break-all;
   line-height: 1.5;

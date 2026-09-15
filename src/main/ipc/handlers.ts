@@ -2,6 +2,7 @@ import { ipcMain, app, BrowserWindow, shell } from 'electron'
 import axios from 'axios'
 import { join, dirname } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from 'fs'
+import { execSync } from 'child_process'
 import { IpcChannels } from './channels'
 import { planScheduler } from '../plans/planScheduler'
 import { storeManager } from '../store/store'
@@ -911,19 +912,46 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     }
   })
 
-  ipcMain.handle(IpcChannels.COMMANDS_EXECUTE, async (_, id: string) => {
+  ipcMain.handle(IpcChannels.COMMANDS_EXECUTE, async (_, idOrName: string, args?: string[]) => {
     const t0 = Date.now()
     try {
-      const command = commandsStore.get(id)
+      // 前端传的是命令名（见 CommandManagementPage 的 commandsApi.execute(cmd.name)），
+      // 旧实现只按 store 的 id 查（内置命令 id 是 `builtin_<name>`），
+      // 结果永远 "Command not found"。这里 id / name 都支持。
+      const command = commandsStore.get(idOrName)
+        || Array.from(commandsStore.values()).find(c => c.name === idOrName)
       if (!command) {
-        console.warn('[CMD] EXECUTE: not found, id=', id)
-        return { success: false, error: 'Command not found' }
+        console.warn('[CMD] EXECUTE: not found, id/name=', idOrName)
+        return { success: false, error: `Command not found: ${idOrName}` }
       }
-      console.log('[CMD] EXECUTE:', command.name, 'cmd:', command.command, 'args:', command.args)
-      const { execSync } = require('child_process')
+
+      const cmdArgs = args && args.length > 0 ? args : (command.args || [])
+      console.log('[CMD] EXECUTE:', command.name, 'type:', command.type, 'args:', cmdArgs)
+
+      // 内置命令必须走命令注册表。旧实现一律 execSync(command.command)，
+      // 而内置命令的 command 字段就是命令名本身，会去调用同名系统程序：
+      // `where`/`tree`/`date` 会跑 Windows 自带工具，`python` 甚至会真的起解释器。
+      if (command.type === 'builtin') {
+        const registryCmd = commandRegistry.get(command.name)
+        if (!registryCmd) {
+          return { success: false, error: `命令未注册: ${command.name}` }
+        }
+        const result = await registryCmd.execute(cmdArgs)
+        return {
+          success: true,
+          data: {
+            success: result.success,
+            output: result.output,
+            error: result.error,
+            durationMs: Date.now() - t0,
+          },
+        }
+      }
+
+      // 自定义命令：语义就是执行用户配置的那条 shell 命令
       const output = execSync(command.command, { encoding: 'utf8', timeout: 30000 })
       console.log('[CMD] EXECUTE success:', command.name, 'ms=', Date.now() - t0)
-      return { success: true, data: { output } }
+      return { success: true, data: { success: true, output, durationMs: Date.now() - t0 } }
     } catch (e) {
       console.error('[CMD] EXECUTE error:', e)
       return { success: false, error: (e as Error).message }

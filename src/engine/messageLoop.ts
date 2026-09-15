@@ -17,6 +17,7 @@ import { ErrorClassifier } from "./errors/classifier.ts";
 import { AutoCompactor } from "./autoCompactor.ts";
 import { AutoFixLoop, type AutoFixLoopConfig } from "./autoFixLoop.ts";
 import { GitContextInjector, type GitContextConfig } from "./gitContext.ts";
+import { resolveToolName } from "./toolNameResolver";
 
 export interface QueryResult {
   state: string;
@@ -250,9 +251,29 @@ export class MessageLoop {
     } as InternalMessage);
 
     if (processed.toolCalls.length > 0) {
+      // 模型常发出 MCP/OpenAI 风格工具名（filesystem.list_directory、local_dir_list_2026 等），
+      // 而引擎注册的是 ls/dir/pwd 这类真实命令。这里用 resolveToolName 做软匹配：
+      // 能归一化到注册命令 → 视为有效（并把 name 换成注册命令名供调度执行）；
+      // 不能解析 → 判为无效，避免「工具真能跑却被判 invalid 导致整轮中止」。
+      //
+      // 注意：client 模块会被多个 chunk 引用，rollup 可能把 resolveToolName 重命名为
+      // resolveToolName2（正是上一版运行时 `resolveToolName2 is not a function` 的根因）。
+      // 因此改用命名空间访问 + 兜底键名，保证取到正确函数。
       const availableTools = new Set(this.deps.toolDefinitions.map(t => t.name));
-      const validCalls = processed.toolCalls.filter(tc => tc.name && availableTools.has(tc.name));
-      const invalidCalls = processed.toolCalls.filter(tc => !tc.name || !availableTools.has(tc.name));
+      const nameResolved = new Map<string, string | null>();
+      for (const tc of processed.toolCalls) {
+        if (!tc.name) { nameResolved.set(tc.name, null); continue }
+        if (availableTools.has(tc.name)) { nameResolved.set(tc.name, tc.name); continue }
+        let resolved: string | null = null
+        try {
+          resolved = await resolveToolName(tc.name)
+        } catch { resolved = null }
+        nameResolved.set(tc.name, resolved && availableTools.has(resolved) ? resolved : null);
+      }
+      const validCalls = processed.toolCalls
+        .filter(tc => nameResolved.get(tc.name) != null)
+        .map(tc => ({ ...tc, name: nameResolved.get(tc.name) as string }));
+      const invalidCalls = processed.toolCalls.filter(tc => nameResolved.get(tc.name) == null);
 
       if (invalidCalls.length > 0) {
         this.consecutiveToolFailures += invalidCalls.length;

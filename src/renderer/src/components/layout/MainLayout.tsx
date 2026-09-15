@@ -12,8 +12,10 @@ export function MainLayout() {
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
+        <main className="flex-1 overflow-auto p-4 md:p-6">
+          <div className="mx-auto w-[92%] max-w-[1680px] page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

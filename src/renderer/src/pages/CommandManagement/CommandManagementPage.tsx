@@ -73,9 +73,13 @@ export function CommandManagement() {
   }
 
   const handleExecute = async (cmd: CommandRecord) => {
-    const res = await commandsApi.execute(cmd.name)
-    if (res.success) {
+    try {
+      // 传 id（主进程按 id 查，兼容按名字查）
+      const res = await commandsApi.execute(cmd.id, cmd.args)
       setResults(prev => ({ ...prev, [cmd.id]: res }))
+    } catch (e) {
+      // 以前失败时 preload 会抛错，这里没人接，界面完全不反应
+      setResults(prev => ({ ...prev, [cmd.id]: { success: false, error: (e as Error).message } }))
     }
   }
 

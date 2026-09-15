@@ -312,6 +312,24 @@ export const BASE_SYSTEM_PROMPT =
   '可用工具名（务必使用这些确切名字，勿自造）：pwd、ls、dir、find、findstr、grep、cat、tree、echo、date、env、ps、where、git-status、git-diff、git-branch、git-log、memory、config。\n' +
   '参数用 <key>value</key> 子标签形式；无参数的命令可省略 arguments。禁止把工具调用作为普通正文输出，系统会识别并执行它。'
 
+/**
+ * 排版硬约束：无论 active profile 是否配置了自定义 systemPrompt，
+ * 都会强制拼到 system prompt 最前面，避免用户自定义覆盖掉「禁止复制/、/：
+ * 的错乱格式、目录用逐行列表」等 UI 展示所需的基本约定。
+ */
+export const LAYOUT_GUARD_PROMPT =
+  '【展示约束（必须遵守）】\n' +
+  '1. 汇报目录、文件列表等，一律用 GFM Markdown：表格用 | 分隔（含表头分隔行），列表用 "- " 或 "1. "，每项独占一行。\n' +
+  '2. 严禁输出 "复制"、"复制代码" 等与内容无关的中文文案；严禁在列表/单元格里插单独的 "、" 、"：" 分隔符。\n' +
+  '3. 代码块只放真正的代码片段，不要把文件/目录列表塞进代码块或 "{...}" 引用框。\n'
+
+/** 将排版约束强制拼入 systemPrompt 尾部（若其未包含再拼，避免重复） */
+function withLayoutGuard(systemPrompt: string): string {
+  if (!systemPrompt) return LAYOUT_GUARD_PROMPT
+  if (systemPrompt.includes('展示约束') || systemPrompt.includes('【排版规范】')) return systemPrompt
+  return `${systemPrompt}\n\n${LAYOUT_GUARD_PROMPT}`
+}
+
 export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promise<void> {
   try {
     const pm = new ProfileManager()
@@ -345,7 +363,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         model: active.model || 'gpt-4o',
         provider: active.provider || 'openai',
         maxOutputTokens: 4096,
-        systemPrompt: composed || defaultSystem,
+        systemPrompt: withLayoutGuard(composed || defaultSystem),
         skills,
         agents,
         subagents,
@@ -429,7 +447,7 @@ export function updateEngineApiClient(opts: {
   const model = merged.model
   const baseUrl = merged.baseUrl
   const apiKey = merged.apiKey
-  const systemPrompt = composeSystemPrompt(opts.systemPrompt, opts.promptGroups)
+  const systemPrompt = withLayoutGuard(composeSystemPrompt(opts.systemPrompt, opts.promptGroups) ?? '')
   const enabledToolGroups = ConfigManager.get().enabledToolGroups ?? []
   lastApiSettings = merged
   eng.updateConfig({

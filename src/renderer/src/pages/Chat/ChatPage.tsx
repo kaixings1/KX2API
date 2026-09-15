@@ -121,6 +121,86 @@ function ToolResultView({ text }: { text: string }) {
   )
 }
 
+// ─── 工具结果 JSON 识别与卡片化渲染 ────────────────────────────────────────
+// 模型在部分链路上会直接把工具调用结果（成功/失败）以一段 JSON 包当正文回传，
+// 例如 {"tool_call_id":"...","status":"failed","error":{...}}。
+// 这里识别出这类"整段工具结果"，渲染成清晰的工具结果卡片，避免裸 JSON 堆积。
+
+function isToolResultJson(text: string): boolean {
+  const trimmed = text.trim()
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return false
+  let obj: unknown
+  try {
+    obj = JSON.parse(trimmed)
+  } catch {
+    return false
+  }
+  if (!obj || typeof obj !== 'object') return false
+  const o = obj as Record<string, unknown>
+  // 仅当含明确的"工具结果/调用"信号时才是工具结果包；普通 JSON 数据体不误判
+  const hasCall = 'tool_call_id' in o || 'tool_use_id' in o || 'toolCallId' in o
+  const status = typeof o.status === 'string' ? o.status.toLowerCase() : ''
+  const isStatus = ['success', 'failed', 'error', 'ok', 'failure'].includes(status)
+  return hasCall || isStatus
+}
+
+function ToolResultCard({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  let obj: Record<string, unknown> = {}
+  try {
+    obj = JSON.parse(text.trim()) as Record<string, unknown>
+  } catch {
+    /* 保持原样 */
+  }
+  const status = typeof obj.status === 'string' ? obj.status.toLowerCase() : ''
+  const isSuccess = ['success', 'ok'].includes(status)
+  const isError = ['failed', 'error', 'failure'].includes(status)
+  const err = obj.error && typeof obj.error === 'object'
+    ? (obj.error as Record<string, unknown>)
+    : null
+  const errCode = err && typeof err.code === 'string' ? err.code as string : null
+  const errMsg = err && (typeof err.message === 'string' ? err.message : '') as string
+  const toolName = (obj.tool_name || obj.tool || obj.tool_call_id || '') as string
+
+  const icon = isSuccess ? '✓' : isError ? '✗' : '…'
+  const dotColor = isSuccess ? '#34d399' : isError ? '#f87171' : '#fbbf24'
+
+  return (
+    <div className="claude-tool-result-line" style={{ marginTop: 6 }}>
+      <span className="claude-tool-result-prefix">⎿</span>
+      <span style={{ color: dotColor, fontWeight: 700 }}>{icon}</span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span className="claude-tool-result-text" style={{ fontSize: 13 }}>
+            {toolName ? String(toolName) : '工具调用'}
+          </span>
+          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, background: 'var(--bg-tertiary)', color: isError ? '#f87171' : isSuccess ? '#34d399' : 'var(--text-muted)', border: '1px solid var(--glass-border)', userSelect: 'none' }}>
+            {status || 'result'}
+          </span>
+          {errCode && <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, background: 'rgba(239,68,68,0.12)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)', userSelect: 'none' }}>{String(errCode)}</span>}
+        </div>
+        {errMsg ? (
+          <div className="claude-tool-result-text" style={{ color: isError ? '#fca5a5' : 'var(--text-dim)', marginTop: 2 }}>
+            {errMsg}
+          </div>
+        ) : null}
+        <button
+          type="button"
+          className="tool-json-toggle"
+          onClick={() => setExpanded(p => !p)}
+        >
+          {expanded ? '收起 JSON' : '展开 JSON'}
+        </button>
+        {expanded && (
+          <pre className="claude-tool-use-args-pre" style={{ marginTop: 6, maxHeight: 260 }}>
+            <code>{JSON.stringify(obj, null, 2)}</code>
+          </pre>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function CodeBlock({ children, className }: { children?: React.ReactNode; className?: string }) {
   const match = /language-(\w+)/.exec(className || '')
   const code = (children as string) || ''
@@ -166,6 +246,24 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
 
 const mdComponents: Components = {
   code({ children, className }) {
+    // 带语言标记（```js / ```ts）→ 块级代码块；否则是反引号行内 code（命令/动作短语），
+    // 用橙色高亮，与「**标题**」的紫色区分。
+    if (!/language-[\w-]+/.test(className || '')) {
+      return (
+        <code
+          style={{
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 4,
+            padding: '0 5px',
+            fontFamily: '"SF Mono", "JetBrains Mono", "Fira Code", monospace',
+            fontSize: '0.9em',
+            fontWeight: 600,
+            color: '#f59e0b',
+          }}
+        >{children}</code>
+      )
+    }
     return <CodeBlock className={className}>{children as string}</CodeBlock>
   },
   heading({ children, level }) {
@@ -175,10 +273,73 @@ const mdComponents: Components = {
     const Tag = tag
     return <Tag className={cls}>{children}</Tag>
   },
+  // 「**文案**」当作主题强调：只上颜色，字号不加粗放大（宜作小标题）。
+  strong({ children }) {
+    return (
+      <strong
+        style={{
+          color: 'var(--accent-primary, #c084fc)',
+          whiteSpace: 'pre-wrap',
+        }}
+      >{children}</strong>
+    )
+  },
+  em({ children }) {
+    return (
+      <em
+        style={{
+          color: 'var(--accent-primary, #c084fc)',
+          fontStyle: 'italic',
+        }}
+      >{children}</em>
+    )
+  },
 }
 
 function hasMarkdown(text: string): boolean {
-  return /(^#{1,6}\s)|(\*\*[\s\S]*?\*\*)|(`{1,3}[\s\S]*?`{1,3})|(^[-*]\s)|(^>\s)|(^\d+\.\s)|(\[.+?\]\(.+?\))/m.test(text)
+  // 与 ReactMarkdown 判定的口径对齐：标题（行内/行首均可）、GFM 表格、「**粗体**」、
+  // 反引号代码、列表、引用、链接。避免把「### / 表格/列表」误当纯文本走 BodyText，
+  // 否则会以原始 `|` 分隔符透出，造成格式错乱。
+  return /#{1,6}\s/.test(text)               // 标题（任意位置，如「...：### 标题」）
+    || /(?:^|\n)\s*\|.*\|[^|]*$/m.test(text)  // GFM 表格行
+    || /\*\*[\s\S]*?\*\*/.test(text)          // 加粗
+    || /`{1,3}[\s\S]*?`{1,3}/.test(text)      // 行内/块代码
+    || /^\s*[-+*]\s/m.test(text)             // 无序列表
+    || /^\s*>\s/m.test(text)                 // 引用
+    || /^\s*\d+\.\s/m.test(text)             // 有序列表
+    || /\[.+?\]\(.+?\)/.test(text)           // 链接
+}
+
+// diff 变更行：`-old`/`+new`（符号后紧跟非空白，区别于 markdown 列表 `- item` 的空格）。
+// 判定需「同时存在 - 行与 + 行」且总数 ≥2，避免把普通 `- 无序列表` 误当成 diff。
+function looksLikeDiff(text: string): boolean {
+  const lines = text.split('\n')
+  let minus = 0
+  let plus = 0
+  for (const l of lines) {
+    const t = l.replace(/^\s+/, '')
+    if (/^-(?=\S)/.test(t)) minus++
+    else if (/^\+(?=\S)/.test(t)) plus++
+  }
+  return (minus + plus) >= 2 && minus > 0 && plus > 0
+}
+
+/** 是否用 ReactMarkdown 渲染：diff 文本直接走 BodyText 的 diff 高亮，避免被列表化/颜色丢失 */
+function allowsMarkdown(text: string): boolean {
+  return !looksLikeDiff(text) && hasMarkdown(text)
+}
+
+/**
+ * 宽松列表预处理：许多模型输出的编号/符号列表项之间未留空行，
+ * ReactMarkdown 会把后序「3. xxx」误并入前一条的续段导致编号消失。
+ * 这里在相邻列表项之间补一个空行，使其各自成为独立列表项而保留编号。
+ * 仅影响以 `数字. ` / `数字）` / `- ` / `* ` 开头的行，不触碰代码块/表格。
+ */
+function normalizeList(text: string): string {
+  return text
+    .replace(/(\n)(\d+[.)])(\s+[^\s])/g, '\n\n$2$3')
+    .replace(/(\n)([-*+])(\s+)(?=\S)/g, '\n\n$2$3')
+    .replace(/(\n)(#{1,6}\s)/g, '\n\n$2')
 }
 
 /**
@@ -326,24 +487,29 @@ function MessageContent({
         }
         const text = block.text
         if (!text) return null
+        // 整段为「工具结果 JSON」时：流式期间（JSON 可能未闭合）仍先按文本渲染，
+        // 结束后识别为工具结果卡片，避免裸 JSON 堆积
+        if (!isStreaming && isToolResultJson(text)) {
+          return <ToolResultCard key={i} text={text} />
+        }
         const showCursor = isStreaming && i === lastBlockIdx
         // During streaming: render as plain text for typewriter effect
         // After streaming: render full Markdown
         if (isStreaming) {
           return (
             <div key={i} className={`md-prose ${showCursor ? 'typing-cursor' : ''}`}>
-              <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</span>
+              <BodyText text={text} />
             </div>
           )
         }
         return (
           <div key={i} className="md-prose">
-            {hasMarkdown(text) ? (
+            {allowsMarkdown(text) ? (
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={mdComponents}>
-                {text}
+                {normalizeList(text)}
               </ReactMarkdown>
             ) : (
-              <span style={{ whiteSpace: 'pre-wrap' }}>{text}</span>
+              <BodyText text={text} />
             )}
           </div>
         )
@@ -358,6 +524,141 @@ function formatTime(ts: number) {
   const isToday = d.toDateString() === now.toDateString()
   const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   return isToday ? time : `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${time}`
+}
+
+// ─── 正文美化：给「冒号前的短名」/ 关键词着色，并解析 **加粗** ────────────────
+const BOLD_RE = /\*\*([^*\n]+)\*\*/
+const CODE_RE = /`([^`\n]+)`/
+// 行首（含缩进）的「标签: ·」——标签（中英文/数字/下划线/连字符/点/方括号，≤32字）着主题色加粗
+const LINE_START_RE = /^(\s*)([\u4e00-\u9fa5A-Za-z0-9_\-.\[\]【】]{1,32})([：:]\s*)/
+
+/**
+ * 将一段纯文本正文逐行渲染：行首「标签:」着色加粗、**加粗**、行内 `code`。
+ * 不改变原始换行与空白。仅在无 Markdown/非流式时使用。
+ */
+function BodyText({ text }: { text: string }) {
+  const isDiff = looksLikeDiff(text)
+  const lines = text.split('\n')
+  const out: React.ReactNode[] = []
+  lines.forEach((line, i) => {
+    if (i > 0) {
+      out.push(<span key={`nl${i}`} style={{ whiteSpace: 'pre-wrap' }}>{'\n'}</span>)
+    }
+    // diff 块整体着色：去掉开头的 +/- 符号做纯内容显示，行用红/绿底白字，其余行为正常正文
+    if (isDiff) {
+      const t = line.replace(/^\s+/, '')
+      if (/^-[^-\s]/.test(t)) {
+        out.push(
+          <div key={`dl${i}`} style={{ background: 'rgba(239, 68, 68, 0.22)', color: '#fca5a5', padding: '0 6px', borderRadius: 4, fontFamily: '"SF Mono", "JetBrains Mono", monospace', fontSize: '0.9em', whiteSpace: 'pre-wrap' }}>
+            {t.replace(/^-(?=\S)/, '− ')}
+          </div>,
+        )
+        return
+      }
+      if (/^\+(?=\S)/.test(t)) {
+        out.push(<div key={`dl${i}`} style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#86efac', padding: '0 6px', borderRadius: 4, fontFamily: '"SF Mono", "JetBrains Mono", monospace', fontSize: '0.9em', whiteSpace: 'pre-wrap' }}>
+          {t.replace(/^\+(?=\S)/, '+ ')}
+        </div>)
+        return
+      }
+      // 上下文行（@ 开头 hunk header 等）弱化
+      if (/^@@/.test(t)) {
+        out.push(<span key={`li${i}`} style={{ color: 'var(--text-faint)', fontFamily: '"SF Mono", "JetBrains Mono", monospace', fontSize: '0.88em', whiteSpace: 'pre-wrap' }}>{t}</span>)
+        return
+      }
+      out.push(<span key={`li${i}`} style={{ color: 'var(--text-muted)' }}>{line}</span>)
+      return
+    }
+    out.push(<span key={`li${i}`}>{renderHighlightedLine(line)}</span>)
+  })
+  return <>{out}</>
+}
+
+function renderHighlightedLine(line: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = []
+  let rest = line
+  let seq = 0
+
+  const pushPlain = (t: string) => {
+    if (!t) return
+    nodes.push(<span key={seq++} style={{ whiteSpace: 'pre-wrap' }}>{t}</span>)
+  }
+  const pushBold = (t: string) => {
+    nodes.push(
+      <strong
+        key={seq++}
+        style={{
+          color: 'var(--accent-primary, #c084fc)',
+          whiteSpace: 'pre-wrap',
+        }}
+      >{t}</strong>,
+    )
+  }
+  const pushCode = (t: string) => {
+    nodes.push(
+      <code
+        key={seq++}
+        style={{
+          background: 'var(--bg-tertiary)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: 4,
+          padding: '0 5px',
+          fontFamily: '"SF Mono", "JetBrains Mono", "Fira Code", monospace',
+          fontSize: '0.9em',
+          fontWeight: 600,
+          color: '#f59e0b',
+          whiteSpace: 'pre-wrap',
+        }}
+      >{t}</code>,
+    )
+  }
+
+  // 1) 行首标签: 着色加粗
+  const labelM = LINE_START_RE.exec(rest)
+  if (labelM) {
+    const indent = labelM[1]
+    const name = labelM[2]
+    const sep = labelM[3]
+    pushPlain(indent)
+    nodes.push(
+      <span
+        key={seq++}
+        style={{
+          color: 'var(--accent-primary, #c084fc)',
+          fontWeight: 700,
+          whiteSpace: 'pre-wrap',
+        }}
+      >{name}</span>,
+    )
+    nodes.push(
+      <span key={seq++} style={{ color: 'var(--text-faint)', whiteSpace: 'pre-wrap' }}>{sep}</span>,
+    )
+    rest = rest.slice(labelM[0].length)
+  }
+
+  // 2) 其余部分：顺序消费 **加粗** 与 `code`
+  while (rest.length > 0) {
+    const bm = BOLD_RE.exec(rest)
+    const cm = CODE_RE.exec(rest)
+    let hit: RegExpExecArray | null = null
+    let isBold = false
+    if (bm && cm) {
+      if (bm.index <= cm.index) { hit = bm; isBold = true }
+      else hit = cm
+    } else if (bm) { hit = bm; isBold = true }
+    else hit = cm
+
+    if (!hit) {
+      pushPlain(rest)
+      break
+    }
+    if (hit.index > 0) pushPlain(rest.slice(0, hit.index))
+    if (isBold) pushBold(hit[1])
+    else pushCode(hit[1])
+    rest = rest.slice(hit.index + hit[0].length)
+  }
+
+  return nodes
 }
 
 const MemoMessageContent = memo(MessageContent)

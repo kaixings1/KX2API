@@ -84,7 +84,7 @@ export function Header() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 no-drag">
+      <div className="flex items-center gap-3 no-drag">
         <button
           onClick={toggleTheme}
           className="w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-300 group"
