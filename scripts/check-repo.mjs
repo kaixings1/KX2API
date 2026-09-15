@@ -128,6 +128,7 @@ const CLASSIFY = {
   docs: ['docs', 'README.md', 'CLAUDE.md', 'LICENSE', 'PLANNING.md', 'REFACTOR_PLAN.md', 'TASK.md'],
   manual: ['capture', 'diagnostic_tool', 'tool_queue_extractor', 'tools', 'scripts', 'config', 'skills', 'dev', 'project', 'self-test-patch-project'],
   backup: ['src--', 'src2026', 'src20260913', 'src20260914'],
+  legacy: ['legacy'],
   artifact: ['release', 'out_test', 'logs', 'latest', 'debug.txt', 'log.txt', 'trace.log', '0', '.pytest_cache'],
 }
 const BACKUP_RE = /\.(rar|zip|7z|bak|backup)$/i
@@ -151,6 +152,7 @@ const CLASS_LABEL = {
   manual: '人工使用（脚本/参考数据）',
   backup: '历史副本（可删）',
   artifact: '生成物/日志（可删）',
+  legacy: '旧代码归档（已移出构建链路）',
   junk: '一次性产物（可删）',
   unknown: '未分类',
 }
@@ -170,6 +172,7 @@ const DIR_NOTES = {
   release: 'electron-builder 打包产物（生成物）',
   scripts: '构建/发布/自检脚本（npm run 会用到其中部分）',
   'self-test-patch-project': '自测用补丁样例项目',
+  legacy: '旧代码归档：从 src/ 移出的未接入代码，保留供移植参考，不参与构建',
   skills: '技能样例数据（可被用户导入，非代码依赖）',
   src: '主源码',
   'src--': '历史备份副本（旧版本源码）',

@@ -7,9 +7,9 @@
  * - 选生效组（全局组 = 所有启用的工具）→ 写入 config.enabledToolGroups
  * - 勾选工具加入/移出某个组 → toolManager 的组数据
  * - 把当前生效集合另存为命名组
- * - 展示每个工具的环境变量开关（KX2_TOOL_DEF_<NAME>）与本次会发送的工具清单
+ * - 展示工具环境变量开关（KX2_TOOL_DEF_<NAME>）与本次会发送的工具清单
  *
- * 主进程在「每次请求」时重新解析，所以这里改完不用重启，下一条消息就生效。
+ * 主进程在「每次请求」时重新解析，改完不用重启，下一条消息就生效。
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -19,7 +19,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Layers, Zap, Save, RefreshCw, Info, AlertTriangle } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  Layers, Zap, Save, RefreshCw, Info, AlertTriangle, Search, CheckSquare, Square, SlidersHorizontal,
+} from 'lucide-react'
 
 interface ToolDef {
   id: string
@@ -41,18 +45,37 @@ interface ToolGroup {
 }
 
 const GLOBAL_ID = '__global__'
+const SKIPPED_PREVIEW_LIMIT = 48
 
 /** 工具名 → 环境变量名（与主进程 toolRuntime.toolEnvKey 保持一致） */
-function toolEnvKey(name: string): string {
+function toolEnvName(name: string): string {
   return 'KX2_TOOL_DEF_' + String(name || '').toUpperCase().replace(/[^A-Z0-9]/g, '_')
 }
 
+/** 平台是否属于当前运行环境 */
 function isPlatformMatch(platform: string): boolean {
   const isWindows = navigator.userAgent.includes('Windows')
   if (!platform || platform === 'all') return true
   if (platform === 'windows') return isWindows
   if (platform === 'unix') return !isWindows
   return true
+}
+
+/** 按平台归组，用于折叠展示 */
+function groupByPlatform(tools: ToolDef[]): { platform: string; label: string; items: ToolDef[] }[] {
+  const order: Array<{ key: string; label: string }> = [
+    { key: 'all', label: '全部平台' },
+    { key: 'windows', label: 'Windows' },
+    { key: 'unix', label: 'Unix' },
+  ]
+  const buckets: Record<string, ToolDef[]> = {}
+  for (const tt of tools) {
+    const key = tt.platform || 'all'
+    ;(buckets[key] ??= []).push(tt)
+  }
+  return order
+    .filter(o => (buckets[o.key] || []).length > 0)
+    .map(o => ({ platform: o.key, label: o.label, items: buckets[o.key]! }))
 }
 
 export function ToolGroupsPanel({
@@ -67,9 +90,11 @@ export function ToolGroupsPanel({
   const { t } = useTranslation()
   const [activeIds, setActiveIds] = useState<string[]>([])
   const [editingGroupId, setEditingGroupId] = useState<string>(GLOBAL_ID)
+  const [memberSearch, setMemberSearch] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveAsName, setSaveAsName] = useState('')
   const [showSaveAs, setShowSaveAs] = useState(false)
+  const [saveAsError, setSaveAsError] = useState('')
   const [message, setMessage] = useState('')
 
   const api = window.electronAPI.tools
@@ -84,12 +109,18 @@ export function ToolGroupsPanel({
 
   useEffect(() => { loadActive() }, [loadActive])
 
-  // 当前编辑对象（全局组或某个命名组）对应的工具集合
+  // 当前编辑目标（全局组 / 命名组）
   const editing = editingGroupId === GLOBAL_ID
     ? { id: GLOBAL_ID, name: t('tools.globalGroup', '全局组'), toolIds: tools.map(x => x.id) }
     : groups.find(g => g.id === editingGroupId) || { id: GLOBAL_ID, name: t('tools.globalGroup', '全局组'), toolIds: tools.map(x => x.id) }
 
-  // 真正会发给模型的工具：全局组=所有 enabled；命名组=组内 ∩ enabled ∩ 平台匹配
+  // 判断某工具是否处于「当前编辑组内被勾选」状态
+  const isCheckedIn = useCallback((tool: ToolDef): boolean => {
+    if (editingGroupId === GLOBAL_ID) return tool.enabled
+    return editing.toolIds.some(id => id === tool.id || id === tool.name)
+  }, [editingGroupId, editing.toolIds])
+
+  // 真正会发给模型的工具
   const effective = useMemo(() => {
     if (activeIds.length === 0) {
       return {
@@ -128,75 +159,117 @@ export function ToolGroupsPanel({
       setMessage(ids.length === 0
         ? t('tools.switchedGlobal', '已切换到全局组，下一条消息立即生效')
         : t('tools.switchedGroup', '已切换工具组，下一条消息立即生效'))
+      onChanged()
     } catch (e) {
       setMessage(`${t('tools.switchFailed', '切换失败')}: ${(e as Error).message}`)
     } finally {
       setSaving(false)
     }
-  }, [t])
+  }, [onChanged, t])
 
+  // 切换单个工具归属
   const toggleToolInGroup = useCallback(async (tool: ToolDef, checked: boolean) => {
+    if (checked === isCheckedIn(tool)) {
+      setMessage(t('tools.noChange', '该工具已是目标状态'))
+      return
+    }
     try {
       if (editingGroupId === GLOBAL_ID) {
-        // 全局组：勾选 = 启用/关闭该工具本身
-        if (tool.enabled !== checked) await api.toggle(tool.id)
+        await api.toggle(tool.id)
       } else if (checked) {
         await api.addToGroup(tool.id, editingGroupId)
       } else {
         await api.removeFromGroup(tool.id, editingGroupId)
       }
+      setMessage('')
       onChanged()
     } catch (e) {
       setMessage(`${t('tools.updateFailed', '更新失败')}: ${(e as Error).message}`)
     }
-  }, [api, editingGroupId, onChanged, t])
+  }, [api, editingGroupId, isCheckedIn, onChanged, t])
+
+  // 批量操作当前过滤结果（全选 / 清空）
+  const applyBatch = useCallback(async (checked: boolean) => {
+    const target = memberList.flatMap(s => s.items)
+    if (target.length === 0) return
+    try {
+      if (editingGroupId === GLOBAL_ID) {
+        const jobs = target.filter(x => x.enabled !== checked).map(x => api.toggle(x.id))
+        await Promise.all(jobs)
+      } else {
+        const inIds = new Set(editing.toolIds)
+        const jobs = target
+          .filter(x => !(checked === (inIds.has(x.id) || inIds.has(x.name))))
+          .map(x => checked ? api.addToGroup(x.id, editingGroupId) : api.removeFromGroup(x.id, editingGroupId))
+        await Promise.all(jobs)
+      }
+      setMessage(checked
+        ? t('tools.batchAddDone', '已对 {{n}} 个工具批量启用').replace('{{n}}', String(target.length))
+        : t('tools.batchRemoveDone', '已对 {{n}} 个工具批量关闭').replace('{{n}}', String(target.length)))
+      onChanged()
+    } catch (e) {
+      setMessage(`${t('tools.batchFailed', '批量操作失败')}: ${(e as Error).message}`)
+    }
+  }, [api, editingGroupId, memberList, onChanged, t])
 
   const handleSaveAs = useCallback(async () => {
     const name = saveAsName.trim()
-    if (!name) return
+    if (!name) { setSaveAsError(t('tools.nameRequired', '请填写组名称')); return }
+    if (groups.some(g => g.name.toLowerCase() === name.toLowerCase())) {
+      setSaveAsError(t('tools.nameConflict', '已存在同名分组'))
+      return
+    }
     try {
-      const toolIds = effective.tools.map(x => x.id)
       await api.addGroup({
         name,
         description: t('tools.savedFromCurrent', '由当前生效工具另存'),
-        toolIds,
+        toolIds: effective.tools.map(x => x.id),
         enabled: true,
       })
       setShowSaveAs(false)
       setSaveAsName('')
-      setMessage(t('tools.savedAsGroup', '已另存为新组：{{name}}').replace('{{name}}', name))
+      setSaveAsError('')
+      setMessage(t('tools.savedAsGroupDone', '已另存为新组：{{name}}').replace('{{name}}', name))
       onChanged()
     } catch (e) {
-      setMessage(`${t('tools.saveFailed', '另存失败')}: ${(e as Error).message}`)
+      setSaveAsError(`${t('tools.saveFailed', '另存失败')}: ${(e as Error).message}`)
     }
-  }, [api, effective.tools, onChanged, saveAsName, t])
+  }, [api, effective.tools, groups, onChanged, saveAsName, t])
 
-  const inEditingGroup = (tool: ToolDef): boolean => {
-    if (editingGroupId === GLOBAL_ID) return tool.enabled
-    const g = groups.find(x => x.id === editingGroupId)
-    return !!g && g.toolIds.some(id => id === tool.id || id === tool.name)
-  }
+  // 成员列表：带搜索 + 按平台分组
+  const memberList = useMemo(() => {
+    const kw = memberSearch.trim().toLowerCase()
+    const base = kw
+      ? tools.filter(x => x.name.toLowerCase().includes(kw)
+        || (x.displayName || '').toLowerCase().includes(kw)
+        || (x.description || '').toLowerCase().includes(kw))
+      : tools
+    return groupByPlatform(base)
+  }, [tools, memberSearch])
+
+  const memberTotal = memberList.reduce((acc, s) => acc + s.items.length, 0)
 
   return (
     <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Zap className="h-4 w-4" />
-          {t('tools.effectiveTitle', '当前生效工具组')}
+        <CardTitle className="flex items-center justify-between flex-wrap gap-2 text-base">
+          <span className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            {t('tools.effectiveTitle', '当前生效工具组')}
+          </span>
+          <Button size="sm" variant="ghost" onClick={() => { loadActive(); onChanged() }}>
+            <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
         </CardTitle>
         <CardDescription>
-          {t('tools.effectiveDesc', '选中某个组后，只有组内（且已启用、平台匹配）的工具会随请求发送给模型；选全局组则发送所有已启用工具。改完下一条消息立即生效，无需重启。')}
+          {t('tools.effectiveDesc', '选中某个组后，只有组内（且已启用、平台匹配）的工具会随请求发送给模型；选全局组则发送所有已启用工具。改完下一条消息立即生效。')}
         </CardDescription>
       </CardHeader>
+
       <CardContent className="space-y-4">
-        {/* 生效组切换 */}
+        {/* 1) 生效组切换 */}
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            size="sm"
-            variant={activeIds.length === 0 ? 'default' : 'outline'}
-            disabled={saving}
-            onClick={() => applyActive([])}
-          >
+          <Button size="sm" variant={activeIds.length === 0 ? 'default' : 'outline'} disabled={saving} onClick={() => applyActive([])}>
             <Layers className="h-3.5 w-3.5 mr-1" />
             {t('tools.globalGroup', '全局组')}
           </Button>
@@ -213,51 +286,76 @@ export function ToolGroupsPanel({
               <span className="ml-1 text-[10px] opacity-70">{g.toolIds.length}</span>
             </Button>
           ))}
-          <Button size="sm" variant="ghost" onClick={() => { loadActive(); onChanged() }}>
-            <RefreshCw className="h-3.5 w-3.5" />
-          </Button>
         </div>
 
-        {/* 生效结果 */}
-        <div className="rounded border border-[var(--border)] p-2 text-xs space-y-1">
+        {/* 2) 生效结果 */}
+        <div className="rounded border border-[var(--border)] p-3 text-xs space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary">{effective.label}</Badge>
-            <span>
-              {t('tools.effectiveCount', '本次发送工具数')}: <strong>{effective.tools.length}</strong> / {tools.length}
+            <span className="text-[var(--text-muted)]">
+              {t('tools.effectiveCount', '本次发送工具数')}: <strong className="text-[var(--text-primary)]">{effective.tools.length}</strong> / {tools.length}
             </span>
             {effective.skipped.length > 0 && (
-              <span className="text-[var(--text-muted)]">
-                {t('tools.skippedTools', '未发送（已关闭或平台不符）')}: {effective.skipped.join(', ')}
+              <span className="text-[var(--warning)]">
+                <AlertTriangle className="inline h-3 w-3 mr-0.5" />
+                {t('tools.skippedCount', '{{n}} 个被跳过').replace('{{n}}', String(effective.skipped.length))}
               </span>
             )}
           </div>
+
           <div className="flex flex-wrap gap-1 pt-1">
-            {effective.tools.map(x => (
+            {effective.tools.slice(0, 60).map(x => (
               <span
                 key={x.id}
-                className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] border border-[var(--border)] font-mono text-[10px]"
-                title={`${x.description}\n${toolEnvKey(x.name)}=1`}
+                className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] border border-[var(--border)] font-mono text-[10px] cursor-default"
+                title={`${toolEnvName(x.name)}=1\n${x.description || ''}`}
               >
                 {x.name}
               </span>
             ))}
+            {effective.tools.length > 60 && (
+              <span className="px-1 text-[10px] text-[var(--text-muted)]">+{effective.tools.length - 60}</span>
+            )}
             {effective.tools.length === 0 && (
-              <span className="flex items-center gap-1 text-[var(--warning,#d97706)]">
+              <span className="flex items-center gap-1 text-[var(--warning)]">
                 <AlertTriangle className="h-3 w-3" />
                 {t('tools.noEffectiveTools', '当前没有任何可用工具，模型将无法调用工具')}
               </span>
             )}
           </div>
+
+          {effective.skipped.length > 0 && (
+            <>
+              <Separator className="my-1" />
+              <details>
+                <summary className="cursor-pointer select-none text-[var(--text-muted)]">
+                  {t('tools.skippedTools', '未发送（已关闭或平台不符）')} ({effective.skipped.length})
+                </summary>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {effective.skipped.slice(0, SKIPPED_PREVIEW_LIMIT).map(n => (
+                    <span key={n} className="px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] border border-dashed border-[var(--border)] font-mono text-[10px] text-[var(--text-dim)] line-through">
+                      {n}
+                    </span>
+                  ))}
+                  {effective.skipped.length > SKIPPED_PREVIEW_LIMIT && (
+                    <span className="px-1 text-[10px] text-[var(--text-muted)]">+{effective.skipped.length - SKIPPED_PREVIEW_LIMIT}</span>
+                  )}
+                </div>
+              </details>
+            </>
+          )}
         </div>
 
-        {/* 编辑哪个组 */}
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <Label className="text-xs">{t('tools.editGroupMembers', '编辑组内工具')}</Label>
+        <Separator />
+
+        {/* 3) 编辑目标 + 另存为 */}
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[200px]">
+            <div className="text-xs text-[var(--text-muted)] mb-1">{t('tools.editGroupMembers', '编辑此组的工具')}</div>
             <select
-              className="w-full mt-1 text-xs text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1.5"
+              className="w-full text-xs text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1.5"
               value={editingGroupId}
-              onChange={e => setEditingGroupId(e.target.value)}
+              onChange={e => { setEditingGroupId(e.target.value); setMemberSearch('') }}
             >
               <option value={GLOBAL_ID}>{t('tools.globalGroupAll', '全局组（勾选=启用/关闭工具）')}</option>
               {groups.map(g => (
@@ -265,72 +363,125 @@ export function ToolGroupsPanel({
               ))}
             </select>
           </div>
-          <Button size="sm" variant="outline" onClick={() => setShowSaveAs(v => !v)}>
+          <Button size="sm" variant="outline" onClick={() => setShowSaveAs(true)}>
             <Save className="h-3.5 w-3.5 mr-1" />
             {t('tools.saveAsGroup', '另存为组')}
           </Button>
         </div>
 
-        {showSaveAs && (
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <Label className="text-xs">{t('tools.newGroupName', '新组名称')}</Label>
-              <Input value={saveAsName} onChange={e => setSaveAsName(e.target.value)} placeholder={t('tools.newGroupNamePlaceholder', '例如：编程')} />
+        {/* 4) 成员：搜索 + 批量 + 分组列表 */}
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[160px]">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
+              <Input
+                value={memberSearch}
+                onChange={e => setMemberSearch(e.target.value)}
+                placeholder={t('tools.filterToolsHint', '搜索工具名/别名/描述…')}
+                className="pl-7 h-8 text-xs"
+              />
             </div>
-            <Button size="sm" onClick={handleSaveAs} disabled={!saveAsName.trim()}>
-              {t('tools.confirmSave', '保存')}
-            </Button>
-            <span className="text-[10px] text-[var(--text-muted)]">
-              {t('tools.saveAsHint', '将保存当前生效的 {{count}} 个工具').replace('{{count}}', String(effective.tools.length))}
+            <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
+              <SlidersHorizontal className="h-3 w-3" />
+              {t('tools.memberCount', '{{count}} / {{total}}').replace('{{count}}', String(memberTotal)).replace('{{total}}', String(tools.length))}
             </span>
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => applyBatch(true)}>
+              <CheckSquare className="h-3.5 w-3.5 mr-1" /> {t('tools.memberAll', '全选')}
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => applyBatch(false)}>
+              <Square className="h-3.5 w-3.5 mr-1" /> {t('tools.memberNone', '清空')}
+            </Button>
           </div>
-        )}
 
-        {/* 工具勾选列表 */}
-        <div className="max-h-[320px] overflow-auto rounded border border-[var(--border)] divide-y divide-[var(--border)]">
-          {tools.map(tool => {
-            const checked = inEditingGroup(tool)
-            const platformOk = isPlatformMatch(tool.platform)
-            return (
-              <label key={tool.id} className="flex items-start gap-2 p-2 text-xs hover:bg-[var(--bg-hover)] cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 accent-[var(--accent-primary)]"
-                  checked={checked}
-                  onChange={e => toggleToolInGroup(tool, e.target.checked)}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">{tool.name}</span>
-                    <span className="text-[var(--text-muted)]">{tool.displayName !== tool.name ? tool.displayName : ''}</span>
-                    <code className="text-[10px] px-1 rounded bg-[var(--bg-tertiary)]">{toolEnvKey(tool.name)}={checked ? '1' : '0'}</code>
-                    {tool.platform !== 'all' && (
-                      <Badge variant={platformOk ? 'secondary' : 'outline'} className="text-[10px]">
-                        {tool.platform}
-                      </Badge>
-                    )}
-                    {!platformOk && (
-                      <span className="text-[10px] text-[var(--warning,#d97706)]">
-                        {t('tools.platformMismatch', '当前平台不适用')}
-                      </span>
-                    )}
+          <div className="rounded border border-[var(--border)] max-h-[380px] overflow-y-auto">
+            {memberList.length === 0 ? (
+              <div className="p-3 text-xs text-[var(--text-muted)]">{t('tools.noMatchTool', '没有匹配的工具')}</div>
+            ) : (
+              <div>
+                {memberList.map(section => (
+                  <div key={section.platform} className="border-b border-[var(--border)] last:border-b-0">
+                    <div className="px-2 py-1.5 bg-[var(--bg-secondary)] sticky top-0 z-10 flex items-center gap-2">
+                      <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">{section.label}</span>
+                      <span className="text-[10px] text-[var(--text-dim)]">({section.items.length})</span>
+                    </div>
+                    {section.items.map(tool => {
+                      const checked = isCheckedIn(tool)
+                      const platformOk = isPlatformMatch(tool.platform)
+                      return (
+                        <label key={tool.id} className="flex items-center gap-2 p-2 text-xs cursor-pointer hover:bg-[var(--bg-hover)]">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={e => toggleToolInGroup(tool, e.target.checked)}
+                            className="accent-[var(--accent-primary)]"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium">{tool.name}</span>
+                              {tool.displayName && tool.displayName !== tool.name && (
+                                <span className="text-[var(--text-muted)]">{tool.displayName}</span>
+                              )}
+                              {tool.builtin && <Badge variant="secondary" className="text-[10px]">内置</Badge>}
+                            </div>
+                            <div className="truncate text-[var(--text-dim)]" title={tool.description}>{tool.description}</div>
+                          </div>
+                          <div className="flex flex-shrink-0 items-center gap-2">
+                            {!platformOk && (
+                              <span className="text-[10px] text-[var(--warning)]">{t('tools.platformMismatch', '当前平台不适用')}</span>
+                            )}
+                            <code className="rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]"
+                              title={t('tools.envTitle', '环境变量开关：1=启用 0=禁用')}>
+                              {checked ? '1' : '0'}
+                            </code>
+                          </div>
+                        </label>
+                      )
+                    })}
                   </div>
-                  <div className="text-[var(--text-dim)] truncate" title={tool.description}>{tool.description}</div>
-                </div>
-              </label>
-            )
-          })}
-          {tools.length === 0 && (
-            <div className="p-3 text-xs text-[var(--text-muted)]">{t('tools.noTools', '暂无工具')}</div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {message && (
-          <div className="flex items-center gap-2 text-xs text-green-400 bg-green-400/10 px-2 py-1.5 rounded">
+          <div className="flex items-center gap-2 rounded bg-[var(--accent-primary)]/10 px-2 py-1.5 text-xs text-[var(--accent-primary)]">
             <Info className="h-3.5 w-3.5" /> {message}
           </div>
         )}
       </CardContent>
+
+      {/* 另存为组 */}
+      <Dialog open={showSaveAs} onOpenChange={(v) => { setShowSaveAs(v); if (!v) setSaveAsError('') }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('tools.saveAsTitle', '另存为新组')}</DialogTitle>
+            <DialogDescription>
+              {t('tools.saveAsHintDialog', '将保存当前生效的 {{count}} 个工具为命名组').replace('{{count}}', String(effective.tools.length))}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>{t('tools.newGroupName', '新组名称')}</Label>
+              <Input
+                value={saveAsName}
+                onChange={e => { setSaveAsName(e.target.value); if (saveAsError) setSaveAsError('') }}
+                placeholder={t('tools.newGroupNamePlaceholder', '例如：编程')}
+              />
+            </div>
+            {saveAsError && <p className="text-xs text-red-400">{saveAsError}</p>}
+            <div className="max-h-[120px] overflow-auto rounded border border-[var(--border)] p-2 flex flex-wrap gap-1">
+              {effective.tools.map(x => (
+                <span key={x.id} className="rounded border border-[var(--border)] bg-[var(--bg-tertiary)] px-1.5 py-0.5 font-mono text-[10px]">{x.name}</span>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setShowSaveAs(false)}>{t('common.cancel', '取消')}</Button>
+            <Button size="sm" disabled={!saveAsName.trim()} onClick={handleSaveAs}>{t('tools.confirmSave', '保存')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
