@@ -254,19 +254,28 @@ async function sendOpenAIStream(
       }
     }
   }
-  // 简单模式下若正文含 XML/纯文本工具调用，直接提取并执行一次，把结果作为最终输出返回
+  // 简单模式下若正文含 XML/纯文本工具调用，提取并执行。仅当候选名可解析为真实
+  // 注册命令时才认定是工具，否则视为 AI 正文，保留原文，绝不把工具输出替代正文。
   if (fullText) {
     try {
       const xmlCalls = parsePlainTextToolCalls(fullText)
       if (xmlCalls && xmlCalls.length > 0) {
-        const collected: string[] = []
+        let resolvable = 0
         for (const call of xmlCalls) {
-          const r = await executeLocalTool(call.name, typeof call.arguments === 'object' ? Object.values(call.arguments as Record<string, unknown>).map(String) : [])
-          collected.push(`[${call.name}]\n${r.output}`)
+          if (await canResolveToolName(call.name)) resolvable++
         }
-        console.log('[API][OpenAI-simple] 从正文提取并执行 XML 工具调用', xmlCalls.map(t => t.name).join(', '))
-        callbacks.onDone(collected.join('\n\n'), [])
-        return
+        if (resolvable > 0) {
+          const collected: string[] = []
+          for (const call of xmlCalls) {
+            const r = await executeLocalTool(call.name, typeof call.arguments === 'object' ? Object.values(call.arguments as Record<string, unknown>).map(String) : [])
+            collected.push((await canResolveToolName(call.name)) ? r.output : `[${call.name}]\n${r.output}`)
+          }
+          console.log('[API][OpenAI-simple] 从正文提取并执行 XML 工具调用', xmlCalls.map(t => t.name).join(', '))
+          // 保留 AI 原文在前，工具结果追加在后，确保正文不丢失
+          callbacks.onDone(fullText + '\n\n' + collected.join('\n\n'), [])
+          return
+        }
+        console.log('[API][OpenAI-simple] 提取到的 XML 无法解析为命令，按 AI 正文返回:', xmlCalls.map(t => t.name).join(', '))
       }
     } catch (e) { /* 提取失败则按原文返回 */ }
   }

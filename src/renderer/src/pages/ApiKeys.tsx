@@ -185,6 +185,15 @@ export default function ApiKeysPage() {
               onCheckedChange={handleToggleGlobalEnabled}
             />
           </div>
+          {/* 说明：这个开关只管本地代理的「入站」认证，和配置组里的上游 Key 无关 */}
+          <p className="text-xs text-muted-foreground mt-3">
+            {t('apiKeys.authScopeHint')}
+          </p>
+          {config?.enableApiKey && apiKeys.filter(k => k.enabled).length === 0 && (
+            <p className="text-xs text-[var(--warning,#d97706)] mt-1">
+              {t('apiKeys.authNoKeyWarning')}
+            </p>
+          )}
         </CardContent>
       </Card>
 

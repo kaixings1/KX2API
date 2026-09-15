@@ -555,6 +555,8 @@
     "apiKeyAuthDesc": "启用后，所有请求需要携带 API Key",
     "enableApiKeyAuth": "启用认证",
     "currentStatus": "状态",
+    "authScopeHint": "只拦截来自非本机的请求：127.0.0.1 / ::1（含本应用自身）始终免验证，本机使用不受影响。",
+    "authNoKeyWarning": "已启用认证，但还没有可用的 Key —— 外部（局域网/远程）请求会直接被拒绝，请先在下方创建一个 Key。",
     "apiKeyList": "API Key 列表",
     "totalKeys": "共 {{count}} 个 API Key",
     "enabledKeys": "{{count}} 个已启用",

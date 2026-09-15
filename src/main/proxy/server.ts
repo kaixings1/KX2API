@@ -11,6 +11,7 @@ import routes from './routes'
 import managementRoutes from './routes/management'
 import { proxyStatusManager } from './status'
 import { storeManager } from '../store/store'
+import { checkApiKeyAuth } from './apiKeyAuth'
 import { sessionManager } from './sessionManager'
 
 const SLOW_REQUEST_THRESHOLD_MS = 1500
@@ -138,60 +139,41 @@ export class ProxyServer {
 
       const config = storeManager.getConfig()
 
-      if (config.enableApiKey && config.apiKeys && config.apiKeys.length > 0) {
-        // Skip auth for localhost requests (local testing / Electron app)
-        const clientIP = ctx.ip || ''
-        const isLocal = clientIP === '127.0.0.1'
-          || clientIP === '::1'
-          || clientIP === '::ffff:127.0.0.1'
-          || (typeof clientIP === 'string' && clientIP.startsWith('127.'))
+      // 判定逻辑抽到 proxy/apiKeyAuth.ts（纯函数，可单测）。
+      // 重点：开关开启但没建 Key 时必须拒绝，不能像以前那样静默放行（fail-open）。
+      const decision = checkApiKeyAuth({
+        enableApiKey: !!config.enableApiKey,
+        apiKeys: config.apiKeys || [],
+        clientIP: ctx.ip || '',
+        authHeader: ctx.get('Authorization') || '',
+        headerApiKey: ctx.get('X-API-Key'),
+        queryApiKey: ctx.query.api_key as string,
+      })
 
-        if (!isLocal) {
-          const authHeader = ctx.get('Authorization') || ''
-          const providedKey = authHeader.startsWith('Bearer ')
-            ? authHeader.slice(7)
-            : (ctx.query.api_key as string) || ctx.get('X-API-Key')
-
-          if (!providedKey) {
-            ctx.status = 401
-            ctx.body = {
-              error: {
-                message: 'API key is required',
-                type: 'invalid_request_error',
-                code: 'missing_api_key',
-              },
-            }
-            return
-          }
-
-          const validKey = config.apiKeys.find(
-            k => k.key === providedKey && k.enabled
-          )
-
-          if (!validKey) {
-            ctx.status = 401
-            ctx.body = {
-              error: {
-                message: 'Invalid API key',
-                type: 'invalid_request_error',
-                code: 'invalid_api_key',
-              },
-            }
-            return
-          }
-
-          // Update usage statistics
-          const updatedKeys = config.apiKeys.map(k =>
-            k.id === validKey.id
-              ? {
-                  ...k,
-                  lastUsedAt: Date.now(),
-                  usageCount: k.usageCount + 1
-                }
-            : k
-          )
-          storeManager.updateConfig({ apiKeys: updatedKeys })
+      if (decision.action === 'reject') {
+        ctx.status = decision.status
+        ctx.body = {
+          error: {
+            message: decision.message,
+            type: 'invalid_request_error',
+            code: decision.code,
+          },
         }
+        return
+      }
+
+      if (decision.action === 'accept') {
+        // Update usage statistics
+        const updatedKeys = (config.apiKeys || []).map(k =>
+          k.id === decision.keyId
+            ? {
+                ...k,
+                lastUsedAt: Date.now(),
+                usageCount: k.usageCount + 1
+              }
+          : k
+        )
+        storeManager.updateConfig({ apiKeys: updatedKeys })
       }
 
       await next()

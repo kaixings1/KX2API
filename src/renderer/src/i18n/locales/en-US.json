@@ -554,6 +554,8 @@
     "apiKeyAuthDesc": "When enabled, all requests require a valid API Key",
     "enableApiKeyAuth": "Enable Authentication",
     "currentStatus": "Status",
+    "authScopeHint": "Only applies to non-local requests: 127.0.0.1 / ::1 (including this app) is always exempt, so local usage is unaffected.",
+    "authNoKeyWarning": "Authentication is enabled but no usable key exists - external (LAN/remote) requests will be rejected. Create a key below first.",
     "apiKeyList": "API Key List",
     "totalKeys": "{{count}} API Keys",
     "enabledKeys": "{{count}} enabled",
