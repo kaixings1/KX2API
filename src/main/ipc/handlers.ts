@@ -604,67 +604,6 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     }
   })
 
-  // ==================== Task Management IPC Handlers ====================
-
-  ipcMain.handle(IpcChannels.TASKS_GET_ALL, async () => {
-    try { return { success: true, data: Array.from(tasksStore.values()) }
-    } catch (e) { return { success: false, error: (e as Error).message } }
-  })
-
-  ipcMain.handle(IpcChannels.TASKS_GET_BY_ID, async (_, id: string) => {
-    try {
-      const task = tasksStore.get(id)
-      if (task) return { success: true, data: task }
-      return { success: false, error: 'Task not found' }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.TASKS_CREATE, async (_, data: Omit<TaskRecord, 'id' | 'createdAt'>) => {
-    try {
-      const id = `task_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
-      const task: TaskRecord = { ...data, id, createdAt: Date.now() }
-      tasksStore.set(id, task)
-      return { success: true, data: task }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.TASKS_UPDATE, async (_, id: string, data: Partial<TaskRecord>) => {
-    try {
-      const existing = tasksStore.get(id)
-      if (!existing) return { success: false, error: 'Task not found' }
-      const updated = { ...existing, ...data }
-      tasksStore.set(id, updated)
-      return { success: true, data: updated }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.TASKS_DELETE, async (_, id: string) => {
-    try {
-      return { success: tasksStore.delete(id) }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
-  ipcMain.handle(IpcChannels.TASKS_SET_STATUS, async (_, id: string, status: TaskRecord['status']) => {
-    try {
-      const task = tasksStore.get(id)
-      if (!task) return { success: false, error: 'Task not found' }
-      const updates: Partial<TaskRecord> = { status }
-      if (status === 'done') updates.completedAt = Date.now()
-      tasksStore.set(id, { ...task, ...updates })
-      return { success: true, data: tasksStore.get(id) }
-    } catch (e) {
-      return { success: false, error: (e as Error).message }
-    }
-  })
-
   // ==================== Git Management IPC Handlers ====================
 
   ipcMain.handle(IpcChannels.GIT_GET_STATUS, async () => {
