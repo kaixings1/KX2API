@@ -8,7 +8,7 @@
 import axios, { type AxiosInstance } from 'axios'
 import { createParser } from 'eventsource-parser'
 import { formatSystemError } from '../../shared/formatError'
-import { parsePlainTextToolCalls } from '../../utils/plainTextToolCallRepair'
+import { parsePlainTextToolCalls, stripPlainTextToolCalls, type PlainTextToolCallBlock } from '../../utils/plainTextToolCallRepair'
 
 export interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -599,17 +599,19 @@ export async function sendOpenAIStreamWithTools(
         const xmlCalls = parsePlainTextToolCalls(fullText)
         if (xmlCalls && xmlCalls.length > 0) {
           // 守门：只有当提取到的工具名「能真正解析到注册命令」时，才认定为工具调用。
-          // 否则极可能是 AI 最终正文里的接口/HTML/XML 文档示例（如 <name>用户</name>、
-          // <response><id>..</id></response>），此时必须保留全文作为 AI 答案，绝不吞掉。
-          let resolvableCount = 0
+          // 否则极可能是 API 最终正文里的接口/HTML/XML 文档示例（如 <name>用户</name>、
+          // <response><id>..</id></response>），必须保留全文作为 AI 答案，绝不吞掉。
+          // 一次遍历：同时完成「是否可解析」的判定与可解析候选的收集，避免重复 import/匹配。
+          const resolvable: PlainTextToolCallBlock[] = []
           for (const call of xmlCalls) {
-            if (await canResolveToolName(call.name)) resolvableCount++
+            if (await canResolveToolName(call.name)) resolvable.push(call)
           }
-          if (resolvableCount === 0) {
+          if (resolvable.length === 0) {
             console.log(`[API] 提取到 ${xmlCalls.length} 个候选但均无法解析到命令（视为 AI 正文，保留全文返回）:`, xmlCalls.map(t => t.name).join(', '))
           } else {
-            console.log(`[API] 从正文中提取到 XML/纯文本工具调用 ${xmlCalls.length} 个, 可解析 ${resolvableCount} 个:`, xmlCalls.map(t => t.name).join(', '))
-            for (const call of xmlCalls) {
+            console.log(`[API] 从正文中提取到 XML/纯文本工具调用 ${xmlCalls.length} 个, 可解析 ${resolvable.length} 个:`, xmlCalls.map(t => t.name).join(', '))
+            // 只把「可真正执行」的候选当作工具；不可解析的候选当作 AI 正文保留，避免误执行/吞答复。
+            for (const call of resolvable) {
               toolCalls.push({
                 type: 'tool_use',
                 id: `tc_${Date.now()}_${toolCalls.length}`,
@@ -617,8 +619,8 @@ export async function sendOpenAIStreamWithTools(
                 input: call.arguments ?? {},
               })
             }
-            // 已被识别为工具调用，不要再把这段 XML 当作正文文本喂回下一轮
-            fullText = ''
+            // 保留纯文本中非工具部分（模型常把工具调用写在正文中间），只剥离工具块，绝不整段清空。
+            fullText = stripPlainTextToolCalls(fullText)
           }
         }
       } catch (e) {

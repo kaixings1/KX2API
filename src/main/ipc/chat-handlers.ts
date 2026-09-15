@@ -177,23 +177,14 @@ export function registerChatHandlers(): void {
         }
       }
 
-      // 注册事件处理器后执行查询
-      const result = await eng.query(text)
+      // 注册事件处理器后执行查询（把 eventHandler 注入引擎，驱动 response_chunk/done/error 事件
+      // 转发到渲染层；engine.query 的 onEvent 默认是空回调，不传会导致前端收不到任何流事件）
+      const result = await eng.query(text, eventHandler)
 
-      // 确保最终 done 消息已发送（如果事件处理器未覆盖）
-      const finalContent = typeof result.messages === 'object' && result.messages
-        ? (result.messages as any[]).find((m: any) => m.role === 'assistant' && typeof m.content === 'string')?.content || ''
-        : ''
-
-      sender.send(IpcChannels.CHAT_STREAM_DONE, {
-        requestId,
-        content: finalContent,
-        toolOutput: '',
-        iterations: (result as any).iterations,
-        duration: (result as any).duration,
-      })
-
-      console.log('[IPC][CHAT_SEND_MESSAGE] eng.query DONE after', Date.now() - t0, 'ms, contentLen=', finalContent.length, 'requestId=', requestId)
+      // eventHandler 已在 'done' 事件中发送 CHAT_STREAM_DONE，此处无需重复发送
+      const lastMsg = result.messages[result.messages.length - 1]
+      const resolvedContent = lastMsg?.content && typeof lastMsg.content === 'string' ? lastMsg.content : ''
+      console.log('[IPC][CHAT_SEND_MESSAGE] eng.query DONE after', Date.now() - t0, 'ms, contentLen=', resolvedContent.length, 'requestId=', requestId)
       return { success: true, requestId }
     } catch (e) {
       const raw = (e as Error).message
@@ -289,8 +280,8 @@ export function registerChatHandlers(): void {
       if (!eng) {
         return { success: false, error: 'Engine not initialized' }
       }
-      // 使用 QueryEngine 的 executeCommand（兼容层）
-      const result = await (eng as any).executeCommand?.(name, args) || { success: false, error: 'executeCommand not available' }
+      // QueryEngine.executeCommand：ToolCollection → 命令注册表
+      const result = await eng.executeCommand(name, args)
       logManager.info('[IPC] chat:executeCommand result', { data: { success: result.success } })
       return result
     } catch (e) {

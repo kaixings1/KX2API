@@ -144,6 +144,14 @@ async function setupApp(): Promise<void> {
   registerChatHandlers()
   await initEngineBridge(mainWindow)
 
+  // 启动本地代理服务器
+  try {
+    await proxyServer.start()
+    console.log('[App] Proxy server started on 127.0.0.1:8080')
+  } catch (err) {
+    console.log('[App] Proxy server start failed:', err)
+  }
+
   // 初始化 Kimi 持久登录会话（用于 401 时自动刷新 cookie）
   try {
     await kimiSessionManager.initialize()

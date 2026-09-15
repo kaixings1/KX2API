@@ -33,6 +33,8 @@ export interface Profile {
   systemPrompt?: string
   /** 提示词分组配置（勾选状态） */
   promptGroups?: Record<string, unknown>
+  /** 启用的工具分组列表 */
+  enabledToolGroups?: string[]
 }
 
 interface PresetData {

@@ -6,6 +6,8 @@
  * - AI 代理命令：将命令意图转为 prompt，由 LLM 执行
  */
 
+import { runInit } from './init.ts'
+
 export interface CommandResult {
   success: boolean
   output?: string
@@ -99,17 +101,37 @@ commandRegistry.register({
   },
 })
 
+/**
+ * 列表生成：目录与文件分类、各自按名称排序（数字自然序）、每项独立成行。
+ * - ls: 目录 `[DIR]  name/`，文件 `       name`
+ * - dir: 目录 `<DIR>  name/`，文件 `       name`
+ * 开头打印路径与计数，方便 AI/终端按行渲染，避免「一行挤满」。
+ */
+async function listDirectoryImpl(target: string, withDirMarker: boolean): Promise<string> {
+  const fs = await import('fs')
+  const path = await import('path')
+  const entries = await fs.promises.readdir(target, { withFileTypes: true })
+  if (entries.length === 0) return '(空目录)'
+
+  const dirs = entries.filter(e => e.isDirectory()).map(e => e.name)
+  const files = entries.filter(e => !e.isDirectory()).map(e => e.name)
+  dirs.sort((a, b) => a.localeCompare(b, 'en', { numeric: true }))
+  files.sort((a, b) => a.localeCompare(b, 'en', { numeric: true }))
+
+  const lines: string[] = []
+  lines.push(`[DIR] ${path.resolve(target)}  (${dirs.length} 目录 / ${files.length} 文件)`)
+  for (const name of dirs) lines.push(`${withDirMarker ? '  <DIR>  ' : '  [DIR]  '}${name}/`)
+  for (const name of files) lines.push(`         ${name}`)
+  return lines.join('\n')
+}
+
 commandRegistry.register({
   name: 'ls',
-  description: '列出目录文件',
+  description: '列出目录文件（目录/文件分类分行）',
   execute: async (args) => {
     try {
-      const fs = await import('fs')
-      const path = await import('path')
       const target = args[0] || process.cwd()
-      const entries = await fs.promises.readdir(target, { withFileTypes: true })
-      const lines = entries.map(e => e.isDirectory() ? `[DIR]  ${e.name}/` : `       ${e.name}`)
-      return { success: true, output: lines.join('\n') || '(空目录)' }
+      return { success: true, output: await listDirectoryImpl(target, false) }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
@@ -118,14 +140,11 @@ commandRegistry.register({
 
 commandRegistry.register({
   name: 'dir',
-  description: '列出目录文件 (Windows dir)',
+  description: '列出目录文件（目录/文件分类分行，Windows 风格）',
   execute: async (args) => {
     try {
-      const fs = await import('fs')
       const target = args[0] || process.cwd()
-      const entries = await fs.promises.readdir(target, { withFileTypes: true })
-      const lines = entries.map(e => e.isDirectory() ? `<DIR>  ${e.name}` : `       ${e.name}`)
-      return { success: true, output: lines.join('\n') || '(空目录)' }
+      return { success: true, output: await listDirectoryImpl(target, true) }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
@@ -375,6 +394,14 @@ commandRegistry.register({
       return { success: true, output: 'KX2Code v1.0.0' }
     }
   },
+})
+
+// ==================== 项目初始化 ====================
+
+commandRegistry.register({
+  name: 'init',
+  description: '扫描当前项目并生成/更新 CLAUDE.md（项目说明文件）',
+  execute: async (args) => runInit(args),
 })
 
 // ==================== 开发调试命令 ====================
@@ -1756,18 +1783,6 @@ commandRegistry.register({
       success: true,
       needsAgent: true,
       output: `[AI 代理] /graphql 命令需要 AI 执行`,
-    }
-  },
-})
-
-commandRegistry.register({
-  name: 'grep',
-  description: '搜索 - 搜索/上下文/正则/统计/仅文件/配置/历史',
-  execute: async () => {
-    return {
-      success: true,
-      needsAgent: true,
-      output: `[AI 代理] /grep 命令需要 AI 执行`,
     }
   },
 })

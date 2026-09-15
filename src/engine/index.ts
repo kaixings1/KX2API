@@ -314,7 +314,15 @@ export class QueryEngine {
     return new Map<string, Tool>();
   }
 
-  async query(userMessage: string): Promise<QueryResult> {
+  /** 覆盖 messageLoop 的 onEvent，使本次查询的事件（response_chunk/done/error 等）能被上层捕获 */
+  private setLoopEventHandler(handler?: (event: import("./messageLoop.ts").AgentEvent) => void): void {
+    const loop = this as unknown as { messageLoop: { deps: { onEvent?: (e: import("./messageLoop.ts").AgentEvent) => void } } }
+    if (loop?.messageLoop?.deps) {
+      loop.messageLoop.deps.onEvent = handler || (() => {})
+    }
+  }
+
+  async query(userMessage: string, handler?: (event: import("./messageLoop.ts").AgentEvent) => void): Promise<QueryResult> {
     const endConvManager = getEndConversationManager()
     const check = endConvManager.checkInput(userMessage)
     if (check.shouldEnd) {
@@ -330,6 +338,7 @@ export class QueryEngine {
         content: endConvManager.getWarningMessage(),
       })
     }
+    if (handler) this.setLoopEventHandler(handler)
     return this.messageLoop.run(userMessage);
   }
 
@@ -452,6 +461,42 @@ export class QueryEngine {
     const loop = this as unknown as { messageLoop: { deps: { apiClient: unknown } } }
     if (loop && loop.messageLoop) {
       ;(loop.messageLoop as { deps: { apiClient: { sendMessage: (request: unknown) => Promise<AsyncIterable<unknown>> } } }).deps.apiClient = apiClient
+    }
+  }
+
+  /**
+   * 执行 / 斜杠命令（供 IPC `chat:executeCommand` 调用）。
+   *
+   * 查找顺序：ToolCollection（已与命令注册表同步）→ 命令注册表。
+   * 注意：以前这里没有这个方法，调用方拿到 undefined 后统一报
+   * “executeCommand not available”，导致 /init、/team、/help 等所有斜杠命令都不可用。
+   */
+  async executeCommand(
+    name: string,
+    args: string[] = [],
+  ): Promise<{ success: boolean; output: string; error?: string; needsAgent?: boolean; plan?: unknown }> {
+    const trimmed = (name || '').replace(/^\//, '').trim()
+    if (!trimmed) {
+      return { success: false, output: '', error: '未指定命令名' }
+    }
+    try {
+      const [{ commandRegistry }, { toolCollection }] = await Promise.all([
+        import('./commands/registry.ts'),
+        import('../main/proxy/tools/toolCollection.ts'),
+      ])
+      const cmd = toolCollection.getTool(trimmed) || commandRegistry.get(trimmed)
+      if (!cmd) {
+        return { success: false, output: '', error: `未知命令: /${trimmed}（可用命令见 /help）` }
+      }
+      const result = await cmd.execute(args)
+      return {
+        success: result.success,
+        output: result.error || result.output || '命令执行完成',
+        error: result.error,
+        needsAgent: result.needsAgent,
+      }
+    } catch (e) {
+      return { success: false, output: '', error: (e as Error).message }
     }
   }
 }

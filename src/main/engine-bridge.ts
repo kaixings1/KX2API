@@ -90,6 +90,33 @@ export interface ApiSettings {
  * apiKey / baseUrl 用 !== undefined 判断，因为显式传空串 = 「真的没有」；
  * provider / model 为空时沿用旧值，避免被打成默认值。
  */
+/** Provider 支持模型白名单（空数组 = 不限制） */
+const PROVIDER_MODEL_WHITELIST: Record<string, string[]> = {
+  stepfun: [
+    'step-1-8k', 'step-1-32k', 'step-1-128k', 'step-1-256k',
+    'step-1o-mini', 'step-1o-turbo', 'step-1o-128k',
+    'step-2-mini', 'step-2-turbo', 'step-2-16k',
+    'step-3-mini-128k', 'step-3-turbo-128k', 'step-3-flash-128k',
+    'step-3.7-mini', 'step-3.7-turbo', 'step-3.7-max', 'step-3.7-flash',
+    'step-fun-vision', 'step-auto',
+  ],
+}
+
+/**
+ * 当 provider 和 model 不匹配时，自动映射到该 provider 的默认模型。
+ * 避免将 OpenAI 模型（如 gpt-4o）发送到 StepFun 等不支持该模型的 API。
+ */
+function resolveModelForProvider(provider: string, model: string, baseUrl?: string): string {
+  const lowerProvider = provider.toLowerCase()
+  const whitelist = PROVIDER_MODEL_WHITELIST[lowerProvider]
+  if (!whitelist || whitelist.length === 0) return model
+  if (whitelist.includes(model)) return model
+  // 模型不在白名单中，映射到该 provider 的默认模型
+  const fallback = whitelist[0]
+  console.log(`[EngineBridge] Model "${model}" not supported by provider "${provider}", mapped to "${fallback}"`)
+  return fallback
+}
+
 export function mergeApiSettings(
   previous: ApiSettings,
   opts: { provider?: string; model?: string; apiKey?: string; baseUrl?: string },
@@ -117,8 +144,10 @@ function createApiClientStream(
   baseUrl?: string,
   enabledToolGroups: string[] = [],
 ): (req: unknown) => Promise<AsyncIterable<unknown>> {
+  // 校验并修正 model-provider 不匹配
+  const resolvedModel = resolveModelForProvider(provider, model, baseUrl)
   // 仅记录关键参数，避免日志过长
-  console.log('[EngineBridge] createApiClientStream provider=', provider, 'model=', model, 'baseUrl=', baseUrl || 'fallback', 'toolGroups=', enabledToolGroups.length === 0 ? 'all' : enabledToolGroups.join(','))
+  console.log('[EngineBridge] createApiClientStream provider=', provider, 'model=', resolvedModel, 'baseUrl=', baseUrl || 'fallback', 'toolGroups=', enabledToolGroups.length === 0 ? 'all' : enabledToolGroups.join(','))
   return async (request: unknown): Promise<AsyncIterable<unknown>> => {
     const messages = (request as Record<string, unknown>).messages as Array<Record<string, unknown>>
 
@@ -184,7 +213,7 @@ function createApiClientStream(
       {
         provider: provider as ApiConfig['provider'],
         apiKey,
-        model,
+        model: resolvedModel,
         baseUrl,
         maxToolRounds: 5,
         maxRepeat: 3,
@@ -272,6 +301,11 @@ function createApiClientStream(
  */
 export const BASE_SYSTEM_PROMPT =
   '你是 KX2Code，一个智能编程助手。你可以使用工具帮助用户。当用户用中文提问时，请用中文回答。当用户询问文件、代码或项目结构时，请提供有用的分析和建议。\n\n' +
+  '【排版规范】\n' +
+  '当你汇报目录、文件列表或命令输出时，必须遵守：\n' +
+  '1. 列表用标准 Markdown，一个文件/目录单独一项（"- " 或 "1. "），项与项之间换行，绝不写在同一行。\n' +
+  '2. 禁止添加“复制”、“、”、“：”等与内容无关的符号，不要把列表塞进 \'复制\' 代码块——代码块只用于真正的代码片段。（“``` 文件：a.ts、b.ts、c.ts ```” 是错的，应写成 “- a.ts 换行 - b.ts 换行 - c.ts”）。\n' +
+  '3. 有多个分组（如源代码/构建输出/配置文件）时用 Markdown 标题（## / ###）分组，组内用列表。\n\n' +
   '【工具调用协议】\n' +
   '当你需要执行操作（如读取文件、运行命令、搜索目录）时，请输出如下格式的标准工具调用 XML，不要写成正文：\n' +
   '<tool_call>\n  <toolName>ls</toolName>\n  <arguments><path>.</path><showHidden>false</showHidden></arguments>\n</tool_call>\n' +
@@ -319,9 +353,14 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
       engine = new QueryEngine(opts)
       console.log('[EngineBridge] Active profile:', active.name, 'provider:', opts.provider, 'baseUrl:', active.baseUrl, 'model:', opts.model)
 
+      // 收集启用的工具分组（Profile → AppConfig → 默认全量）
+      const enabledToolGroups = (active as any).enabledToolGroups
+        ?? ConfigManager.get().enabledToolGroups
+        ?? []
+
       // 注入真实 API 客户端（将 sendMessageStream 桥接为 MessageLoop 所需的 AsyncIterable）
       engine.setApiClient({
-        sendMessage: createApiClientStream(opts.provider!, active.apiKey || '', opts.model!, active.baseUrl),
+        sendMessage: createApiClientStream(opts.provider!, active.apiKey || '', opts.model!, active.baseUrl, enabledToolGroups),
       })
       lastApiSettings = {
         provider: opts.provider!,
@@ -345,8 +384,9 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
       console.log('[EngineBridge] No active profile, using defaults')
 
       // 注入默认 API 客户端
+      const defaultEnabledGroups = ConfigManager.get().enabledToolGroups ?? []
       engine.setApiClient({
-        sendMessage: createApiClientStream('openai', '', 'gpt-4o'),
+        sendMessage: createApiClientStream('openai', '', 'gpt-4o', '', defaultEnabledGroups),
       })
       lastApiSettings = { provider: 'openai', model: 'gpt-4o', apiKey: '', baseUrl: undefined }
     }
@@ -361,16 +401,6 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
     await toolCollection.syncFromRegistry()
     engineReady = true
     console.log('[EngineBridge] Engine initialized, commands loaded:', commandCount, 'tools synced:', toolCollection.getToolNames().length)
-
-    // 开发模式：启动时自动验证工具调用链路
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[EngineBridge] Dev mode detected, running tool verification...')
-      runDirectToolTests().then((results) => {
-        console.log(`[EngineBridge] Tool verification: ${results.passed}/${results.total} passed`)
-      }).catch((err) => {
-        console.log('[EngineBridge] Tool verification failed:', err)
-      })
-    }
   } catch (e) {
     engineError = (e as Error).message
     console.log('[EngineBridge] Engine initialization failed:', engineError)
@@ -400,6 +430,7 @@ export function updateEngineApiClient(opts: {
   const baseUrl = merged.baseUrl
   const apiKey = merged.apiKey
   const systemPrompt = composeSystemPrompt(opts.systemPrompt, opts.promptGroups)
+  const enabledToolGroups = ConfigManager.get().enabledToolGroups ?? []
   lastApiSettings = merged
   eng.updateConfig({
     provider: provider as 'openai' | 'anthropic',
@@ -407,7 +438,7 @@ export function updateEngineApiClient(opts: {
     ...(systemPrompt ? { systemPrompt } : {}),
   })
   eng.setApiClient({
-    sendMessage: createApiClientStream(provider, apiKey, model, baseUrl),
+    sendMessage: createApiClientStream(provider, apiKey, model, baseUrl, enabledToolGroups),
   })
   console.log('[EngineBridge] API client rebuilt with provider=', provider, 'model=', model, 'baseUrl=', baseUrl || 'fallback', 'apiKeyLen=', apiKey ? apiKey.length : 0, 'systemPromptLen=', systemPrompt ? systemPrompt.length : 0)
   return true
@@ -472,52 +503,3 @@ export function isEngineReady(): boolean {
   return engineReady && engine !== null
 }
 
-/**
- * 直接模拟 tool_call 数据包执行测试
- * 构造 { name, input } 的工具调用格式，直接走 executeLocalTool → 命令注册表 → 本地执行
- * 不经过 LLM API，纯本地解析执行
- */
-async function runDirectToolTests(): Promise<{ passed: number; failed: number; total: number }> {
-  const { executeLocalTool } = await import('../engine/api/client')
-
-  const tests: Array<{ name: string; args: string[]; desc: string }> = [
-    { name: 'pwd',    args: [],                      desc: '当前目录' },
-    { name: 'ls',     args: [],                      desc: '列出当前目录' },
-    { name: 'dir',    args: [],                      desc: 'Windows 风格目录列表' },
-    { name: 'date',   args: [],                      desc: '当前日期时间' },
-    { name: 'cat',    args: ['package.json'],        desc: '读取 package.json' },
-    { name: 'grep',   args: ['name', 'package.json'],desc: 'grep 搜索' },
-    { name: 'find',   args: ['package.json'],        desc: '查找文件' },
-    { name: 'findstr',args: ['electron', 'package.json'], desc: 'findstr 搜索' },
-    { name: 'where',  args: ['node'],                desc: '查找 node 路径' },
-    { name: 'python', args: ['import sys; print(sys.version)'], desc: 'Python 版本' },
-  ]
-
-  console.log('[ToolTest] Starting direct tool execution tests, total:', tests.length)
-  let passed = 0
-  let failed = 0
-
-  for (let i = 0; i < tests.length; i++) {
-    const t = tests[i]
-    console.log(`\n[ToolTest] ${i + 1}/${tests.length}: /${t.name} — ${t.desc}`)
-    console.log(`[ToolTest]   args: [${t.args.map(a => JSON.stringify(a)).join(', ')}]`)
-    try {
-      const result = await executeLocalTool(t.name, t.args)
-      const output = result.output?.trim()
-      if (output && !output.includes('错误') && !output.includes('Error')) {
-        console.log(`[ToolTest]   PASS: ${output.slice(0, 200)}`)
-        passed++
-      } else {
-        console.log(`[ToolTest]   FAIL: ${output?.slice(0, 200) || '(no output)'}`)
-        failed++
-      }
-    } catch (e) {
-      console.error(`[ToolTest]   ERROR:`, (e as Error).message)
-      failed++
-    }
-    await new Promise(r => setTimeout(r, 500))
-  }
-
-  console.log(`\n[ToolTest] ===== Results: ${passed} passed, ${failed} failed, total ${tests.length} =====`)
-  return { passed, failed, total: tests.length }
-}

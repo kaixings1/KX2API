@@ -729,6 +729,16 @@ export function ChatPage() {
     '/help': {
       desc: '显示帮助',
       handler: async () => {
+        // 优先向引擎要真实命令列表（命令注册表是唯一数据源，避免这里手工维护一份过时的）
+        if (window.electronAPI?.chat?.executeCommand) {
+          try {
+            const r = await window.electronAPI.chat.executeCommand('help', [])
+            if (r.success && r.output) {
+              appendSystemMessage(r.output)
+              return
+            }
+          } catch { /* 落到下面的静态列表 */ }
+        }
         const helpText = [
           'KX2Code 命令列表：',
           '',
@@ -738,9 +748,11 @@ export function ChatPage() {
           '  /new — 开始新对话',
           '',
           '**系统命令**：',
+          '  /init — 扫描项目并生成/更新 CLAUDE.md',
           '  /config — 查看配置',
           '  /model <名称> — 切换模型',
           '  /stats — 使用统计',
+          '  /team <任务> — 多角色协作',
         ].join('\n')
         appendSystemMessage(helpText)
       },

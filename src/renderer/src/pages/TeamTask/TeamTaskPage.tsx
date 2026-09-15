@@ -198,7 +198,7 @@ export function TeamTaskPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-[var(--accent-primary)]">{t('team.title', '多角色任务')}</h2>
         <p className="text-muted-foreground">
