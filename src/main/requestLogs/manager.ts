@@ -159,6 +159,37 @@ export class RequestLogManager {
   }
 
   getRequestLogTrend(days: number = 7): RequestLogTrendPoint[] {
+    return this.buildTrend(this.requestLogs, days)
+  }
+
+  /**
+   * 某个账号的请求趋势。
+   *
+   * 为什么需要它：账号详情里的「7 天请求趋势」以前只读 app 日志，而成功请求的
+   * app 日志是以 `debug` 级别写的（默认 logLevel=info 会被 shouldRecordLog 丢掉），
+   * 所以只要全部请求都成功，图表就永远是空的。
+   * 请求日志（request-logs）每条都带 accountId/status/latency，才是真正可靠的来源。
+   */
+  getAccountTrend(accountId: string, days: number = 7): {
+    date: string
+    total: number
+    info: number
+    warn: number
+    error: number
+  }[] {
+    this.ensureInitialized()
+    const mine = this.requestLogs.filter((entry) => entry.accountId === accountId)
+    return this.buildTrend(mine, days).map((p) => ({
+      date: p.date,
+      total: p.total,
+      // 请求日志只有 success / error 两种状态，成功计到 info（与界面字段一致）
+      info: p.success,
+      warn: 0,
+      error: p.error,
+    }))
+  }
+
+  private buildTrend(logs: RequestLogEntry[], days: number): RequestLogTrendPoint[] {
     this.ensureInitialized()
     const dayMs = 24 * 60 * 60 * 1000
     const today = new Date().toISOString().split('T')[0]
@@ -169,7 +200,7 @@ export class RequestLogManager {
       const dayStart = todayStart - i * dayMs
       const dayEnd = dayStart + dayMs
       const date = new Date(dayStart).toISOString().split('T')[0]
-      const dayLogs = this.requestLogs.filter((entry) => entry.timestamp >= dayStart && entry.timestamp < dayEnd)
+      const dayLogs = logs.filter((entry) => entry.timestamp >= dayStart && entry.timestamp < dayEnd)
       const successLogs = dayLogs.filter((entry) => entry.status === 'success')
       const errorLogs = dayLogs.filter((entry) => entry.status === 'error')
       const totalLatency = successLogs.reduce((sum, entry) => sum + entry.latency, 0)

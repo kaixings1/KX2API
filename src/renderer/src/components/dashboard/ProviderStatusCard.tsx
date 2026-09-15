@@ -22,8 +22,10 @@ export interface ProviderStatusCardProps {
   className?: string
 }
 
-const ITEM_HEIGHT = 88
+// 单行高度 + 行间距，用于计算滚动区高度
+const ITEM_HEIGHT = 96
 const GAP = 8
+const MAX_VISIBLE_ROWS = 7
 
 export function ProviderStatusCard({ providers, className }: ProviderStatusCardProps) {
   const { t } = useTranslation()
@@ -77,7 +79,10 @@ export function ProviderStatusCard({ providers, className }: ProviderStatusCardP
     return Math.round((success / total) * 100)
   }
 
-  const scrollHeight = ITEM_HEIGHT * 7 + GAP * 6
+  // 高度按实际供应商数量收缩：以前固定算 7 行（≈664px），
+  // 只有一两个供应商时卡片里会空出一大片（看起来很“空”）。
+  const visibleRows = Math.min(Math.max(providers.length, 1), MAX_VISIBLE_ROWS)
+  const scrollHeight = ITEM_HEIGHT * visibleRows + GAP * Math.max(visibleRows - 1, 0)
 
   return (
     <Card className={cn('h-full flex flex-col', className)}>

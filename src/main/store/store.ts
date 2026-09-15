@@ -960,10 +960,18 @@ class StoreManager {
 
   /**
    * Get Log Trend for specific account
-   * Only counts successful API requests (logs with requestId) to match requestCount
+   *
+   * 优先用请求日志（每条都带 accountId，不受 logLevel 影响）；
+   * 这是修「账号详情里的 7 天趋势永远是空的」的关键：成功请求的 app 日志是
+   * debug 级别，默认 logLevel=info 时根本不会落盘，所以以前只要请求全成功就一条都查不到。
+   * 请求日志也没数据时（例如手动关掉了请求日志），再回退到旧的 app 日志口径。
    */
   getAccountLogTrend(accountId: string, days: number = 7): { date: string; total: number; info: number; warn: number; error: number }[] {
     this.ensureInitialized()
+    const fromRequestLogs = this.getRequestLogManager().getAccountTrend(accountId, days)
+    if (fromRequestLogs.some((point) => point.total > 0)) {
+      return fromRequestLogs
+    }
     return this.getAppLogManager().getAccountTrend(accountId, days)
   }
 

@@ -488,7 +488,15 @@ router.post('/completions', async (ctx: Context) => {
           actualModel,
           requestId,
           () => {
-            storeManager.addLog('debug', `Stream response completed`, { requestId })
+            // 补上 accountId：以前只写 requestId，导致按账号统计（账号详情的请求趋势）查不到流式请求
+            storeManager.addLog('debug', `Stream response completed`, {
+              requestId,
+              providerId: provider.id,
+              accountId: account.id,
+              model: request.model,
+              actualModel,
+              isStream: true,
+            })
           }
         )
 
