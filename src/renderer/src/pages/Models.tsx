@@ -8,6 +8,7 @@ import { ToolCallingPanel } from '@/components/models/ToolCallingPanel'
 import { ModelMappingConfig } from '@/components/proxy'
 import { useProxyStore } from '@/stores/proxyStore'
 import { Card, CardContent } from '@/components/ui/card'
+import { SectionCard } from '@/components/ui/section-card'
 
 export function Models() {
   const { t } = useTranslation()
@@ -47,13 +48,11 @@ export function Models() {
         <p className="text-muted-foreground">{t('models.description')}</p>
       </div>
 
-      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
-        <CardContent className="pt-4">
-          <p className="text-xs text-[var(--text-dim)] leading-relaxed">
-            {tabDescriptions[activeTab]}
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard>
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed">
+          {tabDescriptions[activeTab]}
+        </p>
+      </SectionCard>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid h-auto w-full grid-cols-3">

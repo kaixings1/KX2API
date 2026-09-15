@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Plus, Trash2, Play, Loader2, Calendar, GripVertical, CheckCircle2, Circle, Info } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { SectionCard } from '@/components/ui/section-card'
 import { cn } from '@/lib/utils'
+import { Plus, Trash2, Play, Loader2, Calendar, GripVertical, CheckCircle2, Circle, Info } from 'lucide-react'
 import { ManagementToolbar } from '@/components/management'
 import { ImportExportDialog } from '@/components/management/ImportExportDialog'
 
@@ -231,14 +231,11 @@ export function PlanManagement() {
         onRestore={handleRestore}
       />
 
-      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
-        <CardContent className="pt-4 pb-3">
-          <p className="text-xs text-[var(--text-dim)] leading-relaxed flex items-start gap-2">
-            <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-[var(--text-muted)]" />
-            {t('plans.pageHelp', '创建计划并逐步骤执行。点击步骤可切换完成状态，全部完成后计划将标记为已完成。')}
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard title={t('plans.pageHelpTitle', '关于计划')} icon={Info}>
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed">
+          {t('plans.pageHelp', '创建计划并逐步骤执行。点击步骤可切换完成状态，全部完成后计划将标记为已完成。')}
+        </p>
+      </SectionCard>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -249,7 +246,7 @@ export function PlanManagement() {
               {editingPlan ? t('plans.editDesc', '编辑计划配置') : t('plans.createDesc', '创建一个新的计划，每行一个步骤')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <SectionCard contentClassName="space-y-4">
             <div>
               <Label>{t('plans.titleLabel', '标题')}</Label>
               <Input value={title} onChange={e => setTitle(e.target.value)} placeholder={t('plans.titlePlaceholder', '输入计划标题')} />
@@ -265,14 +262,16 @@ export function PlanManagement() {
               </div>
             )}
             <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
-          </div>
+          </SectionCard>
         </DialogContent>
       </Dialog>
 
       {loading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
       ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">{t('plans.empty', '暂无计划')}</CardContent></Card>
+        <SectionCard>
+          <p className="py-6 text-center text-xs text-[var(--text-muted)]">{t('plans.empty', '暂无计划')}</p>
+        </SectionCard>
       ) : (
         <div className="space-y-4">
           {filtered.map(plan => {

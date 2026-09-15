@@ -74,7 +74,6 @@ const TOOL_FRIENDLY: Record<string, string> = {
   local_dir_list: '列出目录文件',
   'fs::list': '列出目录文件',
   'filesystem.read_file': '读取文件',
-  readfile: '读取文件',
 }
 
 /** 归一化工具名 → 友好功能描述；未命中返回 null */

@@ -4,14 +4,15 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SectionCard } from '@/components/ui/section-card'
 import { Plus, Trash2, TestTube2, Loader2, ArrowRight, Info } from 'lucide-react'
 import { ManagementToolbar } from '@/components/management'
 import { ImportExportDialog } from '@/components/management/ImportExportDialog'
+import { useToast } from '@/hooks/use-toast'
 
 const mcpApi = window.electronAPI.mcp
 
@@ -23,6 +24,7 @@ const TRANSPORT_MAP: Record<string, string> = {
 
 export function McpManagement() {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const navigate = useNavigate()
   const [servers, setServers] = useState<McpServerConfig[]>([])
   const [config, setConfig] = useState<{ servers: McpServerConfig[] } | null>(null)
@@ -77,41 +79,77 @@ export function McpManagement() {
   }
 
   const handleSave = async () => {
-    const args = argsText.split(' ').filter(Boolean)
-    let env: Record<string, string> = {}
-    try { env = JSON.parse(envText || '{}') } catch { env = {} }
-    const serverData: Record<string, unknown> = { name, url, transport, enabled: true }
-    if (command) serverData.command = command
-    if (args.length > 0) serverData.args = args
-    if (Object.keys(env).length > 0) serverData.env = env
-    if (editingServer) {
-      const newServers = servers.map(s => s.id === editingServer.id ? { ...s, ...serverData } : s)
-      await mcpApi.updateConfig({ servers: newServers })
-      setServers(newServers)
-    } else {
-      await mcpApi.addServer(serverData as McpServerConfig & { enabled: boolean })
+    if (!name.trim()) {
+      toast({ title: t('mcp.nameRequired', '请输入服务器名称'), variant: 'destructive' })
+      return
     }
-    setDialogOpen(false)
-    loadData()
+    try {
+      const args = argsText.split(' ').filter(Boolean)
+      let env: Record<string, string> = {}
+      try { env = JSON.parse(envText || '{}') } catch { env = {} }
+      const serverData: Record<string, unknown> = { name, url, transport, enabled: true }
+      if (command) serverData.command = command
+      if (args.length > 0) serverData.args = args
+      if (Object.keys(env).length > 0) serverData.env = env
+      if (editingServer) {
+        const newServers = servers.map(s => s.id === editingServer.id ? { ...s, ...serverData } : s)
+        await mcpApi.updateConfig({ servers: newServers })
+        setServers(newServers)
+      } else {
+        await mcpApi.addServer(serverData as McpServerConfig & { enabled: boolean })
+      }
+      setDialogOpen(false)
+      loadData()
+      toast({ title: editingServer ? t('mcp.saved', '配置已保存') : t('mcp.created', '服务器已添加') })
+    } catch (e) {
+      console.error('[McpManagement] Save failed:', e)
+      toast({ title: t('mcp.saveFailed', '保存失败'), variant: 'destructive' })
+    }
   }
 
   const handleDelete = async (id: string) => {
-    await mcpApi.removeServer(id)
-    loadData()
+    if (!confirm(t('mcp.confirmDelete', '确定删除此服务器？'))) return
+    try {
+      await mcpApi.removeServer(id)
+      setTestResult(null)
+      setTools([])
+      loadData()
+      toast({ title: t('mcp.deleted', '服务器已删除') })
+    } catch (e) {
+      console.error('[McpManagement] Delete failed:', e)
+      toast({ title: t('mcp.deleteFailed', '删除失败'), variant: 'destructive' })
+    }
   }
 
   const handleTest = async (server: McpServerConfig) => {
     setTestResult(null)
-    const res = await mcpApi.testConnection(server)
-    if (res.success) {
-      setTestResult({ success: true, connected: res.connected, tools: res.tools })
-      setTools(res.tools)
+    try {
+      const res = await mcpApi.testConnection(server)
+      if (res.success) {
+        setTestResult({ success: true, connected: res.connected, tools: res.tools })
+        setTools(res.tools)
+        if (res.connected) {
+          toast({ title: t('mcp.connected', '连接成功'), description: `${res.tools.length} 个工具可用` })
+        } else {
+          toast({ title: t('mcp.connectionFailed', '连接失败'), variant: 'destructive' })
+        }
+      } else {
+        toast({ title: res.error || t('mcp.testFailed', '测试失败'), variant: 'destructive' })
+      }
+    } catch (e) {
+      console.error('[McpManagement] Test failed:', e)
+      toast({ title: t('mcp.testError', '测试出错'), variant: 'destructive' })
     }
   }
 
   const handleGetTools = async (server: McpServerConfig) => {
-    const res = await mcpApi.getTools(server.id)
-    if (res) setTools(Array.isArray(res) ? res : [])
+    try {
+      const res = await mcpApi.getTools(server.id)
+      if (res) setTools(Array.isArray(res) ? res : [])
+    } catch (e) {
+      console.error('[McpManagement] GetTools failed:', e)
+      toast({ title: t('mcp.getToolsFailed', '获取工具列表失败'), variant: 'destructive' })
+    }
   }
 
   const filtered = servers.filter(s => {
@@ -231,7 +269,9 @@ export function McpManagement() {
       {loading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
       ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">{t('mcp.noMatch', '没有匹配的服务器')}</CardContent></Card>
+        <SectionCard>
+          <p className="py-6 text-center text-xs text-[var(--text-muted)]">{t('mcp.noMatch', '没有匹配的服务器')}</p>
+        </SectionCard>
       ) : (
         <div className="grid gap-4">
           {filtered.map(server => (
@@ -270,30 +310,24 @@ export function McpManagement() {
       )}
 
       {tools.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-sm">{t('mcp.availableTools', '可用工具')}</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {tools.map((tool: any, i: number) => (
-                <div key={i} className="text-sm">
-                  <strong>{tool.name}</strong>
-                  {tool.description && <p className="text-muted-foreground text-xs">{tool.description}</p>}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <SectionCard title={t('mcp.availableTools', '可用工具')}>
+          <div className="space-y-2">
+            {tools.map((tool: any, i: number) => (
+              <div key={i} className="text-sm">
+                <strong>{tool.name}</strong>
+                {tool.description && <p className="text-muted-foreground text-xs">{tool.description}</p>}
+              </div>
+            ))}
+          </div>
+        </SectionCard>
       )}
 
       {/* Help Card */}
-      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
-        <CardContent className="pt-4 pb-3">
-          <p className="text-xs text-[var(--text-dim)] leading-relaxed flex items-start gap-2">
-            <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-[var(--text-muted)]" />
-            {t('mcp.pageHelp', '配置和管理 MCP 服务器。支持 stdio、SSE 和 HTTP 传输方式。点击测试按钮验证连接，点击卡片进入详情页查看可用工具。')}
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard title={t('mcp.pageHelpTitle', '关于 MCP')} icon={Info}>
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed">
+          {t('mcp.pageHelp', '配置和管理 MCP 服务器。支持 stdio、SSE 和 HTTP 传输方式。点击测试按钮验证连接，点击卡片进入详情页查看可用工具。')}
+        </p>
+      </SectionCard>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -304,7 +338,7 @@ export function McpManagement() {
               {editingServer ? t('mcp.editServerDesc', '编辑 MCP 服务器配置') : t('mcp.addServerDesc', '添加新的 MCP 服务器')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <SectionCard contentClassName="space-y-4">
             <div>
               <Label>{t('mcp.nameLabel', '名称')}</Label>
               <Input value={name} onChange={e => setName(e.target.value)} />
@@ -337,7 +371,7 @@ export function McpManagement() {
               </Select>
             </div>
             <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
-          </div>
+          </SectionCard>
         </DialogContent>
       </Dialog>
     </div>

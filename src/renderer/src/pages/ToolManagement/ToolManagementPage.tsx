@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import { SectionCard } from '@/components/ui/section-card'
 import {
   Plus, Trash2, Edit3, Save, X, RotateCcw,
   Wrench, FolderOpen, Lightbulb, Check, Search, RefreshCw, Download, Upload, ArrowRight, Info,
@@ -16,46 +17,14 @@ import {
 import { ImportExportDialog, ManagementToolbar } from '@/components/management'
 import { ToolGroupsPanel } from './ToolGroupsPanel'
 import { ParameterEditor, type ToolParameter } from './ParameterEditor'
-
-// ==================== Types ====================
-
-interface ToolDef {
-  id: string
-  name: string
-  displayName: string
-  description: string
-  usage: string
-  platform: string
-  parameters?: ToolParameter[]
-  tags: string[]
-  enabled: boolean
-  builtin: boolean
-}
-
-interface ToolGroup {
-  id: string
-  name: string
-  description: string
-  toolIds: string[]
-  enabled: boolean
-  builtin: boolean
-}
-
-interface HintRule {
-  id: string
-  name: string
-  description: string
-  patterns: string[]
-  groupIds: string[]
-  priority: number
-  enabled: boolean
-  builtin: boolean
-}
+import { ToolDef, ToolGroup, HintRule } from '@/types/tools'
+import { useToast } from '@/hooks/use-toast'
 
 // ==================== Component ====================
 
 export function ToolManagementPage() {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const navigate = useNavigate()
   const [tools, setTools] = useState<ToolDef[]>([])
   const [groups, setGroups] = useState<ToolGroup[]>([])
@@ -104,99 +73,188 @@ export function ToolManagementPage() {
 
   // ==================== Helpers ====================
 
-  const showMsg = (text: string) => { setMessage(text); setTimeout(() => setMessage(''), 3000) }
+  const showMsg = (text: string) => {
+    setMessage(text)
+    toast({ title: text })
+    setTimeout(() => setMessage(''), 3000)
+  }
+  const showError = (text: string) => {
+    toast({ title: text, variant: 'destructive' })
+  }
 
   // ==================== Tool CRUD ====================
 
   const handleAddTool = async () => {
     if (!toolForm.name || !toolForm.displayName) return
-    const res = await api.add({
-      name: toolForm.name,
-      displayName: toolForm.displayName,
-      description: toolForm.description,
-      usage: toolForm.usage,
-      platform: toolForm.platform,
-      parameters: toolForm.parameters.filter(p => p.name.trim().length > 0),
-      tags: toolForm.tags.split(',').map(s => s.trim()).filter(Boolean),
-      enabled: true,
-    })
-    if (res.success) { showMsg(t('tools.toolAdded', '工具已添加')); setToolForm({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '', parameters: [] }); loadAll() }
+    try {
+      const res = await api.add({
+        name: toolForm.name,
+        displayName: toolForm.displayName,
+        description: toolForm.description,
+        usage: toolForm.usage,
+        platform: toolForm.platform,
+        parameters: toolForm.parameters.filter(p => p.name.trim().length > 0),
+        tags: toolForm.tags.split(',').map(s => s.trim()).filter(Boolean),
+        enabled: true,
+      })
+      if (res.success) {
+        showMsg(t('tools.toolAdded', '工具已添加'))
+        setToolForm({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '', parameters: [] })
+        loadAll()
+      } else {
+        showError(t('tools.addFailed', '添加失败'))
+      }
+    } catch (e) {
+      console.error('[ToolManagement] Add tool failed:', e)
+      showError(t('tools.addFailed', '添加失败'))
+    }
   }
 
   const handleUpdateTool = async (id: string) => {
-    const res = await api.update(id, toolForm)
-    if (res.success) { showMsg(t('tools.toolUpdated', '工具已更新')); setEditingTool(null); loadAll() }
+    try {
+      const res = await api.update(id, toolForm)
+      if (res.success) { showMsg(t('tools.toolUpdated', '工具已更新')); setEditingTool(null); loadAll() }
+      else { showError(t('tools.updateFailed', '更新失败')) }
+    } catch (e) {
+      console.error('[ToolManagement] Update tool failed:', e)
+      showError(t('tools.updateFailed', '更新失败'))
+    }
   }
 
   const handleRemoveTool = async (id: string) => {
     if (!confirm(t('tools.confirmDelete', '确定删除此工具?'))) return
-    const res = await api.remove(id)
-    if (res.success) { showMsg(t('tools.toolDeleted', '工具已删除')); loadAll() }
+    try {
+      const res = await api.remove(id)
+      if (res.success) { showMsg(t('tools.toolDeleted', '工具已删除')); loadAll() }
+      else { showError(t('tools.deleteFailed', '删除失败')) }
+    } catch (e) {
+      console.error('[ToolManagement] Remove tool failed:', e)
+      showError(t('tools.deleteFailed', '删除失败'))
+    }
   }
 
   const handleToggleTool = async (id: string) => {
-    const res = await api.toggle(id)
-    if (res.success) loadAll()
+    try {
+      const res = await api.toggle(id)
+      if (res.success) loadAll()
+      else showError(t('tools.toggleFailed', '切换状态失败'))
+    } catch (e) {
+      console.error('[ToolManagement] Toggle tool failed:', e)
+      showError(t('tools.toggleFailed', '切换状态失败'))
+    }
   }
 
   // ==================== Group CRUD ====================
 
   const handleAddGroup = async () => {
     if (!groupForm.name) return
-    const res = await api.addGroup({
-      name: groupForm.name,
-      description: groupForm.description,
-      toolIds: groupForm.toolIds.split(',').map(s => s.trim()).filter(Boolean),
-      enabled: true,
-    })
-    if (res.success) { showMsg(t('tools.groupAdded', '分组已添加')); setGroupForm({ name: '', description: '', toolIds: '' }); loadAll() }
+    try {
+      const res = await api.addGroup({
+        name: groupForm.name,
+        description: groupForm.description,
+        toolIds: groupForm.toolIds.split(',').map(s => s.trim()).filter(Boolean),
+        enabled: true,
+      })
+      if (res.success) {
+        showMsg(t('tools.groupAdded', '分组已添加'))
+        setGroupForm({ name: '', description: '', toolIds: '' })
+        loadAll()
+      } else {
+        showError(t('tools.addGroupFailed', '添加分组失败'))
+      }
+    } catch (e) {
+      console.error('[ToolManagement] Add group failed:', e)
+      showError(t('tools.addGroupFailed', '添加分组失败'))
+    }
   }
 
   const handleUpdateGroup = async (id: string) => {
-    const res = await api.updateGroup(id, groupForm)
-    if (res.success) { showMsg(t('tools.groupUpdated', '分组已更新')); setEditingGroup(null); loadAll() }
+    try {
+      const res = await api.updateGroup(id, groupForm)
+      if (res.success) { showMsg(t('tools.groupUpdated', '分组已更新')); setEditingGroup(null); loadAll() }
+      else { showError(t('tools.updateGroupFailed', '更新分组失败')) }
+    } catch (e) {
+      console.error('[ToolManagement] Update group failed:', e)
+      showError(t('tools.updateGroupFailed', '更新分组失败'))
+    }
   }
 
   const handleRemoveGroup = async (id: string) => {
     if (!confirm(t('tools.confirmDeleteGroup', '确定删除此分组?'))) return
-    const res = await api.removeGroup(id)
-    if (res.success) { showMsg(t('tools.groupDeleted', '分组已删除')); loadAll() }
+    try {
+      const res = await api.removeGroup(id)
+      if (res.success) { showMsg(t('tools.groupDeleted', '分组已删除')); loadAll() }
+      else { showError(t('tools.deleteGroupFailed', '删除分组失败')) }
+    } catch (e) {
+      console.error('[ToolManagement] Remove group failed:', e)
+      showError(t('tools.deleteGroupFailed', '删除分组失败'))
+    }
   }
 
   // ==================== Hint Rule CRUD ====================
 
   const handleAddRule = async () => {
     if (!ruleForm.name || !ruleForm.patterns) return
-    const res = await api.addHintRule({
-      name: ruleForm.name,
-      description: ruleForm.description,
-      patterns: ruleForm.patterns.split('\n').map(s => s.trim()).filter(Boolean),
-      groupIds: ruleForm.groupIds.split(',').map(s => s.trim()).filter(Boolean),
-      priority: ruleForm.priority,
-      enabled: true,
-    })
-    if (res.success) { showMsg(t('tools.ruleAdded', '规则已添加')); setRuleForm({ name: '', description: '', patterns: '', groupIds: '', priority: 10 }); loadAll() }
+    try {
+      const res = await api.addHintRule({
+        name: ruleForm.name,
+        description: ruleForm.description,
+        patterns: ruleForm.patterns.split('\n').map(s => s.trim()).filter(Boolean),
+        groupIds: ruleForm.groupIds.split(',').map(s => s.trim()).filter(Boolean),
+        priority: ruleForm.priority,
+        enabled: true,
+      })
+      if (res.success) {
+        showMsg(t('tools.ruleAdded', '规则已添加'))
+        setRuleForm({ name: '', description: '', patterns: '', groupIds: '', priority: 10 })
+        loadAll()
+      } else {
+        showError(t('tools.addRuleFailed', '添加规则失败'))
+      }
+    } catch (e) {
+      console.error('[ToolManagement] Add rule failed:', e)
+      showError(t('tools.addRuleFailed', '添加规则失败'))
+    }
   }
 
   const handleUpdateRule = async (id: string) => {
-    const res = await api.updateHintRule(id, ruleForm)
-    if (res.success) { showMsg(t('tools.ruleUpdated', '规则已更新')); setEditingRule(null); loadAll() }
+    try {
+      const res = await api.updateHintRule(id, ruleForm)
+      if (res.success) { showMsg(t('tools.ruleUpdated', '规则已更新')); setEditingRule(null); loadAll() }
+      else { showError(t('tools.updateRuleFailed', '更新规则失败')) }
+    } catch (e) {
+      console.error('[ToolManagement] Update rule failed:', e)
+      showError(t('tools.updateRuleFailed', '更新规则失败'))
+    }
   }
 
   const handleRemoveRule = async (id: string) => {
     if (!confirm(t('tools.confirmDeleteRule', '确定删除此规则?'))) return
-    const res = await api.removeHintRule(id)
-    if (res.success) { showMsg(t('tools.ruleDeleted', '规则已删除')); loadAll() }
+    try {
+      const res = await api.removeHintRule(id)
+      if (res.success) { showMsg(t('tools.ruleDeleted', '规则已删除')); loadAll() }
+      else { showError(t('tools.deleteRuleFailed', '删除规则失败')) }
+    } catch (e) {
+      console.error('[ToolManagement] Remove rule failed:', e)
+      showError(t('tools.deleteRuleFailed', '删除规则失败'))
+    }
   }
 
   // ==================== Hint Match ====================
 
   const handleMatchHints = async () => {
-    const res = await api.matchHints(hintInput)
-    if (res.success && res.data) {
-      const matchedGroups = res.data.groups.map((g: any) => groups.find((g2: ToolGroup) => g2.id === g.id)!).filter(Boolean)
-      const matchedTools = res.data.tools
-      setHintResult({ groups: matchedGroups, tools: matchedTools })
+    try {
+      const res = await api.matchHints(hintInput)
+      if (res.success && res.data) {
+        const matchedGroups = res.data.groups.map((g: any) => groups.find((g2: ToolGroup) => g2.id === g.id)!).filter(Boolean)
+        const matchedTools = res.data.tools
+        setHintResult({ groups: matchedGroups, tools: matchedTools })
+      } else {
+        showError(t('tools.matchFailed', '匹配失败'))
+      }
+    } catch (e) {
+      console.error('[ToolManagement] Match hints failed:', e)
+      showError(t('tools.matchFailed', '匹配失败'))
     }
   }
 
@@ -204,8 +262,14 @@ export function ToolManagementPage() {
 
   const handleReset = async () => {
     if (!confirm(t('tools.confirmReset', '确定重置为默认工具配置? 自定义工具和规则将被删除。'))) return
-    const res = await api.reset()
-    if (res.success) { showMsg(t('tools.resetDone', '已重置为默认')); loadAll() }
+    try {
+      const res = await api.reset()
+      if (res.success) { showMsg(t('tools.resetDone', '已重置为默认')); loadAll() }
+      else { showError(t('tools.resetFailed', '重置失败')) }
+    } catch (e) {
+      console.error('[ToolManagement] Reset failed:', e)
+      showError(t('tools.resetFailed', '重置失败'))
+    }
   }
 
   // ==================== Import/Export ====================
@@ -224,9 +288,12 @@ export function ToolManagementPage() {
         a.download = `tools_${new Date().toISOString().slice(0, 10)}.json`
         a.click()
         URL.revokeObjectURL(url)
+      } else {
+        showError(t('tools.exportFailed', '导出失败'))
       }
     } catch (e) {
       console.error('Export failed:', e)
+      showError(t('tools.exportFailed', '导出失败'))
     }
   }
 
@@ -326,14 +393,11 @@ export function ToolManagementPage() {
       />
 
       {/* Help Card */}
-      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
-        <CardContent className="pt-4 pb-3">
-          <p className="text-xs text-[var(--text-dim)] leading-relaxed flex items-start gap-2">
-            <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-[var(--text-muted)]" />
-            {t('tools.pageHelp', '管理工具列表、分组和提示规则。工具决定 Agent 可以调用哪些能力，分组用于组织相关工具，提示规则根据用户输入自动匹配工具组。')}
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard title={t('tools.pageHelpTitle', '关于工具')} icon={Info}>
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed">
+          {t('tools.pageHelp', '管理工具列表、分组和提示规则。工具决定 Agent 可以调用哪些能力，分组用于组织相关工具，提示规则根据用户输入自动匹配工具组。')}
+        </p>
+      </SectionCard>
 
       {/* 生效组：决定实际发给模型的工具有哪些（改完下一条消息立即生效） */}
       {!loading && (
@@ -360,33 +424,32 @@ export function ToolManagementPage() {
           {/* ========== Tools Tab ========== */}
           <TabsContent value="tools" className="space-y-4">
             {/* Add form */}
-            <Card>
-              <CardHeader><CardTitle className="text-sm">{t('tools.addTool', '添加自定义工具')}</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>{t('tools.nameLabel', '名称')} *</Label><Input value={toolForm.name} onChange={e => setToolForm(p => ({ ...p, name: e.target.value }))} placeholder="my-tool" /></div>
-                  <div><Label>{t('tools.displayNameLabel', '显示名称')} *</Label><Input value={toolForm.displayName} onChange={e => setToolForm(p => ({ ...p, displayName: e.target.value }))} placeholder={t('tools.displayNamePlaceholder', '我的工具')} /></div>
-                  <div className="col-span-2"><Label>{t('tools.descriptionLabel', '描述')}</Label><Input value={toolForm.description} onChange={e => setToolForm(p => ({ ...p, description: e.target.value }))} /></div>
-                  <div><Label>{t('tools.usageLabel', '用法')}</Label><Input value={toolForm.usage} onChange={e => setToolForm(p => ({ ...p, usage: e.target.value }))} placeholder="/my-tool" /></div>
-                  <div><Label>{t('tools.platformLabel', '平台')}</Label>
-                    <select className="w-full text-xs text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1.5" value={toolForm.platform} onChange={e => setToolForm(p => ({ ...p, platform: e.target.value }))}>
-                      <option value="all">全部</option><option value="windows">Windows</option><option value="unix">Unix</option>
-                    </select>
-                  </div>
-                  <div className="col-span-2"><Label>{t('tools.tagsLabel', '标签 (逗号分隔)')}</Label><Input value={toolForm.tags} onChange={e => setToolForm(p => ({ ...p, tags: e.target.value }))} placeholder="file, search" /></div>
-                  <div className="col-span-2">
-                    <Label>{t('tools.parametersLabel', '参数 (JSON Schema)')}</Label>
-                    <ParameterEditor value={toolForm.parameters} onChange={params => setToolForm(p => ({ ...p, parameters: params }))} />
-                  </div>
-                  <div className="col-span-2"><Button onClick={handleAddTool} size="sm"><Plus className="w-4 h-4 mr-1" /> {t('tools.addToolBtn', '添加工具')}</Button></div>
+            <SectionCard title={t('tools.addTool', '添加自定义工具')}>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>{t('tools.nameLabel', '名称')} *</Label><Input value={toolForm.name} onChange={e => setToolForm(p => ({ ...p, name: e.target.value }))} placeholder="my-tool" /></div>
+                <div><Label>{t('tools.displayNameLabel', '显示名称')} *</Label><Input value={toolForm.displayName} onChange={e => setToolForm(p => ({ ...p, displayName: e.target.value }))} placeholder={t('tools.displayNamePlaceholder', '我的工具')} /></div>
+                <div className="col-span-2"><Label>{t('tools.descriptionLabel', '描述')}</Label><Input value={toolForm.description} onChange={e => setToolForm(p => ({ ...p, description: e.target.value }))} /></div>
+                <div><Label>{t('tools.usageLabel', '用法')}</Label><Input value={toolForm.usage} onChange={e => setToolForm(p => ({ ...p, usage: e.target.value }))} placeholder="/my-tool" /></div>
+                <div><Label>{t('tools.platformLabel', '平台')}</Label>
+                  <select className="w-full text-xs text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1.5" value={toolForm.platform} onChange={e => setToolForm(p => ({ ...p, platform: e.target.value }))}>
+                    <option value="all">全部</option><option value="windows">Windows</option><option value="unix">Unix</option>
+                  </select>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="col-span-2"><Label>{t('tools.tagsLabel', '标签 (逗号分隔)')}</Label><Input value={toolForm.tags} onChange={e => setToolForm(p => ({ ...p, tags: e.target.value }))} placeholder="file, search" /></div>
+                <div className="col-span-2">
+                  <Label>{t('tools.parametersLabel', '参数 (JSON Schema)')}</Label>
+                  <ParameterEditor value={toolForm.parameters} onChange={params => setToolForm(p => ({ ...p, parameters: params }))} />
+                </div>
+                <div className="col-span-2"><Button onClick={handleAddTool} size="sm"><Plus className="w-4 h-4 mr-1" /> {t('tools.addToolBtn', '添加工具')}</Button></div>
+              </div>
+            </SectionCard>
 
             {/* Tool list */}
             <div className="space-y-2">
               {filteredTools.length === 0 ? (
-                <Card><CardContent className="py-6 text-center text-xs text-[var(--text-muted)]">{t('tools.noMatch', '没有匹配的工具')}</CardContent></Card>
+                <SectionCard>
+                  <p className="py-6 text-center text-xs text-[var(--text-muted)]">{t('tools.noMatch', '没有匹配的工具')}</p>
+                </SectionCard>
               ) : filteredTools.map(tool => (
                 <Card key={tool.id} className="cursor-pointer hover:border-[var(--accent-primary)] transition-colors" onClick={() => navigate(`/tools/${tool.id}`)}>
                   <CardContent className="py-3 flex items-center gap-3">
@@ -423,17 +486,14 @@ export function ToolManagementPage() {
           {/* ========== Groups Tab ========== */}
           <TabsContent value="groups" className="space-y-4">
             {/* Add form */}
-            <Card>
-              <CardHeader><CardTitle className="text-sm">{t('tools.addGroup', '添加分组')}</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>{t('tools.groupNameLabel', '组名称')} *</Label><Input value={groupForm.name} onChange={e => setGroupForm(p => ({ ...p, name: e.target.value }))} placeholder={t('tools.groupNamePlaceholder', '文件操作')} /></div>
-                  <div><Label>{t('tools.toolIdsLabel', '工具 ID (逗号分隔)')}</Label><Input value={groupForm.toolIds} onChange={e => setGroupForm(p => ({ ...p, toolIds: e.target.value }))} placeholder="ls, dir, cat" /></div>
-                  <div className="col-span-2"><Label>{t('tools.descriptionLabel', '描述')}</Label><Input value={groupForm.description} onChange={e => setGroupForm(p => ({ ...p, description: e.target.value }))} /></div>
-                  <div className="col-span-2"><Button onClick={handleAddGroup} size="sm"><Plus className="w-4 h-4 mr-1" /> {t('tools.addGroupBtn', '添加分组')}</Button></div>
-                </div>
-              </CardContent>
-            </Card>
+            <SectionCard title={t('tools.addGroup', '添加分组')}>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>{t('tools.groupNameLabel', '组名称')} *</Label><Input value={groupForm.name} onChange={e => setGroupForm(p => ({ ...p, name: e.target.value }))} placeholder={t('tools.groupNamePlaceholder', '文件操作')} /></div>
+                <div><Label>{t('tools.toolIdsLabel', '工具 ID (逗号分隔)')}</Label><Input value={groupForm.toolIds} onChange={e => setGroupForm(p => ({ ...p, toolIds: e.target.value }))} placeholder="ls, dir, cat" /></div>
+                <div className="col-span-2"><Label>{t('tools.descriptionLabel', '描述')}</Label><Input value={groupForm.description} onChange={e => setGroupForm(p => ({ ...p, description: e.target.value }))} /></div>
+                <div className="col-span-2"><Button onClick={handleAddGroup} size="sm"><Plus className="w-4 h-4 mr-1" /> {t('tools.addGroupBtn', '添加分组')}</Button></div>
+              </div>
+            </SectionCard>
 
             {/* Group list */}
             <div className="grid gap-3">
@@ -472,19 +532,16 @@ export function ToolManagementPage() {
           {/* ========== Hint Rules Tab ========== */}
           <TabsContent value="hints" className="space-y-4">
             {/* Add form */}
-            <Card>
-              <CardHeader><CardTitle className="text-sm">{t('tools.addHintRule', '添加提示规则')}</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>{t('tools.ruleNameLabel', '规则名称')} *</Label><Input value={ruleForm.name} onChange={e => setRuleForm(p => ({ ...p, name: e.target.value }))} /></div>
-                  <div><Label>{t('tools.priorityLabel', '优先级')}</Label><Input type="number" value={ruleForm.priority} onChange={e => setRuleForm(p => ({ ...p, priority: parseInt(e.target.value) || 0 }))} /></div>
-                  <div className="col-span-2"><Label>{t('tools.descriptionLabel', '描述')}</Label><Input value={ruleForm.description} onChange={e => setRuleForm(p => ({ ...p, description: e.target.value }))} /></div>
-                  <div className="col-span-2"><Label>{t('tools.patternsLabel', '匹配模式 (正则表达式，每行一个)')}</Label><Textarea value={ruleForm.patterns} onChange={e => setRuleForm(p => ({ ...p, patterns: e.target.value }))} rows={2} placeholder="查看.*文件\n搜索.*内容" /></div>
-                  <div className="col-span-2"><Label>{t('tools.recommendGroupLabel', '推荐组 ID (逗号分隔)')}</Label><Input value={ruleForm.groupIds} onChange={e => setRuleForm(p => ({ ...p, groupIds: e.target.value }))} placeholder="file-system, text-search" /></div>
-                  <div className="col-span-2"><Button onClick={handleAddRule} size="sm"><Plus className="w-4 h-4 mr-1" /> {t('tools.addRuleBtn', '添加规则')}</Button></div>
-                </div>
-              </CardContent>
-            </Card>
+            <SectionCard title={t('tools.addHintRule', '添加提示规则')}>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>{t('tools.ruleNameLabel', '规则名称')} *</Label><Input value={ruleForm.name} onChange={e => setRuleForm(p => ({ ...p, name: e.target.value }))} /></div>
+                <div><Label>{t('tools.priorityLabel', '优先级')}</Label><Input type="number" value={ruleForm.priority} onChange={e => setRuleForm(p => ({ ...p, priority: parseInt(e.target.value) || 0 }))} /></div>
+                <div className="col-span-2"><Label>{t('tools.descriptionLabel', '描述')}</Label><Input value={ruleForm.description} onChange={e => setRuleForm(p => ({ ...p, description: e.target.value }))} /></div>
+                <div className="col-span-2"><Label>{t('tools.patternsLabel', '匹配模式 (正则表达式，每行一个)')}</Label><Textarea value={ruleForm.patterns} onChange={e => setRuleForm(p => ({ ...p, patterns: e.target.value }))} rows={2} placeholder="查看.*文件\n搜索.*内容" /></div>
+                <div className="col-span-2"><Label>{t('tools.recommendGroupLabel', '推荐组 ID (逗号分隔)')}</Label><Input value={ruleForm.groupIds} onChange={e => setRuleForm(p => ({ ...p, groupIds: e.target.value }))} placeholder="file-system, text-search" /></div>
+                <div className="col-span-2"><Button onClick={handleAddRule} size="sm"><Plus className="w-4 h-4 mr-1" /> {t('tools.addRuleBtn', '添加规则')}</Button></div>
+              </div>
+            </SectionCard>
 
             {/* Rule list */}
             <div className="space-y-2">
@@ -524,11 +581,11 @@ export function ToolManagementPage() {
 
           {/* ========== Test Tab ========== */}
           <TabsContent value="test" className="space-y-4">
-            <Card>
-              <CardHeader><CardTitle className="text-sm">{t('tools.ruleTestTitle', '提示规则测试')}</CardTitle>
-                <CardDescription className="text-xs">{t('tools.ruleTestDesc', '输入一段文本，查看匹配到的工具组和工具')}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
+            <SectionCard title={t('tools.ruleTestTitle', '提示规则测试')}>
+              <p className="text-xs text-[var(--text-dim)] leading-relaxed mb-3">
+                {t('tools.ruleTestDesc', '输入一段文本，查看匹配到的工具组和工具')}
+              </p>
+              <div className="space-y-3">
                 <div className="flex gap-2">
                   <Input value={hintInput} onChange={e => setHintInput(e.target.value)} placeholder="输入测试文本，例如：查看文件夹下的文件" className="flex-1" />
                   <Button onClick={handleMatchHints}><Search className="w-4 h-4 mr-1" /> {t('tools.match', '匹配')}</Button>
@@ -560,8 +617,8 @@ export function ToolManagementPage() {
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </SectionCard>
           </TabsContent>
         </Tabs>
       )}

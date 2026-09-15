@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SectionCard } from '@/components/ui/section-card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -346,12 +346,12 @@ export function TaskManagement() {
           { label: '完成', value: stats.done, key: 'done' },
           { label: '已逾期', value: stats.overdue, key: 'overdue', danger: true },
         ].map(s => (
-          <Card key={s.key} className={cn(s.danger && 'border-red-300 dark:border-red-700')}>
-            <CardContent className="py-3 text-center">
+          <SectionCard key={s.key} className={cn(s.danger && 'border-red-300 dark:border-red-700')}>
+            <div className="text-center py-3">
               <div className={cn('text-2xl font-bold', s.danger && 'text-red-500')}>{s.value}</div>
               <div className="text-xs text-muted-foreground">{s.label}</div>
-            </CardContent>
-          </Card>
+            </div>
+          </SectionCard>
         ))}
       </div>
 
@@ -377,7 +377,7 @@ export function TaskManagement() {
               {editingTask ? t('tasks.editDesc', '编辑任务配置') : t('tasks.createDesc', '创建一个新的任务')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <SectionCard contentClassName="space-y-4">
             <div>
               <Label>{t('tasks.titleLabel', '标题')}</Label>
               <Input value={title} onChange={e => setTitle(e.target.value)} />
@@ -412,14 +412,14 @@ export function TaskManagement() {
               <Input value={tagsText} onChange={e => setTagsText(e.target.value)} />
             </div>
             <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
-          </div>
+          </SectionCard>
         </DialogContent>
       </Dialog>
 
       {loading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
       ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">{t('tasks.empty', '暂无任务')}</CardContent></Card>
+        <SectionCard><p className="py-6 text-center text-xs text-[var(--text-muted)]">{t('tasks.empty', '暂无任务')}</p></SectionCard>
       ) : (
         <div className="grid gap-4">
           {filtered.map(task => (

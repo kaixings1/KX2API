@@ -1,19 +1,20 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Trash2, Play, Loader2, ArrowRight, Info } from 'lucide-react'
+import { Plus, Trash2, Info, Loader2 } from 'lucide-react'
 import { ManagementToolbar } from '@/components/management'
 import { ImportExportDialog } from '@/components/management/ImportExportDialog'
-
-const agentsApi = window.electronAPI.agents
+import { SectionCard } from '@/components/ui/section-card'
+import { useAgents } from '@/hooks/useAgents'
+import { useAgentExecution } from '@/hooks/useAgentExecution'
+import { AgentCard } from '@/components/AgentCard/AgentCard'
+import type { AgentRecord } from '../../../../main/agents/types'
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
   idle: { label: '空闲', variant: 'secondary' },
@@ -24,8 +25,9 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
 export function AgentManagement() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [agents, setAgents] = useState<AgentRecord[]>([])
-  const [loading, setLoading] = useState(true)
+  const { agents, loading, load, create, update, remove } = useAgents()
+  const { executingId, outputs, execute, abort } = useAgentExecution()
+
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingAgent, setEditingAgent] = useState<AgentRecord | null>(null)
   const [name, setName] = useState('')
@@ -33,25 +35,13 @@ export function AgentManagement() {
   const [systemPrompt, setSystemPrompt] = useState('')
   const [model, setModel] = useState('')
   const [executeInput, setExecuteInput] = useState('')
-  const [showExecuteInput, setShowExecuteInput] = useState<string | null>(null)
-  const [executingId, setExecutingId] = useState<string | null>(null)
-  const [outputs, setOutputs] = useState<Record<string, string>>({})
+  const [showExecuteId, setShowExecuteId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
 
-  const loadAgents = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await agentsApi.getAll()
-      setAgents(Array.isArray(res) ? res : [])
-    } catch (e) {
-      console.error('[AgentManagement] Failed to load agents:', e)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { loadAgents() }, [loadAgents])
+  // Import/Export
+  const [ioOpen, setIoOpen] = useState(false)
+  const [ioMode, setIoMode] = useState<'import' | 'export' | 'backup' | 'restore'>('export')
 
   const openCreate = () => {
     setEditingAgent(null)
@@ -73,47 +63,30 @@ export function AgentManagement() {
 
   const handleSave = async () => {
     if (editingAgent) {
-      await agentsApi.update(editingAgent.id, { name, role, systemPrompt, model: model || '' })
+      await update(editingAgent.id, { name, role, systemPrompt, model: model || '' })
     } else {
-      await agentsApi.create({ name, role, systemPrompt, model: model || '', status: 'idle' })
+      await create({ name, role, systemPrompt, model: model || '', status: 'idle' })
     }
     setDialogOpen(false)
-    loadAgents()
   }
 
   const handleDelete = async (id: string) => {
-    await agentsApi.delete(id)
-    loadAgents()
+    await remove(id)
   }
 
   const handleExecute = async (id: string) => {
-    setExecutingId(id)
-    setOutputs(prev => ({ ...prev, [id]: '' }))
+    const agent = agents.find(a => a.id === id)
+    if (!agent) return
+    await execute(agent, executeInput || '请执行任务')
+  }
 
-    const unsubOutput = agentsApi.onOutput(({ agentId, content }) => {
-      setOutputs(prev => ({ ...prev, [agentId]: (prev[agentId] || '') + content }))
-    })
+  const handleAbort = async (id: string) => {
+    await abort(id)
+  }
 
-    const unsubDone = agentsApi.onDone(({ agentId, success, output, error }) => {
-      unsubOutput()
-      unsubDone()
-      unsubError()
-      setExecutingId(null)
-      if (success) {
-        setOutputs(prev => ({ ...prev, [agentId]: output }))
-      }
-      loadAgents()
-    })
-
-    const unsubError = agentsApi.onError(({ agentId, error }) => {
-      unsubOutput()
-      unsubDone()
-      unsubError()
-      setExecutingId(null)
-      setOutputs(prev => ({ ...prev, [agentId]: `错误: ${error}` }))
-    })
-
-    await agentsApi.execute(id, executeInput || '请执行任务')
+  const toggleExecute = (id: string) => {
+    setShowExecuteId(showExecuteId === id ? null : id)
+    setExecuteInput('')
   }
 
   const filtered = agents.filter(a => {
@@ -121,11 +94,6 @@ export function AgentManagement() {
     const matchStatus = filterStatus === 'all' || a.status === filterStatus
     return matchSearch && matchStatus
   })
-
-  // ==================== Import/Export ====================
-
-  const [ioOpen, setIoOpen] = useState(false)
-  const [ioMode, setIoMode] = useState<'import' | 'export' | 'backup' | 'restore'>('export')
 
   const handleExport = async () => {
     try {
@@ -150,10 +118,9 @@ export function AgentManagement() {
       if (res.success && res.data) {
         for (const item of res.data) {
           if (item?.id) {
-            await agentsApi.create({ name: item.name, role: item.role, systemPrompt: item.systemPrompt, model: item.model || '', status: 'idle' })
+            await create({ name: item.name, role: item.role, systemPrompt: item.systemPrompt, model: item.model || '', status: 'idle' })
           }
         }
-        loadAgents()
         return { success: true }
       }
       return { success: false, error: res.error }
@@ -186,10 +153,9 @@ export function AgentManagement() {
       if (!Array.isArray(data)) return { success: false, error: '数据格式错误' }
       for (const item of data) {
         if (item?.id) {
-          await agentsApi.create({ name: item.name, role: item.role, systemPrompt: item.systemPrompt, model: item.model || '', status: 'idle' })
+          await create({ name: item.name, role: item.role, systemPrompt: item.systemPrompt, model: item.model || '', status: 'idle' })
         }
       }
-      loadAgents()
       return { success: true }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -199,13 +165,13 @@ export function AgentManagement() {
   // ==================== Render ====================
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ManagementToolbar
         title={t('agents.title', 'Agent 管理')}
         subtitle={t('agents.description', '创建和管理 AI Agent') + ' · 数据存储于 userData/data/agents/'}
         createLabel={<><Plus className="h-4 w-4 mr-1" />{t('agents.create', '新建 Agent')}</>}
         onCreate={openCreate}
-        onRefresh={loadAgents}
+        onRefresh={load}
         onExport={() => { setIoMode('export'); setIoOpen(true) }}
         onImport={() => { setIoMode('import'); setIoOpen(true) }}
         onBackup={() => { setIoMode('backup'); setIoOpen(true) }}
@@ -236,17 +202,15 @@ export function AgentManagement() {
         onRestore={handleRestore}
       />
 
-      {/* Help Card */}
-      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
-        <CardContent className="pt-4 pb-3">
-          <p className="text-xs text-[var(--text-dim)] leading-relaxed flex items-start gap-2">
-            <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-[var(--text-muted)]" />
-            {t('agents.pageHelp', '创建和管理 AI Agent。点击卡片进入详情页查看系统提示词、执行 Agent 或编辑配置。')}
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard
+        title={t('agents.pageHelpTitle', '关于 Agent')}
+        icon={Info}
+      >
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed">
+          {t('agents.pageHelp', '创建和管理 AI Agent。点击卡片进入详情页查看系统提示词、执行 Agent 或编辑配置。')}
+        </p>
+      </SectionCard>
 
-      {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -255,77 +219,59 @@ export function AgentManagement() {
               {editingAgent ? t('agents.editDesc', '编辑 Agent 配置') : t('agents.createDesc', '创建一个新的 AI Agent')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>{t('agents.nameLabel', '名称')}</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} />
+          <SectionCard>
+            <div className="space-y-4">
+              <div>
+                <Label>{t('agents.nameLabel', '名称')}</Label>
+                <Input value={name} onChange={e => setName(e.target.value)} />
+              </div>
+              <div>
+                <Label>{t('agents.roleLabel', '角色')}</Label>
+                <Input value={role} onChange={e => setRole(e.target.value)} />
+              </div>
+              <div>
+                <Label>{t('agents.systemPromptLabel', '系统提示词')}</Label>
+                <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4} />
+              </div>
+              <div>
+                <Label>{t('agents.modelLabel', '模型')}</Label>
+                <Input value={model} onChange={e => setModel(e.target.value)} placeholder={t('agents.modelPlaceholder', '留空使用默认')} />
+              </div>
+              <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
             </div>
-            <div>
-              <Label>{t('agents.roleLabel', '角色')}</Label>
-              <Input value={role} onChange={e => setRole(e.target.value)} />
-            </div>
-            <div>
-              <Label>{t('agents.systemPromptLabel', '系统提示词')}</Label>
-              <Textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={4} />
-            </div>
-            <div>
-              <Label>{t('agents.modelLabel', '模型')}</Label>
-              <Input value={model} onChange={e => setModel(e.target.value)} placeholder={t('agents.modelPlaceholder', '留空使用默认')} />
-            </div>
-            <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
-          </div>
+          </SectionCard>
         </DialogContent>
       </Dialog>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
       ) : agents.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">{t('agents.empty', '暂无 Agent')}</CardContent></Card>
+        <SectionCard>
+          <p className="py-8 text-center text-muted-foreground">{t('agents.empty', '暂无 Agent')}</p>
+        </SectionCard>
       ) : filtered.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">{t('agents.noMatch', '没有匹配的 Agent')}</CardContent></Card>
+        <SectionCard>
+          <p className="py-8 text-center text-muted-foreground">{t('agents.noMatch', '没有匹配的 Agent')}</p>
+        </SectionCard>
       ) : (
         <div className="grid gap-4">
           {filtered.map(agent => (
-            <Card key={agent.id} className="cursor-pointer hover:border-[var(--accent-primary)] transition-colors" onClick={() => navigate(`/agents/${agent.id}`)}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2 flex-wrap">
-                    <span>{agent.name}</span>
-                    <Badge variant={STATUS_MAP[agent.status]?.variant}>{STATUS_MAP[agent.status]?.label}</Badge>
-                    <Badge variant="outline">{agent.role}</Badge>
-                  </CardTitle>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent className="py-3 space-y-2">
-                <p className="text-sm text-muted-foreground line-clamp-3">{agent.systemPrompt}</p>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  {agent.model && <span>Model: {agent.model}</span>}
-                  <span>ID: {agent.id}</span>
-                  <span>创建: {new Date(agent.createdAt).toLocaleDateString()}</span>
-                </div>
-                <div className="flex gap-1 mt-2" onClick={e => e.stopPropagation()}>
-                  <Button size="sm" variant="outline" onClick={() => { setShowExecuteInput(showExecuteInput === agent.id ? null : agent.id); setExecuteInput('') }} disabled={executingId === agent.id}>
-                    <Play className="h-3 w-3 mr-1" />{t('agents.execute', '执行')}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => openEdit(agent)}>{t('common.edit', '编辑')}</Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleDelete(agent.id)}><Trash2 className="h-3 w-3" /></Button>
-                </div>
-                {showExecuteInput === agent.id && (
-                  <div className="mt-3 flex gap-2">
-                    <Input value={executeInput} onChange={e => setExecuteInput(e.target.value)} placeholder={t('agents.executeInput', '输入执行指令...')} />
-                    <Button size="sm" onClick={() => handleExecute(agent.id)} disabled={executingId === agent.id}>
-                      {executingId === agent.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
-                    </Button>
-                  </div>
-                )}
-                {outputs[agent.id] && (
-                  <div className="mt-2 p-2 bg-black/30 rounded text-xs font-mono whitespace-pre-wrap max-h-40 overflow-auto">
-                    {outputs[agent.id]}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <AgentCard
+              key={agent.id}
+              agent={agent}
+              isExecuting={executingId === agent.id}
+              output={outputs[agent.id] || ''}
+              executeInput={executeInput}
+              showExecute={showExecuteId === agent.id}
+              onExecute={handleExecute}
+              onAbort={handleAbort}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+              onToggleExecute={toggleExecute}
+              onExecuteInputChange={setExecuteInput}
+            />
           ))}
         </div>
       )}

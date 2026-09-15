@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { SectionCard } from '@/components/ui/section-card'
 import { RequestLogList } from '@/components/logs'
 import { RequestLogStats } from '@/components/logs'
 import { BarChart3, List } from 'lucide-react'
@@ -53,25 +53,15 @@ export default function LogsPage() {
         </TabsList>
 
         <TabsContent value="list" className="mt-6">
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base">{t('logs.requestLogList', '请求记录')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RequestLogList />
-            </CardContent>
-          </Card>
+          <SectionCard title={t('logs.requestLogList', '请求记录')}>
+            <RequestLogList />
+          </SectionCard>
         </TabsContent>
 
         <TabsContent value="stats" className="mt-6">
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base">{t('logs.statsTitle', '日志统计')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RequestLogStats />
-            </CardContent>
-          </Card>
+          <SectionCard title={t('logs.statsTitle', '日志统计')}>
+            <RequestLogStats />
+          </SectionCard>
         </TabsContent>
       </Tabs>
     </div>

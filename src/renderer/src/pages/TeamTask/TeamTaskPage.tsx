@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SectionCard } from '@/components/ui/section-card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { AlertCircle, Play, CheckCircle2, XCircle, Loader2, Plus, Trash2, Users } from 'lucide-react'
@@ -206,11 +206,8 @@ export function TeamTaskPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('team.taskTitle', '任务描述')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard title={t('team.taskTitle', '任务描述')}>
+        <div className="space-y-4">
           <Textarea
             placeholder={t('team.taskPlaceholder', '描述你想要完成的任务...')}
             value={description}
@@ -242,17 +239,11 @@ export function TeamTaskPage() {
               <span className="text-sm text-muted-foreground">{phaseDetail}</span>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            {t('team.roles', '角色配置')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard title={t('team.roles', '角色配置')} icon={Users}>
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Button
               variant={useCustomRoles ? 'default' : 'outline'}
@@ -308,27 +299,24 @@ export function TeamTaskPage() {
               {t('team.defaultRoles', '当前使用默认角色')}: {BUILTIN_ROLES.map((r) => r.name).join('、')}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
 
       {error && (
-        <Card className="border-destructive">
-          <CardContent className="pt-6 flex items-start gap-3">
+        <SectionCard className="border-destructive">
+          <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-destructive">{t('team.errorTitle', '执行失败')}</p>
               <p className="text-sm text-muted-foreground mt-1">{error}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
       )}
 
       {discussions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('team.discussions', '讨论记录')} ({discussions.length} {t('team.rounds', '轮')})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <SectionCard title={t('team.discussions', '讨论记录') + ` (${discussions.length} ${t('team.rounds', '轮')})`}>
+          <div className="space-y-4">
             {discussions.map((d) => (
               <div key={d.id} className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -342,16 +330,13 @@ export function TeamTaskPage() {
               </div>
             ))}
             <div ref={discussionsEndRef} />
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
       )}
 
       {tasks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('team.taskExecution', '任务执行')} ({tasks.filter((t) => t.type === 'complete').length}/{tasks.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <SectionCard title={t('team.taskExecution', '任务执行')}>
+          <div className="space-y-3">
             {tasks.map((task) => {
               if (task.type === 'start') {
                 return (
@@ -385,19 +370,13 @@ export function TeamTaskPage() {
                 </div>
               )
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
       )}
 
       {report && (
-        <Card className="border-green-500/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              {t('team.reportTitle', '执行报告')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+        <SectionCard className="border-green-500/30" title={t('team.reportTitle', '执行报告')}>
+          <div className="space-y-2 text-sm">
             <div className="grid grid-cols-2 gap-2">
               <div>{t('team.planId', '计划 ID')}: <code className="text-xs">{report.planId}</code></div>
               <div>{t('team.totalDuration', '耗时')}: {report.totalDurationMs}ms</div>
@@ -420,17 +399,12 @@ export function TeamTaskPage() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {t('team.historyTitle', '历史结果查询')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <SectionCard title={t('team.historyTitle', '历史结果查询')}>
+        <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Input
               placeholder={t('team.planIdPlaceholder', '输入 Plan ID 查看历史执行结果')}
@@ -471,8 +445,8 @@ export function TeamTaskPage() {
               {JSON.stringify(resultData, null, 2)}
             </pre>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
     </div>
   )
 }

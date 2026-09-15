@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,13 +20,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { SectionCard } from '@/components/ui/section-card'
 
-import { 
-  Key, 
-  Plus, 
-  Copy, 
-  Trash2, 
-  Eye, 
+import {
+  Key,
+  Plus,
+  Copy,
+  Trash2,
+  Eye,
   EyeOff,
   Shield,
   Clock,
@@ -161,69 +161,51 @@ export default function ApiKeysPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            {t('apiKeys.apiKeyAuth')}
-          </CardTitle>
-          <CardDescription>
-            {t('apiKeys.apiKeyAuthDesc')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="global-enable">{t('apiKeys.enableApiKeyAuth')}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t('apiKeys.currentStatus')}: {config?.enableApiKey ? t('common.enabled') : t('common.disabled')}
-              </p>
-            </div>
-            <Switch
-              id="global-enable"
-              checked={config?.enableApiKey || false}
-              onCheckedChange={handleToggleGlobalEnabled}
-            />
-          </div>
-          {/* 说明：这个开关只管本地代理的「入站」认证，和配置组里的上游 Key 无关 */}
-          <p className="text-xs text-muted-foreground mt-3">
-            {t('apiKeys.authScopeHint')}
-          </p>
-          {config?.enableApiKey && apiKeys.filter(k => k.enabled).length === 0 && (
-            <p className="text-xs text-[var(--warning,#d97706)] mt-1">
-              {t('apiKeys.authNoKeyWarning')}
+      <SectionCard title={t('apiKeys.apiKeyAuth')} icon={Shield}>
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="global-enable">{t('apiKeys.enableApiKeyAuth')}</Label>
+            <p className="text-sm text-muted-foreground">
+              {t('apiKeys.currentStatus')}: {config?.enableApiKey ? t('common.enabled') : t('common.disabled')}
             </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Key className="h-5 w-5" />
-              {t('apiKeys.apiKeyList')}
-            </CardTitle>
-            <CardDescription>
-              {t('apiKeys.totalKeys', { count: apiKeys.length })}, {t('apiKeys.enabledKeys', { count: apiKeys.filter(k => k.enabled).length })}
-            </CardDescription>
           </div>
+          <Switch
+            id="global-enable"
+            checked={config?.enableApiKey || false}
+            onCheckedChange={handleToggleGlobalEnabled}
+          />
+        </div>
+        {/* 说明：这个开关只管本地代理的「入站」认证，和配置组里的上游 Key 无关 */}
+        <p className="text-xs text-muted-foreground mt-3">
+          {t('apiKeys.authScopeHint')}
+        </p>
+        {config?.enableApiKey && apiKeys.filter(k => k.enabled).length === 0 && (
+          <p className="text-xs text-[var(--warning,#d97706)] mt-1">
+            {t('apiKeys.authNoKeyWarning')}
+          </p>
+        )}
+      </SectionCard>
+
+      <SectionCard title={t('apiKeys.apiKeyList')} icon={Key}>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs text-[var(--text-dim)]">
+            {t('apiKeys.totalKeys', { count: apiKeys.length })}, {t('apiKeys.enabledKeys', { count: apiKeys.filter(k => k.enabled).length })}
+          </p>
           <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             {t('apiKeys.newApiKey')}
           </Button>
-        </CardHeader>
-        <CardContent>
-          {apiKeys.length === 0 ? (
-            <div className="text-center py-12">
-              <Key className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">{t('apiKeys.noApiKeys')}</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t('apiKeys.clickToCreate')}
-              </p>
-            </div>
-          ) : (
-            <Table>
+        </div>
+        {apiKeys.length === 0 ? (
+          <div className="text-center py-12">
+            <Key className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">{t('apiKeys.noApiKeys')}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {t('apiKeys.clickToCreate')}
+            </p>
+          </div>
+        ) : (
+          <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('apiKeys.name')}</TableHead>
@@ -304,8 +286,7 @@ export default function ApiKeysPage() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+        </SectionCard>
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
@@ -315,7 +296,7 @@ export default function ApiKeysPage() {
               {t('apiKeys.createApiKeyDesc')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <SectionCard contentClassName="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="key-name">{t('apiKeys.keyName')}</Label>
               <Input
@@ -325,7 +306,7 @@ export default function ApiKeysPage() {
                 onChange={(e) => setNewKeyName(e.target.value)}
               />
             </div>
-          </div>
+          </SectionCard>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               {t('apiKeys.cancel')}

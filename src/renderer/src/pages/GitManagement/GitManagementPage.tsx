@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+import { SectionCard } from '@/components/ui/section-card'
 import { Separator } from '@/components/ui/separator'
 import { GitBranch, Upload, Download, FolderOpen, Loader2, Info } from 'lucide-react'
 
@@ -97,17 +97,14 @@ export function GitManagement() {
         <p className="text-muted-foreground">{t('git.description', '管理 Git 仓库')}</p>
       </div>
 
-      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
-        <CardContent className="pt-4 pb-3">
-          <p className="text-xs text-[var(--text-dim)] leading-relaxed flex items-start gap-2">
-            <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-[var(--text-muted)]" />
-            {t('git.pageHelp', '输入本地仓库路径以查看状态、拉取和推送代码。使用克隆功能从远程仓库复制代码到本地。')}
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard title={t('git.pageHelpTitle', '关于 Git')} icon={Info}>
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed">
+          {t('git.pageHelp', '输入本地仓库路径以查看状态、拉取和推送代码。使用克隆功能从远程仓库复制代码到本地。')}
+        </p>
+      </SectionCard>
 
-      <Card>
-        <CardContent className="pt-6 space-y-4">
+      <SectionCard>
+        <div className="pt-6 space-y-4">
           <div className="flex gap-2">
             <div className="flex-1">
               <Label>{t('git.repoPath', '仓库路径')}</Label>
@@ -154,16 +151,19 @@ export function GitManagement() {
               {!status.isClean && (
                 <div className="grid grid-cols-3 gap-4">
                   {status.staged.length > 0 && (
-                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">{t('git.staged', '已暂存')}</CardTitle></CardHeader>
-                      <CardContent><ul className="text-sm space-y-1">{status.staged.map(f => <li key={f} className="font-mono text-xs">{f}</li>)}</ul></CardContent></Card>
+                    <SectionCard title={t('git.staged', '已暂存')}>
+                      <ul className="text-sm space-y-1">{status.staged.map(f => <li key={f} className="font-mono text-xs">{f}</li>)}</ul>
+                    </SectionCard>
                   )}
                   {status.unstaged.length > 0 && (
-                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">{t('git.unstaged', '已修改')}</CardTitle></CardHeader>
-                      <CardContent><ul className="text-sm space-y-1">{status.unstaged.map(f => <li key={f} className="font-mono text-xs">{f}</li>)}</ul></CardContent></Card>
+                    <SectionCard title={t('git.unstaged', '已修改')}>
+                      <ul className="text-sm space-y-1">{status.unstaged.map(f => <li key={f} className="font-mono text-xs">{f}</li>)}</ul>
+                    </SectionCard>
                   )}
                   {status.untracked.length > 0 && (
-                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">{t('git.untracked', '未跟踪')}</CardTitle></CardHeader>
-                      <CardContent><ul className="text-sm space-y-1">{status.untracked.map(f => <li key={f} className="font-mono text-xs">{f}</li>)}</ul></CardContent></Card>
+                    <SectionCard title={t('git.untracked', '未跟踪')}>
+                      <ul className="text-sm space-y-1">{status.untracked.map(f => <li key={f} className="font-mono text-xs">{f}</li>)}</ul>
+                    </SectionCard>
                   )}
                 </div>
               )}
@@ -185,8 +185,8 @@ export function GitManagement() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
     </div>
   )
 }

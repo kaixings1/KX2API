@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SessionManagement as SessionManagementComponent } from '@/components/proxy'
 import { ContextManagement } from '@/components/proxy/ContextManagement'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { SectionCard } from '@/components/ui/section-card'
 import { Activity, Trash2, RefreshCw, Users } from 'lucide-react'
 
 const sessionApi = window.electronAPI.session
@@ -79,29 +79,17 @@ export function SessionManagement() {
         <p className="text-muted-foreground">{t('session.description', '管理代理会话和上下文，查看连接状态与历史记录')}</p>
       </div>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Activity className="h-4 w-4 text-[var(--accent-primary)]" />
-            {t('session.sessionTitle', '会话状态')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SessionManagementComponent />
-        </CardContent>
-      </Card>
+      <SectionCard title={t('session.sessionTitle', '会话状态')} icon={Activity}>
+        <SessionManagementComponent />
+      </SectionCard>
 
       <Separator />
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="h-4 w-4 text-[var(--accent-primary)]" />
-            会话列表
-            <Badge variant="secondary" className="ml-2">{stats.total} 总计 / {stats.active} 活跃</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard title={`${t('session.listTitle', '会话列表')} `} icon={Users} headerClassName="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">{stats.total} 总计 / {stats.active} 活跃</Badge>
+        </div>
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Input
               placeholder="搜索 provider / account / sessionId..."
@@ -160,22 +148,14 @@ export function SessionManagement() {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
 
       <Separator />
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Activity className="h-4 w-4 text-[var(--accent-primary)]" />
-            {t('session.contextTitle', '上下文管理')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ContextManagement />
-        </CardContent>
-      </Card>
+      <SectionCard title={t('session.contextTitle', '上下文管理')} icon={Activity}>
+        <ContextManagement />
+      </SectionCard>
     </div>
   )
 }

@@ -12,6 +12,7 @@ import {
 import { useSettingsStore } from '@/stores/settingsStore'
 import { Sun, Settings as SettingsIcon, Database, Shield, Key, SlidersHorizontal } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { SectionCard } from '@/components/ui/section-card'
 
 export function Settings() {
   const { t } = useTranslation()
@@ -36,13 +37,11 @@ export function Settings() {
         <p className="text-muted-foreground">{t('settings.description')}</p>
       </div>
 
-      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
-        <CardContent className="pt-4">
-          <p className="text-xs text-[var(--text-dim)] leading-relaxed">
-            {t('settings.pageHelp', '在此页面中你可以自定义应用外观、通用行为、数据管理策略、安全选项以及管理 API 配置。')}
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard>
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed">
+          {t('settings.pageHelp', '在此页面中你可以自定义应用外观、通用行为、数据管理策略、安全选项以及管理 API 配置。')}
+        </p>
+      </SectionCard>
 
       <Tabs defaultValue="appearance" className="w-full">
         <TabsList className="grid w-full grid-cols-6 h-auto">

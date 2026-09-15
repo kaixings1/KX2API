@@ -10,6 +10,7 @@ import {
 import { useProxyStore } from '@/stores/proxyStore'
 import { Settings, Scale, Activity, Settings2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { SectionCard } from '@/components/ui/section-card'
 
 export function ProxySettings() {
   const { t } = useTranslation()
@@ -39,13 +40,11 @@ export function ProxySettings() {
         <p className="text-muted-foreground">{t('proxy.description')}</p>
       </div>
 
-      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
-        <CardContent className="pt-4">
-          <p className="text-xs text-[var(--text-dim)] leading-relaxed">
-            {t('proxy.pageHelp', '此页面分为四个标签页：状态监控用于实时查看代理运行情况和请求统计；基本配置用于设置监听地址和端口；负载均衡用于配置转发策略；高级配置用于网络和连接调优。')}
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard>
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed">
+          {t('proxy.pageHelp', '此页面分为四个标签页：状态监控用于实时查看代理运行情况和请求统计；基本配置用于设置监听地址和端口；负载均衡用于配置转发策略；高级配置用于网络和连接调优。')}
+        </p>
+      </SectionCard>
 
       <Tabs defaultValue="status" className="w-full">
         <TabsList className="flex flex-wrap w-full gap-1 h-auto p-1">

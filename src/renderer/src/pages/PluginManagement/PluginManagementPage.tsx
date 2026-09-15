@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { SectionCard } from '@/components/ui/section-card'
 import { Plus, Trash2, Loader2, Puzzle, ArrowRight, Info } from 'lucide-react'
 import { ManagementToolbar } from '@/components/management'
 import { ImportExportDialog } from '@/components/management/ImportExportDialog'
@@ -191,19 +191,18 @@ export function PluginManagement() {
       />
 
       {/* Help Card */}
-      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
-        <CardContent className="pt-4 pb-3">
-          <p className="text-xs text-[var(--text-dim)] leading-relaxed flex items-start gap-2">
-            <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-[var(--text-muted)]" />
-            {t('plugins.pageHelp', '浏览和安装插件。已安装插件可以启用/禁用，点击卡片进入详情页查看更多信息。')}
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard title={t('plugins.pageHelpTitle', '关于插件')} icon={Info}>
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed">
+          {t('plugins.pageHelp', '浏览和安装插件。已安装插件可以启用/禁用，点击卡片进入详情页查看更多信息。')}
+        </p>
+      </SectionCard>
 
       {loading ? (
         <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
       ) : plugins.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">{t('plugins.empty', '暂无插件')}</CardContent></Card>
+        <SectionCard>
+          <p className="py-6 text-center text-xs text-[var(--text-muted)]">{t('plugins.empty', '暂无插件')}</p>
+        </SectionCard>
       ) : (
         <Tabs defaultValue="installed">
           <TabsList>
@@ -212,7 +211,9 @@ export function PluginManagement() {
           </TabsList>
           <TabsContent value="installed" className="space-y-4 mt-4">
             {installed.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-muted-foreground">{t('plugins.noInstalled', '未安装任何插件')}</CardContent></Card>
+              <SectionCard>
+                <p className="py-6 text-center text-xs text-[var(--text-muted)]">{t('plugins.noInstalled', '未安装任何插件')}</p>
+              </SectionCard>
             ) : (
               installed.map(plugin => (
                 <Card key={plugin.id} className="cursor-pointer hover:border-[var(--accent-primary)] transition-colors" onClick={() => navigate(`/plugins/${plugin.id}`)}>
@@ -281,13 +282,13 @@ export function PluginManagement() {
             <DialogTitle>{t('plugins.addPlugin', '添加插件')}</DialogTitle>
             <DialogDescription>{t('plugins.addPluginDesc', '安装新的插件到系统中')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <SectionCard contentClassName="space-y-4">
             <div><Label>{t('plugins.nameLabel', '名称')}</Label><Input value={name} onChange={e => setName(e.target.value)} /></div>
             <div><Label>{t('plugins.versionLabel', '版本')}</Label><Input value={version} onChange={e => setVersion(e.target.value)} /></div>
             <div><Label>{t('plugins.descriptionLabel', '描述')}</Label><Input value={description} onChange={e => setDescription(e.target.value)} /></div>
             <div><Label>{t('plugins.authorLabel', '作者')}</Label><Input value={author} onChange={e => setAuthor(e.target.value)} /></div>
             <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
-          </div>
+          </SectionCard>
         </DialogContent>
       </Dialog>
     </div>

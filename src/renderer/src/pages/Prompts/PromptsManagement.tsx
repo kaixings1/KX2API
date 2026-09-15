@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SectionCard } from '@/components/ui/section-card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, Trash2, Edit3, Save, X, Sparkles, Code2, Bot, MessageSquare, Star } from 'lucide-react'
+import { Plus, Trash2, Edit3, Save, X, Sparkles, Code2, Bot, MessageSquare, Star, Loader2 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 
 const promptsApi = window.electronAPI.prompts
@@ -23,6 +24,7 @@ const PROMPT_TYPE_LABELS: Record<string, { label: string; icon: React.ComponentT
 
 export function PromptsManagement() {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const [prompts, setPrompts] = useState<SystemPrompt[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -33,6 +35,7 @@ export function PromptsManagement() {
   const [type, setType] = useState<PromptType>('general')
   const [emoji, setEmoji] = useState('')
   const [activeTab, setActiveTab] = useState<'all' | 'builtin' | 'custom'>('all')
+  const [search, setSearch] = useState('')
 
   const loadPrompts = useCallback(async () => {
     setLoading(true)
@@ -84,43 +87,63 @@ export function PromptsManagement() {
       }
       setDialogOpen(false)
       loadPrompts()
+      toast({ title: editingPrompt ? t('prompts.saved', '已保存') : t('prompts.created', '已创建') })
     } catch (e) {
       console.error('[PromptsManagement] Save failed:', e)
+      toast({ title: t('prompts.saveFailed', '保存失败'), variant: 'destructive' })
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定删除此提示词？')) return
+    if (!confirm(t('prompts.confirmDelete', '确定删除此提示词？'))) return
     try {
       await promptsApi.delete(id)
       loadPrompts()
+      toast({ title: t('prompts.deleted', '提示词已删除') })
     } catch (e) {
       console.error('[PromptsManagement] Delete failed:', e)
+      toast({ title: t('prompts.deleteFailed', '删除失败'), variant: 'destructive' })
     }
   }
 
   const filteredPrompts = prompts
+    .filter(p => {
+      if (!search.trim()) return true
+      const kw = search.toLowerCase().trim()
+      return p.name.toLowerCase().includes(kw)
+        || p.description.toLowerCase().includes(kw)
+        || p.prompt.toLowerCase().includes(kw)
+    })
+    .filter(p => {
+      if (activeTab === 'builtin') return p.isBuiltin
+      if (activeTab === 'custom') return !p.isBuiltin
+      return true
+    })
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-[var(--accent-primary)]">提示词管理</h2>
           <p className="text-muted-foreground">管理系统提示词（System Prompt），支持查看和编辑</p>
         </div>
-        <Button onClick={openCreate} disabled={loading} className="gap-2">
-          <Plus className="h-4 w-4" /> 新建提示词
-        </Button>
+        <div className="flex items-center gap-3">
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={t('prompts.searchPlaceholder', '搜索提示词...')}
+            className="h-9 w-48"
+          />
+          <Button onClick={openCreate} disabled={loading} className="gap-2">
+            <Plus className="h-4 w-4" /> 新建提示词
+          </Button>
+        </div>
       </div>
 
       {loading ? (
-        <Card><CardContent className="py-12 flex justify-center"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></CardContent></Card>
+        <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : filteredPrompts.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            暂无提示词数据
-          </CardContent>
-        </Card>
+        <SectionCard><p className="py-6 text-center text-xs text-[var(--text-muted)]">暂无提示词数据</p></SectionCard>
       ) : (
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'builtin' | 'custom')}>
           <TabsList>
@@ -133,8 +156,8 @@ export function PromptsManagement() {
               const typeInfo = PROMPT_TYPE_LABELS[p.type] || { label: p.type, icon: Sparkles, variant: 'secondary' as const }
               const TypeIcon = typeInfo.icon
               return (
-                <Card key={p.id} className="group hover:border-primary/30 transition-colors">
-                  <CardContent className="pt-4 pb-3">
+                <div key={p.id} className="group rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] hover:border-primary/30 transition-colors">
+                  <div className="pt-4 pb-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -166,8 +189,8 @@ export function PromptsManagement() {
                         )}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               )
             })}
           </TabsContent>
@@ -182,7 +205,7 @@ export function PromptsManagement() {
               定义系统提示词模板，用于 Agent 或对话的系统角色设定
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <SectionCard contentClassName="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>名称</Label>
@@ -223,7 +246,7 @@ export function PromptsManagement() {
                 className="min-h-[180px] font-mono text-sm"
               />
             </div>
-          </div>
+          </SectionCard>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               <X className="h-4 w-4 mr-1" /> 取消

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
+import { SectionCard } from '@/components/ui/section-card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -311,14 +312,14 @@ export function CommandManagement() {
       />
 
       {/* Help Card */}
-      <Card className="border-[var(--glass-border)] bg-[var(--glass-bg)]">
-        <CardContent className="pt-4 pb-3">
-          <p className="text-xs text-[var(--text-dim)] leading-relaxed flex items-start gap-2">
-            <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-[var(--text-muted)]" />
-            {t('commands.pageHelp', '内置命令由系统预设，不可修改。自定义命令可新建、编辑、删除和执行。点击播放按钮直接运行命令查看输出。')}
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard
+        title={t('commands.pageHelpTitle', '关于命令')}
+        icon={Info}
+      >
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed">
+          {t('commands.pageHelp', '内置命令由系统预设，不可修改。自定义命令可新建、编辑、删除和执行。点击播放按钮直接运行命令查看输出。')}
+        </p>
+      </SectionCard>
 
       {/* Inline Create/Edit Form */}
       {isFormOpen && (
@@ -377,9 +378,11 @@ export function CommandManagement() {
           {/* ========== Custom Commands ========== */}
           <TabsContent value="custom" className="space-y-2">
             {filteredCustom.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-xs text-[var(--text-muted)]">
-                {custom.length === 0 ? '暂无自定义命令，点击右上角创建' : '没有匹配的命令'}
-              </CardContent></Card>
+              <SectionCard>
+                <p className="py-6 text-center text-xs text-[var(--text-muted)]">
+                  {custom.length === 0 ? '暂无自定义命令，点击右上角创建' : '没有匹配的命令'}
+                </p>
+              </SectionCard>
             ) : (
               filteredCustom.map(cmd => (
                 <CustomCommandRow
@@ -404,9 +407,11 @@ export function CommandManagement() {
           {/* ========== Builtin Commands ========== */}
           <TabsContent value="builtin" className="space-y-2">
             {filteredBuiltin.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-xs text-[var(--text-muted)]">
-                {builtin.length === 0 ? '无内置命令' : '没有匹配的内置命令'}
-              </CardContent></Card>
+              <SectionCard>
+                <p className="py-6 text-center text-xs text-[var(--text-muted)]">
+                  {builtin.length === 0 ? '无内置命令' : '没有匹配的内置命令'}
+                </p>
+              </SectionCard>
             ) : (
               (() => {
                 // Group builtin by category

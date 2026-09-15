@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { SectionCard } from '@/components/ui/section-card'
 import {
   Plus,
   Trash2,
@@ -416,7 +417,7 @@ export function Profiles() {
               {t('profiles.addDesc', '创建新的 API 接入点配置')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <SectionCard contentClassName="space-y-3 py-2">
             <div>
               <Label className="text-xs">{t('profiles.nameLabel', '名称')}</Label>
               <Input
@@ -494,7 +495,7 @@ export function Profiles() {
                 className="mt-1 h-8 text-xs"
               />
             </div>
-          </div>
+          </SectionCard>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>{t('profiles.cancel', '取消')}</Button>
             <Button size="sm" onClick={handleAdd}>{t('profiles.add', '添加')}</Button>
@@ -511,7 +512,7 @@ export function Profiles() {
               {t('profiles.editDesc', '修改')} {editing?.name} {t('profiles.editDescSuffix', '的配置')}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <SectionCard contentClassName="space-y-3 py-2">
             <div>
               <Label className="text-xs">{t('profiles.nameLabel', '名称')}</Label>
               <Input
@@ -585,7 +586,7 @@ export function Profiles() {
                 className="mt-1 h-8 text-xs"
               />
             </div>
-          </div>
+          </SectionCard>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>{t('profiles.cancel', '取消')}</Button>
             <Button size="sm" onClick={handleEditSave}>{t('profiles.save', '保存')}</Button>
