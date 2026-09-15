@@ -214,6 +214,20 @@ export class ToolManager {
   }
 
   addTool(tool: Omit<ToolDefinition, 'id' | 'createdAt' | 'updatedAt' | 'builtin'>): ToolDefinition {
+    // 同名工具再次添加 = 覆盖更新（工具的 id 就是 name），不允许出现重复项
+    const existingIdx = this.store.tools.findIndex(t => t.id === tool.name)
+    if (existingIdx >= 0) {
+      const existing = this.store.tools[existingIdx]
+      this.store.tools[existingIdx] = {
+        ...existing,
+        ...tool,
+        id: tool.name,
+        parameters: tool.parameters || existing.parameters || [],
+        updatedAt: Date.now(),
+      }
+      this.saveStore()
+      return this.store.tools[existingIdx]
+    }
     const newTool: ToolDefinition = {
       ...tool,
       parameters: tool.parameters || [],
