@@ -1662,6 +1662,17 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       }
     }
 
+    // 账号熔断参数热更新：改完立即影响调度决策，无需重启
+    if (updates && 'loadBalancer' in updates) {
+      try {
+        const { loadBalancer } = await import('../proxy/loadbalancer.ts')
+        loadBalancer.updateOptions((updates as { loadBalancer?: never }).loadBalancer ?? {})
+        console.log('[LoadBalancer] 熔断参数已热更新:', JSON.stringify(updates.loadBalancer))
+      } catch (e) {
+        console.warn('[LoadBalancer] 同步熔断参数失败:', (e as Error).message)
+      }
+    }
+
     // 循环控制参数热更新：改完设置立即生效，无需重启应用。
     // 与工具组同理 —— 引擎侧已持有实例，直接推给它即可。
     if (updates && 'agentLoop' in updates) {

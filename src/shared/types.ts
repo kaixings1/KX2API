@@ -110,6 +110,8 @@ export interface AppConfig {
   retryCount: number
   /** Agent 引擎循环控制参数（此前为硬编码常量，现可配置） */
   agentLoop?: AgentLoopConfig
+  /** 账号熔断（负载均衡）参数 */
+  loadBalancer?: LoadBalancerConfig
   apiKeys: ApiKey[]
   enableApiKey: boolean
   /** 当前生效的工具组 id（空数组 = 全局组，发送所有已启用的工具） */
@@ -121,6 +123,25 @@ export interface AppConfig {
   managementApi: ManagementApiConfig
   contextManagement?: unknown
   language: 'zh-CN' | 'en-US'
+}
+
+/**
+ * 账号熔断（负载均衡）参数。
+ *
+ * 原先硬编码在 loadbalancer.ts 内，直接决定「账号失败几次被摘除、
+ * 多久后重新参与调度」，属于影响请求走向的关键参数。
+ * 全部可选：缺省时回落到默认值，行为与改造前一致。
+ */
+export interface LoadBalancerConfig {
+  /** 连续失败达到该次数即把账号移出候选池；默认 3 */
+  failThreshold?: number
+  /** 账号被摘除后，经过多久重新参与调度（毫秒）；默认 60000 */
+  recoveryTimeMs?: number
+}
+
+export const DEFAULT_LOAD_BALANCER_CONFIG: Required<LoadBalancerConfig> = {
+  failThreshold: 3,
+  recoveryTimeMs: 60000,
 }
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
@@ -432,6 +453,7 @@ export interface ConfigUpdateRequest {
   requestLogConfig?: Partial<RequestLogConfig>
   requestTimeout?: number
   retryCount?: number
+  loadBalancer?: LoadBalancerConfig
   enableApiKey?: boolean
   enabledToolGroups?: string[]
   oauthProxyMode?: 'system' | 'none'

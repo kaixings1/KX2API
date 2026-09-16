@@ -9,6 +9,7 @@ import {
   ManagementApiSettings,
   LogCategoryConfig,
   AgentLoopSettings,
+  LoadBalancerSettings,
 } from '@/components/settings'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { Sun, Settings as SettingsIcon, Database, Shield, Key, SlidersHorizontal, Bot } from 'lucide-react'
@@ -96,8 +97,9 @@ export function Settings() {
           <ManagementApiSettings />
         </TabsContent>
 
-        <TabsContent value="agent" className="mt-6">
+        <TabsContent value="agent" className="mt-6 space-y-6">
           <AgentLoopSettings />
+          <LoadBalancerSettings />
         </TabsContent>
 
         <TabsContent value="advanced" className="mt-6">

@@ -15,11 +15,61 @@ export interface PreAnalysisSuggestion {
 }
 
 /**
+ * preAnalysis 的判定阈值。
+ *
+ * 这些值直接决定「什么代码会被报出建议」，原先写死在函数体内。
+ * 缺省值与改造前一致，保证未配置用户看到的结果不变。
+ */
+export interface PreAnalysisOptions {
+  /** 函数超过多少行算超长；默认 80 */
+  longFunctionLines?: number
+  /** 重复代码块最少多少行；默认 3 */
+  duplicateMinLines?: number
+  /** 重复代码块的最短字符数（过滤琐碎片段）；默认 30 */
+  duplicateMinChars?: number
+  /** 嵌套超过多少层算过深；默认 4 */
+  maxNestingDepth?: number
+  /** 建议列表最多返回多少条；默认 20 */
+  maxSuggestions?: number
+}
+
+export const DEFAULT_PRE_ANALYSIS_OPTIONS: Required<PreAnalysisOptions> = {
+  longFunctionLines: 80,
+  duplicateMinLines: 3,
+  duplicateMinChars: 30,
+  maxNestingDepth: 4,
+  maxSuggestions: 20,
+}
+
+/** 校验并合并分析选项，非法值回落到默认 */
+export function resolvePreAnalysisOptions(
+  input?: PreAnalysisOptions | null,
+): Required<PreAnalysisOptions> {
+  const d = DEFAULT_PRE_ANALYSIS_OPTIONS
+  const pick = (v: number | void, fb: number): number =>
+    typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.floor(v) : fb
+  if (!input) return { ...d }
+  return {
+    longFunctionLines: pick(input.longFunctionLines, d.longFunctionLines),
+    duplicateMinLines: pick(input.duplicateMinLines, d.duplicateMinLines),
+    duplicateMinChars: pick(input.duplicateMinChars, d.duplicateMinChars),
+    maxNestingDepth: pick(input.maxNestingDepth, d.maxNestingDepth),
+    maxSuggestions: pick(input.maxSuggestions, d.maxSuggestions),
+  }
+}
+
+/**
  * preAnalysis — 轻量静态分析，在 AI 流式输出前执行
  * 检测代码中的可改进模式，返回建议列表
+ *
+ * @param options 判定阈值，缺省时使用默认值
  */
-export function preAnalysis(content: string): PreAnalysisSuggestion[] {
+export function preAnalysis(
+  content: string,
+  options?: PreAnalysisOptions,
+): PreAnalysisSuggestion[] {
   if (!content) return []
+  const opts = resolvePreAnalysisOptions(options)
   const suggestions: PreAnalysisSuggestion[] = []
   const lines = content.split('\n')
 
@@ -38,7 +88,8 @@ export function preAnalysis(content: string): PreAnalysisSuggestion[] {
     }
   })
 
-  // 检测超长函数（> 80 行）
+  // 检测超长函数
+  const longLimit = opts.longFunctionLines
   let funcStart = -1
   let funcDepth = 0
   lines.forEach((line, i) => {
@@ -50,12 +101,12 @@ export function preAnalysis(content: string): PreAnalysisSuggestion[] {
     }
     funcDepth += (trimmed.match(/\{/g) || []).length
     funcDepth -= (trimmed.match(/\}/g) || []).length
-    if (funcStart >= 0 && funcDepth <= 0 && i > funcStart + 80) {
+    if (funcStart >= 0 && funcDepth <= 0 && i > funcStart + longLimit) {
       suggestions.push({
         id: `long-func-${funcStart}`,
         type: 'long-func',
         severity: 'warning',
-        message: `第 ${funcStart + 1} 行: 函数超过 80 行 (${i - funcStart + 1} 行)，建议拆分`,
+        message: `第 ${funcStart + 1} 行: 函数超过 ${longLimit} 行 (${i - funcStart + 1} 行)，建议拆分`,
         line: funcStart + 1,
         action: '建议拆分为多个小函数',
       })
@@ -63,11 +114,12 @@ export function preAnalysis(content: string): PreAnalysisSuggestion[] {
     }
   })
 
-  // 检测重复代码（连续 3+ 行完全相同）
+  // 检测重复代码（连续若干行完全相同）
+  const dupLines = opts.duplicateMinLines
   const seen = new Map<string, number[]>()
-  for (let i = 0; i < lines.length - 2; i++) {
-    const triple = lines.slice(i, i + 3).map(l => l.trim()).filter(l => l && !l.startsWith('//') && !l.startsWith('#')).join('\n')
-    if (triple.length > 30) {
+  for (let i = 0; i < lines.length - dupLines + 1; i++) {
+    const triple = lines.slice(i, i + dupLines).map(l => l.trim()).filter(l => l && !l.startsWith('//') && !l.startsWith('#')).join('\n')
+    if (triple.length > opts.duplicateMinChars) {
       const existing = seen.get(triple)
       if (existing) {
         existing.push(i + 1)
@@ -88,11 +140,12 @@ export function preAnalysis(content: string): PreAnalysisSuggestion[] {
     }
   }
 
-  // 检测深度嵌套（> 4 层）
+  // 检测深度嵌套
+  const nestLimit = opts.maxNestingDepth
   lines.forEach((line, i) => {
     const indent = line.length - line.trimStart().length
     const nest = Math.floor(indent / 2)
-    if (nest > 4) {
+    if (nest > nestLimit) {
       suggestions.push({
         id: `complex-${i}`,
         type: 'complex',
@@ -123,7 +176,7 @@ export function preAnalysis(content: string): PreAnalysisSuggestion[] {
     }
   })
 
-  return suggestions.slice(0, 20)
+  return suggestions.slice(0, opts.maxSuggestions)
 }
 
 export interface APIEvent {

@@ -10,11 +10,53 @@ import { storeManager } from '../store/store'
 /**
  * Load Balancer
  */
+/**
+ * 账号熔断参数（此前硬编码，现可配置）。
+ *
+ * 这两个值直接决定「账号失败几次后被摘除」与「多久后重新放回候选池」，
+ * 属于影响请求走向的关键参数：调小会更快切换到备用账号，
+ * 调大则更容忍偶发抖动（如网络超时）。
+ */
+export interface LoadBalancerOptions {
+  /** 连续失败达到该次数即把账号移出候选池 */
+  failThreshold?: number
+  /** 账号被摘除后，经过多久重新参与调度（毫秒） */
+  recoveryTimeMs?: number
+}
+
+export const DEFAULT_FAIL_THRESHOLD = 3
+export const DEFAULT_RECOVERY_TIME_MS = 60_000
+
 export class LoadBalancer {
   private roundRobinIndex: Map<string, number> = new Map()
   private failedAccounts: Map<string, { count: number; lastFailTime: number }> = new Map()
-  private static readonly FAIL_THRESHOLD = 3
-  private static readonly RECOVERY_TIME = 60000 // 1 minute
+  private failThreshold: number
+  private recoveryTimeMs: number
+
+  constructor(options: LoadBalancerOptions = {}) {
+    const ft = options.failThreshold
+    const rt = options.recoveryTimeMs
+    this.failThreshold =
+      typeof ft === 'number' && Number.isFinite(ft) && ft > 0
+        ? Math.floor(ft)
+        : DEFAULT_FAIL_THRESHOLD
+    this.recoveryTimeMs =
+      typeof rt === 'number' && Number.isFinite(rt) && rt > 0
+        ? Math.floor(rt)
+        : DEFAULT_RECOVERY_TIME_MS
+  }
+
+  /** 运行时更新熔断参数（设置界面改完即时生效） */
+  updateOptions(options: LoadBalancerOptions): void {
+    const ft = options.failThreshold
+    const rt = options.recoveryTimeMs
+    if (typeof ft === 'number' && Number.isFinite(ft) && ft > 0) {
+      this.failThreshold = Math.floor(ft)
+    }
+    if (typeof rt === 'number' && Number.isFinite(rt) && rt > 0) {
+      this.recoveryTimeMs = Math.floor(rt)
+    }
+  }
 
   /**
    * Mark account as failed
@@ -41,12 +83,12 @@ export class LoadBalancer {
     const failure = this.failedAccounts.get(accountId)
     if (!failure) return false
 
-    if (Date.now() - failure.lastFailTime > LoadBalancer.RECOVERY_TIME) {
+    if (Date.now() - failure.lastFailTime > this.recoveryTimeMs) {
       this.failedAccounts.delete(accountId)
       return false
     }
 
-    return failure.count >= LoadBalancer.FAIL_THRESHOLD
+    return failure.count >= this.failThreshold
   }
 
   /**
@@ -416,5 +458,21 @@ export class LoadBalancer {
   }
 }
 
-export const loadBalancer = new LoadBalancer()
+/**
+ * 从配置读取熔断参数并构造单例。
+ *
+ * 读取失败时走默认值，保证与改造前行为一致。
+ * 运行期改配置由 CONFIG_UPDATE → loadBalancer.updateOptions 热更新。
+ */
+function createLoadBalancer(): LoadBalancer {
+  try {
+    const { storeManager } = require('../store/store')
+    const cfg = storeManager.getConfig() as { loadBalancer?: LoadBalancerOptions } | void
+    return new LoadBalancer(cfg?.loadBalancer ?? {})
+  } catch {
+    return new LoadBalancer()
+  }
+}
+
+export const loadBalancer = createLoadBalancer()
 export default loadBalancer
