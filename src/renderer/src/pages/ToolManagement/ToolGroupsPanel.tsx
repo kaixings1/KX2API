@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import {
-  Layers, Zap, Save, RefreshCw, Info, AlertTriangle, Search, CheckSquare, Square, SlidersHorizontal,
+  Layers, Zap, Save, RefreshCw, Info, AlertTriangle, Search, CheckSquare, Square, SlidersHorizontal, Monitor,
 } from 'lucide-react'
 
 interface ToolDef {
@@ -88,9 +88,12 @@ export function ToolGroupsPanel({
   onChanged: () => void
 }) {
   const { t } = useTranslation()
+  const [localTools, setLocalTools] = useState<ToolDef[]>(tools)
+  const [localGroups, setLocalGroups] = useState<ToolGroup[]>(groups)
   const [activeIds, setActiveIds] = useState<string[]>([])
   const [editingGroupId, setEditingGroupId] = useState<string>(GLOBAL_ID)
   const [memberSearch, setMemberSearch] = useState('')
+  const [memberPlatform, setMemberPlatform] = useState<string>('all')
   const [saving, setSaving] = useState(false)
   const [saveAsName, setSaveAsName] = useState('')
   const [showSaveAs, setShowSaveAs] = useState(false)
@@ -98,6 +101,10 @@ export function ToolGroupsPanel({
   const [message, setMessage] = useState('')
 
   const api = window.electronAPI.tools
+
+  // 外部 props 变化时同步到本地状态（全量刷新场景）
+  useEffect(() => { setLocalTools(tools) }, [tools])
+  useEffect(() => { setLocalGroups(groups) }, [groups])
 
   // 读取当前生效组（存在 config.enabledToolGroups，空数组 = 全局组）
   const loadActive = useCallback(async () => {
@@ -109,47 +116,61 @@ export function ToolGroupsPanel({
 
   useEffect(() => { loadActive() }, [loadActive])
 
-  // 当前编辑目标（全局组 / 命名组）
+  // 乐观更新：本地工具状态（启用/禁用）
+  const updateLocalTool = useCallback((id: string, enabled: boolean) => {
+    setLocalTools(prev => prev.map(t => t.id === id ? { ...t, enabled } : t))
+  }, [])
+
+  // 乐观更新：本地分组状态
+  const updateLocalGroup = useCallback((groupId: string, updater: (g: ToolGroup) => ToolGroup) => {
+    setLocalGroups(prev => prev.map(g => g.id === groupId ? updater(g) : g))
+  }, [])
+
+  // 当前编辑目标（全局组 / 命名组）— 用本地状态，不触发重渲染
   const editing = editingGroupId === GLOBAL_ID
-    ? { id: GLOBAL_ID, name: t('tools.globalGroup', '全局组'), toolIds: tools.map(x => x.id) }
-    : groups.find(g => g.id === editingGroupId) || { id: GLOBAL_ID, name: t('tools.globalGroup', '全局组'), toolIds: tools.map(x => x.id) }
+    ? { id: GLOBAL_ID, name: t('tools.globalGroup', '全局组'), toolIds: localTools.map(x => x.id) }
+    : localGroups.find(g => g.id === editingGroupId) || { id: GLOBAL_ID, name: t('tools.globalGroup', '全局组'), toolIds: localTools.map(x => x.id) }
 
   // 判断某工具是否处于「当前编辑组内被勾选」状态
   const isCheckedIn = useCallback((tool: ToolDef): boolean => {
-    if (editingGroupId === GLOBAL_ID) return tool.enabled
+    if (editingGroupId === GLOBAL_ID) {
+      // 从本地状态读取，保证勾选框即时响应
+      const local = localTools.find(t => t.id === tool.id || t.name === tool.name)
+      return local ? local.enabled : tool.enabled
+    }
     return editing.toolIds.some(id => id === tool.id || id === tool.name)
-  }, [editingGroupId, editing.toolIds])
+  }, [editingGroupId, editing.toolIds, localTools])
 
-  // 真正会发给模型的工具
+  // 真正会发给模型的工具（用本地状态计算，不触发 IPC）
   const effective = useMemo(() => {
     if (activeIds.length === 0) {
       return {
         isGlobal: true,
         label: t('tools.globalGroup', '全局组'),
-        tools: tools.filter(x => x.enabled && isPlatformMatch(x.platform)),
-        skipped: tools.filter(x => !x.enabled || !isPlatformMatch(x.platform)).map(x => x.name),
+        tools: localTools.filter(x => x.enabled && isPlatformMatch(x.platform)),
+        skipped: localTools.filter(x => !x.enabled || !isPlatformMatch(x.platform)).map(x => x.name),
       }
     }
     const picked: ToolDef[] = []
     const seen = new Set<string>()
     for (const gid of activeIds) {
-      const g = groups.find(x => x.id === gid)
+      const g = localGroups.find(x => x.id === gid)
       if (!g) continue
       for (const tid of g.toolIds) {
         if (seen.has(tid)) continue
         seen.add(tid)
-        const tool = tools.find(x => x.id === tid || x.name === tid)
+        const tool = localTools.find(x => x.id === tid || x.name === tid)
         if (tool) picked.push(tool)
       }
     }
     const usable = picked.filter(x => x.enabled && isPlatformMatch(x.platform))
     return {
       isGlobal: false,
-      label: activeIds.map(id => groups.find(g => g.id === id)?.name || id).join(' + '),
-      tools: usable.length > 0 ? usable : tools.filter(x => x.enabled && isPlatformMatch(x.platform)),
+      label: activeIds.map(id => localGroups.find(g => g.id === id)?.name || id).join(' + '),
+      tools: usable.length > 0 ? usable : localTools.filter(x => x.enabled && isPlatformMatch(x.platform)),
       skipped: picked.filter(x => !x.enabled || !isPlatformMatch(x.platform)).map(x => x.name),
     }
-  }, [activeIds, groups, tools, t])
+  }, [activeIds, localGroups, localTools, t])
 
   const applyActive = useCallback(async (ids: string[]) => {
     setSaving(true)
@@ -159,20 +180,30 @@ export function ToolGroupsPanel({
       setMessage(ids.length === 0
         ? t('tools.switchedGlobal', '已切换到全局组，下一条消息立即生效')
         : t('tools.switchedGroup', '已切换工具组，下一条消息立即生效'))
-      onChanged()
     } catch (e) {
       setMessage(`${t('tools.switchFailed', '切换失败')}: ${(e as Error).message}`)
     } finally {
       setSaving(false)
     }
-  }, [onChanged, t])
+  }, [t])
 
-  // 切换单个工具归属
+  // 切换单个工具归属（乐观更新 + 后台持久化）
   const toggleToolInGroup = useCallback(async (tool: ToolDef, checked: boolean) => {
     if (checked === isCheckedIn(tool)) {
       setMessage(t('tools.noChange', '该工具已是目标状态'))
       return
     }
+    // 乐观更新：立即反映到本地状态
+    if (editingGroupId === GLOBAL_ID) {
+      updateLocalTool(tool.id, checked)
+    } else {
+      updateLocalGroup(editingGroupId, g =>
+        checked
+          ? { ...g, toolIds: [...g.toolIds, tool.id] }
+          : { ...g, toolIds: g.toolIds.filter(id => id !== tool.id) }
+      )
+    }
+    setMessage('')
     try {
       if (editingGroupId === GLOBAL_ID) {
         await api.toggle(tool.id)
@@ -181,17 +212,45 @@ export function ToolGroupsPanel({
       } else {
         await api.removeFromGroup(tool.id, editingGroupId)
       }
-      setMessage('')
-      onChanged()
     } catch (e) {
+      // 失败回滚：重新从服务器加载
       setMessage(`${t('tools.updateFailed', '更新失败')}: ${(e as Error).message}`)
+      onChanged()
     }
-  }, [api, editingGroupId, isCheckedIn, onChanged, t])
+  }, [api, editingGroupId, isCheckedIn, onChanged, t, updateLocalTool, updateLocalGroup])
 
-  // 批量操作当前过滤结果（全选 / 清空）
+  // 批量操作当前过滤结果（全选 / 清空）（乐观更新）
   const applyBatch = useCallback(async (checked: boolean) => {
-    const target = memberList.flatMap(s => s.items)
+    const kw = memberSearch.trim().toLowerCase()
+    const pf = memberPlatform
+    let base = kw
+      ? localTools.filter(x => x.name.toLowerCase().includes(kw)
+        || (x.displayName || '').toLowerCase().includes(kw)
+        || (x.description || '').toLowerCase().includes(kw))
+      : localTools
+    if (pf !== 'all') {
+      base = base.filter(x => (x.platform || 'all') === pf)
+    }
+    const target = base
     if (target.length === 0) return
+    // 乐观更新
+    if (editingGroupId === GLOBAL_ID) {
+      setLocalTools(prev => prev.map(t =>
+        target.some(tt => tt.id === t.id) ? { ...t, enabled: checked } : t
+      ))
+    } else {
+      updateLocalGroup(editingGroupId, g => {
+        const inIds = new Set(g.toolIds)
+        const addIds = target.filter(t => checked !== (inIds.has(t.id) || inIds.has(t.name))).map(t => t.id)
+        const newToolIds = checked
+          ? [...g.toolIds, ...addIds]
+          : g.toolIds.filter(id => !addIds.includes(id))
+        return { ...g, toolIds: newToolIds }
+      })
+    }
+    setMessage(checked
+      ? t('tools.batchAddDone', '已对 {{n}} 个工具批量启用').replace('{{n}}', String(target.length))
+      : t('tools.batchRemoveDone', '已对 {{n}} 个工具批量关闭').replace('{{n}}', String(target.length)))
     try {
       if (editingGroupId === GLOBAL_ID) {
         const jobs = target.filter(x => x.enabled !== checked).map(x => api.toggle(x.id))
@@ -203,49 +262,50 @@ export function ToolGroupsPanel({
           .map(x => checked ? api.addToGroup(x.id, editingGroupId) : api.removeFromGroup(x.id, editingGroupId))
         await Promise.all(jobs)
       }
-      setMessage(checked
-        ? t('tools.batchAddDone', '已对 {{n}} 个工具批量启用').replace('{{n}}', String(target.length))
-        : t('tools.batchRemoveDone', '已对 {{n}} 个工具批量关闭').replace('{{n}}', String(target.length)))
-      onChanged()
     } catch (e) {
       setMessage(`${t('tools.batchFailed', '批量操作失败')}: ${(e as Error).message}`)
+      onChanged()
     }
-  }, [api, editingGroupId, memberList, onChanged, t])
+  }, [api, editingGroupId, memberSearch, memberPlatform, localTools, editing.toolIds, onChanged, t, updateLocalGroup])
 
   const handleSaveAs = useCallback(async () => {
     const name = saveAsName.trim()
     if (!name) { setSaveAsError(t('tools.nameRequired', '请填写组名称')); return }
-    if (groups.some(g => g.name.toLowerCase() === name.toLowerCase())) {
+    if (localGroups.some(g => g.name.toLowerCase() === name.toLowerCase())) {
       setSaveAsError(t('tools.nameConflict', '已存在同名分组'))
       return
     }
     try {
-      await api.addGroup({
+      const newGroup = await api.addGroup({
         name,
         description: t('tools.savedFromCurrent', '由当前生效工具另存'),
         toolIds: effective.tools.map(x => x.id),
         enabled: true,
       })
+      setLocalGroups(prev => [...prev, newGroup.data || { id: 'group-' + Date.now(), name, description: t('tools.savedFromCurrent', '由当前生效工具另存'), toolIds: effective.tools.map(x => x.id), enabled: true, builtin: false }])
       setShowSaveAs(false)
       setSaveAsName('')
       setSaveAsError('')
       setMessage(t('tools.savedAsGroupDone', '已另存为新组：{{name}}').replace('{{name}}', name))
-      onChanged()
     } catch (e) {
       setSaveAsError(`${t('tools.saveFailed', '另存失败')}: ${(e as Error).message}`)
     }
-  }, [api, effective.tools, groups, onChanged, saveAsName, t])
+  }, [api, effective.tools, localGroups, onChanged, saveAsName, t])
 
-  // 成员列表：带搜索 + 按平台分组
+  // 成员列表：带搜索 + 平台过滤 + 按平台分组
   const memberList = useMemo(() => {
     const kw = memberSearch.trim().toLowerCase()
-    const base = kw
-      ? tools.filter(x => x.name.toLowerCase().includes(kw)
+    const pf = memberPlatform
+    let base = kw
+      ? localTools.filter(x => x.name.toLowerCase().includes(kw)
         || (x.displayName || '').toLowerCase().includes(kw)
         || (x.description || '').toLowerCase().includes(kw))
-      : tools
+      : localTools
+    if (pf !== 'all') {
+      base = base.filter(x => (x.platform || 'all') === pf)
+    }
     return groupByPlatform(base)
-  }, [tools, memberSearch])
+  }, [localTools, memberSearch, memberPlatform])
 
   const memberTotal = memberList.reduce((acc, s) => acc + s.items.length, 0)
 
@@ -369,7 +429,7 @@ export function ToolGroupsPanel({
           </Button>
         </div>
 
-        {/* 4) 成员：搜索 + 批量 + 分组列表 */}
+        {/* 4) 成员：搜索 + 平台过滤 + 批量 + 分组列表 */}
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[160px]">
@@ -381,6 +441,15 @@ export function ToolGroupsPanel({
                 className="pl-7 h-8 text-xs"
               />
             </div>
+            <select
+              className="h-8 text-xs text-[var(--text-primary)] bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-1.5"
+              value={memberPlatform}
+              onChange={e => setMemberPlatform(e.target.value)}
+            >
+              <option value="all">{t('common.all', '全部平台')}</option>
+              <option value="windows">Windows</option>
+              <option value="unix">Unix</option>
+            </select>
             <span className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
               <SlidersHorizontal className="h-3 w-3" />
               {t('tools.memberCount', '{{count}} / {{total}}').replace('{{count}}', String(memberTotal)).replace('{{total}}', String(tools.length))}

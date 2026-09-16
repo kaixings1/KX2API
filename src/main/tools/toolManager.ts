@@ -2,130 +2,59 @@
  * Tool Manager
  * 管理工具定义、分组和提示规则
  * 从 commandRegistry 同步内置工具，支持自定义扩展
+ * 内置分组和提示规则从 default-data.json 读取
  */
 
 import type { ToolDefinition, ToolGroup, ToolHintRule, ToolManagementStore } from './types'
 import { commandRegistry } from '../../engine/commands/registry'
 import { storeManager } from '../store/store'
+import { join } from 'path'
+import { readFileSync, existsSync } from 'node:fs'
+import { app } from 'electron'
 
 const STORE_KEY = 'toolManagement'
 
-// 内置分组
-const BUILTIN_GROUPS: ToolGroup[] = [
-  {
-    id: 'file-system',
-    name: '文件系统',
-    description: '文件和目录操作工具',
-    toolIds: ['ls', 'dir', 'tree', 'cat', 'pwd', 'find', 'findstr'],
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-  {
-    id: 'text-search',
-    name: '文本搜索',
-    description: '在文件中搜索文本内容',
-    toolIds: ['grep', 'findstr'],
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-  {
-    id: 'execution',
-    name: '代码执行',
-    description: '执行代码片段',
-    toolIds: ['python', 'python3', 'echo'],
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-  {
-    id: 'git',
-    name: 'Git 操作',
-    description: 'Git 版本控制工具',
-    toolIds: ['git-status', 'git-diff', 'git-log', 'git-branch'],
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-  {
-    id: 'system',
-    name: '系统信息',
-    description: '系统环境信息查询',
-    toolIds: ['env', 'ps', 'memory', 'date', 'whoami', 'where', 'version'],
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-  {
-    id: 'ai-agent',
-    name: 'AI 代理',
-    description: '需要 AI 执行的复杂任务',
-    toolIds: ['team', 'agents', 'agents-platform', 'auto', 'auto-commit', 'review', 'refactor', 'test', 'docs', 'fix', 'explain', 'analyze'],
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-]
+// 从默认数据文件加载内置分组
+function loadDefaultGroups(): ToolGroup[] {
+  try {
+    const dataPath = join(__dirname, 'default-data.json')
+    if (!existsSync(dataPath)) {
+      console.warn('[ToolManager] default-data.json not found, returning empty groups')
+      return []
+    }
+    const raw = readFileSync(dataPath, 'utf-8')
+    const data = JSON.parse(raw)
+    const now = Date.now()
+    return (data.groups || []).map((g: ToolGroup) => ({
+      ...g,
+      createdAt: g.createdAt || now,
+    }))
+  } catch (e) {
+    console.error('[ToolManager] load default groups failed:', e)
+    return []
+  }
+}
 
-// 内置提示规则
-const BUILTIN_HINT_RULES: ToolHintRule[] = [
-  {
-    id: 'rule-file-browse',
-    name: '文件浏览',
-    description: '当用户询问文件内容或目录结构时推荐文件系统工具',
-    patterns: ['查看.*文件', '目录.*结构', '文件.*列表', '文件.*内容', 'ls', 'dir', 'tree'],
-    groupIds: ['file-system'],
-    priority: 10,
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-  {
-    id: 'rule-search',
-    name: '文本搜索',
-    description: '当用户需要搜索文本时推荐搜索工具',
-    patterns: ['搜索', '查找.*内容', 'grep', 'findstr', '关键词'],
-    groupIds: ['text-search', 'file-system'],
-    priority: 10,
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-  {
-    id: 'rule-git',
-    name: 'Git 操作',
-    description: '当用户询问代码变更时推荐 Git 工具',
-    patterns: ['git', '提交', '分支', '差异', 'diff', 'commit', 'branch', '代码变更', '修改记录'],
-    groupIds: ['git'],
-    priority: 10,
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-  {
-    id: 'rule-exec',
-    name: '代码执行',
-    description: '当用户需要运行代码时推荐执行工具',
-    patterns: ['运行', '执行', 'python', 'print', '脚本'],
-    groupIds: ['execution'],
-    priority: 8,
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-  {
-    id: 'rule-system',
-    name: '系统信息',
-    description: '当用户询问环境信息时推荐系统工具',
-    patterns: ['环境变量', '进程', '内存', '系统', '版本', 'env', 'ps', 'memory'],
-    groupIds: ['system'],
-    priority: 8,
-    enabled: true,
-    builtin: true,
-    createdAt: Date.now(),
-  },
-]
+// 从默认数据文件加载内置提示规则
+function loadDefaultHintRules(): ToolHintRule[] {
+  try {
+    const dataPath = join(__dirname, 'default-data.json')
+    if (!existsSync(dataPath)) {
+      console.warn('[ToolManager] default-data.json not found, returning empty hint rules')
+      return []
+    }
+    const raw = readFileSync(dataPath, 'utf-8')
+    const data = JSON.parse(raw)
+    const now = Date.now()
+    return (data.hintRules || []).map((r: ToolHintRule) => ({
+      ...r,
+      createdAt: r.createdAt || now,
+    }))
+  } catch (e) {
+    console.error('[ToolManager] load default hint rules failed:', e)
+    return []
+  }
+}
 
 export class ToolManager {
   private store: ToolManagementStore
@@ -156,10 +85,12 @@ export class ToolManager {
   private createDefaultStore(): ToolManagementStore {
     // 从 commandRegistry 同步内置工具
     const builtinTools = this.syncFromRegistry()
+    const builtinGroups = loadDefaultGroups()
+    const builtinHintRules = loadDefaultHintRules()
     return {
       tools: builtinTools,
-      groups: BUILTIN_GROUPS,
-      hintRules: BUILTIN_HINT_RULES,
+      groups: builtinGroups,
+      hintRules: builtinHintRules,
     }
   }
 

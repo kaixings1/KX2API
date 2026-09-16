@@ -92,16 +92,21 @@ export class MessageNormalizer {
     return typeof c === "string" ? c : c;
   }
 
-  private mergeConsecutive(messages: APIMessage[]): APIMessage[] {
+  /** 合并连续相同角色的消息（供 messages.ts 复用） */
+  static mergeConsecutive(messages: APIMessage[]): APIMessage[] {
     if (messages.length <= 1) return messages;
-    const out: APIMessage[] = [messages[0]];
+    const out: APIMessage[] = [{ ...messages[0] }];
     for (let i = 1; i < messages.length; i++) {
       const prev = out[out.length - 1];
       const curr = messages[i];
       if (prev.role === curr.role) {
-        prev.content = `${this.asString(prev.content as InternalContent)}\n${this.asString(curr.content as InternalContent)}`;
+        const asString = (c: unknown): string => {
+          if (typeof c === 'string') return c;
+          try { return JSON.stringify(c) } catch { return String(c) }
+        };
+        prev.content = `${asString(prev.content)}\n${asString(curr.content)}`;
       } else {
-        out.push(curr);
+        out.push({ ...curr });
       }
     }
     return out;

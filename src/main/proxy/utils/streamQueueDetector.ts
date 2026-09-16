@@ -52,12 +52,9 @@ export class StreamQueueDetector {
 
       // 如果有 tool marker，先 flush marker 前面的纯文本
       if (markerIdx > 0) {
-        const beforeMarker = headText.substring(0, markerIdx)
-        if (this.shouldFlushHead(beforeMarker)) {
-          const flushed = this.dequeueUpTo(markerIdx)
-          results.push({ kind: 'text', content: flushed })
-          continue
-        }
+        const flushed = this.dequeueUpTo(markerIdx)
+        results.push({ kind: 'text', content: flushed })
+        continue
       }
 
       // 检查从 marker 开始的部分是否构成完整工具调用

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SectionCard } from '@/components/ui/section-card'
 import { Plus, Trash2, TestTube2, Loader2, ArrowRight, Info } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 import { ManagementToolbar } from '@/components/management'
 import { ImportExportDialog } from '@/components/management/ImportExportDialog'
 import { useToast } from '@/hooks/use-toast'

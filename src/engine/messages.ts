@@ -1,26 +1,32 @@
 /**
- * engine/messages.ts — 消息工具模块（从 CLI 版吸收完整能力）
+ * engine/messages.ts — 消息工具模块（权威类型 + 工具函数）
  *
- * 提供消息创建、规范化、验证、附件处理、Hook系统、流式处理等完整工具集。
- * 注意：不导入 index.ts 以避免循环依赖（index.ts 已 export * from this）
+ * 架构说明：
+ * - 类型定义（InternalMessage/APIMessage 等）和 MessageNormalizer 类
+ *   由 messageNormalizer.ts 提供，此处统一导入，避免重复定义。
+ * - 本文件负责：消息创建、合并、验证、 predicates、Hook、流式处理、systemPrompt 构建。
  */
 
-// ============ 类型定义（自包含，不依赖 index.ts） ============
+import { MessageNormalizer, type InternalMessage, type APIMessage } from "./messageNormalizer.ts";
 
-export type InternalRole = "system" | "user" | "assistant" | "tool";
-export type InternalContent = string | Array<Record<string, unknown>>;
+// ============ 常量 ============
 
-export interface InternalMessage {
-  role: InternalRole;
-  content: InternalContent;
-  toolUseId?: string;
-}
+export const NO_CONTENT_MESSAGE = '(无内容)';
+export const SYNTHETIC_MODEL = '<synthetic>';
+export const INTERRUPT_MESSAGE = '[用户中断请求]';
+export const INTERRUPT_MESSAGE_FOR_TOOL_USE = '[用户中断工具执行]';
+export const CANCEL_MESSAGE =
+  "用户不想执行此操作。停止当前操作，等待用户指示如何继续。";
+export const REJECT_MESSAGE =
+  "用户拒绝此工具使用。工具使用已被拒绝。停止当前操作，等待用户指示如何继续。";
+export const DENIAL_WORKAROUND_GUIDANCE =
+  "重要提示：你可以尝试使用其他可能自然完成此目标的工具来完成该操作。但请不要以恶意方式尝试绕过此拒绝。你只能以合理的、不试图规避此拒绝初衷的方式来尝试变通。如果你认为该能力对完成用户请求至关重要，请停止并向用户解释。";
+export const NO_RESPONSE_REQUESTED = '未请求响应。';
+export const SUBAGENT_REJECT_MESSAGE =
+  '此工具使用的权限被拒绝。请尝试其他方法或报告此限制以完成任务。';
+export const SYNTHETIC_TOOL_RESULT_PLACEHOLDER = '❌ 错误: [工具结果因内部错误缺失]';
 
-export type APIMessage = {
-  role: string;
-  content: unknown;
-  [k: string]: unknown;
-};
+// ============ 扩展类型 ============
 
 export type NormalizedMessage = InternalMessage & {
   uuid?: string;
@@ -41,22 +47,13 @@ export interface AttachmentMessage {
   attachmentUuid?: string
 }
 
-// ============ 常量 ============
-
-export const NO_CONTENT_MESSAGE = '(无内容)';
-export const SYNTHETIC_MODEL = '<synthetic>';
-export const INTERRUPT_MESSAGE = '[用户中断请求]';
-export const INTERRUPT_MESSAGE_FOR_TOOL_USE = '[用户中断工具执行]';
-export const CANCEL_MESSAGE =
-  "用户不想执行此操作。停止当前操作，等待用户指示如何继续。";
-export const REJECT_MESSAGE =
-  "用户拒绝此工具使用。工具使用已被拒绝。停止当前操作，等待用户指示如何继续。";
-export const DENIAL_WORKAROUND_GUIDANCE =
-  "重要提示：你可以尝试使用其他可能自然完成此目标的工具来完成该操作。但请不要以恶意方式尝试绕过此拒绝。你只能以合理的、不试图规避此拒绝初衷的方式来尝试变通。如果你认为该能力对完成用户请求至关重要，请停止并向用户解释。";
-export const NO_RESPONSE_REQUESTED = '未请求响应。';
-export const SUBAGENT_REJECT_MESSAGE =
-  '此工具使用的权限被拒绝。请尝试其他方法或报告此限制以完成任务。';
-export const SYNTHETIC_TOOL_RESULT_PLACEHOLDER = '❌ 错误: [工具结果因内部错误缺失]';
+// tool-result 子类型（吸收自 IPNDT UserToolResultMessage 分类）
+export type ToolResultSubType = 'success' | 'error' | 'canceled' | 'rejected' | 'empty'
+export interface ToolResultMeta {
+  subType: ToolResultSubType
+  duration?: number
+  retryCount?: number
+}
 
 // ============ 消息创建 ============
 
@@ -70,7 +67,6 @@ export function createAssistantMessage({
   return {
     role: 'assistant',
     content: typeof content === 'string' ? content : content,
-    ...(isVirtual ? {} : {}),
   } as InternalMessage;
 }
 
@@ -84,7 +80,7 @@ export function createUserMessage({
   return {
     role: 'user',
     content,
-    ...(isMeta ? {} : {}),
+    ...(isMeta ? { isMeta: true } : {}),
   } as InternalMessage;
 }
 
@@ -122,76 +118,15 @@ export function createUserInterruptionMessage({
   });
 }
 
-// ============ 消息规范化 ============
+// ============ 消息规范化（委托给 MessageNormalizer） ============
+
+const normalizer = new MessageNormalizer();
 
 export function normalizeMessagesForAPI(
   messages: InternalMessage[],
   provider: 'anthropic' | 'openai',
 ): APIMessage[] {
-  if (provider === 'anthropic') {
-    return normalizeForAnthropic(messages);
-  }
-  return normalizeForOpenAI(messages);
-}
-
-function normalizeForAnthropic(messages: InternalMessage[]): APIMessage[] {
-  const result: APIMessage[] = [];
-  for (const msg of messages) {
-    if (msg.role === 'system') continue;
-    if (msg.role === 'user') {
-      result.push({ role: 'user', content: asStringOrArray(msg.content) });
-    } else if (msg.role === 'assistant') {
-      result.push({ role: 'assistant', content: asStringOrArray(msg.content) });
-    } else if (msg.role === 'tool' && msg.toolUseId) {
-      result.push({
-        role: 'user',
-        content: [{ type: 'tool_result', tool_use_id: msg.toolUseId, content: asString(msg.content) }],
-      });
-    }
-  }
-  return mergeConsecutive(result);
-}
-
-function normalizeForOpenAI(messages: InternalMessage[]): APIMessage[] {
-  const result: APIMessage[] = [];
-  for (const msg of messages) {
-    if (msg.role === 'system') {
-      result.push({ role: 'system', content: asString(msg.content) });
-    } else if (msg.role === 'user') {
-      result.push({ role: 'user', content: asString(msg.content) });
-    } else if (msg.role === 'assistant') {
-      const blocks = Array.isArray(msg.content)
-        ? (msg.content as Array<Record<string, unknown>>)
-        : [];
-      const textParts: string[] = [];
-      const toolCalls: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }> = [];
-      for (const block of blocks) {
-        if (block.type === 'text' && typeof block.text === 'string') {
-          textParts.push(block.text);
-        } else if (block.type === 'tool_use') {
-          toolCalls.push({
-            id: block.id as string,
-            type: 'function',
-            function: {
-              name: block.name as string,
-              arguments: JSON.stringify(block.input ?? {}),
-            },
-          });
-        }
-      }
-      const openAIMsg: APIMessage = {
-        role: 'assistant',
-        content: textParts.length > 0 ? textParts.join('') : '',
-      };
-      if (toolCalls.length > 0) {
-        openAIMsg.tool_calls = toolCalls;
-      }
-      result.push(openAIMsg);
-    } else if (msg.role === 'tool' && msg.toolUseId) {
-      result.push({ role: 'tool', tool_call_id: msg.toolUseId, content: asString(msg.content) });
-    }
-  }
-  return result;
+  return normalizer.normalize(messages, provider);
 }
 
 // ============ 消息合并 ============
@@ -313,15 +248,22 @@ export function getContentText(content: unknown): string {
   return extractTextContent(content);
 }
 
-// ============ 消息验证 ============
+// ============ Predicates（吸收自 IPNDT messagePredicates.ts） ============
 
-export function isNotEmptyMessage(message: InternalMessage): boolean {
-  const text = extractTextContent(message.content);
-  return text.trim().length > 0 && text !== NO_CONTENT_MESSAGE && text !== INTERRUPT_MESSAGE_FOR_TOOL_USE;
+export function isUserMessage(message: InternalMessage): boolean {
+  return message.role === 'user';
 }
 
-export function isEmptyMessageText(text: string): boolean {
-  return text.trim().length === 0 || text === NO_CONTENT_MESSAGE;
+export function isAssistantMessage(message: InternalMessage): boolean {
+  return message.role === 'assistant';
+}
+
+export function isSystemMessage(message: InternalMessage): boolean {
+  return message.role === 'system';
+}
+
+export function isToolMessage(message: InternalMessage): boolean {
+  return message.role === 'tool';
 }
 
 export function isToolUseRequestMessage(message: InternalMessage): boolean {
@@ -343,6 +285,37 @@ export function isThinkingMessage(message: InternalMessage): boolean {
   return blocks.some((b: Record<string, unknown>) => b.type === 'thinking');
 }
 
+export function isProgressMessage(message: InternalMessage): boolean {
+  if (message.role !== 'system' || typeof message.content !== 'string') return false;
+  try {
+    const parsed = JSON.parse(message.content);
+    return parsed?.type === 'progress';
+  } catch {
+    return false;
+  }
+}
+
+export function hasToolError(message: InternalMessage): boolean {
+  if (message.role !== 'user' || typeof message.content === 'string') return false;
+  const blocks = Array.isArray(message.content) ? message.content : [];
+  return blocks.some((b: Record<string, unknown>) => b.type === 'tool_result' && b.is_error === true);
+}
+
+export function isTerminalMessage(message: InternalMessage): boolean {
+  if (message.role !== 'assistant') return false;
+  const text = extractTextContent(message.content);
+  return /^(再见|退出|结束|bye|goodbye)/i.test(text.trim());
+}
+
+export function isEmptyMessage(message: InternalMessage): boolean {
+  const text = extractTextContent(message.content);
+  return text.trim().length === 0 || text === NO_CONTENT_MESSAGE;
+}
+
+export function isMetaMessage(message: InternalMessage): boolean {
+  return (message as { isMeta?: boolean }).isMeta === true;
+}
+
 export function hasToolCallsInLastAssistantTurn(
   messages: InternalMessage[],
 ): boolean {
@@ -354,6 +327,17 @@ export function hasToolCallsInLastAssistantTurn(
     }
   }
   return false;
+}
+
+// ============ 消息验证 ============
+
+export function isNotEmptyMessage(message: InternalMessage): boolean {
+  const text = extractTextContent(message.content);
+  return text.trim().length > 0 && text !== NO_CONTENT_MESSAGE && text !== INTERRUPT_MESSAGE_FOR_TOOL_USE;
+}
+
+export function isEmptyMessageText(text: string): boolean {
+  return text.trim().length === 0 || text === NO_CONTENT_MESSAGE;
 }
 
 // ============ 工具调用统计 ============
@@ -443,7 +427,7 @@ export function reorderMessagesInUI(
   return final;
 }
 
-// ============ 工具结果配对验证（吸收 CLI 版 ensureToolResultPairing） ============
+// ============ 工具结果配对验证 ============
 
 export function ensureToolResultPairing(
   messages: InternalMessage[],
@@ -497,7 +481,7 @@ export function ensureToolResultPairing(
   return result;
 }
 
-// ============ 消息查找表（吸收 CLI 版 buildMessageLookups） ============
+// ============ 消息查找表 ============
 
 export function buildMessageLookups(
   normalizedMessages: NormalizedMessage[],
@@ -516,7 +500,7 @@ export function buildMessageLookups(
   return { byUUID, byID, byToolUseID };
 }
 
-// ============ 消息验证函数（吸收 CLI 版） ============
+// ============ 消息清洗函数（吸收 CLI 版） ============
 
 export function filterOrphanedThinkingOnlyMessages(
   messages: InternalMessage[],
@@ -602,7 +586,7 @@ export function hasUnresolvedHooks(messages: InternalMessage[]): boolean {
     if (msg.role !== 'system') return false;
     if (typeof msg.content !== 'string') return false;
     try {
-      const parsed = JSON.parse(msg.content);
+      const parsed = JSON.parse(message.content);
       return parsed?.type === 'hook_blocking_error';
     } catch {
       return false;
@@ -671,36 +655,6 @@ export function handleMessageFromStream(
       onFileDelta({ type: 'message_complete', stopReason: stopReason as string });
     }
   }
-}
-
-// ============ 辅助函数 ============
-
-function asString(c: InternalContent): string {
-  if (typeof c === 'string') return c;
-  try {
-    return JSON.stringify(c);
-  } catch {
-    return String(c);
-  }
-}
-
-function asStringOrArray(c: InternalContent): unknown {
-  return typeof c === 'string' ? c : c;
-}
-
-function mergeConsecutive(messages: APIMessage[]): APIMessage[] {
-  if (messages.length <= 1) return messages;
-  const out: APIMessage[] = [messages[0]];
-  for (let i = 1; i < messages.length; i++) {
-    const prev = out[out.length - 1];
-    const curr = messages[i];
-    if (prev.role === curr.role) {
-      prev.content = `${asString(prev.content as InternalContent)}\n${asString(curr.content as InternalContent)}`;
-    } else {
-      out.push(curr);
-    }
-  }
-  return out;
 }
 
 // ============ 系统提示词构建（吸收 CLI 版 buildSystemPrompt） ============

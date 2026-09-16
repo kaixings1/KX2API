@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { SectionCard } from '@/components/ui/section-card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Plus, Trash2, Edit3, Save, X, RotateCcw,
   Wrench, FolderOpen, Lightbulb, Check, Search, RefreshCw, Download, Upload, ArrowRight, Info,
@@ -31,6 +32,7 @@ export function ToolManagementPage() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [search, setSearch] = useState('')
+  const [activeIds, setActiveIds] = useState<string[]>([])
 
   // Tool form
   const [editingTool, setEditingTool] = useState<string | null>(null)
@@ -49,6 +51,25 @@ export function ToolManagementPage() {
   const [hintResult, setHintResult] = useState<{ groups: ToolGroup[]; tools: ToolDef[] } | null>(null)
 
   const api = window.electronAPI.tools
+
+  // ==================== Helpers ====================
+
+  const isPlatformMatch = (platform: string): boolean => {
+    const isWindows = typeof navigator !== 'undefined' && navigator.userAgent.includes('Windows')
+    if (!platform || platform === 'all') return true
+    if (platform === 'windows') return isWindows
+    if (platform === 'unix') return !isWindows
+    return true
+  }
+
+  const showMsg = (text: string) => {
+    setMessage(text)
+    toast({ title: text })
+    setTimeout(() => setMessage(''), 3000)
+  }
+  const showError = (text: string) => {
+    toast({ title: text, variant: 'destructive' })
+  }
 
   // ==================== Load ====================
 
@@ -70,16 +91,15 @@ export function ToolManagementPage() {
 
   useEffect(() => { loadAll() }, [loadAll])
 
-  // ==================== Helpers ====================
-
-  const showMsg = (text: string) => {
-    setMessage(text)
-    toast({ title: text })
-    setTimeout(() => setMessage(''), 3000)
-  }
-  const showError = (text: string) => {
-    toast({ title: text, variant: 'destructive' })
-  }
+  // 读取当前生效组
+  useEffect(() => {
+    (async () => {
+      try {
+        const cfg = await window.electronAPI.config.get()
+        setActiveIds((cfg as { enabledToolGroups?: string[] }).enabledToolGroups || [])
+      } catch { /* ignore */ }
+    })()
+  }, [loading])
 
   // ==================== Tool CRUD ====================
 
@@ -99,7 +119,8 @@ export function ToolManagementPage() {
       if (res.success) {
         showMsg(t('tools.toolAdded', '工具已添加'))
         setToolForm({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '', parameters: [] })
-        loadAll()
+        // 乐观添加
+        if (res.data) setTools(prev => [...prev, res.data!])
       } else {
         showError(t('tools.addFailed', '添加失败'))
       }
@@ -112,8 +133,14 @@ export function ToolManagementPage() {
   const handleUpdateTool = async (id: string) => {
     try {
       const res = await api.update(id, toolForm)
-      if (res.success) { showMsg(t('tools.toolUpdated', '工具已更新')); setEditingTool(null); loadAll() }
-      else { showError(t('tools.updateFailed', '更新失败')) }
+      if (res.success) {
+        showMsg(t('tools.toolUpdated', '工具已更新'))
+        setEditingTool(null)
+        // 乐观更新
+        if (res.data) setTools(prev => prev.map(t => t.id === id ? res.data! : t))
+      } else {
+        showError(t('tools.updateFailed', '更新失败'))
+      }
     } catch (e) {
       console.error('[ToolManagement] Update tool failed:', e)
       showError(t('tools.updateFailed', '更新失败'))
@@ -124,8 +151,12 @@ export function ToolManagementPage() {
     if (!confirm(t('tools.confirmDelete', '确定删除此工具?'))) return
     try {
       const res = await api.remove(id)
-      if (res.success) { showMsg(t('tools.toolDeleted', '工具已删除')); loadAll() }
-      else { showError(t('tools.deleteFailed', '删除失败')) }
+      if (res.success) {
+        showMsg(t('tools.toolDeleted', '工具已删除'))
+        setTools(prev => prev.filter(t => t.id !== id))
+      } else {
+        showError(t('tools.deleteFailed', '删除失败'))
+      }
     } catch (e) {
       console.error('[ToolManagement] Remove tool failed:', e)
       showError(t('tools.deleteFailed', '删除失败'))
@@ -135,8 +166,12 @@ export function ToolManagementPage() {
   const handleToggleTool = async (id: string) => {
     try {
       const res = await api.toggle(id)
-      if (res.success) loadAll()
-      else showError(t('tools.toggleFailed', '切换状态失败'))
+      if (res.success) {
+        // 乐观更新：直接在本地切换状态，不刷新全页面
+        setTools(prev => prev.map(t => t.id === id ? { ...t, enabled: !t.enabled } : t))
+      } else {
+        showError(t('tools.toggleFailed', '切换状态失败'))
+      }
     } catch (e) {
       console.error('[ToolManagement] Toggle tool failed:', e)
       showError(t('tools.toggleFailed', '切换状态失败'))
@@ -157,7 +192,7 @@ export function ToolManagementPage() {
       if (res.success) {
         showMsg(t('tools.groupAdded', '分组已添加'))
         setGroupForm({ name: '', description: '', toolIds: '' })
-        loadAll()
+        if (res.data) setGroups(prev => [...prev, res.data!])
       } else {
         showError(t('tools.addGroupFailed', '添加分组失败'))
       }
@@ -170,8 +205,13 @@ export function ToolManagementPage() {
   const handleUpdateGroup = async (id: string) => {
     try {
       const res = await api.updateGroup(id, groupForm)
-      if (res.success) { showMsg(t('tools.groupUpdated', '分组已更新')); setEditingGroup(null); loadAll() }
-      else { showError(t('tools.updateGroupFailed', '更新分组失败')) }
+      if (res.success) {
+        showMsg(t('tools.groupUpdated', '分组已更新'))
+        setEditingGroup(null)
+        if (res.data) setGroups(prev => prev.map(g => g.id === id ? res.data! : g))
+      } else {
+        showError(t('tools.updateGroupFailed', '更新分组失败'))
+      }
     } catch (e) {
       console.error('[ToolManagement] Update group failed:', e)
       showError(t('tools.updateGroupFailed', '更新分组失败'))
@@ -182,8 +222,12 @@ export function ToolManagementPage() {
     if (!confirm(t('tools.confirmDeleteGroup', '确定删除此分组?'))) return
     try {
       const res = await api.removeGroup(id)
-      if (res.success) { showMsg(t('tools.groupDeleted', '分组已删除')); loadAll() }
-      else { showError(t('tools.deleteGroupFailed', '删除分组失败')) }
+      if (res.success) {
+        showMsg(t('tools.groupDeleted', '分组已删除'))
+        setGroups(prev => prev.filter(g => g.id !== id))
+      } else {
+        showError(t('tools.deleteGroupFailed', '删除分组失败'))
+      }
     } catch (e) {
       console.error('[ToolManagement] Remove group failed:', e)
       showError(t('tools.deleteGroupFailed', '删除分组失败'))
@@ -206,7 +250,7 @@ export function ToolManagementPage() {
       if (res.success) {
         showMsg(t('tools.ruleAdded', '规则已添加'))
         setRuleForm({ name: '', description: '', patterns: '', groupIds: '', priority: 10 })
-        loadAll()
+        if (res.data) setHintRules(prev => [...prev, res.data!])
       } else {
         showError(t('tools.addRuleFailed', '添加规则失败'))
       }
@@ -219,8 +263,13 @@ export function ToolManagementPage() {
   const handleUpdateRule = async (id: string) => {
     try {
       const res = await api.updateHintRule(id, ruleForm)
-      if (res.success) { showMsg(t('tools.ruleUpdated', '规则已更新')); setEditingRule(null); loadAll() }
-      else { showError(t('tools.updateRuleFailed', '更新规则失败')) }
+      if (res.success) {
+        showMsg(t('tools.ruleUpdated', '规则已更新'))
+        setEditingRule(null)
+        if (res.data) setHintRules(prev => prev.map(r => r.id === id ? res.data! : r))
+      } else {
+        showError(t('tools.updateRuleFailed', '更新规则失败'))
+      }
     } catch (e) {
       console.error('[ToolManagement] Update rule failed:', e)
       showError(t('tools.updateRuleFailed', '更新规则失败'))
@@ -231,8 +280,12 @@ export function ToolManagementPage() {
     if (!confirm(t('tools.confirmDeleteRule', '确定删除此规则?'))) return
     try {
       const res = await api.removeHintRule(id)
-      if (res.success) { showMsg(t('tools.ruleDeleted', '规则已删除')); loadAll() }
-      else { showError(t('tools.deleteRuleFailed', '删除规则失败')) }
+      if (res.success) {
+        showMsg(t('tools.ruleDeleted', '规则已删除'))
+        setHintRules(prev => prev.filter(r => r.id !== id))
+      } else {
+        showError(t('tools.deleteRuleFailed', '删除规则失败'))
+      }
     } catch (e) {
       console.error('[ToolManagement] Remove rule failed:', e)
       showError(t('tools.deleteRuleFailed', '删除规则失败'))
@@ -496,19 +549,28 @@ export function ToolManagementPage() {
 
             {/* Group list */}
             <div className="grid gap-3">
-              {filteredGroups.map(group => (
-                <Card key={group.id}>
+              {filteredGroups.map(group => {
+                const isActive = activeIds.includes(group.id)
+                const groupTools = group.toolIds.map(tid => tools.find(t => t.id === tid || t.name === tid)).filter(Boolean) as ToolDef[]
+                const enabledCount = groupTools.filter(t => t.enabled && isPlatformMatch(t.platform)).length
+                return (
+                <Card key={group.id} className={isActive ? 'border-[var(--accent-primary)]' : ''}>
                   <CardContent className="py-3 flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm">{group.name}</span>
                         {group.builtin && <Badge variant="secondary" className="text-[10px]">内置</Badge>}
+                        {isActive && <Badge className="text-[10px] bg-[var(--accent-primary)]">{t('tools.activeGroup', '生效中')}</Badge>}
+                        <span className="text-[10px] text-[var(--text-muted)]">{enabledCount}/{group.toolIds.length} 可用</span>
                       </div>
                       <p className="text-xs text-[var(--text-muted)]">{group.description}</p>
                       <div className="flex gap-1 mt-1 flex-wrap">
-                        {group.toolIds.map(tid => (
-                          <Badge key={tid} variant="outline" className="text-[10px]">/{tid}</Badge>
+                        {groupTools.slice(0, 20).map(t => (
+                          <Badge key={t.id} variant={t.enabled ? 'outline' : 'secondary'} className="text-[10px]">
+                            /{t.name} {t.enabled ? '' : '🔴'}
+                          </Badge>
                         ))}
+                        {groupTools.length > 20 && <span className="text-[10px] text-[var(--text-muted)]">+{groupTools.length - 20}</span>}
                       </div>
                     </div>
                     <div className="flex gap-1">
@@ -524,7 +586,8 @@ export function ToolManagementPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                )
+              })}
             </div>
           </TabsContent>
 

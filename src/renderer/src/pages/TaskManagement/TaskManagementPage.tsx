@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Trash2, Play, Square, CheckCircle2, Loader2, Calendar, Info, ChevronDown, ChevronRight } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { ManagementToolbar } from '@/components/management'
 import { ImportExportDialog } from '@/components/management/ImportExportDialog'

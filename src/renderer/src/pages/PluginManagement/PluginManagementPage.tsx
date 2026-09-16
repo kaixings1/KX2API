@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from '@/components/ui/label'
 import { SectionCard } from '@/components/ui/section-card'
 import { Plus, Trash2, Loader2, Puzzle, ArrowRight, Info } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 import { ManagementToolbar } from '@/components/management'
 import { ImportExportDialog } from '@/components/management/ImportExportDialog'
 

@@ -37,13 +37,16 @@ export interface ConversationHistory {
 // 单例
 let engine: QueryEngine | null = null
 
+/** 默认系统提示词（单一定义，三处共享） */
+export const DEFAULT_SYSTEM_PROMPT = '你是 KX2Code，一个智能编程助手。你可以使用工具帮助用户。当用户用中文提问时，请用中文回答。当用户询问文件、代码或项目结构时，请提供有用的分析和建议。'
+
 export function createEngine(config?: Partial<EngineConfig>): QueryEngine {
   const engineConfig = config || {}
   const opts: EngineOptions = {
     model: engineConfig.model || 'gpt-4o',
     provider: (engineConfig.provider as 'anthropic' | 'openai') || 'openai',
     maxOutputTokens: engineConfig.maxTokens || 4096,
-    systemPrompt: '你是 KX2Code，一个智能编程助手。你可以使用工具帮助用户。当用户用中文提问时，请用中文回答。当用户询问文件、代码或项目结构时，请提供有用的分析和建议。',
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
   }
   engine = new QueryEngine(opts)
   return engine
@@ -58,7 +61,7 @@ export function getEngine(): QueryEngine {
 export class LegacyQueryEngine {
   private config: EngineConfig
   private history: unknown[] = []
-  private systemPrompt = '你是 KX2Code，一个智能编程助手。你可以使�用工具帮助用户。当用户用中文提问时，请用中文回答。当用户询问文件、代码或项目结构时，请提供有用的分析和建议。'
+  private systemPrompt = DEFAULT_SYSTEM_PROMPT
   private engine: QueryEngine
 
   constructor(config: EngineConfig) {
@@ -143,7 +146,7 @@ export class LegacyQueryEngine {
           name: '组长',
           profile: '团队领导',
           goal: '协调团队成员并有效分配任务',
-          constraints: ['始终将任务分配��合适的团队成员', '确保任务完成'],
+          constraints: ['始终将任务分配给合适的团队成员', '确保任务完成'],
         },
         {
           id: 'engineer',
