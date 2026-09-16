@@ -373,10 +373,8 @@ export function stripPlainTextToolCalls(text: string): string {
   })
 
   // 剥离扁平 XML 工具调用（无外层包裹）：<toolName>..</toolName> 与紧随的 <arguments>..</arguments>
-  // 标签集必须与 collectFlatXmlTools 保持一致（含 tool / fn），否则这些形态会被识别为工具
-  // 却残留在正文里，导致前端既显示工具卡片、又把工具名当正文再渲染一遍。
   cleaned = cleaned.replace(
-    /<\s*(toolName|tool_name|toolname|tool|fn|name)\b[^>]*>\s*[\s\S]*?\s*<\/\s*(?:toolName|tool_name|toolname|tool|fn|name)\s*>(?:\s*<\s*arguments?\b[^>]*>[\s\S]*?<\/\s*arguments?\s*>)?/gi,
+    /<\s*(toolName|tool_name|toolname|name)\b[^>]*>\s*[\s\S]*?\s*<\/\s*(?:toolName|tool_name|toolname|name)\s*>(?:\s*<\s*arguments?\b[^>]*>[\s\S]*?<\/\s*arguments?\s*>)?/gi,
     ''
   )
 

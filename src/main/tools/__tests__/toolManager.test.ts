@@ -12,6 +12,13 @@ import type { ToolDefinition, ToolGroup, ToolHintRule } from '../types'
 // 通过 vi.hoisted 创建模块级共享的可变 store，供 vi.mock 工厂与测试体安全访问
 const mockStore: { data: Record<string, unknown> } = vi.hoisted(() => ({ data: {} }))
 
+// 文件化主存储的替身：tools/groups/hintRules 代表「文件目录」里的自定义数据
+const mockFile: {
+  tools: ToolDefinition[]
+  groups: ToolGroup[]
+  hintRules: ToolHintRule[]
+} = vi.hoisted(() => ({ tools: [], groups: [], hintRules: [] }))
+
 vi.mock('../../store/store', () => ({
   storeManager: {
     getConfig: () => mockStore.data,
@@ -22,6 +29,36 @@ vi.mock('../../store/store', () => ({
 // mock 命令注册表：只返回空的工具列表，避免拖入真实引擎依赖
 vi.mock('../../../engine/commands/registry', () => ({
   commandRegistry: { getAll: () => [] },
+}))
+
+// mock 文件化存储层：list 从 mockFile 读取，save/delete 落到 mockFile
+vi.mock('../toolFileStore', () => ({
+  toolFileStore: {
+    listTools: () => [...mockFile.tools],
+    listGroups: () => [...mockFile.groups],
+    listHintRules: () => [...mockFile.hintRules],
+    saveTool: (t: ToolDefinition) => {
+      const idx = mockFile.tools.findIndex(x => x.id === t.id)
+      if (idx >= 0) mockFile.tools[idx] = t
+      else mockFile.tools.push(t)
+    },
+    saveGroup: (g: ToolGroup) => {
+      const idx = mockFile.groups.findIndex(x => x.id === g.id)
+      if (idx >= 0) mockFile.groups[idx] = g
+      else mockFile.groups.push(g)
+    },
+    saveHintRule: (r: ToolHintRule) => {
+      const idx = mockFile.hintRules.findIndex(x => x.id === r.id)
+      if (idx >= 0) mockFile.hintRules[idx] = r
+      else mockFile.hintRules.push(r)
+    },
+    deleteTool: (id: string) => { mockFile.tools = mockFile.tools.filter(x => x.id !== id) },
+    deleteGroup: (id: string) => { mockFile.groups = mockFile.groups.filter(x => x.id !== id) },
+    deleteHintRule: (id: string) => { mockFile.hintRules = mockFile.hintRules.filter(x => x.id !== id) },
+    resetAll: () => { mockFile.tools = []; mockFile.groups = []; mockFile.hintRules = [] },
+    countCustom: () => ({ tools: mockFile.tools.length, groups: mockFile.groups.length, hintRules: mockFile.hintRules.length }),
+  },
+  migrateCustomRulesFromStore: () => ({ tools: 0, groups: 0, hintRules: 0 }),
 }))
 
 import { ToolManager } from '../toolManager'
@@ -66,10 +103,19 @@ function hintRule(over: Partial<ToolHintRule> & { id: string }): ToolHintRule {
   }
 }
 
-/** 新建一个从给定初始数据启动的 ToolManager，隔离 store */
+/** 新建一个从给定初始数据启动的 ToolManager，隔离 store 与文件 */
 function fresh(initial?: Partial<ToolManagementStore>): ToolManager {
+  // 重置文件目录替身
+  mockFile.tools = []
+  mockFile.groups = []
+  mockFile.hintRules = []
   const empty: ToolManagementStore = { tools: [], groups: [], hintRules: [] }
-  mockStore.data = { toolManagement: { ...empty, ...(initial ?? {}) } }
+  const init = { ...empty, ...(initial ?? {}) }
+  // 只把「非内置」实体写入文件（文件层只存自定义）
+  for (const t of init.tools || []) if (!t.builtin) mockFile.tools.push(t)
+  for (const g of init.groups || []) if (!g.builtin) mockFile.groups.push(g)
+  for (const r of init.hintRules || []) if (!r.builtin) mockFile.hintRules.push(r)
+  mockStore.data = { toolManagement: { tools: init.tools, groups: init.groups, hintRules: init.hintRules } }
   return new ToolManager()
 }
 
@@ -164,9 +210,10 @@ describe('ToolManager — 提示规则', () => {
     const r = m.addHintRule(hintRule({ id: 'want-id', name: '搜索', patterns: ['查看'], groupIds: ['file-system'] }))
     // ToolManager.addHintRule 会重新生成 rule- 前缀 id
     expect(r.id.startsWith('rule-')).toBe(true)
-    expect(m.getAllHintRules()).toHaveLength(1)
+    // 名单含内置规则（来自默认模板），至少包含新增的自定义规则
+    expect(m.getHintRule(r.id)).toBeDefined()
     expect(m.removeHintRule(r.id)).toBe(true)
-    expect(m.getAllHintRules()).toHaveLength(0)
+    expect(m.getHintRule(r.id)).toBeUndefined()
   })
 
   it('matchHintRules 命中模式返回匹配分组，按优先级排序、去重、过滤 disabled', () => {

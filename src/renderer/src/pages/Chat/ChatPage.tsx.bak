@@ -401,16 +401,8 @@ function mergeTools(a: ParsedTool[], b: ParsedTool[]): ParsedTool[] {
   const seen = new Set<string>()
   const merged: ParsedTool[] = []
   for (const tool of [...a, ...b]) {
-    // 按「工具名 + 参数」去重：同一调用在流式增量与 done 终态会各出现一次，
-    // 需要合并；而同名不同参数的多次调用（如连续两次 write_file）必须都保留。
-    // 参数不可序列化或为空时退化为按名字 + 序号占位，避免把它们误并成一条。
-    let argKey: string
-    try {
-      argKey = JSON.stringify(tool.arguments ?? {})
-    } catch {
-      argKey = `#${merged.length}`
-    }
-    const key = `${tool.name}\u0000${argKey}`
+    // 只按工具名去重，避免「同名不同参数」的多次调用在流式与 done 合并时被误丢一次。
+    const key = tool.name
     if (!seen.has(key)) {
       seen.add(key)
       merged.push(tool)
@@ -990,17 +982,11 @@ export function ChatPage() {
       if (idx < 0) return prev
       const next = [...prev]
       const cur = next[idx] as Message
-      // 同步累积到 ref：done 事件要拿它和终态解析结果合并，
-      // 只在 setMessages 里累积会让 ref 恒为空，导致终态覆盖掉流式已识别的工具。
-      const merged = parsedTools.length > 0
-        ? mergeTools(streamingToolsRef.current, parsedTools)
-        : streamingToolsRef.current
-      streamingToolsRef.current = merged
       next[idx] = {
         ...cur,
         content: (cur.content || '') + buf,
         reasoning_content: streamingReasoningRef.current || cur.reasoning_content || '',
-        tool_calls: merged,
+        tool_calls: parsedTools.length > 0 ? mergeTools(cur.tool_calls || [], parsedTools) : (cur.tool_calls || []),
       }
       return next
     })

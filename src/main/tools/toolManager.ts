@@ -7,12 +7,9 @@
 
 import type { ToolDefinition, ToolGroup, ToolHintRule, ToolManagementStore } from './types'
 import { commandRegistry } from '../../engine/commands/registry'
-import { storeManager } from '../store/store'
+import { toolFileStore, migrateCustomRulesFromStore } from './toolFileStore'
 import { join } from 'path'
 import { readFileSync, existsSync } from 'node:fs'
-import { app } from 'electron'
-
-const STORE_KEY = 'toolManagement'
 
 // 从默认数据文件加载内置分组
 function loadDefaultGroups(): ToolGroup[] {
@@ -88,11 +85,34 @@ export class ToolManager {
   // ==================== 内部方法 ====================
 
   private loadStore(): ToolManagementStore {
-    const raw = storeManager.getConfig()[STORE_KEY]
-    if (raw && typeof raw === 'object') {
-      return this.normalizeStore(raw as ToolManagementStore)
+    // 文件化主存储：自定义（builtin=false）实体从 tools/groups/hintRules 目录读取，
+    // 内置实体来自 default-data.json 模板 + commandRegistry 同步。
+    const base = this.createDefaultStore()
+    // 首次启动时把 electron-store 里遗留的自定义数据迁移到文件目录
+    try { migrateCustomRulesFromStore() } catch { /* 迁移失败不阻塞 */ }
+
+    const customTools = toolFileStore.listTools()
+    const customGroups = toolFileStore.listGroups()
+    const customRules = toolFileStore.listHintRules()
+
+    // 内存 store = 内置(默认) + 自定义(文件)。自定义按 id 覆盖内置同名（编辑内置工具即覆盖）。
+    const toolMap = new Map<string, ToolDefinition>()
+    for (const t of base.tools) toolMap.set(t.id, t)
+    for (const t of customTools) toolMap.set(t.id, t)
+    const groups = [...base.groups]
+    for (const g of customGroups) {
+      const idx = groups.findIndex(x => x.id === g.id)
+      if (idx >= 0) groups[idx] = g
+      else groups.push(g)
     }
-    return this.createDefaultStore()
+    const rules = [...base.hintRules]
+    for (const r of customRules) {
+      const idx = rules.findIndex(x => x.id === r.id)
+      if (idx >= 0) rules[idx] = r
+      else rules.push(r)
+    }
+
+    return this.normalizeStore({ tools: [...toolMap.values()], groups, hintRules: rules })
   }
 
   /**
@@ -130,8 +150,17 @@ export class ToolManager {
 
   private saveStore(): void {
     try {
-      const config = storeManager.getConfig()
-      storeManager.updateConfig({ [STORE_KEY]: this.store } as Record<string, unknown>)
+      // 文件化主存储：只对「非内置」实体写文件（builtin 来自模板，不落盘）。
+      for (const t of this.store.tools) if (!t.builtin) toolFileStore.saveTool(t)
+      for (const g of this.store.groups) if (!g.builtin) toolFileStore.saveGroup(g)
+      for (const r of this.store.hintRules) if (!r.builtin) toolFileStore.saveHintRule(r)
+      // 清理磁盘上已不存在的自定义文件（删除/移出等导致的内存空位）
+      const toolIds = new Set(this.store.tools.filter(t => !t.builtin).map(t => t.id))
+      const groupIds = new Set(this.store.groups.filter(g => !g.builtin).map(g => g.id))
+      const ruleIds = new Set(this.store.hintRules.filter(r => !r.builtin).map(r => r.id))
+      for (const id of toolFileStore.listTools().map(t => t.id)) if (!toolIds.has(id)) toolFileStore.deleteTool(id)
+      for (const id of toolFileStore.listGroups().map(g => g.id)) if (!groupIds.has(id)) toolFileStore.deleteGroup(id)
+      for (const id of toolFileStore.listHintRules().map(r => r.id)) if (!ruleIds.has(id)) toolFileStore.deleteHintRule(id)
     } catch { /* ignore */ }
   }
 
@@ -402,11 +431,12 @@ export class ToolManager {
   }
 
   /**
-   * 重置为默认
+   * 重置为默认（清空所有自定义工具/分组/规则，恢复到内置模板）
    */
   resetToDefault(): void {
     this.store = this.createDefaultStore()
-    this.saveStore()
+    // 清空文件目录里的自定义实体，只保留内置模板
+    toolFileStore.resetAll()
   }
 }
 
