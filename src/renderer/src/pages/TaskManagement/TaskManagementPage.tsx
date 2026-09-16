@@ -249,7 +249,7 @@ export function TaskManagement() {
     setTitle(task.title)
     setDescription(task.description)
     setPriority(task.priority)
-    setTagsText(task.tags.join(', '))
+    setTagsText(Array.isArray(task.tags) ? task.tags.join(', ') : '')
     setAssignee(task.assignee || '')
     setDueDate(task.dueAt ? new Date(task.dueAt).toISOString().split('T')[0] : '')
     setDialogOpen(true)
@@ -444,7 +444,7 @@ export function TaskManagement() {
                     </span>
                   )}
                 </div>
-                {task.tags.length > 0 && (
+                {Array.isArray(task.tags) && task.tags.length > 0 && (
                   <div className="flex gap-1 mt-2">
                     {task.tags.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)}
                   </div>

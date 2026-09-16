@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import { getAllTasks, updateTask } from './tasksService'
+import { tasksService } from './tasksService'
 
 const CHECK_INTERVAL_MS = 15_000
 
@@ -21,7 +21,7 @@ export class TaskScheduler {
 
   private async checkScheduledTasks(): Promise<void> {
     try {
-      const tasks = getAllTasks()
+      const tasks = tasksService.getAll()
       const now = Date.now()
       for (const task of tasks) {
         if (task.autoExecute && task.scheduledAt && !task.scheduledAtExecuted) {
@@ -37,7 +37,7 @@ export class TaskScheduler {
 
   private async executeTask(id: string): Promise<void> {
     try {
-      await updateTask(id, { status: 'in_progress', scheduledAtExecuted: true })
+      await tasksService.update(id, { status: 'in_progress', scheduledAtExecuted: true })
       this.mainWindow?.webContents.send('tasks:autoExecuted', { id })
     } catch (e) {
       console.error('[TaskScheduler] execute failed:', e)
