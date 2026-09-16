@@ -11,6 +11,7 @@ import { RequestBuilder, type ToolDefinition } from "./requestBuilder.ts";
 import { ResponseHandler } from "./responseHandler.ts";
 import { ToolScheduler, type PermissionManager, type ToolExecutor, type Tool } from "./toolScheduler.ts";
 import { TokenBudgetManager } from "./tokenBudgetManager.ts";
+import type { AgentLoopConfig } from "./loopConfig.ts";
 import { AutoCompactor } from "./autoCompactor.ts";
 import { ErrorClassifier } from "./errors/classifier.ts";
 import { RetryHandler } from "./errors/retryHandler.ts";
@@ -78,6 +79,8 @@ export interface EngineOptions {
   hookManager?: import("./hooks/hookManager.js").HookManager;
   /** 自动继续配置：由配置决定是否在特定场景自动注入「继续」。默认关闭 */
   autoContinue?: AutoContinueConfig;
+  /** 循环控制参数（轮数上限、连续失败阈值等）；缺省用默认值 */
+  agentLoop?: AgentLoopConfig;
   /** 技能分��配置（吸收自 CLI 版）：工具分类和技能列表 */
   skills?: Array<{ name: string; description: string; category?: string }>;
   /** 智能体配置（吸收自 CLI 版）：主智能体列表 */
@@ -270,6 +273,7 @@ export class QueryEngine {
       harness: opts.harness,
       hookManager: opts.hookManager,
       autoContinue: opts.autoContinue,
+      loopLimits: opts.agentLoop,
     };
     this.messageLoop = new MessageLoop(deps);
 
@@ -455,6 +459,10 @@ export class QueryEngine {
       if (Number.isFinite(mo) && mo > 0) {
         this.tokenBudget.updateConfig({ maxOutputTokens: mo })
       }
+    }
+    // 循环参数热更新：改完设置立即生效，无需重启应用
+    if ('agentLoop' in updates) {
+      this.messageLoop.setLoopLimits(updates.agentLoop as AgentLoopConfig | void)
     }
   }
 

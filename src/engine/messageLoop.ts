@@ -18,6 +18,7 @@ import { AutoCompactor } from "./autoCompactor.ts";
 import { AutoFixLoop, type AutoFixLoopConfig } from "./autoFixLoop.ts";
 import { GitContextInjector, type GitContextConfig } from "./gitContext.ts";
 import { resolveToolName } from "./toolNameResolver";
+import { resolveLoopConfig, type AgentLoopConfig } from "./loopConfig.ts";
 
 export interface QueryResult {
   state: string;
@@ -83,10 +84,11 @@ export interface MessageLoopDeps {
   }>;
   harness?: HarnessConfig;
   acceptanceGate?: { check: () => Promise<{ allRequiredPass: boolean }> };
+  /** 循环控制参数（轮数上限、连续失败阈值等），缺省用默认值 */
+  loopLimits?: AgentLoopConfig;
 }
 
 export class MessageLoop {
-  private maxIterations = 100;
   private currentIteration = 0;
   private consecutiveToolFailures = 0;
   private consecutiveMaxTokens = 0;
@@ -96,10 +98,11 @@ export class MessageLoop {
   private autoContinueCount = 0;
   /** 近期各轮的「有效工具签名集合」（名称:参数JSON，排序后）。用于检测模型是否陷入重复工具循环。 */
   private toolSignatureHistory: string[] = [];
-  /** 连续几轮工具签名与上一轮完全相同（无进展的死循环）即切断 */
-  private static readonly TOOL_LOOP_THRESHOLD = 2;
+  /** 循环控制参数 —— 由 deps.loopLimits 注入，缺省回落到默认值 */
+  private limits: Required<AgentLoopConfig>;
 
   constructor(private deps: MessageLoopDeps) {
+    this.limits = resolveLoopConfig(this.deps.loopLimits)
     if (!this.deps.onEvent) {
       this.deps.onEvent = () => {}
     }
@@ -115,6 +118,19 @@ export class MessageLoop {
     if (this.deps.gitContext?.enabled) {
       this.gitContext = new GitContextInjector(this.deps.gitContext)
     }
+  }
+
+  /**
+   * 更新循环控制参数（设置界面改完即可生效，无需重启）。
+   * 传入空值时回落到默认值。
+   */
+  setLoopLimits(limits?: AgentLoopConfig | null): void {
+    this.limits = resolveLoopConfig(limits)
+  }
+
+  /** 当前生效的循环控制参数（供 UI 回显与诊断） */
+  getLoopLimits(): Required<AgentLoopConfig> {
+    return { ...this.limits }
   }
 
   resetAutoFixLoop(): void {
@@ -142,7 +158,7 @@ export class MessageLoop {
     const start = Date.now();
     while (this.deps.stateMachine.canContinue()) {
       this.currentIteration++;
-      if (this.currentIteration > this.maxIterations) {
+      if (this.currentIteration > this.limits.maxIterations) {
         await this.deps.stateMachine.transition("crashed", { reason: "超过最大迭代次数" });
         break;
       }
@@ -150,7 +166,7 @@ export class MessageLoop {
       try {
         const shouldContinue = await this.runIteration();
         const ts = new Date().toLocaleTimeString('zh-CN', { hour12: false })
-        console.log(`[${ts}] [LOOP] iter=${this.currentIteration}/${this.maxIterations} shouldContinue=${shouldContinue} state=${this.deps.stateMachine.state}`)
+        console.log(`[${ts}] [LOOP] iter=${this.currentIteration}/${this.limits.maxIterations} shouldContinue=${shouldContinue} state=${this.deps.stateMachine.state}`)
         if (!shouldContinue) {
           if (this.deps.acceptanceGate) {
             const gateResult = await this.deps.acceptanceGate.check()
@@ -312,7 +328,7 @@ export class MessageLoop {
           role: "system",
           content: "Previous tool calls were invalid. Please answer directly without using tools.",
         } as InternalMessage);
-        if (this.consecutiveToolFailures >= 2) {
+        if (this.consecutiveToolFailures >= this.limits.maxInvalidToolCalls) {
           engineLog('WARN', 'Too many consecutive invalid tool calls, stopping');
           return false;
         }
@@ -326,10 +342,11 @@ export class MessageLoop {
         .join('|')
       const prevSig = this.toolSignatureHistory[this.toolSignatureHistory.length - 1] ?? ''
       this.toolSignatureHistory.push(sigNow)
+      if (this.toolSignatureHistory.length > 50) this.toolSignatureHistory.shift()
       // 跨轮死循环检测：模型反复发出与上一轮完全相同的工具签名（且上轮已喂回过工具结果），
       // 说明模型无视结果陷入重复请求。此时不再执行/回喂，把循环信息作为系统消息反馈并终止本轮，
       // 避免无限重复同一工具调用（用户观察到的「死循环」）。
-      if (prevSig && prevSig === sigNow && this.toolSignatureHistory.length >= 2) {
+      if (prevSig && prevSig === sigNow && this.toolSignatureHistory.length >= this.limits.toolLoopThreshold) {
         engineLog('LOOP_GUARD', `模型重复请求完全相同工具调用（${sigNow}），切断工具循环`);
         this.deps.conversation.messages.push({
           role: "system",
@@ -384,7 +401,7 @@ export class MessageLoop {
         this.consecutiveToolFailures = 0;
       }
 
-      if (this.consecutiveToolFailures >= 3) {
+      if (this.consecutiveToolFailures >= this.limits.maxToolFailures) {
         engineLog('WARN', 'Too many consecutive tool failures, stopping tool loop');
         this.deps.conversation.messages.push({
           role: "system",
@@ -432,7 +449,7 @@ export class MessageLoop {
     if (processed.stopReason === "end_turn") return false;
     if (processed.stopReason === "max_tokens") {
       this.consecutiveMaxTokens++;
-      if (this.consecutiveMaxTokens >= 3) {
+      if (this.consecutiveMaxTokens >= this.limits.maxConsecutiveMaxTokens) {
         const ts2 = new Date().toLocaleTimeString('zh-CN', { hour12: false })
         console.log(`[${ts2}] [LOOP] consecutive max_tokens reached ${this.consecutiveMaxTokens}, stopping loop`)
         this.consecutiveMaxTokens = 0
@@ -470,7 +487,8 @@ export class MessageLoop {
 
     const ac = this.deps as MessageLoopDeps & { autoContinue?: AutoContinueConfig }
     const acEnabled = ac.autoContinue?.enabled ?? false
-    const acLeft = ac.autoContinue?.maxCount ?? 5
+    // 优先用显式配置的 maxCount，未配置时回落到 loopLimits
+    const acLeft = ac.autoContinue?.maxCount ?? this.limits.autoContinueMaxCount
     if (acEnabled && this.autoContinueCount < acLeft) {
       const acReadSearch = ac.autoContinue?.readSearch ?? true
       if (acReadSearch && hadReadOrSearch && processed.toolCalls.length === 0) {
@@ -482,12 +500,12 @@ export class MessageLoop {
       const acKeyword = ac.autoContinue?.continueKeyword ?? false
       const content = typeof processed.content === 'string' ? processed.content : '';
       if (acKeyword && content && /是否继续|是否需要|是否同意|需要我|继续吗|确认一下/.test(content)) {
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, this.limits.autoContinueDelayMs));
         this.deps.conversation.messages.push({
           role: 'user',
           content: '继续',
         } as InternalMessage);
-        engineLog('AUTO_CONTINUE', '检测到"是否继续"关键词，3秒后自动发送"继续"');
+        engineLog('AUTO_CONTINUE', `检测到"是否继续"关键词，${this.limits.autoContinueDelayMs}ms 后自动发送"继续"`);
         this.autoContinueCount++
         return true;
       }

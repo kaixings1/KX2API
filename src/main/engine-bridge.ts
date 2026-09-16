@@ -21,6 +21,7 @@ import { toolCollection } from './proxy/tools/toolCollection'
 import { toolPluginRegistry, type ToolPlugin } from '../engine/plugin/toolPluginRegistry.ts'
 import { allLegacyToolPlugins, coreToolPlugins, advancedToolPlugins } from '../engine/plugin/legacyToolPlugins.ts'
 import { ConfigManager } from './store/config'
+import type { AgentLoopConfig } from '../engine/loopConfig'
 import { sendMessageStream, type ApiConfig } from '../engine/api/client.ts'
 
 /** 注册并加载启用的旧版工具插件，返回工具 Map */
@@ -133,6 +134,21 @@ export function mergeApiSettings(
 /** 读取当前生效的 API 连接参数（供 UI / 日志排查用） */
 export function getEngineApiSettings(): ApiSettings {
   return { ...lastApiSettings }
+}
+
+/**
+ * 从配置读取 Agent 循环控制参数。
+ *
+ * 这些值原先硬编码在 messageLoop.ts 内，现由用户在设置界面调整。
+ * 读取失败或未配置时返回空值，由引擎回落到默认值（行为与改造前一致）。
+ */
+export function readAgentLoopConfig(): AgentLoopConfig | void {
+  try {
+    const cfg = ConfigManager.get() as { agentLoop?: AgentLoopConfig } | void
+    return cfg?.agentLoop
+  } catch {
+    return void 0
+  }
 }
 
 /**
@@ -533,6 +549,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         agents,
         subagents,
         tools: commandTools,
+        agentLoop: readAgentLoopConfig(),
       }
       engine = new QueryEngine(opts)
       console.log('[EngineBridge] Active profile:', active.name, 'provider:', opts.provider, 'baseUrl:', active.baseUrl, 'model:', opts.model)
@@ -562,6 +579,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         agents,
         subagents,
         tools: commandTools,
+        agentLoop: readAgentLoopConfig(),
       })
       console.log('[EngineBridge] No active profile, using defaults')
 
@@ -614,6 +632,8 @@ export function updateEngineApiClient(opts: {
     provider: provider as 'openai' | 'anthropic',
     model,
     ...(systemPrompt ? { systemPrompt } : {}),
+    // 循环参数允许热更新：设置界面改完立即生效，无需重启
+    agentLoop: readAgentLoopConfig(),
   })
   eng.setApiClient({
     sendMessage: createApiClientStream(provider, apiKey, model, baseUrl),

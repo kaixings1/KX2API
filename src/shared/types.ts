@@ -34,6 +34,7 @@ import type {
   LegacyToolPromptConfig,
   ToolCallingConfig,
 } from './toolCalling'
+import type { AgentLoopConfig } from '../engine/loopConfig'
 
 export type {
   LegacyToolPromptConfig,
@@ -107,6 +108,8 @@ export interface AppConfig {
   requestLogConfig: RequestLogConfig
   requestTimeout: number
   retryCount: number
+  /** Agent 引擎循环控制参数（此前为硬编码常量，现可配置） */
+  agentLoop?: AgentLoopConfig
   apiKeys: ApiKey[]
   enableApiKey: boolean
   /** 当前生效的工具组 id（空数组 = 全局组，发送所有已启用的工具） */

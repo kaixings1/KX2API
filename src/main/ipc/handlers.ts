@@ -1662,6 +1662,21 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       }
     }
 
+    // 循环控制参数热更新：改完设置立即生效，无需重启应用。
+    // 与工具组同理 —— 引擎侧已持有实例，直接推给它即可。
+    if (updates && 'agentLoop' in updates) {
+      try {
+        const { getEngineInstance } = await import('../engine-bridge.ts')
+        const eng = getEngineInstance()
+        if (eng) {
+          eng.updateConfig({ agentLoop: (updates as { agentLoop?: unknown }).agentLoop })
+          console.log('[EngineBridge] 循环控制参数已热更新:', JSON.stringify(updates.agentLoop))
+        }
+      } catch (e) {
+        console.warn('[EngineBridge] 同步循环参数失败:', (e as Error).message)
+      }
+    }
+
     BrowserWindow.getAllWindows().forEach((win) => {
       if (!win.isDestroyed()) {
         win.webContents.send(IpcChannels.CONFIG_CHANGED, newConfig)
