@@ -156,9 +156,16 @@ export class ResponseHandler {
 
   private checkNeedsUserInput(content: unknown, toolCalls: ToolCall[]): boolean {
     if (toolCalls.some((c) => c.requiresAuthorization)) return true;
-    if (typeof content === "string") {
-      return /\b(请问|是否|确认|继续|要吗|吗\?)\b/.test(content);
-    }
-    return false;
+    if (typeof content !== "string") return false;
+    const text = content.trim();
+    if (!text) return false;
+    // 双重收紧，避免把普通答复误判成「在等用户回答」：
+    // 1. 必须是收尾提问（以问号结尾）。原实现用 \b 做锚定，但中文不属于 \w，
+    //    词边界对 CJK 完全失效，等于无锚定的全文匹配。
+    // 2. 且末段必须出现明确的征询措辞。像「继续」「确认」这类词在正常正文里
+    //    极其常见（"接下来继续修改…"），命中即判会让引擎误以为在等用户输入。
+    if (!/[？?]\s*$/.test(text)) return false;
+    const tail = text.slice(-80);
+    return /(请问|请确认|是否(要|需要|继续|可以)|需要我|要我|确认后|可以吗|要吗|好吗)/.test(tail);
   }
 }

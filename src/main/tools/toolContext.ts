@@ -19,6 +19,7 @@ import type { ToolDefinition, ToolGroup } from './types'
 import { flattenLabels, normalizeToolLabels } from './toolLabels'
 import { getActiveTools, touchTool } from './toolMetaTools'
 import { isCoreTool } from './toolRoles'
+import { estimateTokensWithCjk } from '../../engine/token-counter/index.ts'
 
 /** 三层协议开关（环境变量 KX2_TOOL_CONTEXT=layered 开启） */
 export const TOOL_CONTEXT_ENV = 'KX2_TOOL_CONTEXT'
@@ -34,16 +35,12 @@ export function useLayeredContext(env: Record<string, string | undefined> = proc
 /**
  * 粗略 token 估算：中文按 ~1.5 字/token，ASCII 按 ~4 字符/token。
  * 用于预算控制，不追求精确（真正的计数由上游 API 返回的 usage 校准）。
+ *
+ * 实现统一收敛到 engine/token-counter，避免同一仓库内出现多份
+ * 口径不一的估算（历史上这里是第二份实现）。
  */
 export function estimateTokens(text: string): number {
-  if (!text) return 0
-  let cjk = 0
-  let other = 0
-  for (const ch of text) {
-    if (/[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/.test(ch)) cjk++
-    else other++
-  }
-  return Math.ceil(cjk / 1.5 + other / 4)
+  return estimateTokensWithCjk(text)
 }
 
 /** 单个工具 schema 的 token 成本 */

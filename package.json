@@ -24,6 +24,7 @@
     "test:unit:watch": "vitest",
     "test:unit:coverage": "vitest run --coverage",
     "test:extras": "node tests/run-all.mjs",
+    "typecheck": "tsc -p tsconfig.check.json --noEmit",
     "check:integration": "node scripts/check-integration.mjs",
     "check:repo": "node scripts/check-repo.mjs"
   },

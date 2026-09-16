@@ -1203,6 +1203,64 @@ const electronAPI = {
       return () => ipcRenderer.removeListener(IpcChannels.CHAT_STREAM_REASONING, handler)
     },
 
+    /**
+     * 工具调用开始（结构化 tool_use 块）。
+     * 主进程 chat-handlers.ts 一直在发送该事件，但此前 preload 未暴露订阅方法，
+     * 导致渲染层只能从正文里"猜"工具调用，结构化工具块对 UI 完全不可见。
+     */
+    onStreamToolStart: (
+      callback: (data: {
+        requestId: string
+        toolUseId: string
+        toolName: string
+        input?: Record<string, unknown>
+      }) => void,
+    ): (() => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        data: { requestId: string; toolUseId: string; toolName: string; input?: Record<string, unknown> },
+      ) => callback(data)
+      ipcRenderer.on(IpcChannels.CHAT_STREAM_TOOL_START, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.CHAT_STREAM_TOOL_START, handler)
+    },
+
+    /** 工具执行结果（成功/失败 + 输出/错误） */
+    onStreamToolResult: (
+      callback: (data: {
+        requestId: string
+        toolUseId: string
+        toolName: string
+        success: boolean
+        output?: string
+        error?: string
+      }) => void,
+    ): (() => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        data: { requestId: string; toolUseId: string; toolName: string; success: boolean; output?: string; error?: string },
+      ) => callback(data)
+      ipcRenderer.on(IpcChannels.CHAT_STREAM_TOOL_RESULT, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.CHAT_STREAM_TOOL_RESULT, handler)
+    },
+
+    /** 引擎请求用户确认（权限/澄清），此前同样未暴露 */
+    onStreamNeedsUser: (
+      callback: (data: { requestId: string; prompt?: string }) => void,
+    ): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: { requestId: string; prompt?: string }) => callback(data)
+      ipcRenderer.on(IpcChannels.CHAT_STREAM_NEEDS_USER, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.CHAT_STREAM_NEEDS_USER, handler)
+    },
+
+    /** 本轮请求被中断，渲染层需要据此复位 streaming 状态 */
+    onStreamAborted: (
+      callback: (data: { requestId: string }) => void,
+    ): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: { requestId: string }) => callback(data)
+      ipcRenderer.on(IpcChannels.CHAT_STREAM_ABORTED, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.CHAT_STREAM_ABORTED, handler)
+    },
+
     getHistory: (): Promise<{ messages: Array<{ role: string; content: string }> }> =>
       ipcRenderer.invoke('chat:getHistory'),
 

@@ -442,6 +442,20 @@ export class QueryEngine {
     if ('provider' in updates) { this.opts.provider = updates.provider as 'anthropic' | 'openai'; }
     if ('maxOutputTokens' in updates) { this.opts.maxOutputTokens = updates.maxOutputTokens as number; }
     if ('systemPrompt' in updates) { this.opts.systemPrompt = updates.systemPrompt as string; }
+    // 上下文窗口随模型变化，预算器必须同步，否则换到小窗口模型后
+    // 仍按默认 128k 判断"安全"，实际早已超出真实窗口。
+    if ('contextWindowTokens' in updates) {
+      const cw = Number(updates.contextWindowTokens)
+      if (Number.isFinite(cw) && cw > 0) {
+        this.tokenBudget.updateConfig({ maxContextTokens: cw })
+      }
+    }
+    if ('maxOutputTokens' in updates) {
+      const mo = Number(updates.maxOutputTokens)
+      if (Number.isFinite(mo) && mo > 0) {
+        this.tokenBudget.updateConfig({ maxOutputTokens: mo })
+      }
+    }
   }
 
   /** 构建增强版系统提示词（吸收 CLI 版完整能力） */

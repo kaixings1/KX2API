@@ -1327,6 +1327,81 @@ export function ChatPage() {
       ))
     })
 
+    // ─── 结构化工具事件 ───────────────────────────────────────────────────────
+    // 主进程 chat-handlers.ts 一直通过 CHAT_STREAM_TOOL_START / TOOL_RESULT 下发结构化
+    // tool_use 块，但此前 preload 未暴露订阅方法、渲染层也未订阅，导致模型以结构化
+    // 工具块（而非正文文本）下发调用时，UI 完全看不到工具执行过程。
+    // 这里按 toolUseId 维护一份权威列表，与正文解析出的工具调用在 done 阶段合并。
+    const liveToolsRef = new Map<string, ParsedTool>()
+    const syncStreamingTools = () => {
+      streamingToolsRef.current = Array.from(liveToolsRef.current.values())
+      setMessages(prev => prev.map(m =>
+        m.id === assistantId ? { ...m, tool_calls: streamingToolsRef.current.slice() } : m
+      ))
+    }
+
+    const cleanupToolStart = window.electronAPI.chat.onStreamToolStart(({ toolUseId, toolName, input }) => {
+      let args = '{}'
+      try {
+        args = JSON.stringify(input ?? {})
+      } catch {
+        args = '{}'
+      }
+      liveToolsRef.set(toolUseId || `tool_${Date.now()}`, {
+        id: toolUseId || `tool_${Date.now()}`,
+        name: toolName,
+        arguments: args,
+        rawText: '',
+      })
+      syncStreamingTools()
+    })
+
+    const cleanupToolResult = window.electronAPI.chat.onStreamToolResult(({ toolUseId, toolName, success, output, error }) => {
+      const existing = liveToolsRef.get(toolUseId)
+      const resultText = success ? (output ?? '') : `[失败] ${error ?? output ?? ''}`
+      if (existing) {
+        // 原地更新：同一 toolUseId 的结果回填（不能走 mergeTools，它按 名称+参数 去重会丢弃更新）
+        liveToolsRef.set(toolUseId, { ...existing, rawText: resultText })
+      } else {
+        liveToolsRef.set(toolUseId || `tool_${Date.now()}`, {
+          id: toolUseId || `tool_${Date.now()}`,
+          name: toolName,
+          arguments: '{}',
+          rawText: resultText,
+        })
+      }
+      syncStreamingTools()
+    })
+
+    // 引擎请求用户确认：先把已缓冲的正文落盘，保持 streaming 态交由用户输入接管
+    const cleanupNeedsUser = window.electronAPI.chat.onStreamNeedsUser(() => {
+      if (flushTimerRef.current) {
+        clearTimeout(flushTimerRef.current)
+        flushTimerRef.current = null
+      }
+      flushStreamBuffer()
+    })
+
+    // 请求被中断：复位 streaming 状态，否则输入框会一直锁在流式中
+    const cleanupAborted = window.electronAPI.chat.onStreamAborted(() => {
+      if (flushTimerRef.current) {
+        clearTimeout(flushTimerRef.current)
+        flushTimerRef.current = null
+      }
+      flushStreamBuffer()
+      setIsStreaming(false)
+      streamStatusRef.current = 'idle'
+      streamingMsgIdRef.current = ''
+      cleanupChunk()
+      cleanupDone()
+      cleanupError()
+      cleanupReasoning()
+      cleanupToolStart()
+      cleanupToolResult()
+      cleanupNeedsUser()
+      cleanupAborted()
+    })
+
     const cleanupDone = window.electronAPI.chat.onStreamDone(({ content, toolOutput }) => {
       // Flush any remaining buffered content
       if (flushTimerRef.current) {
@@ -1369,6 +1444,10 @@ export function ChatPage() {
       cleanupDone()
       cleanupError()
       cleanupReasoning()
+      cleanupToolStart()
+      cleanupToolResult()
+      cleanupNeedsUser()
+      cleanupAborted()
     })
 
     const cleanupError = window.electronAPI.chat.onStreamError(({ error }) => {

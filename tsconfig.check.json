@@ -1,0 +1,37 @@
+{
+  "//": "独立类型检查配置。刻意不命名为 tsconfig.json —— electron-vite/esbuild 会读取根 tsconfig.json，贸然新增可能改变 main/preload 的解析行为（路径别名、jsx 等）。此文件只服务 `npm run typecheck`。",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/renderer/src/*"],
+      "@shared/*": ["src/shared/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "node_modules",
+    "out",
+    "release",
+    "legacy",
+    "**/__tests__/**",
+    "**/*.d.ts",
+    "**/*.js"
+  ]
+}

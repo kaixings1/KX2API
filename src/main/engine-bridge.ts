@@ -136,6 +136,21 @@ export function getEngineApiSettings(): ApiSettings {
 }
 
 /**
+ * 估算请求体的输入侧 token 数。
+ *
+ * sendMessageStream 不回传真实 usage，而 MessageLoop 依赖 usage 校准预算，
+ * 长期传 0 会让 TokenBudgetManager 完全失去真实基准。
+ * 这里按 4 字符/token 粗估（中文场景偏保守，宁可高估也不低估到无感）。
+ */
+function estimateRequestTokens(messages: Array<{ content: unknown }>): number {
+  let chars = 0
+  for (const m of messages) {
+    chars += typeof m.content === 'string' ? m.content.length : 0
+  }
+  return Math.ceil(chars / 4)
+}
+
+/**
  * 将 sendMessageStream 的回调式 SSE 流转换为 MessageLoop 所需的 AsyncIterable<unknown> 事件流
  */
 function createApiClientStream(
@@ -223,15 +238,32 @@ function createApiClientStream(
       console.warn('[EngineBridge] 工具组解析失败，回退为全局组:', (e as Error).message)
     }
 
-    // 把「本组可用工具」提示拼进 system 消息，让模型准确知道有哪些工具、怎么用
+    // 把「本组可用工具」提示 + 相关记忆拼进 system 消息，
+    // 让模型准确知道有哪些工具、怎么用，并复用此前沉淀的项目记忆。
     const messages = rawMessages.map(m => ({ ...m }))
-    if (toolHint) {
+
+    // 记忆召回（吸收自 Claude Code 的 memdir）：按最后一条用户消息检索相关记忆。
+    // 记忆属增强项，任何异常都静默降级为空，绝不阻断主请求。
+    let memorySection: string | null = null
+    try {
+      const lastUser = [...rawMessages].reverse().find(m => m.role === 'user')
+      const query = typeof lastUser?.content === 'string' ? lastUser.content : ''
+      if (query.trim()) {
+        const { buildMemoryPromptSection } = await import('../engine/memory/memoryRecall.ts')
+        memorySection = await buildMemoryPromptSection(query)
+      }
+    } catch (e) {
+      console.warn('[EngineBridge] memory recall skipped:', (e as Error).message)
+    }
+
+    const systemExtra = [toolHint, memorySection].filter(Boolean).join('\n\n')
+    if (systemExtra) {
       const sysIdx = messages.findIndex(m => m.role === 'system')
       if (sysIdx >= 0) {
         const base = typeof messages[sysIdx].content === 'string' ? messages[sysIdx].content as string : ''
-        messages[sysIdx] = { ...messages[sysIdx], content: base ? `${base}\n\n${toolHint}` : toolHint }
+        messages[sysIdx] = { ...messages[sysIdx], content: base ? `${base}\n\n${systemExtra}` : systemExtra }
       } else {
-        messages.unshift({ role: 'system', content: toolHint })
+        messages.unshift({ role: 'system', content: systemExtra })
       }
     }
 
@@ -332,7 +364,16 @@ function createApiClientStream(
           closeTextBlock()
           closeReasonBlock()
           pushEvent({ type: 'message_stop' })
-          pushEvent({ type: 'message_delta', stopReason: 'end_turn', usage: { inputTokens: 0, outputTokens: fullText.length } })
+          // message_delta 的 usage 会被 MessageLoop 记入 TokenBudgetManager。
+          // 恒为 0 会让预算器拿不到任何真实基准，只能长期依赖本地估算。
+          pushEvent({
+            type: 'message_delta',
+            stopReason: 'end_turn',
+            usage: {
+              inputTokens: estimateRequestTokens(messages),
+              outputTokens: Math.ceil(fullText.length / 4),
+            },
+          })
           signalEnd()
         },
         onError: (error: string) => {
@@ -353,7 +394,14 @@ function createApiClientStream(
         if (ended) return
         ended = true
         pushEvent({ type: 'message_stop' })
-        pushEvent({ type: 'message_delta', stopReason: 'end_turn', usage: { inputTokens: 0, outputTokens: fullText.length } })
+        pushEvent({
+          type: 'message_delta',
+          stopReason: 'end_turn',
+          usage: {
+            inputTokens: estimateRequestTokens(messages),
+            outputTokens: Math.ceil(fullText.length / 4),
+          },
+        })
         signalEnd()
       }
       try {

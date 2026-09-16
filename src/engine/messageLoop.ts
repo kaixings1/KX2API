@@ -131,7 +131,6 @@ export class MessageLoop {
     this.deps.onEvent({ type: 'iteration_start', iteration: 0 });
     this.resetAutoFixLoop()
     this.resetGitContext()
-    this.deps.tokenBudget.setToolDefinitions(this.deps.toolDefinitions);
     this.lastToolCalls = []
     this.autoContinueCount = 0
     this.toolSignatureHistory = []
@@ -195,6 +194,9 @@ export class MessageLoop {
   }
 
   private async runIteration(): Promise<boolean> {
+    // 工具定义由上层按请求注入（engine-bridge 会随工具组切换而变更），
+    // 必须在预算检查前同步，否则计量的是上一轮的工具集。
+    this.deps.tokenBudget.setToolDefinitions(this.deps.toolDefinitions);
     const budget = this.deps.tokenBudget.checkBudget(this.deps.conversation.messages);
     if (budget.shouldReject) throw new Error(`Token limit exceeded: ${budget.percentage * 100}%`);
     if (budget.shouldCompact && this.deps.autoCompactor) {
@@ -239,6 +241,20 @@ export class MessageLoop {
     engineLog('RESP', JSON.stringify(processed, null, 2).slice(0, 10000));
 
     let shouldContinue = await this._recordAssistantResponse(processed);
+
+    // 引擎在等待用户输入属于「终止性状态」：必须结束本轮循环，把控制权交回用户。
+    // 原实现让 _recordAssistantResponse 返回 true 继续下一轮，而中文正文里
+    // 「是否/继续/确认」这类词命中率极高，会导致空转直到 maxIterations(100) 才停。
+    // 同时事件只在此处发一次（此前本函数与 _recordAssistantResponse 各发一次，重复推送）。
+    if (processed.needsUserInput) {
+      this.deps.onEvent({ type: 'needs_user', prompt: processed.content as string });
+      this.deps.onEvent({
+        type: 'iteration_end',
+        iteration: this.currentIteration,
+        hasToolCalls: processed.toolCalls.length > 0,
+      });
+      return false;
+    }
 
     if (!shouldContinue && this.deps.acceptanceGate) {
       const gateResult = await this.deps.acceptanceGate.check()
@@ -474,8 +490,9 @@ export class MessageLoop {
       }
     }
 
+    // 这里只做「是否要继续」的决策，不在此发事件 ——
+    // needs_user 事件统一由 runIteration 发一次，否则同一轮会推送两次。
     if (processed.needsUserInput) {
-      this.deps.onEvent({ type: 'needs_user', prompt: processed.content as string });
       return true;
     }
 
