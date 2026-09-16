@@ -32,6 +32,15 @@ export class ResponseHandler {
   onChunk?: (chunk: { type: string; text?: string }) => void;
   onReasoning?: (text: string) => void;
 
+  /**
+   * 当前生效的工具名白名单。
+   *
+   * 纯文本工具调用修复必须以此为准 —— 仅靠「名字长得像命令」的形状校验，
+   * 会把接口文档/示例代码里的 `<name>get_user</name>`、`[tool:bash]` 也
+   * 当成工具调用，进而把这段正文整块剥离（内容静默消失，比误转换更隐蔽）。
+   */
+  allowedToolNames: ReadonlySet<string> | null = null
+
   async handle(stream: AsyncIterable<APIEvent>): Promise<ProcessedResponse> {
     const reqId = `rh-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
     console.log(`[RESP-HANDLER] handle START reqId=${reqId}`)
@@ -116,17 +125,47 @@ export class ResponseHandler {
         }
       };
 
-      // 情形 1：整段纯工具调用
-      const parsedBlocks = parsePlainTextToolCalls(fullContent);
-      if (parsedBlocks && parsedBlocks.length > 0) {
-        pushBlocks(parsedBlocks);
-        fullContent = "";
+      const allowed = this.allowedToolNames;
+      if (allowed && allowed.size === 0) {
+        // 白名单为空 = 本轮没有可用工具，不存在合法的纯文本工具调用，
+        // 一律不修复，原样保留正文（避免把文档示例当工具吞掉）。
+        console.log('[RESP-HANDLER] 生效工具集为空，跳过纯文本工具调用修复')
       } else {
-        // 情形 2：与正文混杂，逐行扫描提取工具块，并仅剥离工具块正文
-        const mixedBlocks = extractPlainTextToolCalls(fullContent);
-        if (mixedBlocks.length > 0) {
-          pushBlocks(mixedBlocks);
-          fullContent = stripPlainTextToolCalls(fullContent);
+        // 情形 1：整段纯工具调用
+        const parsedBlocks = parsePlainTextToolCalls(fullContent, allowed);
+        if (parsedBlocks && parsedBlocks.length > 0) {
+          // 清空正文前把原文样本写进日志，便于事后追查「答复为什么是空的」
+          console.log(
+            `[RESP-HANDLER] 整段判定为纯工具调用，清空正文 ${fullContent.length} 字符 → ${parsedBlocks.length} 个调用 | ` +
+            `原文样本: ${JSON.stringify(fullContent.slice(0, 300))}`,
+          )
+          pushBlocks(parsedBlocks);
+          fullContent = "";
+        } else {
+          // 情形 2：与正文混杂，仅剥离工具块、保留说明文字
+          const mixedBlocks = extractPlainTextToolCalls(fullContent, allowed);
+          if (mixedBlocks.length > 0) {
+            const stripped = stripPlainTextToolCalls(fullContent, allowed);
+            // 剥离占比过高说明剥离范围可疑（正常混杂场景正文应占大头）。
+            // 此时保留更保守的结果：只接受一次工具调用，正文用剥离后的内容；
+            // 若剥离后正文完全为空，则丢弃本次提取并保留原文 —— 宁可少执行一次
+            // 工具，也不能让用户看到空白答复。
+            if (!stripped.trim()) {
+              // 剥离后正文全空 → 判定为过宽剥离，本次不修复、原样保留正文
+              console.warn(
+                `[RESP-HANDLER] 剥离后正文为空（涉及 ${mixedBlocks.length} 个块），判定为过宽剥离，已回退保留原文`,
+              );
+            } else {
+              const removedRatio = 1 - stripped.length / Math.max(fullContent.length, 1);
+              if (removedRatio > 0.9) {
+                console.warn(
+                  `[RESP-HANDLER] 剥离占比 ${(removedRatio * 100).toFixed(1)}%，范围偏大，已记录待查`,
+                );
+              }
+              pushBlocks(mixedBlocks);
+              fullContent = stripped;
+            }
+          }
         }
       }
 

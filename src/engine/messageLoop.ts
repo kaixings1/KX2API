@@ -238,6 +238,11 @@ export class MessageLoop {
     engineLog('REQ', JSON.stringify(request, null, 2).slice(0, 5000));
 
     const stream = await this.deps.apiClient.sendMessage(request);
+    // 把本轮生效的工具名交给响应处理器：纯文本工具调用修复必须以真实工具集为准，
+    // 否则接口文档/示例代码里的 <name>xxx</name> 会被当成工具调用、把正文整块剥离。
+    this.deps.responseHandler.allowedToolNames = new Set(
+      this.deps.toolDefinitions.map(t => t.name),
+    );
     // 推理旁路透传：thinking 块不进 conversation/history，仅转发事件给上层
     this.deps.responseHandler.onReasoning = (text: string) => {
       if (this.deps.onEvent) this.deps.onEvent({ type: 'reasoning', text });

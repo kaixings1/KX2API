@@ -42,6 +42,36 @@ export function isPlausibleToolName(name: string): boolean {
 }
 
 /**
+ * 白名单校验：名字必须确实是**当前生效工具集**里的工具。
+ *
+ * 这是比形状校验强得多的守门 —— `isPlausibleToolName` 只保证"长得像命令"，
+ * 但接口文档里的 `<name>get_user</name>`、示例代码里的 `[tool:bash]` 同样
+ * "长得像命令"，仍会被误判为工具调用并把真实正文剥离掉（内容静默消失，
+ * 比误转换更隐蔽）。
+ *
+ * 未提供白名单时退回形状校验（保持向后兼容）。
+ */
+export function isAllowedToolName(
+  name: string,
+  allowedNames?: ReadonlySet<string> | null,
+): boolean {
+  if (!isPlausibleToolName(name)) return false
+  // 未提供白名单 → 退回形状校验（向后兼容既有调用方）
+  if (!allowedNames) return true
+  // 提供了但为空集 → 明确表示"本轮无任何可用工具"，此时不存在合法的工具调用，
+  // 一律拒绝。这与"未提供"是两种不同语义，不能合并处理。
+  if (allowedNames.size === 0) return false
+  const trimmed = name.trim()
+  if (allowedNames.has(trimmed)) return true
+  // 兼容带前缀/大小写差异的写法（如 mcp__fs__read 与 fs.read）
+  const lower = trimmed.toLowerCase()
+  for (const allowed of allowedNames) {
+    if (allowed.toLowerCase() === lower) return true
+  }
+  return false
+}
+
+/**
  * 明确的工具调用标签：只认这些标签，避免把 <toolResponse> 等正文标签误判为工具。
  * 同时兼容驼峰风格（toolName / toolCallId / functionCall）标签。
  */
@@ -182,21 +212,27 @@ function normalizeArgs(val: unknown): Record<string, unknown> {
 }
 
 /** 从一段文本中扫描所有 JSON 对象并尝试识别为工具调用 */
-function scanJsonObjects(text: string): PlainTextToolCallBlock[] {
+function scanJsonObjects(
+  text: string,
+  allowedNames?: ReadonlySet<string> | null,
+): PlainTextToolCallBlock[] {
   const blocks: PlainTextToolCallBlock[] = []
   for (let i = 0; i < text.length; i++) {
     if (text[i] !== '{') continue
     const found = readBalancedObject(text, i)
     if (!found) continue
     const block = extractToolFromObject(found.value)
-    if (block) blocks.push(block)
+    if (block && isAllowedToolName(block.name, allowedNames)) blocks.push(block)
     i = found.end - 1
   }
   return blocks
 }
 
 /** 收集明确 XML 标签中的工具调用（不限定外层包裹标签名，兼容 camelCase 与任意命名） */
-function collectTaggedTools(text: string): PlainTextToolCallBlock[] {
+function collectTaggedTools(
+  text: string,
+  allowedNames?: ReadonlySet<string> | null,
+): PlainTextToolCallBlock[] {
   const blocks: PlainTextToolCallBlock[] = []
   // 通用 XML 元素扫描：匹配任意 <tag...>...</tag>（允许嵌套与任意标签名）
   const ANY_XML_EL_RE = /<([a-zA-Z_][\w:\-]*)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi
@@ -210,7 +246,9 @@ function collectTaggedTools(text: string): PlainTextToolCallBlock[] {
     if (!name) continue
     // 误判保护：名字不是合法的命令标识符（如 <name>用户</name>、<tool>分析</tool>）
     // 则不认为是工具调用，避免把 AI 纯文本正文（接口文档/HTML 示例）当作工具吞掉。
-    if (!isPlausibleToolName(name)) continue
+    // 提供了白名单时进一步要求名字确实在生效工具集里，堵住"名字长得像命令但其实是
+    // 文档示例"的漏网情况。
+    if (!isAllowedToolName(name, allowedNames)) continue
     const argsTag = inner.match(TOOL_ARGS_SUBTAG_RE)
     // 进一步的误判保护：当工具名用的是通用标签（name / tool / fn，而非 toolName），
     // 必须同时存在 <arguments> 兄弟标签，否则极可能是文档里的 <name> 文本，不应视为工具。
@@ -232,14 +270,17 @@ function collectTaggedTools(text: string): PlainTextToolCallBlock[] {
 }
 
 /** 收集代码围栏内的 JSON 工具调用 */
-function collectFencedJson(text: string): PlainTextToolCallBlock[] {
+function collectFencedJson(
+  text: string,
+  allowedNames?: ReadonlySet<string> | null,
+): PlainTextToolCallBlock[] {
   const blocks: PlainTextToolCallBlock[] = []
   FENCED_RE.lastIndex = 0
   let m: RegExpExecArray | null
   while ((m = FENCED_RE.exec(text)) !== null) {
     const body = m[1]
     if (!body || !body.includes('{')) continue
-    for (const b of scanJsonObjects(body)) blocks.push(b)
+    for (const b of scanJsonObjects(body, allowedNames)) blocks.push(b)
   }
   return blocks
 }
@@ -277,7 +318,10 @@ function parseXmlArgs(inner: string): { value: Record<string, unknown>; ok: bool
  * 这是不少模型在 system prompt 学过 XML 工具协议后爱输出的形态。
  * 逐个 nudge：只要文本里出现 toolName/tool_name/name 且后随 arguments，就认定为一个工具。
  */
-function collectFlatXmlTools(text: string): PlainTextToolCallBlock[] {
+function collectFlatXmlTools(
+  text: string,
+  allowedNames?: ReadonlySet<string> | null,
+): PlainTextToolCallBlock[] {
   const blocks: PlainTextToolCallBlock[] = []
   // 匹配独立的 <toolName> / <tool_name> / <toolname> / <tool> / <fn> 及其后紧跟的 <arguments> 兄弟标签。
   // 关键：不匹配裸 <name>（极易与正文/文档里的 <name> 标签误判），只认带「工具」语义的标签。
@@ -289,8 +333,9 @@ function collectFlatXmlTools(text: string): PlainTextToolCallBlock[] {
     // 名称可能被包裹在其它标签里（如 <name><value>current_directory</value></name>），取最后一段文本
     const name = rawName.replace(/<[^>]*>/g, '').trim()
     if (!name) continue
-    // 误判保护：非法命令标识符（含空格/中文/纯数字等）不认定，保护正文
-    if (!isPlausibleToolName(name)) continue
+    // 误判保护：非法命令标识符（含空格/中文/纯数字等）不认定，保护正文；
+    // 提供白名单时还要求名字在生效工具集内
+    if (!isAllowedToolName(name, allowedNames)) continue
     const trailing = m[3] || ''
     // 在该 name 标签之后找 <arguments>...</arguments>
     const argsM = trailing.match(/<arguments?\b[^>]*>([\s\S]*?)<\/arguments?\b[^>]*>/i)
@@ -315,17 +360,20 @@ function collectFlatXmlTools(text: string): PlainTextToolCallBlock[] {
  * 支持：代码围栏内的 JSON 请求包、纯 JSON、明确标签包裹的 XML/JSON。
  * 仅当文本基本整段都是工具调用时才返回结果，否则返回 null 交由 extract 处理。
  */
-export function parsePlainTextToolCalls(text: string): PlainTextToolCallBlock[] | null {
+export function parsePlainTextToolCalls(
+  text: string,
+  allowedNames?: ReadonlySet<string> | null,
+): PlainTextToolCallBlock[] | null {
   if (!text || typeof text !== 'string') return null
 
-  const tagged = collectTaggedTools(text)
+  const tagged = collectTaggedTools(text, allowedNames)
   if (tagged.length > 0) return tagged
 
   // 扁平 XML 工具调用（无外层包裹、camelCase 子标签）
-  const flatXml = collectFlatXmlTools(text)
+  const flatXml = collectFlatXmlTools(text, allowedNames)
   if (flatXml.length > 0) return flatXml
 
-  const jsonBlocks = scanJsonObjects(text)
+  const jsonBlocks = scanJsonObjects(text, allowedNames)
   if (jsonBlocks.length > 0) {
     const coverage = JSON.stringify(jsonBlocks).length / Math.max(text.length, 1)
     if (coverage > 0.3) return jsonBlocks
@@ -338,19 +386,22 @@ export function parsePlainTextToolCalls(text: string): PlainTextToolCallBlock[] 
  * 从混合文本中提取工具调用块。
  * 返回文本中所有可识别的工具调用。
  */
-export function extractPlainTextToolCalls(text: string): PlainTextToolCallBlock[] {
+export function extractPlainTextToolCalls(
+  text: string,
+  allowedNames?: ReadonlySet<string> | null,
+): PlainTextToolCallBlock[] {
   if (!text || typeof text !== 'string') return []
 
-  const tagged = collectTaggedTools(text)
+  const tagged = collectTaggedTools(text, allowedNames)
   if (tagged.length > 0) return tagged
 
-  const flatXml = collectFlatXmlTools(text)
+  const flatXml = collectFlatXmlTools(text, allowedNames)
   if (flatXml.length > 0) return flatXml
 
-  const fenced = collectFencedJson(text)
+  const fenced = collectFencedJson(text, allowedNames)
   if (fenced.length > 0) return fenced
 
-  return scanJsonObjects(text)
+  return scanJsonObjects(text, allowedNames)
 }
 
 /** 响应包标识：#### 响应包 / ###响应包 / 响应包： 等变体 */
@@ -360,25 +411,38 @@ const RESPONSE_SECTION_RE = /(?:#{2,6}\s*)?响应包\s*[:：]?\s*$/i
  * 从文本中剥离工具调用块，返回清理后的纯文本内容。
  * 工具调用（请求包）整段移除；响应包数据折叠为占位符，避免正文过长。
  */
-export function stripPlainTextToolCalls(text: string): string {
+export function stripPlainTextToolCalls(
+  text: string,
+  allowedNames?: ReadonlySet<string> | null,
+): string {
   if (!text || typeof text !== 'string') return ''
 
   // 剥离「含工具名声明的任意 XML 元素」：兼容 <toolCall> / <ToolCall> / <tool_call> 及扁平形态。
-  // 用回调扫描通用 XML 元素，凡内里出现 toolName/tool_name/name 子标签即整段移除。
+  //
+  // ⚠️ 这是数据丢失风险最高的一处：正则匹配「任意标签名」，只要内里出现
+  // <name>...</name> 就整段移除。接口文档/HTML 示例里的
+  // `<response><name>用户</name></response>` 会因此被静默删掉。
+  // 提供白名单时，只有名字确实命中生效工具集才剥离；未提供时保持原行为。
   let cleaned = text
   const STRIP_XML_EL_RE = /<([a-zA-Z_][\w:\-]*)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi
   cleaned = cleaned.replace(STRIP_XML_EL_RE, (full: string, _tag: string, inner: string) => {
-    if (TOOL_NAME_SUBTAG_RE.test(inner)) return ''
-    return full
+    const nameTag = inner.match(TOOL_NAME_SUBTAG_RE)
+    if (!nameTag) return full
+    if (!allowedNames || allowedNames.size === 0) return ''
+    const name = nameTag[1].replace(/<[^>]*>/g, '').trim()
+    return isAllowedToolName(name, allowedNames) ? '' : full
   })
 
   // 剥离扁平 XML 工具调用（无外层包裹）：<toolName>..</toolName> 与紧随的 <arguments>..</arguments>
-  // 标签集必须与 collectFlatXmlTools 保持一致（含 tool / fn），否则这些形态会被识别为工具
-  // 却残留在正文里，导致前端既显示工具卡片、又把工具名当正文再渲染一遍。
-  cleaned = cleaned.replace(
-    /<\s*(toolName|tool_name|toolname|tool|fn|name)\b[^>]*>\s*[\s\S]*?\s*<\/\s*(?:toolName|tool_name|toolname|tool|fn|name)\s*>(?:\s*<\s*arguments?\b[^>]*>[\s\S]*?<\/\s*arguments?\s*>)?/gi,
-    ''
-  )
+  // 标签集必须与 collectFlatXmlTools 保持一致（不含裸 name —— 裸 <name> 极易与正文/文档误判），
+  // 否则会出现「识别集合」与「剥离集合」不一致：要么工具卡片残留、要么正文被误删。
+  const FLAT_STRIP_RE =
+    /<\s*(toolName|tool_name|toolname|tool|fn)\b[^>]*>\s*([\s\S]*?)\s*<\/\s*(?:toolName|tool_name|toolname|tool|fn)\s*>(?:\s*<\s*arguments?\b[^>]*>[\s\S]*?<\/\s*arguments?\s*>)?/gi
+  cleaned = cleaned.replace(FLAT_STRIP_RE, (full: string, _tag: string, inner: string) => {
+    if (!allowedNames || allowedNames.size === 0) return ''
+    const name = String(inner).replace(/<[^>]*>/g, '').trim()
+    return isAllowedToolName(name, allowedNames) ? '' : full
+  })
 
   // 逐个处理代码围栏：
   //   - 命中工具调用 → 整段移除（连同其前面的「请求包」标题）
