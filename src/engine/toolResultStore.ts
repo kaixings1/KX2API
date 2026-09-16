@@ -17,12 +17,65 @@
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
+import { groupMessagesByApiRound } from './messageIntegrity.ts'
+import type { InternalMessage } from './messageNormalizer.ts'
 
 /** 结果落盘前的最大字符数（超过则持久化到磁盘） */
 export const DEFAULT_MAX_RESULT_SIZE_CHARS = 50_000
 
 /** 预览取多少字节给模型看 */
-export const PREVIEW_SIZE_BYTES = 2000
+export const DEFAULT_PREVIEW_SIZE_BYTES = 2000
+
+/** 兼容旧引用：预览大小的默认值 */
+export const PREVIEW_SIZE_BYTES = DEFAULT_PREVIEW_SIZE_BYTES
+
+/**
+ * 工具结果落盘策略（此前为硬编码常量，现可配置）。
+ *
+ * 这两个值直接决定「工具输出是否被落盘、模型能看到多少预览」：
+ * 阈值调小则更早落盘、上下文更省，但模型需多一次 Read 才能拿到全文；
+ * 阈值调大则更少落盘、交互更直接，但大输出会更快吃光上下文窗口。
+ */
+export interface ToolResultStoreOptions {
+  /** 超过多少字符触发落盘；默认 50000 */
+  maxResultSizeChars?: number
+  /** 预览字节数；默认 2000 */
+  previewSizeBytes?: number
+  /** 单条 API 消息内 tool_result 聚合上限；默认 200000 */
+  maxResultsPerMessageChars?: number
+}
+
+/** 单条 API 消息内 tool_result 的默认聚合上限 */
+export const DEFAULT_MAX_RESULTS_PER_MESSAGE_CHARS = 200_000
+
+const toolResultStoreOptions: Required<ToolResultStoreOptions> = {
+  maxResultSizeChars: DEFAULT_MAX_RESULT_SIZE_CHARS,
+  previewSizeBytes: DEFAULT_PREVIEW_SIZE_BYTES,
+  maxResultsPerMessageChars: DEFAULT_MAX_RESULTS_PER_MESSAGE_CHARS,
+}
+
+/** 读取当前生效的落盘策略 */
+export function getToolResultStoreOptions(): Required<ToolResultStoreOptions> {
+  return { ...toolResultStoreOptions }
+}
+
+/** 更新落盘策略（设置界面改完即时生效）；非法值忽略 */
+export function setToolResultStoreOptions(opts: ToolResultStoreOptions): void {
+  const {
+    maxResultSizeChars: m,
+    previewSizeBytes: p,
+    maxResultsPerMessageChars: a,
+  } = opts
+  if (typeof m === 'number' && Number.isFinite(m) && m > 0) {
+    toolResultStoreOptions.maxResultSizeChars = Math.floor(m)
+  }
+  if (typeof p === 'number' && Number.isFinite(p) && p > 0) {
+    toolResultStoreOptions.previewSizeBytes = Math.floor(p)
+  }
+  if (typeof a === 'number' && Number.isFinite(a) && a > 0) {
+    toolResultStoreOptions.maxResultsPerMessageChars = Math.floor(a)
+  }
+}
 
 export const PERSISTED_OUTPUT_TAG = '<persisted-output>'
 export const PERSISTED_OUTPUT_CLOSING_TAG = '</persisted-output>'
@@ -139,7 +192,10 @@ export async function persistToolResult(
     // EEXIST：此前已落盘，继续走预览分支
   }
 
-  const { preview, hasMore } = generatePreview(contentStr, PREVIEW_SIZE_BYTES)
+  const { preview, hasMore } = generatePreview(
+    contentStr,
+    toolResultStoreOptions.previewSizeBytes,
+  )
   return { filepath, originalSize: contentStr.length, isJson, preview, hasMore }
 }
 
@@ -150,7 +206,7 @@ export async function persistToolResult(
 export function buildLargeToolResultMessage(result: PersistedToolResult): string {
   let message = `${PERSISTED_OUTPUT_TAG}\n`
   message += `输出过大（${formatSize(result.originalSize)}），完整内容已保存到：${result.filepath}\n\n`
-  message += `预览（前 ${formatSize(PREVIEW_SIZE_BYTES)}）：\n`
+  message += `预览（前 ${formatSize(toolResultStoreOptions.previewSizeBytes)}）：\n`
   message += result.preview
   message += result.hasMore ? '\n...\n' : '\n'
   message += PERSISTED_OUTPUT_CLOSING_TAG
@@ -166,10 +222,11 @@ export function buildLargeToolResultMessage(result: PersistedToolResult): string
 export async function maybePersistToolResult(
   content: string,
   toolUseId: string,
-  maxChars: number = DEFAULT_MAX_RESULT_SIZE_CHARS,
+  maxChars?: number,
 ): Promise<string> {
   if (typeof content !== 'string') return String(content ?? '')
-  if (content.length <= maxChars) return content
+  const limit = maxChars ?? toolResultStoreOptions.maxResultSizeChars
+  if (content.length <= limit) return content
   try {
     const r = await persistToolResult(content, toolUseId)
     if (isPersistError(r)) return content
@@ -177,6 +234,140 @@ export async function maybePersistToolResult(
   } catch {
     return content
   }
+}
+
+// ==================== 单消息聚合预算 ====================
+//
+// 单个结果有 50K 阈值，但 **N 个并行工具各 40K 就能凑出 400K** —— 单结果阈值
+// 拦不住这种聚合。此处按「一轮（一条 API user 消息）」再设一道闸。
+// 默认值 DEFAULT_MAX_RESULTS_PER_MESSAGE_CHARS 定义在文件前部的配置区。
+
+interface ContentReplacementRecord {
+  toolUseId: string
+  /** 替换后的文本（冻结保存，重放时保证字节一致） */
+  replacement: string
+  originalSize: number
+}
+
+/**
+ * 替换决策状态。
+ *
+ * **冻结语义是这个设计的核心**：一旦某个 toolUseId 被决策过（替换或不替换），
+ * 后续轮次不得反悔。原因是每次改变替换集合都会改变请求前缀，
+ * 使 prompt cache 全量失效 —— 宁可接受超支，也不要在轮次之间反复横跳。
+ */
+export interface ContentReplacementState {
+  /** toolUseId → 替换记录；null 表示"已决策为不替换"（同样冻结） */
+  decisions: Map<string, ContentReplacementRecord | null>
+}
+
+export function createContentReplacementState(): ContentReplacementState {
+  return { decisions: new Map() }
+}
+
+/** 取消息的文本形态（tool 消息的 content 可能是字符串或块数组） */
+function textOf(msg: { content: unknown }): string {
+  const c = msg.content
+  if (typeof c === 'string') return c
+  if (c == null) return ''
+  try {
+    return JSON.stringify(c)
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 对超预算的一轮 tool_result 做聚合裁剪。
+ *
+ * 处理顺序：按结果大小**降序**替换（先替换最大的，用最少的次数把总量压到预算内）。
+ * 只替换「尚未决策」的结果；已决策的一律遵守既有决定。
+ *
+ * @param messages  完整消息列表（不修改入参）
+ * @param state     跨轮次持久化的决策状态（同一会话内复用同一个实例）
+ * @param budgetChars 单轮聚合上限
+ */
+export async function enforceToolResultBudget(
+  messages: InternalMessage[],
+  state: ContentReplacementState,
+  budgetChars?: number,
+): Promise<InternalMessage[]> {
+  const budgetLimit = budgetChars ?? toolResultStoreOptions.maxResultsPerMessageChars
+  const rounds = groupMessagesByApiRound(messages)
+  const out: InternalMessage[] = []
+
+  for (const round of rounds) {
+    const toolMsgs = round.filter(m => m.role === 'tool')
+    if (toolMsgs.length === 0) {
+      out.push(...round)
+      continue
+    }
+
+    const sizeOf = (m: { content: unknown }) => textOf(m).length
+    let total = toolMsgs.reduce((n, m) => n + sizeOf(m), 0)
+
+    if (total <= budgetLimit) {
+      // 本轮没超预算：把未决策的结果冻结为"永不替换"，
+      // 避免后续轮次因上下文增长而突然开始替换、破坏缓存前缀。
+      for (const m of toolMsgs) {
+        if (m.toolUseId && !state.decisions.has(m.toolUseId)) {
+          state.decisions.set(m.toolUseId, null)
+        }
+      }
+      out.push(...round)
+      continue
+    }
+
+    const replacements = new Map<string, string>()
+    const order = [...toolMsgs].sort((a, b) => sizeOf(b) - sizeOf(a))
+
+    for (const m of order) {
+      if (total <= budgetLimit) break
+      const id = m.toolUseId
+      if (!id) continue
+
+      const decided = state.decisions.get(id)
+      if (decided) {
+        // 已决策替换：重放冻结的字符串（零 I/O，字节一致，必然命中缓存）
+        replacements.set(id, decided.replacement)
+        total -= sizeOf(m) - decided.replacement.length
+        continue
+      }
+      if (state.decisions.has(id)) continue // 已决策不替换 → 冻结，跳过
+
+      // 首次决策：落盘并记录
+      try {
+        const r = await persistToolResult(textOf(m), id)
+        if (isPersistError(r)) {
+          state.decisions.set(id, null)
+          continue
+        }
+        const replacement = buildLargeToolResultMessage(r)
+        // 净减少保护：预览正文（含路径头部与截断提示）本身也有体积。
+        // 预算极小时，替换一个不大的结果后可能反而更长 —— 此时替换毫无意义，跳过。
+        if (replacement.length >= sizeOf(m)) {
+          state.decisions.set(id, null)
+          continue
+        }
+        state.decisions.set(id, { toolUseId: id, replacement, originalSize: sizeOf(m) })
+        replacements.set(id, replacement)
+        total -= sizeOf(m) - replacement.length
+      } catch {
+        // 落盘失败：冻结为不替换，绝不因为预算控制而丢掉工具输出
+        state.decisions.set(id, null)
+      }
+    }
+
+    out.push(
+      ...round.map(m => {
+        if (m.role !== 'tool' || !m.toolUseId) return m
+        const rep = replacements.get(m.toolUseId)
+        return rep == null ? m : { ...m, content: rep }
+      }),
+    )
+  }
+
+  return out
 }
 
 /**

@@ -17,7 +17,7 @@
 
 import type { ToolDefinition, ToolGroup } from './types'
 import { flattenLabels, normalizeToolLabels } from './toolLabels'
-import { getActiveTools, touchTool } from './toolMetaTools'
+import { getActiveTools, touchTool, lastUsedAt } from './toolMetaTools'
 import { isCoreTool } from './toolRoles'
 import { estimateTokensWithCjk } from '../../engine/token-counter/index.ts'
 

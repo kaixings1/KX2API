@@ -44,11 +44,21 @@ export interface ToolExecutor {
 }
 
 export class ToolScheduler {
+  /** 单次工具执行的默认超时（毫秒）；由上层注入，缺省 10 分钟 */
+  private defaultToolTimeoutMs?: number
+
   constructor(
     private registry: Map<string, Tool>,
     private permissionManager: PermissionManager,
     private executor: ToolExecutor,
   ) {}
+
+  /** 设置默认工具超时（设置界面改完即时生效） */
+  setDefaultToolTimeout(ms?: number): void {
+    if (typeof ms === 'number' && Number.isFinite(ms) && ms > 0) {
+      this.defaultToolTimeoutMs = Math.floor(ms)
+    }
+  }
 
   async execute(toolCalls: ToolCall[]): Promise<ToolResult[]> {
     const authorized = await this.checkPermissions(toolCalls);
@@ -129,7 +139,11 @@ export class ToolScheduler {
     }
     try {
       const output = await this.executor.execute(tool, call.input, {
-        timeout: (tool as { timeout?: number }).timeout ?? 600000,
+        // 工具自带 timeout 优先；否则用注入的默认值，最后回落到 10 分钟
+        timeout:
+          (tool as { timeout?: number }).timeout ??
+          this.defaultToolTimeoutMs ??
+          600_000,
       });
       // 超大结果落盘，上下文里只留预览 + 文件路径（模型可用 Read 读全文）。
       // 这样「读日志/跑构建/列大目录」这类工具不会一次吃光上下文窗口。

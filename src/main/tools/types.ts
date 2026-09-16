@@ -75,6 +75,14 @@ export interface ToolDefinition {
   whenToUse?: string[]
   /** 何时不该用（同上，用于排除近义工具） */
   whenNotToUse?: string[]
+  /**
+   * 检索别名（3~10 个词），用于补上「工具名和描述里都没出现、但用户会这么问」的词。
+   *
+   * 例：工具名叫 notebook_edit，描述里写的是「修改 .ipynb 单元」，
+   * 用户可能问「jupyter 怎么改」——把 jupyter 放进 searchHint 就能被搜到。
+   * 参照 Claude Code ToolSearchTool 的 searchHint 设计。
+   */
+  searchHint?: string[]
   /** 结构化标签（七维），用于检索与权限 */
   labels?: ToolLabels
   /** 风险等级，默认按标签推断；高风险在角色配置里被 denied 时不可默认加载 */

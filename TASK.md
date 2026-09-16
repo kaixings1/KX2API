@@ -238,7 +238,75 @@
 - `npm run test:all` ✅ 附加 397 通过（含新增 27）/ 单元 523 通过 / 0 失败
 - `python scripts/_tscheck.py` → 修复后 TS2304 由 57 降至 54，4 个修复目标残留检查全部「已清除」
 
-### 八、待办
+## 第二轮：找茬式审核 + 深度吸收（2026-09-17 晚）
+
+采用 4 个 research 子代理并行通读 `D:\src` 的四个领域（压缩/预算、会话记忆、工具系统、提示词/钩子），
+与 KX2API 现状逐项对照。**子代理结论均经过原文件复核后才采纳**。
+
+### 一、新发现并修复的 P0 缺陷
+
+| # | 位置 | 问题 | 后果 |
+|---|---|---|---|
+| 1 | `messageNormalizer.ts:96` | `mergeConsecutive` 把 Anthropic 的 `tool_result` 内容数组 `JSON.stringify` 成字符串再拼接 | 并行工具调用时 tool_result 结构被降级为纯文本 → API 认为 tool_use 无配对结果 → **400**。每条 tool 消息各产生一条 `role='user'`，必然触发合并，是常态路径 |
+| 2 | `messageNormalizer.ts:39` | `mergeConsecutive` 是 `static` 方法，却以 `this.mergeConsecutive(...)` 调用 | 实例上无此属性 → **Anthropic 分支任何需合并的消息序列都抛 TypeError**（Anthropic 模式此前不工作的原因之一） |
+| 3 | `autoCompactor.ts`（3 处） | Summary/Truncate/Selective 三策略都按 `nonSys.slice(-preserveRecentCount)` 切分 | 切点落在 `assistant(tool_use)` 与 `tool_result` 之间 → 保留段以**孤立 tool_result** 开头 → **400** |
+| 4 | `plainTextToolCallRepair.ts` | 只做"名字长得像命令"的**形状校验**，不与真实工具集求交集 | 接口文档/示例里的 `<name>get_user</name>`、`[tool:bash]` 被判为工具调用并**整块剥离正文**（内容静默消失，比误转换更隐蔽）。这是历史回归的根因 |
+| 5 | `plainTextToolCallRepair.ts:379` | `strip` 的扁平正则含裸 `name` 标签，而 `collectFlatXmlTools` 的识别正则**不含** | 识别集合与剥离集合不一致 → 误删正文 |
+| 6 | `responseHandler.ts:123` | 整段判定为纯工具调用时 `fullContent = ""` 且无任何保护 | 一旦误判，用户看到空白答复且无迹可查 |
+
+### 二、移植的三个模块（均零闭源依赖）
+
+**1. `src/engine/messageIntegrity.ts`（新增）**
+- `groupMessagesByApiRound` — 移植自 `services/compact/grouping.ts`（63 行，上游唯一"复制即用"的文件）
+- `ensureToolResultPairing` — 移植自 `utils/messages.ts`，修复四类畸形：重复 tool_use / 孤立 tool_result / 缺失 tool_result（补合成占位）/ 重复 tool_result
+- `splitAtSafeBoundary` — 按 API 轮次切分，保证 dropped 与 kept 各自配对完整
+- **接入点**：`RequestBuilder.build()` 发请求前兜底调用；`AutoCompactor` 三策略改用安全切分
+
+**2. `src/engine/toolResultStore.ts`（新增）**
+- 移植自 `utils/toolResultStorage.ts` + `constants/toolLimits.ts`
+- 口径对齐上游：50_000 字符阈值 / 2000 字节预览 / 预览在最近换行处切 / `flag:'wx'` 幂等落盘
+- **防路径穿越**：`toolUseId` 来自模型，非 `[a-zA-Z0-9_.-]` 字符一律替换（`../../etc/passwd` → `.._.._etc_passwd`）
+- **失败降级**：落盘失败必须原样返回内容，绝不丢工具输出
+- 附带 `cleanupToolResults`（按 mtime 清 30 天前文件）
+- **接入点**：`ToolScheduler.executeSingle` 包一层；主进程 `src/main/index.ts` 启动时配置目录到 `userData/tool-results-root` 并清理
+- 收益：读日志/跑构建/列大目录这类工具不再一次吃光上下文窗口
+
+**3. 纯文本工具调用白名单化（改造既有模块）**
+- 新增 `isAllowedToolName(name, allowedNames)`：白名单存在时必须命中
+- 语义区分：**未提供**白名单 → 退回形状校验（向后兼容）；**空集** → 明确表示本轮无工具，拒绝一切
+- `parsePlainTextToolCalls` / `extractPlainTextToolCalls` / `stripPlainTextToolCalls` 三个入口全部接受 `allowedNames`
+- `ResponseHandler.allowedToolNames` 由 `MessageLoop` 每轮注入生效工具名
+- `strip` 两处剥离改为「只有命中白名单才剥离」，并去掉与识别集合不一致的裸 `name` 标签
+- 剥离后正文若全空 → 判定过宽剥离，回退保留原文并告警（宁可少执行一次工具，不让用户看到空白）
+- 清空正文前把原文样本写入日志，便于事后追查"答复为什么是空的"
+
+### 三、子代理报告的其它结论（值得记录）
+
+- **KX2API 与 Claude Code 工具系统的最大差距不在打分函数，而在状态归属**：CC 的"已加载工具集"由对话历史反扫 `tool_reference` **推导**（可重放、抗重启、压缩后仍可恢复）；KX2API 存在进程内 `Map`（重启即丢、压缩后与历史不一致）。这是结构性差距，非局部修补能解决。
+- **"254 个工具每轮重复注入"是工具延迟加载问题，文本压缩治不了**。CC 的解法是 `ToolSearchTool` + `defer_loading`；KX2API 已有的 `toolGroups.ts` 方向是对的，应继续加强而非转向文本压缩。
+- **`D:\src\utils\absorb.ts` 有 4 个真实 bug，默认行为在某些输入下会把整段文本压成空字符串**（缓存写入时机错误）。若要移植必须先修：① `cache.set` 移到相似判定之后；② 重建改为按原始行区间保序拼接；③ 补 `MAX_INPUT_LENGTH` 闸；④ 默认关 `globalDedup`。
+- **`D:\src` 是部分移植的中间态树**：`services/contextCollapse/operations.ts`、`reactiveCompact.ts`、`snipCompact.ts`、`query/transitions.ts`、`proactive/*` 均为空壳桩（恒等函数/空实现）；`services/crossSessionMemory.ts`、`utils/persistentMemory.ts` 是死代码且有硬伤。移植前必须先 Read 验证有真实实现。
+- **KX2API 缺的记忆写入闭环**：CC 的 `extractMemories` 在回合结束后台 fork 提取，并有"主代理已写过记忆则跳过"的互斥闸、`WHAT_NOT_TO_SAVE_SECTION` 黑名单、"游标仅在成功后推进"。KX2API 目前只有显式 `memoryTool`，模型不主动调就不写。已记入待办。
+
+### 四、验证结果
+
+- `npm run build` ✅
+- `npm run test:all` ✅ 附加 465 通过（本轮新增 68）/ 单元 552 通过 / **0 失败**
+- 新增测试文件：
+  - `tests/engine/message-integrity.test.ts`（27 例）— 分组/配对修复/压缩不变量/Anthropic 并行工具结果结构
+  - `tests/engine/tool-result-store.test.ts`（23 例）— 阈值/预览行边界/幂等/路径穿越/失败降级/清理
+  - `tests/engine/plaintext-whitelist.test.ts`（18 例）— **复现历史 bug（无白名单时正文被剥离）并证明修复有效**
+
+### 五、下一轮待办（按价值排序）
+
+- [ ] **记忆写入闭环**：回合结束后台提取 + 互斥闸 + 不保存内容黑名单（源自 `services/extractMemories`）
+- [ ] **工具活跃集改为对话历史推导 + 落盘**，替换 `toolMetaTools` 的模块级 Map（结构性差距，收益最大）
+- [ ] `tool_search` 打分加词边界与 `searchHint`（当前 254 工具全量进检索池且中文整串 `includes`，检索基本失效）
+- [ ] `toolResultStorage` 的**单消息聚合预算**（200K 字符/消息，防 N 个并行工具各自 40K 一起挤爆）
+- [ ] 系统提示词静态/动态分段 + 缓存边界标记（`constants/systemPromptSections.ts` 仅 70 行，纯逻辑可照搬）
+- [ ] 把 `npm run typecheck` 纳入 CI（当前 708 处类型错误，需先定收敛计划）
+
+## 第一轮遗留待办
 
 - [ ] 逐个排查剩余值位置的 `Cannot find name`（清单见 `scripts/_tscheck.py` 输出）
 - [ ] `preload` 的字面量 channel 统一收敛为 `IpcChannels` 常量

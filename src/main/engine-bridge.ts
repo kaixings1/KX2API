@@ -137,6 +137,36 @@ export function getEngineApiSettings(): ApiSettings {
 }
 
 /**
+ * 从配置读取工具运行参数并应用到引擎侧。
+ *
+ * 包含两部分：
+ * - 落盘策略（toolResultStore）：结果多大触发落盘、预览多长、单轮聚合上限
+ * - 工具执行超时（toolScheduler）：由 QueryEngine.updateConfig 推送
+ *
+ * 读取失败时保持默认，绝不因配置异常影响工具执行。
+ */
+export function applyToolRuntimeConfig(): void {
+  try {
+    const cfg = ConfigManager.get() as { toolRuntime?: Record<string, number> } | void
+    const rt = cfg?.toolRuntime
+    if (!rt) return
+    void import('../engine/toolResultStore.ts').then(({ setToolResultStoreOptions }) => {
+      setToolResultStoreOptions({
+        maxResultSizeChars: rt.maxResultSizeChars,
+        previewSizeBytes: rt.previewSizeBytes,
+        maxResultsPerMessageChars: rt.maxResultsPerMessageChars,
+      })
+    })
+    const eng = getEngineInstance()
+    if (eng && typeof rt.toolTimeoutMs === 'number') {
+      eng.updateConfig({ toolTimeoutMs: rt.toolTimeoutMs })
+    }
+  } catch (e) {
+    console.warn('[EngineBridge] 应用工具运行参数失败，使用默认值:', (e as Error).message)
+  }
+}
+
+/**
  * 从配置读取 Agent 循环控制参数。
  *
  * 这些值原先硬编码在 messageLoop.ts 内，现由用户在设置界面调整。
@@ -593,6 +623,9 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
     // 加载用户勾选的工具插件
     const pluginTools = await loadLegacyPluginTools()
     console.log('[EngineBridge] Plugins loaded:', pluginTools ? Array.from(pluginTools.keys()).join(', ') : 'none')
+
+    // 应用工具运行参数（落盘策略、执行超时）：引擎已就绪，此时推送才生效
+    applyToolRuntimeConfig()
 
     // 同步命令到 ToolCollection，确保工具系统与注册表一致
     await toolCollection.syncFromRegistry()

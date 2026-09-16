@@ -115,6 +115,7 @@ export class QueryEngine {
   private abortController: AbortController = new AbortController();
 
   private messageLoop: MessageLoop;
+  private toolSchedulerInstance?: ToolScheduler;
   private _toolDefinitions: ToolDefinition[] = [];
   private pendingRequests = new Map<string, { resolve: (v: boolean) => void }>();
   private _conversation: Conversation = {
@@ -225,6 +226,7 @@ export class QueryEngine {
     // 创建 ErrorRecovery
     this.recovery = new ErrorRecovery(this.stateMachine, this.retryHandler, this.autoCompactor);
     const toolScheduler = new ToolScheduler(registry, permissionManager, executor, this.recovery);
+    this.toolSchedulerInstance = toolScheduler;
 
     this.conversation = this._conversation;
     this._preAnalysis = opts.preAnalysis;
@@ -463,6 +465,13 @@ export class QueryEngine {
     // 循环参数热更新：改完设置立即生效，无需重启应用
     if ('agentLoop' in updates) {
       this.messageLoop.setLoopLimits(updates.agentLoop as AgentLoopConfig | void)
+    }
+    // 工具执行超时热更新
+    if ('toolTimeoutMs' in updates) {
+      const t = Number(updates.toolTimeoutMs)
+      if (Number.isFinite(t) && t > 0) {
+        this.toolSchedulerInstance?.setDefaultToolTimeout(t)
+      }
     }
   }
 

@@ -5,6 +5,11 @@
  */
 import { MessageNormalizer, type InternalMessage } from "./messageNormalizer.ts";
 import { ensureToolResultPairing } from "./messageIntegrity.ts";
+import {
+  createContentReplacementState,
+  enforceToolResultBudget,
+  type ContentReplacementState,
+} from "./toolResultStore.ts";
 
 export interface ToolDefinition {
   name: string;
@@ -61,6 +66,18 @@ export interface ModelConfig {
 
 export class RequestBuilder {
   private normalizer = new MessageNormalizer();
+  /**
+   * 工具结果替换决策状态（跨轮次复用同一个实例）。
+   *
+   * 必须复用而非每轮新建：一旦某结果被决策为「替换」或「不替换」，
+   * 后续轮次必须保持一致，否则替换集合每轮变化会导致 prompt cache 全量失效。
+   */
+  private replacementState: ContentReplacementState = createContentReplacementState();
+
+  /** 重置替换状态（新会话/清空历史时调用） */
+  resetReplacementState(): void {
+    this.replacementState = createContentReplacementState();
+  }
 
   async build(params: RequestParams): Promise<APIRequest> {
     const provider = params.provider ?? "openai";
@@ -68,7 +85,10 @@ export class RequestBuilder {
     // 压缩、会话恢复、中断都可能留下孤立 tool_result 或缺失结果，
     // 这两种情况下 Anthropic / OpenAI 都会直接 400，整轮对话无法继续。
     const paired = ensureToolResultPairing(params.messages);
-    const messages = this.normalizer.normalize(paired, provider);
+    // 单轮聚合预算：N 个并行工具各自未超单结果阈值，但总和仍可能挤爆上下文。
+    // 放在配对修复之后 —— 它只替换内容不改结构，不会破坏配对。
+    const budgeted = await enforceToolResultBudget(paired, this.replacementState);
+    const messages = this.normalizer.normalize(budgeted, provider);
 
     // Phase 2: 注入 preAnalysis 建议到 system prompt
     let systemPrompt = params.system

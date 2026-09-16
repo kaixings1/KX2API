@@ -1662,6 +1662,17 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       }
     }
 
+    // 工具运行参数热更新：落盘策略 + 执行超时，改完即时生效
+    if (updates && 'toolRuntime' in updates) {
+      try {
+        const { applyToolRuntimeConfig } = await import('../engine-bridge.ts')
+        applyToolRuntimeConfig()
+        console.log('[EngineBridge] 工具运行参数已热更新:', JSON.stringify(updates.toolRuntime))
+      } catch (e) {
+        console.warn('[EngineBridge] 同步工具运行参数失败:', (e as Error).message)
+      }
+    }
+
     // 账号熔断参数热更新：改完立即影响调度决策，无需重启
     if (updates && 'loadBalancer' in updates) {
       try {

@@ -10,6 +10,7 @@ import {
   LogCategoryConfig,
   AgentLoopSettings,
   LoadBalancerSettings,
+  ToolRuntimeSettings,
 } from '@/components/settings'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { Sun, Settings as SettingsIcon, Database, Shield, Key, SlidersHorizontal, Bot } from 'lucide-react'
@@ -99,6 +100,7 @@ export function Settings() {
 
         <TabsContent value="agent" className="mt-6 space-y-6">
           <AgentLoopSettings />
+          <ToolRuntimeSettings />
           <LoadBalancerSettings />
         </TabsContent>
 

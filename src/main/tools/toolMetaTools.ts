@@ -76,33 +76,131 @@ export interface ToolCard {
   cost: string
 }
 
-/** 把一个工具拍成检索用的可打分文本 */
-function searchText(tool: ToolDefinition): string {
+/**
+ * 把工具名/id 拆成片段。
+ *
+ * 必须先拆 camelCase 再小写 —— 小写后 `readFile` 与 `readfile` 无法区分。
+ * `git_status` / `gitStatus` / `mcp__fs__read` / `fs.read` 都应拆出 `git`/`status` 等独立片段。
+ *
+ * 片段化是避免子串误报的关键：裸 `includes` 会让 `git` 命中 `digital`
+ * （d-i-**g-i-t**-a-l），片段化后 `digital` 是一个整体片段，不再误命中。
+ */
+function splitNameFragments(raw: string): string[] {
+  return raw
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .map(s => s.toLowerCase())
+    .filter(Boolean)
+}
+
+/** 把工具的各字段分别拍成小写文本，供分维度打分 */
+function searchFields(tool: ToolDefinition): {
+  name: string
+  nameFragments: string[]
+  hint: string
+  tags: string
+  desc: string
+} {
   const { risk, cost, labels } = normalizeToolLabels(tool)
-  const parts = [
-    tool.id, tool.name, tool.displayName, tool.description, tool.usage,
-    ...(tool.tags || []),
-    ...flattenLabels(labels, risk, cost),
-    ...(tool.whenToUse || []),
-  ]
-  return parts.filter(Boolean).join(' ').toLowerCase()
+  const rawName = `${tool.name || ''} ${tool.id || ''}`
+  const name = rawName.toLowerCase()
+  const nameFragments = splitNameFragments(rawName)
+  const hint = (tool.searchHint || []).join(' ').toLowerCase()
+  const tags = [...(tool.tags || []), ...flattenLabels(labels, risk, cost)]
+    .join(' ')
+    .toLowerCase()
+  const desc = [
+    tool.displayName, tool.description, tool.usage,
+    ...(tool.whenToUse || []), ...(tool.whenNotToUse || []),
+  ].filter(Boolean).join(' ').toLowerCase()
+  return { name, nameFragments, hint, tags, desc }
 }
 
 /**
- * 对单个工具按查询串打分。分数 0 表示不匹配。
- * 权重：id/name 精确命中最高，其次是标签，最后是描述正文。
+ * 分词：拉丁/数字按词切，中文切**二元组**。
+ *
+ * 中文刻意不用单字 —— 单个汉字在工具描述里几乎无处不在（"用""文""件"），
+ * 判别力接近 0；二元组要求相邻两字都命中，特异性显著更高。
+ * 与 `engine/memory/memoryRecall.ts` 的分词策略保持一致，避免同仓库两套口径。
  */
+export function tokenizeQuery(text: string): string[] {
+  const lowered = (text || '').toLowerCase()
+  const tokens: string[] = []
+  for (const m of lowered.matchAll(/[a-z0-9_]+/g)) tokens.push(m[0])
+  for (const m of lowered.matchAll(/[\u4e00-\u9fa5]+/g)) {
+    const run = m[0]
+    if (run.length === 1) {
+      tokens.push(run)
+      continue
+    }
+    for (let i = 0; i + 2 <= run.length; i++) tokens.push(run.slice(i, i + 2))
+  }
+  return tokens
+}
+
+/** 词边界正则缓存（查询串来自用户，必须设上限防无界增长） */
+const boundaryCache = new Map<string, RegExp>()
+const BOUNDARY_CACHE_MAX = 500
+
+/**
+ * 带词边界的命中判定。
+ *
+ * 纯 ASCII 词用 `(^|[^a-z0-9])term([^a-z0-9]|$)`，避免 `search` 命中 `research`、
+ * `git` 命中 `digital` 这类子串误报（原实现用裸 `includes` 就会这样）。
+ * 中文没有 `\b` 概念（CJK 不属于 `\w`），但已二元组化，子串匹配足够特异。
+ */
+function hasWord(haystack: string, term: string): boolean {
+  if (!term || !haystack) return false
+  if (!/^[\x00-\x7f]+$/.test(term)) {
+    return haystack.includes(term)
+  }
+  let re = boundaryCache.get(term)
+  if (!re) {
+    const esc = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    re = new RegExp(`(^|[^a-z0-9])${esc}([^a-z0-9]|$)`)
+    if (boundaryCache.size >= BOUNDARY_CACHE_MAX) boundaryCache.clear()
+    boundaryCache.set(term, re)
+  }
+  return re.test(haystack)
+}
+
+/**
+ * 分维度权重。每个 token 只取**最高命中的那一档**，不跨档累加 ——
+ * 否则一个描述很长的工具会靠堆词刷分，把真正匹配名字的工具挤下去。
+ */
+const SCORE = {
+  nameExact: 10,
+  nameFragment: 6,
+  namePrefix: 3,
+  hintWord: 4,
+  tagWord: 2,
+  descWord: 1,
+} as const
+
+/** 对单个工具按查询词打分。分数 0 表示不匹配。 */
 function scoreTool(tool: ToolDefinition, tokens: string[]): number {
   if (tokens.length === 0) return 1
-  const text = searchText(tool)
-  const name = tool.name.toLowerCase()
+  const f = searchFields(tool)
   let score = 0
   for (const tk of tokens) {
     if (!tk) continue
-    if (name === tk) score += 100
-    else if (name.includes(tk)) score += 50
-    else if (tool.id.toLowerCase().includes(tk)) score += 30
-    else if (text.includes(tk)) score += 10
+    if (f.name === tk) {
+      // 整个名字字符串完全相等（搜 `git_status`）
+      score += SCORE.nameExact
+    } else if (f.nameFragments.includes(tk)) {
+      // 完整片段相等（搜 `git` 命中 `git_status` 的 git 片段）
+      score += SCORE.nameFragment
+    } else if (f.nameFragments.some(fr => fr.startsWith(tk))) {
+      // 片段前缀（搜 `noteb` 命中 `notebook`）—— 用前缀而非子串，
+      // 否则 `git` 会命中 `digital` 这种内部子串
+      score += SCORE.namePrefix
+    } else if (hasWord(f.hint, tk)) {
+      score += SCORE.hintWord
+    } else if (hasWord(f.tags, tk)) {
+      score += SCORE.tagWord
+    } else if (hasWord(f.desc, tk)) {
+      score += SCORE.descWord
+    }
   }
   return score
 }
@@ -124,13 +222,36 @@ export interface SearchOptions {
  */
 export function searchTools(opts: SearchOptions): ToolCard[] {
   const limit = Math.max(1, Math.min(opts.limit ?? 5, 50))
-  const tokens = (opts.query || '')
-    .toLowerCase()
-    .split(/[\s,，]+/)
-    .map(s => s.trim())
-    .filter(Boolean)
+
+  // 查询串解析：`+term` 标记**必需词**（用于排除近义工具），其余为可选词。
+  // 例：`+git commit` → 必须与 git 相关，commit 只加分不强制。
+  const raw = (opts.query || '').split(/[\s,，]+/).map(s => s.trim()).filter(Boolean)
+  const requiredTerms: string[] = []
+  const optionalText: string[] = []
+  for (const part of raw) {
+    if (part.startsWith('+') && part.length > 1) requiredTerms.push(part.slice(1))
+    else optionalText.push(part)
+  }
+  const tokens = tokenizeQuery(optionalText.join(' '))
 
   let pool = opts.tools
+
+  // 必需词预过滤：每个必需词至少在一个字段里命中，否则该工具出局。
+  // 这一步在打分前做，能显著缩小候选集（254 个工具下尤其明显）。
+  if (requiredTerms.length > 0) {
+    const reqTokens = requiredTerms.map(t => t.toLowerCase())
+    pool = pool.filter(t => {
+      const f = searchFields(t)
+      const haystack = `${f.name} ${f.hint} ${f.tags} ${f.desc}`
+      return reqTokens.every(rt => {
+        // 必需词本身也做二元组展开，保证中文必需词能匹配
+        const sub = tokenizeQuery(rt)
+        const probes = sub.length > 0 ? sub : [rt]
+        return probes.some(p => hasWord(haystack, p))
+      })
+    })
+  }
+
   // 分组过滤
   if (opts.group && opts.groups) {
     const g = opts.groups.find(x => x.id === opts.group || x.id === `group-${opts.group}`)
@@ -289,6 +410,7 @@ export function describeToolDetail(tool: ToolDefinition): string {
     `用法：${tool.usage}`,
     `风险：${risk}　成本：${cost}`,
     `标签：${flattenLabels(labels, risk, cost).join(', ')}`,
+    tool.searchHint?.length ? `检索别名：${tool.searchHint.join(', ')}` : '',
     tool.whenToUse?.length ? `何时使用：\n${tool.whenToUse.map(s => `  - ${s}`).join('\n')}` : '',
     tool.whenNotToUse?.length ? `何时不用：\n${tool.whenNotToUse.map(s => `  - ${s}`).join('\n')}` : '',
     tool.parameters?.length
@@ -331,7 +453,9 @@ export function createMetaToolHandlers(deps: MetaToolDeps): Record<string, (args
       if (cards.length === 0) {
         return {
           success: true,
-          output: `未找到匹配「${query}」的工具。可尝试更宽泛的关键词，或先调用 tool_search 不带参数浏览全部。`,
+          output:
+            `未找到匹配「${query}」的工具。\n` +
+            `提示：可用 +词 表示必需（如「+git commit」），或不带参数浏览全部工具。`,
         }
       }
       const lines = cards.map(c => `- ${c.id} | ${c.summary} | 组:${c.group} | ${c.risk}/${c.cost} | ${c.tags.join(' ')}`)
