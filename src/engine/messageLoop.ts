@@ -131,7 +131,7 @@ export class MessageLoop {
     this.deps.onEvent({ type: 'iteration_start', iteration: 0 });
     this.resetAutoFixLoop()
     this.resetGitContext()
-    this.deps.tokenBudget.resetIterationSnapshots?.()
+    this.deps.tokenBudget.setToolDefinitions(this.deps.toolDefinitions);
     this.lastToolCalls = []
     this.autoContinueCount = 0
     this.toolSignatureHistory = []

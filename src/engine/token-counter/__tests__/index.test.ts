@@ -7,6 +7,9 @@ import {
 	estimateContentTokens,
 	estimateMessageTokens,
 	estimateMessagesTokens,
+	countCjkChars,
+	estimateTokensWithCjk,
+	safeStringify,
 } from '../index.ts'
 
 describe('roughTokenCount', () => {
@@ -124,6 +127,92 @@ describe('estimateMessageTokens', () => {
 
 	it('estimates user message with content', () => {
 		expect(estimateMessageTokens({ type: 'user', message: { content: 'world' } })).toBe(1)
+	})
+})
+
+describe('countCjkChars', () => {
+	it('returns 0 for pure Latin text', () => {
+		expect(countCjkChars('hello world')).toBe(0)
+	})
+
+	it('counts CJK ideographs', () => {
+		expect(countCjkChars('你好世界')).toBe(4)
+	})
+
+	it('counts CJK punctuation and fullwidth forms', () => {
+		expect(countCjkChars('，。！')).toBe(3)
+	})
+
+	it('counts only the CJK portion of mixed text', () => {
+		expect(countCjkChars('hello 你好')).toBe(2)
+	})
+
+	it('ignores ASCII digits and punctuation', () => {
+		expect(countCjkChars('abc123!@#')).toBe(0)
+	})
+})
+
+describe('estimateTokensWithCjk', () => {
+	it('returns 0 for empty string', () => {
+		expect(estimateTokensWithCjk('')).toBe(0)
+	})
+
+	it('matches the Latin ratio for purely Latin text', () => {
+		expect(estimateTokensWithCjk('abcdefgh', 4)).toBe(2)
+	})
+
+	it('uses 1.5 chars per token for CJK text', () => {
+		// 12 CJK chars / 1.5 = 8 tokens
+		expect(estimateTokensWithCjk('你好世界你好世界你好世界')).toBe(8)
+	})
+
+	it('does not undercount CJK the way a flat /4 ratio does', () => {
+		const chinese = '这是一段中文内容用于验证估算准确性'
+		const flat = roughTokenCount(chinese, 4)
+		const aware = estimateTokensWithCjk(chinese)
+		expect(aware).toBeGreaterThan(flat * 2)
+	})
+
+	it('blends ratios for mixed Latin and CJK content', () => {
+		// 8 Latin chars / 4 = 2 tokens, plus 3 CJK chars / 1.5 = 2 tokens
+		expect(estimateTokensWithCjk('abcdefgh你好啊')).toBe(4)
+	})
+})
+
+describe('safeStringify', () => {
+	it('returns empty string for nullish input', () => {
+		expect(safeStringify(null)).toBe('')
+	})
+
+	it('passes strings through unchanged', () => {
+		expect(safeStringify('hello')).toBe('hello')
+	})
+
+	it('serializes plain objects', () => {
+		expect(safeStringify({ a: 1 })).toBe('{"a":1}')
+	})
+
+	it('does not throw on circular references', () => {
+		const obj: Record<string, unknown> = { a: 1 }
+		obj.self = obj
+		expect(() => safeStringify(obj)).not.toThrow()
+	})
+})
+
+describe('CJK awareness of block estimation', () => {
+	it('estimates Chinese text blocks above the flat ratio', () => {
+		const block = { type: 'thinking', thinking: '让我思考一下这个问题' }
+		expect(estimateBlockTokens(block)).toBeGreaterThan(
+			roughTokenCount('让我思考一下这个问题', 4),
+		)
+	})
+
+	it('does not throw on a block with a circular input', () => {
+		const input: Record<string, unknown> = { name: 'x' }
+		input.self = input
+		expect(() =>
+			estimateBlockTokens({ type: 'tool_use', name: 't', input }),
+		).not.toThrow()
 	})
 })
 

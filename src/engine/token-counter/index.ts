@@ -12,12 +12,76 @@
  *
  * Uses a bytes-per-token ratio: typically 4 characters per token for
  * English text, but JSON/JSONL/JSONC is denser (~2 chars per token).
+ *
+ * NOTE: the ratio above only holds for Latin text. CJK characters are
+ * far denser — roughly 1 token per 1.5 characters — so a pure
+ * `length / 4` estimate undercounts Chinese/Japanese/Korean content by
+ * more than 2x. Use `estimateTokensWithCjk` when the text may be CJK.
  */
 export function roughTokenCount(
 	content: string,
 	bytesPerToken: number = 4,
 ): number {
 	return Math.round(content.length / bytesPerToken)
+}
+
+/** Characters-per-token ratio for CJK text (Chinese/Japanese/Korean). */
+export const CJK_CHARS_PER_TOKEN = 1.5
+
+/**
+ * Count CJK code points in a string.
+ *
+ * Covers CJK Unified Ideographs, Extension A, compatibility ideographs,
+ * CJK punctuation and fullwidth forms.
+ */
+export function countCjkChars(text: string): number {
+	let n = 0
+	for (const ch of text) {
+		const code = ch.codePointAt(0)!
+		if (
+			(code >= 0x4e00 && code <= 0x9fff) ||
+			(code >= 0x3400 && code <= 0x4dbf) ||
+			(code >= 0xf900 && code <= 0xfaff) ||
+			(code >= 0x3000 && code <= 0x303f) ||
+			(code >= 0xff00 && code <= 0xffef)
+		) {
+			n++
+		}
+	}
+	return n
+}
+
+/**
+ * Serialize an arbitrary value to a string without throwing.
+ * JSON.stringify returns a non-string for nullish input and throws on
+ * circular references; both would otherwise break token estimation.
+ */
+export function safeStringify(value: unknown): string {
+	if (value == null) return ''
+	if (typeof value === 'string') return value
+	try {
+		return JSON.stringify(value) ?? ''
+	} catch {
+		return String(value)
+	}
+}
+
+/**
+ * Estimate tokens for text that may mix Latin and CJK.
+ *
+ * Splits the character count by script and applies the appropriate ratio
+ * to each part, so a Chinese-heavy conversation is no longer undercounted.
+ * `bytesPerToken` applies only to the non-CJK portion.
+ */
+export function estimateTokensWithCjk(
+	content: string,
+	bytesPerToken: number = 4,
+): number {
+	if (content.length === 0) return 0
+	const cjk = countCjkChars(content)
+	if (cjk === 0) return Math.round(content.length / bytesPerToken)
+	const latin = content.length - cjk
+	return Math.ceil(latin / bytesPerToken + cjk / CJK_CHARS_PER_TOKEN)
 }
 
 /**
@@ -83,27 +147,27 @@ export interface ContentBlock {
  */
 export function estimateBlockTokens(block: ContentBlock | string): number {
 	if (typeof block === 'string') {
-		return roughTokenCount(block)
+		return estimateTokensWithCjk(block)
 	}
 
 	switch (block.type) {
 		case 'text':
-			return roughTokenCount(block.text ?? '')
+			return estimateTokensWithCjk(block.text ?? '')
 		case 'image':
 		case 'document':
 			return 2000
 		case 'tool_use':
-			return roughTokenCount(
-				(block.name ?? '') + JSON.stringify(block.input ?? {}),
+			return estimateTokensWithCjk(
+				(block.name ?? '') + safeStringify(block.input ?? {}),
 			)
 		case 'tool_result':
 			return estimateContentTokens(block.content)
 		case 'thinking':
-			return roughTokenCount(block.thinking ?? '')
+			return estimateTokensWithCjk(block.thinking ?? '')
 		case 'redacted_thinking':
-			return roughTokenCount(block.data ?? '')
+			return estimateTokensWithCjk(block.data ?? '')
 		default:
-			return roughTokenCount(JSON.stringify(block))
+			return estimateTokensWithCjk(safeStringify(block))
 	}
 }
 
@@ -114,7 +178,7 @@ export function estimateContentTokens(
 	content: ContentBlock[] | string | undefined,
 ): number {
 	if (!content) return 0
-	if (typeof content === 'string') return roughTokenCount(content)
+	if (typeof content === 'string') return estimateTokensWithCjk(content)
 
 	let total = 0
 	for (const block of content) {

@@ -91,6 +91,17 @@ export class RequestBuilder {
         ...modelParams,
       };
     }
+    if (provider === "google" || provider === "vertexai") {
+      return {
+        provider,
+        messages: [
+          { role: "user", content: systemPrompt },
+          ...messages,
+        ],
+        tools: this.convertToolsForGoogle(params.tools),
+        ...modelParams,
+      };
+    }
     return {
       provider,
       messages: [{ role: "system", content: systemPrompt }, ...messages],
@@ -104,5 +115,21 @@ export class RequestBuilder {
       type: "function",
       function: { name: t.name, description: t.description, parameters: t.input_schema },
     }));
+  }
+
+  /**
+   * Google Gemini / Vertex AI 使用 functionDeclarations 结构，
+   * 与 OpenAI 的 type:"function" 包装不兼容——直接发送会被拒或静默忽略。
+   */
+  private convertToolsForGoogle(tools: ToolDefinition[]): unknown {
+    return [
+      {
+        functionDeclarations: tools.map((t) => ({
+          name: t.name,
+          description: t.description,
+          parameters: t.input_schema,
+        })),
+      },
+    ];
   }
 }
