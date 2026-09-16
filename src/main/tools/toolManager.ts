@@ -60,19 +60,72 @@ export class ToolManager {
   private store: ToolManagementStore
 
   constructor() {
-    this.store = this.loadStore()
+    // 注意：模块被 import 时 storeManager 可能尚未初始化（main 进程在
+    // registerIpcHandlers 内才 `await storeManager.initialize()`，而本单例在
+    // handlers.ts 顶层 import 时即构造）。此时 getConfig() 会因 store 未就绪
+    // 抛错，loadStore() 只能回退到默认空 store —— 这正是「保存的分组重启后
+    // 丢失」的根因：数据已落盘，但单例没读到。因此构造时先空 store 兜底，
+    // 待 store 就绪后由 reload() 重新从磁盘加载真实数据。
+    this.store = this.createDefaultStore()
+    this.reload()
+  }
+
+  /**
+   * 重新从磁盘（storeManager）读取工具数据。
+   * store 就绪前调用会静默维持当前 store（构造时的兜底），不会抛错；
+   * store 就绪后调用会把磁盘上真实保存的分组/工具读进来，覆盖内存空值。
+   */
+  reload(): void {
+    try {
+      const loaded = this.loadStore()
+      // 只在校验通过（读到真实对象）时替换，避免默认兜底又覆盖真实数据
+      if (loaded && typeof loaded === 'object') {
+        this.store = loaded
+      }
+    } catch { /* store 未就绪时保持兜底 store，等下一次 reload */ }
   }
 
   // ==================== 内部方法 ====================
 
   private loadStore(): ToolManagementStore {
-    try {
-      const raw = storeManager.getConfig()[STORE_KEY]
-      if (raw && typeof raw === 'object') {
-        return raw as ToolManagementStore
-      }
-    } catch { /* ignore */ }
+    const raw = storeManager.getConfig()[STORE_KEY]
+    if (raw && typeof raw === 'object') {
+      return this.normalizeStore(raw as ToolManagementStore)
+    }
     return this.createDefaultStore()
+  }
+
+  /**
+   * 规整化持久化的工具存储数据，确保 tags / toolIds / patterns / groupIds
+   * 等数组字段始终为数组（parameters 缺省时为 []），避免历史遗留的逗号分隔
+   * 字符串或缺失值导致渲染端调用 .map() 崩溃。
+   */
+  private normalizeStore(store: ToolManagementStore): ToolManagementStore {
+    const toArray = (value: unknown): string[] => {
+      if (Array.isArray(value)) return value
+      if (typeof value === 'string' && value.trim() !== '') {
+        return value.split(/[,，\n]/).map(s => s.trim()).filter(Boolean)
+      }
+      return []
+    }
+
+    const tools = (store.tools || [])
+      .filter(t => t && typeof t === 'object')
+      .map(t => ({
+        ...t,
+        tags: toArray(t.tags),
+        parameters: Array.isArray(t.parameters) ? t.parameters : [],
+      }))
+
+    const groups = (store.groups || [])
+      .filter(g => g && typeof g === 'object')
+      .map(g => ({ ...g, toolIds: toArray(g.toolIds) }))
+
+    const hintRules = (store.hintRules || [])
+      .filter(r => r && typeof r === 'object')
+      .map(r => ({ ...r, patterns: toArray(r.patterns), groupIds: toArray(r.groupIds) }))
+
+    return { tools, groups, hintRules }
   }
 
   private saveStore(): void {

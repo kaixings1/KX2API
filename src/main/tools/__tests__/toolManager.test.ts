@@ -205,3 +205,54 @@ describe('ToolManager — 重置默认', () => {
     expect(m.getGroup('g')).toBeUndefined()
   })
 })
+
+describe('ToolManager — normalizeStore 历史脏数据规整', () => {
+  it('启动读取时，逗号/换行分隔的 toolIds 被规整为数组', () => {
+    const m = fresh({
+      groups: [
+        {
+          id: 'g1', name: 'G', description: '', enabled: true, builtin: false, createdAt: 0,
+          toolIds: 'ls, dir, cat',
+        } as unknown as ToolGroup,
+      ],
+    })
+    expect(m.getGroup('g1')!.toolIds).toEqual(['ls', 'dir', 'cat'])
+  })
+
+  it('启动读取时，tags / patterns / groupIds 字符串同样被规整', () => {
+    const m = fresh({
+      tools: [
+        {
+          id: 't1', name: 't1', displayName: 'T', description: '', usage: '/t1', platform: 'all',
+          parameters: [], enabled: true, builtin: false, createdAt: 0, updatedAt: 0,
+          tags: 'file, search',
+        } as unknown as ToolDefinition,
+      ],
+      groups: [
+        { id: 'g1', name: 'G', description: '', toolIds: ['ls'], enabled: true, builtin: false, createdAt: 0 },
+      ],
+      hintRules: [
+        {
+          id: 'r1', name: 'R', description: '', priority: 1, enabled: true, builtin: false, createdAt: 0,
+          patterns: 'key1\nkey2', groupIds: 'g1',
+        } as unknown as ToolHintRule,
+      ],
+    })
+    expect(m.getTool('t1')!.tags).toEqual(['file', 'search'])
+    expect(m.getHintRule('r1')!.patterns).toEqual(['key1', 'key2'])
+    expect(m.getHintRule('r1')!.groupIds).toEqual(['g1'])
+  })
+
+  it('缺失数组字段时规整为空数组，不抛错', () => {
+    const m = fresh({
+      tools: [
+        { id: 'x', name: 'x', displayName: 'X', description: '', usage: '/x', platform: 'all', enabled: true, builtin: false, createdAt: 0, updatedAt: 0 },
+      ],
+      groups: [{ id: 'g', name: 'g', description: '', enabled: true, builtin: false, createdAt: 0 }],
+    })
+    expect(m.getTool('x')!.tags).toEqual([])
+    expect(m.getTool('x')!.parameters).toEqual([])
+    expect(m.getGroup('g')!.toolIds).toEqual([])
+    expect(() => m.getToolsInGroup('g')).not.toThrow()
+  })
+})

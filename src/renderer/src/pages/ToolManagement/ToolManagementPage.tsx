@@ -515,7 +515,7 @@ export function ToolManagementPage() {
                       </div>
                       <p className="text-xs text-[var(--text-muted)] truncate">{tool.description}</p>
                       <div className="flex gap-1 mt-1">
-                        {tool.tags.map(tag => <Badge key={tag} variant="outline" className="text-[10px]">{tag}</Badge>)}
+                        {(Array.isArray(tool.tags) ? tool.tags : []).map(tag => <Badge key={tag} variant="outline" className="text-[10px]">{tag}</Badge>)}
                       </div>
                     </div>
                     <div className="flex gap-1" onClick={e => e.stopPropagation()}>
@@ -525,7 +525,7 @@ export function ToolManagementPage() {
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingTool(null)}><X className="w-3 h-3" /></Button>
                         </>
                       ) : (
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingTool(tool.id); setToolForm({ name: tool.name, displayName: tool.displayName, description: tool.description, usage: tool.usage, platform: tool.platform, tags: tool.tags.join(', '), parameters: tool.parameters || [] }) }}><Edit3 className="w-3 h-3" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingTool(tool.id); setToolForm({ name: tool.name, displayName: tool.displayName, description: tool.description, usage: tool.usage, platform: tool.platform, tags: (Array.isArray(tool.tags) ? tool.tags : []).join(', '), parameters: tool.parameters || [] }) }}><Edit3 className="w-3 h-3" /></Button>
                       )}
                       {!tool.builtin && <Button size="icon" variant="ghost" className="h-7 w-7 text-red-400" onClick={() => handleRemoveTool(tool.id)}><Trash2 className="w-3 h-3" /></Button>}
                     </div>

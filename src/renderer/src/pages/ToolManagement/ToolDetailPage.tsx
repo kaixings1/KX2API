@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { BackButton } from '@/components/ui/back-button'
+import { ParameterEditor } from './ParameterEditor'
 import { Trash2, Loader2, FolderOpen } from 'lucide-react'
 
 const api = window.electronAPI.tools
@@ -52,7 +53,7 @@ export function ToolDetailPage() {
   const [groups, setGroups] = useState<ToolGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '' })
+  const [form, setForm] = useState({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '', parameters: [] as ToolParameter[] })
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -69,7 +70,8 @@ export function ToolDetailPage() {
             description: found.description,
             usage: found.usage,
             platform: found.platform,
-            tags: found.tags.join(', '),
+            tags: (Array.isArray(found.tags) ? found.tags : []).join(', '),
+            parameters: Array.isArray(found.parameters) ? [...found.parameters] : [],
           })
         }
         setGroups(res.data.groups)
@@ -92,6 +94,7 @@ export function ToolDetailPage() {
       usage: form.usage,
       platform: form.platform,
       tags: form.tags.split(',').map(s => s.trim()).filter(Boolean),
+      parameters: form.parameters,
     })
     setEditOpen(false)
     loadData()
@@ -226,7 +229,7 @@ export function ToolDetailPage() {
         </CardContent>
       </Card>
 
-      {tool.tags.length > 0 && (
+      {Array.isArray(tool.tags) && tool.tags.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">标签</CardTitle>
@@ -301,6 +304,13 @@ export function ToolDetailPage() {
             <div>
               <Label>{t('tools.tagsLabel', '标签 (逗号分隔)')}</Label>
               <Input value={form.tags} onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} />
+            </div>
+            <div>
+              <Label>{t('tools.parametersLabel', '参数 (JSON Schema)')}</Label>
+              <ParameterEditor
+                value={form.parameters}
+                onChange={params => setForm(p => ({ ...p, parameters: params }))}
+              />
             </div>
             <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
           </div>

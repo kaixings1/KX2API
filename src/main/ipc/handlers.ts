@@ -13,6 +13,8 @@ import { CustomProviderManager } from '../providers/custom'
 import { getBuiltinProviders, getBuiltinProvider } from '../providers/builtin'
 import { oauthManager } from '../oauth/manager'
 import { gitService } from '../git/gitService'
+import { agentsService } from '../agents/agentsService'
+import { tasksService } from '../tasks/tasksService'
 import { commandRegistry } from '../../engine/commands/registry'
 import { mcpService } from '../mcp/mcpService'
 import { toolManager } from '../tools/toolManager'
@@ -1355,6 +1357,9 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   try {
     await storeManager.initialize()
     storeManager.setMainWindow(mainWindow)
+    // store 就绪后重载工具管理数据：单例在模块 import 时 store 尚未初始化，
+    // 只读到空兜底 store；此处补读磁盘上真实保存的分组/工具，避免「重启后分组丢失」。
+    toolManager.reload()
     if (mainWindow && !storeManager.hasInitializationError()) {
       oauthManager.setMainWindow(mainWindow)
       updaterManager.initialize(mainWindow)
@@ -2347,6 +2352,7 @@ function registerErrorRecoveryHandlers(mainWindow: BrowserWindow | null): void {
     try {
       await storeManager.initialize()
       if (!storeManager.hasInitializationError()) {
+        toolManager.reload()
         mainWindow?.webContents.send(IpcChannels.STORE_INIT_ERROR, { message: null })
         return { success: true }
       }
