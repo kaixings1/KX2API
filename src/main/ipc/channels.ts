@@ -302,6 +302,21 @@ export const IpcChannels = {
   TOOLS_ENSURE_FILE: 'tools:ensureFile',
   /** 在系统文件管理器中定位并选中该实体的 JSON 文件 */
   TOOLS_REVEAL_FILE: 'tools:revealFile',
+  /** 读取全部角色配置 */
+  TOOLS_GET_ROLES: 'tools:getRoles',
+  /** 更新某个角色配置 */
+  TOOLS_UPDATE_ROLE: 'tools:updateRole',
+  /** 元工具：搜索 / 加载 / 卸载 / 活跃列表 / 详情 */
+  TOOLS_SEARCH: 'tools:search',
+  TOOLS_LOAD: 'tools:load',
+  TOOLS_UNLOAD: 'tools:unload',
+  TOOLS_ACTIVE: 'tools:active',
+  /** 工具运行时度量汇总（成功率/误选率/token/分层占比） */
+  TOOLS_METRICS: 'tools:metrics',
+  /** 工具上下文构建状态（是否分层、当前预算） */
+  TOOLS_CONTEXT_STATUS: 'tools:contextStatus',
+  /** 清空度量数据 */
+  TOOLS_METRICS_RESET: 'tools:metricsReset',
 
   // Generic management import/export
   MGMT_EXPORT: 'mgmt:export',

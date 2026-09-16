@@ -1390,6 +1390,122 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     }
   })
 
+  // ==================== 角色与元工具 IPC（dev.txt §4/§6）====================
+
+  ipcMain.handle(IpcChannels.TOOLS_GET_ROLES, async () => {
+    try {
+      return { success: true, data: toolManager.getAllRoles() }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.TOOLS_UPDATE_ROLE, async (_, id: string, updates: Record<string, unknown>) => {
+    try {
+      const result = toolManager.updateRole(id, updates as never)
+      if (!result) return { success: false, error: 'Role not found' }
+      return { success: true, data: result }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(
+    IpcChannels.TOOLS_SEARCH,
+    async (_, query: string, opts?: { group?: string; tags?: string[]; limit?: number }) => {
+      try {
+        const { searchTools } = await import('../tools/toolMetaTools')
+        const cards = searchTools({
+          query,
+          group: opts?.group,
+          tags: opts?.tags,
+          limit: opts?.limit,
+          tools: toolManager.getAllTools(),
+          groups: toolManager.getAllGroups(),
+        })
+        return { success: true, data: cards }
+      } catch (e) {
+        return { success: false, error: (e as Error).message }
+      }
+    }
+  )
+
+  ipcMain.handle(IpcChannels.TOOLS_LOAD, async (_, ids: string[], sessionId?: string) => {
+    try {
+      const { loadTools } = await import('../tools/toolMetaTools')
+      const res = loadTools(ids, toolManager.getAllTools(), toolManager.getAllRoles(), sessionId)
+      return { success: true, data: res }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.TOOLS_UNLOAD, async (_, ids: string[], sessionId?: string) => {
+    try {
+      const { unloadTools } = await import('../tools/toolMetaTools')
+      const res = unloadTools(ids, toolManager.getAllTools(), sessionId)
+      return { success: true, data: res }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.TOOLS_ACTIVE, async (_, sessionId?: string) => {
+    try {
+      const { getActiveTools } = await import('../tools/toolMetaTools')
+      const ids = getActiveTools(toolManager.getAllTools(), sessionId)
+      const tools = ids.map(id => toolManager.getTool(id)).filter(Boolean)
+      return { success: true, data: { ids, tools } }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // ==================== 度量与上下文状态（dev.txt §13）====================
+
+  ipcMain.handle(IpcChannels.TOOLS_METRICS, async (_, since?: number) => {
+    try {
+      const { summarize } = await import('../tools/toolMetrics')
+      return { success: true, data: summarize(since || 0) }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.TOOLS_METRICS_RESET, async () => {
+    try {
+      const { resetMetrics } = await import('../tools/toolMetrics')
+      resetMetrics()
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.TOOLS_CONTEXT_STATUS, async () => {
+    try {
+      const { useLayeredContext, computeToolBudget } = await import('../tools/toolContext')
+      const { estimateTokens } = await import('../tools/toolContext')
+      const tools = toolManager.getAllTools()
+      const layered = useLayeredContext()
+      // 全量模式下的成本基线，便于对比分层收益
+      const fullCost = tools.reduce((n, t) => {
+        return n + estimateTokens(JSON.stringify({ name: t.name, description: t.description, parameters: t.parameters }))
+      }, 0)
+      return {
+        success: true,
+        data: {
+          layered,
+          totalTools: tools.length,
+          fullContextTokens: fullCost,
+          budgetTokens: computeToolBudget(128000, Number(process.env.KX2_TOOL_BUDGET_PCT) || 20),
+        },
+      }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
   // ==================== Store Initialization ====================
   try {
     await storeManager.initialize()

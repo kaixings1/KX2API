@@ -480,6 +480,26 @@ export async function buildToolsFromRegistry(enabledGroups: string[] = []): Prom
         resolved.disabledSkipped.length ? `已关闭: ${resolved.disabledSkipped.join(',')}` : ''
       )
       if (resolved.tools.length > 0) {
+        // 三层暴露协议：默认关闭（legacy 全量），KX2_TOOL_CONTEXT=layered 才启用。
+        // 启用后只把「核心 L0 + 活跃 L2」的定义发给模型，长尾靠 tool_search/tool_load 发现。
+        const { useLayeredContext, buildToolContext, computeToolBudget } = await import(
+          '../../main/tools/toolContext.ts'
+        )
+        if (useLayeredContext()) {
+          const ctx = buildToolContext({
+            tools: resolved.tools,
+            groups: toolManager.getAllGroups(),
+            budgetTokens: computeToolBudget(128000, Number(process.env.KX2_TOOL_BUDGET_PCT) || 20),
+          })
+          console.log(
+            '[API] layered tools: active=', ctx.activeTools.length,
+            'of', resolved.tools.length,
+            'est_tokens=', ctx.estimatedTokens
+          )
+          if (ctx.activeTools.length > 0) {
+            return buildOpenAIToolDefinitions(ctx.activeTools) as unknown as ToolDefinition[]
+          }
+        }
         return buildOpenAIToolDefinitions(resolved.tools) as unknown as ToolDefinition[]
       }
     }

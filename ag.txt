@@ -1,0 +1,15 @@
+npm notice run kx2code@1.0.0 test
+npm notice run node tests/agent/run.mjs
+Running Agent Feature Tests
+
+============================================================
+
+Running tool-collection.test.ts... PASS 11/11 passed
+
+Running action-sampler.test.ts... PASS 7/7 passed
+
+Running build-tools.test.ts... PASS 3/3 passed
+
+Running team.test.ts... PASS 9/9 passed
+
+Running dispatcher.test.ts... 

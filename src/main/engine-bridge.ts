@@ -170,15 +170,50 @@ function createApiClientStream(
         names: resolved.tools.filter(t => engineToolNames.has(t.name)).map(t => t.name),
         platformSkipped: resolved.tools.filter(t => !engineToolNames.has(t.name)).map(t => t.name),
       }
-      const engineDefs = buildOpenAIToolDefinitions(filteredResolved.tools)
+      // 三层暴露协议（dev.txt §5/§7）：默认关闭，走 legacy 全量提示；
+      // 设 KX2_TOOL_CONTEXT=layered 才启用「核心常驻 + 组目录 + 活跃 schema」。
+      // 之所以默认关：撤掉工具名清单会改变模型可见信息，需灰度验证后再切默认。
+      const { useLayeredContext, buildToolContext, computeToolBudget } = await import('./tools/toolContext.ts')
+
+      let hintTools = filteredResolved.tools
+      let layeredHint = ''
+      if (useLayeredContext()) {
+        const { toolManager } = await import('./tools/toolManager.ts')
+        const ctx = buildToolContext({
+          tools: filteredResolved.tools,
+          groups: toolManager.getAllGroups(),
+          sessionId: (request as { sessionId?: string }).sessionId || 'default',
+          budgetTokens: computeToolBudget(128000, Number(process.env.KX2_TOOL_BUDGET_PCT) || 20),
+        })
+        hintTools = ctx.activeTools
+        layeredHint = ctx.hint
+        console.log(
+          '[EngineBridge] layered tool context: active=', ctx.activeTools.length,
+          'available=', filteredResolved.tools.length,
+          'est_tokens=', ctx.estimatedTokens,
+          ctx.evicted.length ? `evicted=${ctx.evicted.join(',')}` : ''
+        )
+        // 度量埋点（dev.txt §13）：记录本轮工具上下文成本，供评估分层收益。
+        const { recordContext } = await import('./tools/toolMetrics.ts')
+        recordContext({
+          sessionId: 'default',
+          layered: true,
+          exposed: ctx.activeTools.length,
+          total: filteredResolved.tools.length,
+          estimatedTokens: ctx.estimatedTokens,
+          evicted: ctx.evicted.length,
+        })
+      }
+
+      const engineDefs = buildOpenAIToolDefinitions(hintTools)
       if (engine && engineDefs.length > 0) {
         ;(engine as unknown as { setToolDefinitions: (defs: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>) => void }).setToolDefinitions(
           engineDefs.map(d => ({ name: d.function.name, description: d.function.description, input_schema: d.function.parameters })),
         )
       }
       // toolHint 用过滤后的工具集生成，避免展示未注册的工具名
-      toolHint = buildToolHint(filteredResolved)
-      console.log('[EngineBridge] tools for this request:', filteredResolved.tools.length, filteredResolved.isGlobal ? '(全局组)' : `(${resolved.groupNames.join('+')})`, 'engineDefs synced:', engineDefs.length, 'total available:', resolved.tools.length)
+      toolHint = layeredHint || buildToolHint({ ...filteredResolved, tools: hintTools, names: hintTools.map(t => t.name) })
+      console.log('[EngineBridge] tools for this request:', hintTools.length, filteredResolved.isGlobal ? '(全局组)' : `(${resolved.groupNames.join('+')})`, 'engineDefs synced:', engineDefs.length, 'total available:', resolved.tools.length)
     } catch (e) {
       console.warn('[EngineBridge] 工具组解析失败，回退为全局组:', (e as Error).message)
     }

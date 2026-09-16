@@ -27,11 +27,11 @@ import {
   readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync,
 } from 'node:fs'
 import { storeManager } from '../store/store'
-import type { ToolDefinition, ToolGroup, ToolHintRule, ToolManagementStore } from './types'
+import type { ToolDefinition, ToolGroup, ToolHintRule, ToolManagementStore, ToolRole } from './types'
 
 const ROOT = (): string => join(app.getPath('userData'), 'tools')
 
-type Kind = 'tools' | 'groups' | 'hintRules'
+type Kind = 'tools' | 'groups' | 'hintRules' | 'roles'
 const EXT_JSON = '.json'
 const EXT_XML = '.xml'
 
@@ -234,13 +234,14 @@ export const toolFileStore = {
   deleteGroup(id: string): void { deleteEntity('groups', id) },
   deleteHintRule(id: string): void { deleteEntity('hintRules', id) },
   resetAll(): void {
+    const kinds: Kind[] = ['tools', 'groups', 'hintRules', 'roles']
     // 自定义目录
-    for (const k of (['tools', 'groups', 'hintRules'] as Kind[])) {
+    for (const k of kinds) {
       const d = dirOf(k)
       if (existsSync(d)) rmSync(d, { recursive: true, force: true })
     }
     // 内置覆盖层目录（用户对内置项的改动）也一并清掉，才算真正「恢复默认」
-    for (const k of (['tools', 'groups', 'hintRules'] as Kind[])) {
+    for (const k of kinds) {
       const d = dirOf(k, true)
       if (existsSync(d)) rmSync(d, { recursive: true, force: true })
     }
@@ -321,6 +322,18 @@ export const toolFileStore = {
   customPathOf(kind: Kind, id: string): string {
     return jsonFile(kind, id)
   },
+
+  // ==================== 角色配置（roles/ 子目录）====================
+
+  listRoles(): ToolRole[] {
+    return existingIds('roles')
+      .map(id => readEntity<ToolRole>('roles', id))
+      .filter((r): r is ToolRole => !!r)
+  },
+  saveRole(r: ToolRole): void {
+    writeEntity('roles', r.id, r as unknown as Record<string, unknown>)
+  },
+  deleteRole(id: string): void { deleteEntity('roles', id) },
 }
 
 /**

@@ -635,6 +635,15 @@ declare const electronAPI: {
         resetBuiltin: (kind: 'tool' | 'group' | 'hintRule', id: string) => Promise<{ success: boolean; error?: string }>;
         ensureFile: (id: string) => Promise<{ success: boolean; data?: { path: string }; error?: string }>;
         revealFile: (id: string) => Promise<{ success: boolean; data?: { path: string }; error?: string }>;
+        getRoles: () => Promise<{ success: boolean; data?: any[]; error?: string }>;
+        updateRole: (id: string, updates: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        search: (query: string, opts?: { group?: string; tags?: string[]; limit?: number }) => Promise<{ success: boolean; data?: any[]; error?: string }>;
+        load: (ids: string[], sessionId?: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        unload: (ids: string[], sessionId?: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        active: (sessionId?: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+        metrics: (since?: number) => Promise<{ success: boolean; data?: any; error?: string }>;
+        resetMetrics: () => Promise<{ success: boolean; error?: string }>;
+        contextStatus: () => Promise<{ success: boolean; data?: any; error?: string }>;
     };
     otherConfig: {
         get: () => Promise<{ success: boolean; config?: any }>;

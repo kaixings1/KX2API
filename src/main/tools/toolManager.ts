@@ -148,7 +148,11 @@ export class ToolManager {
       else rules.push(r)
     }
 
-    return this.normalizeStore({ tools: [...toolMap.values()], groups, hintRules: rules, roles: base.roles })
+    // 角色：内置默认 + 用户改过的（roles/ 目录文件按 id 覆盖）
+    const customRoles = toolFileStore.listRoles()
+    const roles = mergeById(base.roles || defaultRoles(), customRoles)
+
+    return this.normalizeStore({ tools: [...toolMap.values()], groups, hintRules: rules, roles })
   }
 
   /**
@@ -212,6 +216,10 @@ export class ToolManager {
           toolFileStore.saveHintRule(r)
         }
       }
+      // 角色配置：内置角色改动后落盘（与内置项同样只在「有差异」时写）
+      for (const role of this.store.roles || []) {
+        if (this.differsFromBuiltin(role.id, role)) toolFileStore.saveRole(role)
+      }
       // 清理磁盘上已不存在的自定义文件（删除/移出等导致的内存空位）
       const toolIds = new Set(this.store.tools.filter(t => !t.builtin).map(t => t.id))
       const groupIds = new Set(this.store.groups.filter(g => !g.builtin).map(g => g.id))
@@ -229,10 +237,15 @@ export class ToolManager {
    */
   private differsFromBuiltin(id: string, entity: { id: string }): boolean {
     const base = this.createDefaultStore()
+    const toolList = base.tools as unknown as { id: string }[]
+    const groupList = base.groups as unknown as { id: string }[]
+    const ruleList = base.hintRules as unknown as { id: string }[]
+    const roleList = (base.roles || defaultRoles()) as unknown as { id: string }[]
     const list: { id: string }[] =
-      (base.tools as unknown as { id: string }[]).some(x => x.id === id) ? base.tools
-        : (base.groups as unknown as { id: string }[]).some(x => x.id === id) ? base.groups
-          : base.hintRules
+      toolList.some(x => x.id === id) ? base.tools
+        : groupList.some(x => x.id === id) ? base.groups
+          : ruleList.some(x => x.id === id) ? base.hintRules
+            : roleList
     const origin = (list as { id: string }[]).find(x => x.id === id)
     if (!origin) return false
     return comparableFields(entity) !== comparableFields(origin)
@@ -319,6 +332,21 @@ export class ToolManager {
   /** 按 id 取角色，未命中返回 default */
   getRole(id: string): ToolRole {
     return resolveRole(this.getAllRoles(), id)
+  }
+
+  /**
+   * 更新角色配置。
+   * 角色目前只有内置默认值（无文件持久化），更新落在内存 store，
+   * 由 saveStore 决定是否落盘——角色属于用户配置，改动即写覆盖层。
+   */
+  updateRole(id: string, updates: Partial<Omit<ToolRole, 'id' | 'createdAt'>>): ToolRole | null {
+    const roles = this.store.roles && this.store.roles.length > 0 ? this.store.roles : defaultRoles()
+    const idx = roles.findIndex(r => r.id === id)
+    if (idx < 0) return null
+    roles[idx] = { ...roles[idx], ...updates }
+    this.store.roles = roles
+    this.saveStore()
+    return roles[idx]
   }
 
   getTool(id: string): ToolDefinition | undefined {

@@ -1393,6 +1393,49 @@ const electronAPI = {
     /** 在系统文件管理器中定位并选中该工具的 JSON 文件 */
     revealFile: (id: string): Promise<{ success: boolean; data?: { path: string }; error?: string }> =>
       ipcRenderer.invoke('tools:revealFile', id),
+
+    // ---- 角色与元工具（dev.txt §4/§6）----
+
+    /** 全部角色配置 */
+    getRoles: (): Promise<{ success: boolean; data?: any[]; error?: string }> =>
+      ipcRenderer.invoke('tools:getRoles'),
+
+    /** 更新角色配置（默认组 / 允许组 / 禁用标签 / 禁用风险 / 活跃上限） */
+    updateRole: (id: string, updates: any): Promise<{ success: boolean; data?: any; error?: string }> =>
+      ipcRenderer.invoke('tools:updateRole', id, updates),
+
+    /** 搜索工具，返回轻量卡片（不含完整 schema） */
+    search: (
+      query: string,
+      opts?: { group?: string; tags?: string[]; limit?: number }
+    ): Promise<{ success: boolean; data?: any[]; error?: string }> =>
+      ipcRenderer.invoke('tools:search', query, opts),
+
+    /** 加载工具进当前会话活跃集 */
+    load: (ids: string[], sessionId?: string): Promise<{ success: boolean; data?: any; error?: string }> =>
+      ipcRenderer.invoke('tools:load', ids, sessionId),
+
+    /** 从活跃集卸载工具 */
+    unload: (ids: string[], sessionId?: string): Promise<{ success: boolean; data?: any; error?: string }> =>
+      ipcRenderer.invoke('tools:unload', ids, sessionId),
+
+    /** 当前活跃工具 */
+    active: (sessionId?: string): Promise<{ success: boolean; data?: any; error?: string }> =>
+      ipcRenderer.invoke('tools:active', sessionId),
+
+    // ---- 度量与上下文状态（dev.txt §13）----
+
+    /** 运行时度量汇总：成功率 / 误选率 / token / 分层占比 */
+    metrics: (since?: number): Promise<{ success: boolean; data?: any; error?: string }> =>
+      ipcRenderer.invoke('tools:metrics', since),
+
+    /** 清空度量 */
+    resetMetrics: (): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('tools:metricsReset'),
+
+    /** 当前上下文构建状态（是否分层、全量基线 token、预算） */
+    contextStatus: (): Promise<{ success: boolean; data?: any; error?: string }> =>
+      ipcRenderer.invoke('tools:contextStatus'),
   },
 
   on: (channel: string, callback: (...args: unknown[]) => void) => {

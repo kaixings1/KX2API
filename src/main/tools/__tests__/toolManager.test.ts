@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import type { ToolDefinition, ToolGroup, ToolHintRule } from '../types'
+import type { ToolDefinition, ToolGroup, ToolHintRule, ToolRole } from '../types'
 
 // 通过 vi.hoisted 创建模块级共享的可变 store，供 vi.mock 工厂与测试体安全访问
 const mockStore: { data: Record<string, unknown> } = vi.hoisted(() => ({ data: {} }))
@@ -21,9 +21,11 @@ const mockFile: {
   builtinTools: ToolDefinition[]
   builtinGroups: ToolGroup[]
   builtinHintRules: ToolHintRule[]
+  roles: ToolRole[]
 } = vi.hoisted(() => ({
   tools: [], groups: [], hintRules: [],
   builtinTools: [], builtinGroups: [], builtinHintRules: [],
+  roles: [],
 }))
 
 /** 把实体写进某个数组（存在则替换） */
@@ -99,6 +101,10 @@ vi.mock('../toolFileStore', () => ({
     },
     builtinPathOf: (kind: string, id: string) => `builtin/${kind}/${id}.json`,
     customPathOf: (kind: string, id: string) => `${kind}/${id}.json`,
+    // ---- 角色配置 ----
+    listRoles: () => [...mockFile.roles],
+    saveRole: (r: ToolRole) => { upsertInto(mockFile.roles, r) },
+    deleteRole: (id: string) => { mockFile.roles = mockFile.roles.filter(x => x.id !== id) },
   },
   migrateCustomRulesFromStore: () => ({ tools: 0, groups: 0, hintRules: 0 }),
 }))
@@ -154,6 +160,7 @@ function fresh(initial?: Partial<ToolManagementStore>): ToolManager {
   mockFile.builtinTools = []
   mockFile.builtinGroups = []
   mockFile.builtinHintRules = []
+  mockFile.roles = []
   mockRegistry.commands = []
   const empty: ToolManagementStore = { tools: [], groups: [], hintRules: [] }
   const init = { ...empty, ...(initial ?? {}) }
