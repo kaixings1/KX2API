@@ -486,16 +486,28 @@ export async function buildToolsFromRegistry(enabledGroups: string[] = []): Prom
           '../../main/tools/toolContext.ts'
         )
         if (useLayeredContext()) {
+          const ctxWindow = Number(process.env.KX2_TOOL_CONTEXT_WINDOW) || 128000
           const ctx = buildToolContext({
             tools: resolved.tools,
             groups: toolManager.getAllGroups(),
-            budgetTokens: computeToolBudget(128000, Number(process.env.KX2_TOOL_BUDGET_PCT) || 20),
+            budgetTokens: computeToolBudget(ctxWindow, Number(process.env.KX2_TOOL_BUDGET_PCT) || 20),
           })
           console.log(
             '[API] layered tools: active=', ctx.activeTools.length,
             'of', resolved.tools.length,
-            'est_tokens=', ctx.estimatedTokens
+            'est_tokens=', ctx.estimatedTokens,
+            ctx.evicted.length ? `evicted=${ctx.evicted.join(',')}` : ''
           )
+          // 与 engine-bridge 路径保持同样的度量埋点，否则两条链路的统计数据不可比
+          const { recordContext } = await import('../../main/tools/toolMetrics.ts')
+          recordContext({
+            sessionId: 'default',
+            layered: true,
+            exposed: ctx.activeTools.length,
+            total: resolved.tools.length,
+            estimatedTokens: ctx.estimatedTokens,
+            evicted: ctx.evicted.length,
+          })
           if (ctx.activeTools.length > 0) {
             return buildOpenAIToolDefinitions(ctx.activeTools) as unknown as ToolDefinition[]
           }

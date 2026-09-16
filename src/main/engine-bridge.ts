@@ -179,11 +179,16 @@ function createApiClientStream(
       let layeredHint = ''
       if (useLayeredContext()) {
         const { toolManager } = await import('./tools/toolManager.ts')
+        // 会话隔离：优先用请求里带的 id；没有则退回 default，
+        // 且上下文构建与度量必须用同一个 id，否则 LRU 统计与活跃集对不上。
+        const sid = (request as { sessionId?: string }).sessionId || 'default'
+        // 上下文窗口由环境变量给出（不同模型差异大），缺省 128k 仅作保守假设。
+        const ctxWindow = Number(process.env.KX2_TOOL_CONTEXT_WINDOW) || 128000
         const ctx = buildToolContext({
           tools: filteredResolved.tools,
           groups: toolManager.getAllGroups(),
-          sessionId: (request as { sessionId?: string }).sessionId || 'default',
-          budgetTokens: computeToolBudget(128000, Number(process.env.KX2_TOOL_BUDGET_PCT) || 20),
+          sessionId: sid,
+          budgetTokens: computeToolBudget(ctxWindow, Number(process.env.KX2_TOOL_BUDGET_PCT) || 20),
         })
         hintTools = ctx.activeTools
         layeredHint = ctx.hint
@@ -196,7 +201,7 @@ function createApiClientStream(
         // 度量埋点（dev.txt §13）：记录本轮工具上下文成本，供评估分层收益。
         const { recordContext } = await import('./tools/toolMetrics.ts')
         recordContext({
-          sessionId: 'default',
+          sessionId: sid,
           layered: true,
           exposed: ctx.activeTools.length,
           total: filteredResolved.tools.length,

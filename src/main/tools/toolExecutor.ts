@@ -68,7 +68,12 @@ export function normalizeOutput(raw: string, structured = false): ToolOutput {
     return { ok: true, data, truncated: false, bytes }
   }
 
-  const head = Buffer.from(text, 'utf-8').subarray(0, MAX_OUTPUT_BYTES).toString('utf-8')
+  // 按 UTF-8 边界安全截断：直接 subarray 可能切断多字节字符产生乱码，
+  // 用 Buffer 切片后回退到最后一个完整字符的起始字节。
+  const buf = Buffer.from(text, 'utf-8')
+  let end = MAX_OUTPUT_BYTES
+  while (end > 0 && (buf[end] & 0xc0) === 0x80) end--
+  const head = buf.subarray(0, end).toString('utf-8')
   let rawPath: string | undefined
   try {
     const p = join(spillDir(), `out-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.txt`)
@@ -76,9 +81,11 @@ export function normalizeOutput(raw: string, structured = false): ToolOutput {
     rawPath = p
   } catch { /* 落盘失败不阻断，仅丢完整内容 */ }
 
+  // 截断后 JSON 必然不完整、无法再解析，因此统一以 { raw } 返回；
+  // 调用方靠 truncated 标志决定是否去读完整文件。
   return {
     ok: true,
-    data: structured ? { raw: head } : { raw: head },
+    data: { raw: head },
     truncated: true,
     bytes,
     rawPath,
@@ -124,12 +131,10 @@ export interface PermissionDecision {
 export function checkToolPermission(input: PermissionCheckInput): PermissionDecision {
   const { tool } = input
   const { risk, cost, labels } = normalizeToolLabels(tool)
-
-  if (isCoreTool(tool)) {
-    return { allowed: true, risk }
-  }
-
   const role = resolveRole(input.roles, input.roleId)
+
+  // 角色拒绝的检查必须排在「核心工具豁免」之前：
+  // 核心集里的 exec 能执行任意 shell，若先豁免就会绕过 verifier 的写/破坏禁令。
   if (role.deniedRisks.includes(risk)) {
     return { allowed: false, reason: `角色「${role.name}」禁止 ${risk} 级操作`, risk }
   }
@@ -140,11 +145,24 @@ export function checkToolPermission(input: PermissionCheckInput): PermissionDeci
     return { allowed: false, reason: `命中角色禁用标签 ${hit}`, risk }
   }
 
+  // 核心工具（L0）跳过「必须先加载」的要求，但仍受上面的角色约束
+  if (isCoreTool(tool)) {
+    return { allowed: true, risk, needsConfirmation: risk === 'destructive' }
+  }
+
   if (input.isActive === false) {
     return {
       allowed: false,
       reason: `工具 ${tool.name} 未加载。请先 tool_load ${tool.id}`,
       risk,
+    }
+  }
+
+  // 已加载工具仍需遵守 allowedGroups 范围（防止用旧配置加载后角色收紧）
+  if (role.allowedGroups.length > 0) {
+    const inAllowed = (labels.domains || []).some(d => role.allowedGroups.includes(d))
+    if (!inAllowed && !role.allowedGroups.includes(tool.id)) {
+      return { allowed: false, reason: `不在角色「${role.name}」允许的组内`, risk }
     }
   }
 

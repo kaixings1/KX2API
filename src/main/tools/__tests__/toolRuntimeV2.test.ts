@@ -72,6 +72,26 @@ describe('toolLabels — 标签推导', () => {
     expect(labels.domains).toEqual(['utility'])
   })
 
+  // 回归：宽泛前缀会吞掉特异规则，必须用命令名边界收尾
+  it('前缀相近的命令不会被误判（ps 不吞 psql、go 不吞 goodbye、del 不吞 delta）', () => {
+    expect(inferLabels('psql').labels.domains).toContain('db')
+    expect(inferLabels('ps').labels.domains).toContain('system')
+    expect(inferLabels('goodbye').labels.domains).toContain('utility')
+    expect(inferLabels('delta').risk).not.toBe('destructive')
+  })
+
+  it('curl 归类到 net 而非被更早的规则吞掉', () => {
+    expect(inferLabels('curl').labels.domains).toContain('net')
+    expect(inferLabels('curl').risk).toBe('network')
+  })
+
+  it('带横线的 git 子命令仍能识别风险', () => {
+    expect(inferLabels('git-commit').risk).toBe('write')
+    expect(inferLabels('git-clone').risk).toBe('network')
+    // 只读的 git 子命令不应被误判为写
+    expect(inferLabels('git-status').risk).toBe('readonly')
+  })
+
   it('显式声明优先于推导值', () => {
     const t = tool('ls', { risk: 'destructive', cost: 'high', labels: { domains: ['custom'] } })
     const norm = normalizeToolLabels(t)
@@ -285,13 +305,21 @@ describe('toolExecutor — 输出与权限', () => {
     expect(out.bytes).toBeGreaterThan(16 * 1024)
   })
 
-  it('核心工具永远放行', () => {
+  it('核心元工具不受角色限制（只读）', () => {
     const d = checkToolPermission({
       tool: tool('tool_search', { alwaysOn: true }),
       roles: defaultRoles(),
       roleId: 'verifier',
     })
     expect(d.allowed).toBe(true)
+  })
+
+  // 回归：核心豁免必须排在角色校验之后，否则 verifier 能用 exec 绕过写禁令
+  it('核心基础集 exec 不能绕过 verifier 的角色限制', () => {
+    const d = checkToolPermission({
+      tool: tool('exec'), roles: defaultRoles(), roleId: 'verifier', isActive: true,
+    })
+    expect(d.allowed).toBe(false)
   })
 
   it('verifier 调用写类工具被拒', () => {
@@ -317,6 +345,20 @@ describe('toolExecutor — 输出与权限', () => {
     })
     expect(d.allowed).toBe(true)
     expect(d.needsConfirmation).toBe(true)
+  })
+
+  it('万能执行器按 destructive 处理，default 角色下仍需确认', () => {
+    const d = checkToolPermission({
+      tool: tool('exec'), roles: defaultRoles(), roleId: 'default', isActive: true,
+    })
+    expect(d.allowed).toBe(true)
+    expect(d.risk).toBe('destructive')
+    expect(d.needsConfirmation).toBe(true)
+  })
+
+  it('exec 被视为破坏性风险，因此不会被判为只读', () => {
+    expect(inferLabels('exec').risk).toBe('destructive')
+    expect(inferLabels('powershell').risk).toBe('destructive')
   })
 })
 

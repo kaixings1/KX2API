@@ -86,26 +86,29 @@ export interface ToolMetricsSummary {
 export function summarize(since = 0, topN = 10): ToolMetricsSummary {
   const c = calls.filter(r => r.ts >= since)
   const ctx = contexts.filter(r => r.ts >= since)
-  const n = c.length || 1
 
   const counts = new Map<string, number>()
   for (const r of c) counts.set(r.tool, (counts.get(r.tool) || 0) + 1)
   const topTools = [...counts.entries()]
     .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
     .slice(0, topN)
+
+  // 无样本时显式归零，避免拿 0 当「成功率 0%」误报；有样本才做除法。
+  const hasCall = c.length > 0
+  const hasCtx = ctx.length > 0
 
   return {
     totalCalls: c.length,
-    successRate: c.filter(r => r.ok).length / n,
-    misselectRate: c.filter(r => !r.wasActive).length / n,
-    deniedRate: c.filter(r => !r.allowed).length / n,
-    avgDurationMs: c.reduce((s, r) => s + r.durationMs, 0) / n,
-    avgOutputBytes: c.reduce((s, r) => s + r.outputBytes, 0) / n,
+    successRate: hasCall ? c.filter(r => r.ok).length / c.length : 0,
+    misselectRate: hasCall ? c.filter(r => !r.wasActive).length / c.length : 0,
+    deniedRate: hasCall ? c.filter(r => !r.allowed).length / c.length : 0,
+    avgDurationMs: hasCall ? c.reduce((s, r) => s + r.durationMs, 0) / c.length : 0,
+    avgOutputBytes: hasCall ? c.reduce((s, r) => s + r.outputBytes, 0) / c.length : 0,
     totalContexts: ctx.length,
-    avgExposedTools: ctx.length ? ctx.reduce((s, r) => s + r.exposed, 0) / ctx.length : 0,
-    avgToolTokens: ctx.length ? ctx.reduce((s, r) => s + r.estimatedTokens, 0) / ctx.length : 0,
-    layeredRatio: ctx.length ? ctx.filter(r => r.layered).length / ctx.length : 0,
+    avgExposedTools: hasCtx ? ctx.reduce((s, r) => s + r.exposed, 0) / ctx.length : 0,
+    avgToolTokens: hasCtx ? ctx.reduce((s, r) => s + r.estimatedTokens, 0) / ctx.length : 0,
+    layeredRatio: hasCtx ? ctx.filter(r => r.layered).length / ctx.length : 0,
     topTools,
   }
 }

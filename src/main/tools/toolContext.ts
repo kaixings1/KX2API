@@ -84,12 +84,25 @@ export interface ToolContextResult {
   layered: boolean
 }
 
-/** 生成 L1 组目录：只有组名、描述与工具数量，不含每个工具的 schema */
-export function buildGroupCatalog(groups: ToolGroup[], tools: ToolDefinition[]): string {
-  const byId = new Map(tools.map(t => [t.id, t]))
+/**
+ * 生成 L1 组目录：只有组名、描述与工具数量，不含每个工具的 schema。
+ * 只统计「当前实际可用」的工具（组里可能含已删除/禁用/平台不符的 id，
+ * 直接数 toolIds.length 会虚报数量，让模型误以为组里有更多工具）。
+ */
+export function buildGroupCatalog(
+  groups: ToolGroup[],
+  tools: ToolDefinition[],
+  /** 分组 id → 该组内实际可用工具数；不传则按 tools 交集自行计算 */
+  availableCount?: (groupId: string) => number
+): string {
+  const byId = new Set(tools.map(t => t.id))
+  const byName = new Set(tools.map(t => t.name))
   const lines: string[] = []
   for (const g of groups) {
-    const count = g.toolIds.filter(id => byId.has(id) || byId.has(id.replace(/^group-/, ''))).length
+    if (g.enabled === false) continue
+    const count = availableCount
+      ? availableCount(g.id)
+      : g.toolIds.filter(id => byId.has(id) || byName.has(id)).length
     if (count === 0) continue
     lines.push(`- ${g.id}: ${g.description || g.name} (${count})`)
   }
@@ -106,7 +119,6 @@ export function buildGroupCatalog(groups: ToolGroup[], tools: ToolDefinition[]):
 export function buildToolContext(input: ContextBuildInput): ToolContextResult {
   const sessionId = input.sessionId || 'default'
   const all = input.tools
-  const byId = new Map(all.map(t => [t.id, t]))
 
   // L0：核心常驻
   const core = all.filter(t => isCoreTool(t))
@@ -125,24 +137,27 @@ export function buildToolContext(input: ContextBuildInput): ToolContextResult {
     picked.push(t)
   }
 
-  // 预算控制：超限则按 LRU 淘汰非核心
+  // 预算控制：超限则按「最后使用时间」淘汰非核心（核心永不淘汰）
   const evicted: string[] = []
-  let total = picked.reduce((n, t) => n + toolTokenCost(t), 0)
+  const costOf = new Map(picked.map(t => [t.id, toolTokenCost(t)]))
+  let total = picked.reduce((n, t) => n + (costOf.get(t.id) || 0), 0)
   if (input.budgetTokens && input.budgetTokens > 0 && total > input.budgetTokens) {
-    const nonCore = picked.filter(t => !isCoreTool(t))
-    // 最久未使用的优先淘汰：这里用「不在 activeIds 末尾 = 更早加载」近似，
-    // 精确时间戳由 toolMetaTools 的 lastUsed 维护，LRU 淘汰已在 loadTools 里做过一轮。
-    for (const t of [...nonCore].reverse()) {
+    // 真正按 LRU 排序：最早使用/从未使用的先淘汰，而不是单纯依赖数组顺序
+    const nonCore = picked
+      .filter(t => !isCoreTool(t))
+      .sort((a, b) => lastUsedAt(sessionId, a.id) - lastUsedAt(sessionId, b.id))
+    for (const t of nonCore) {
       if (total <= input.budgetTokens) break
-      total -= toolTokenCost(t)
+      total -= costOf.get(t.id) || 0
       evicted.push(t.name)
       const idx = picked.findIndex(x => x.id === t.id)
       if (idx >= 0) picked.splice(idx, 1)
     }
   }
 
-  // 记录本轮实际暴露的工具，供后续 LRU
-  for (const t of picked) touchTool(sessionId, t.id)
+  // 只记录非核心工具的暴露时间：核心工具永不淘汰，记录它们毫无意义，
+  // 反而会因为「每轮都刷新」把 lastUsed 表刷大。
+  for (const t of picked) if (!isCoreTool(t)) touchTool(sessionId, t.id)
 
   const catalog = buildGroupCatalog(input.groups, all)
   const hint = buildLayeredHint(picked, catalog, evicted)

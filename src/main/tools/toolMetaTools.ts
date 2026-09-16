@@ -60,6 +60,11 @@ export function touchTool(sessionId: string, toolId: string): void {
   getState(sessionId).lastUsed.set(toolId, Date.now())
 }
 
+/** 取某工具在会话内的最后使用时间（从未使用返回 0，供 LRU 优先淘汰） */
+export function lastUsedAt(sessionId: string, toolId: string): number {
+  return getState(sessionId).lastUsed.get(toolId) || 0
+}
+
 // ==================== 检索 ====================
 
 export interface ToolCard {
