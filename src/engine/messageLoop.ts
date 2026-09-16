@@ -246,7 +246,10 @@ export class MessageLoop {
     // 原实现让 _recordAssistantResponse 返回 true 继续下一轮，而中文正文里
     // 「是否/继续/确认」这类词命中率极高，会导致空转直到 maxIterations(100) 才停。
     // 同时事件只在此处发一次（此前本函数与 _recordAssistantResponse 各发一次，重复推送）。
-    if (processed.needsUserInput) {
+    //
+    // 仅当本轮没有工具调用时才按 needs_user 收尾：模型可能在同一轮里既发起工具调用、
+    // 正文又以问句结尾，此时必须先去执行工具，不能被判定提前截断。
+    if (processed.needsUserInput && processed.toolCalls.length === 0) {
       this.deps.onEvent({ type: 'needs_user', prompt: processed.content as string });
       this.deps.onEvent({
         type: 'iteration_end',
