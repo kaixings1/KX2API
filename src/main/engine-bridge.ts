@@ -336,8 +336,6 @@ function createApiClientStream(
         apiKey,
         model: resolvedModel,
         baseUrl,
-        maxToolRounds: 5,
-        maxRepeat: 3,
         enabledToolGroups,
       },
       messages.map(m => ({

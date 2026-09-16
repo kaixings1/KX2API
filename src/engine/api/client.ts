@@ -31,8 +31,6 @@ export interface ApiConfig {
   model: string
   baseUrl?: string
   maxTokens?: number
-  maxToolRounds?: number
-  maxRepeat?: number
   /** 启用的工具分组列表，空数组表示使用所有工具 */
   enabledToolGroups?: string[]
 }
@@ -58,8 +56,6 @@ export interface ToolCallResult {
   tool_use_id: string
   output: string
 }
-
-const MAX_TOOL_ROUNDS = 5
 
 let requestCounter = 0
 
@@ -542,8 +538,11 @@ export async function buildToolsFromRegistry(enabledGroups: string[] = []): Prom
 }
 
 /**
- * OpenAI tool_use 工具调用循环 — 最多 MAX_TOOL_ROUNDS 轮
- * 每轮：LLM 返回 tool_calls → 本地执行 → 结果喂回 → 再问 LLM
+ * OpenAI 兼容格式的单轮请求（带工具定义）。
+ *
+ * 只发一次请求并把 tool_calls 回推给 MessageLoop，不在此处执行工具。
+ * 多轮推进由 MessageLoop 的循环负责：它执行工具、把结果写入 history，
+ * 再带着更新后的 messages 重新调用本函数。
  */
 export async function sendOpenAIStreamWithTools(
   config: ApiConfig,
@@ -553,16 +552,16 @@ export async function sendOpenAIStreamWithTools(
   reqId?: number,
 ): Promise<void> {
   const tools = await buildToolsFromRegistry(config.enabledToolGroups || [])
-  console.log('[API] Tool mode enabled, tools:', tools.map(t => t.function.name).join(', '))
+  console.log('[API] tool definitions:', tools.length)
 
-  let apiMessages = messages.map(m => ({
+  const apiMessages = messages.map(m => ({
     role: m.role,
     content: typeof m.content === 'string' ? m.content : m.content,
   }))
 
-  // 单轮请求：不再在此处循环执行工具。工具由 MessageLoop 调度后，
-  // 通过下一轮 query 重新进入本函数（history 已包含工具结果）。
-  for (let round = 0; round < 1; round++) {
+  // 单轮请求：工具执行权归属 MessageLoop。本函数只发一次请求，
+  // 把 tool_use 回推给上层；工具结果会进入 history，随下一轮请求再来。
+  {
     const raw = (config.baseUrl || 'https://api.openai.com').replace(/\/$/, '')
     const hasEndpoint = raw.includes('/chat/completions')
     const endpoint = hasEndpoint ? raw : raw + '/v1/chat/completions'
@@ -745,8 +744,5 @@ export async function sendOpenAIStreamWithTools(
       callbacks.onToolUse(tc)
     }
     callbacks.onDone(fullText, toolCalls)
-    return
   }
-
-  callbacks.onDone('(工具调用达到最大轮数限制)', [])
 }
