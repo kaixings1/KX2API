@@ -161,7 +161,8 @@ export class StreamParser {
         .replace(/\\\\/g, '\\')
       chunks.push(unescaped)
     }
-    return chunks.join('')
+    // 剔除已被 extractTools() 识别过的 tool_use XML 块，避免正文与工具区块双重渲染
+    return chunks.join('').replace(TOOL_USE_BLOCK_RE, '').trim()
   }
 
   /**

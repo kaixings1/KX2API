@@ -105,6 +105,19 @@ function readBalancedObject(text: string, startIdx: number): { value: Record<str
  * 参数缺失时视为空参数（例如 pwd / list_dir 之类无参工具）。
  */
 function extractToolFromObject(obj: Record<string, unknown>): PlainTextToolCallBlock | null {
+  // OpenAI 兼容格式：{"tool_calls": [{"name":...,"parameters":{...}}]}
+  const tc = obj.tool_calls
+  if (Array.isArray(tc) && tc.length > 0) {
+    const first = tc[0]
+    if (first && typeof first === 'object' && !Array.isArray(first)) {
+      const tcObj = first as Record<string, unknown>
+      const tcName = pickString(tcObj, NAME_KEYS)
+      if (tcName) {
+        return { name: tcName, arguments: normalizeArgs(lookupArgs(tcObj)) }
+      }
+    }
+  }
+
   const directName = pickString(obj, NAME_KEYS)
   if (directName) {
     return { name: directName, arguments: normalizeArgs(lookupArgs(obj)) }

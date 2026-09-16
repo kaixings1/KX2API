@@ -228,16 +228,18 @@ function createApiClientStream(
     // event.content_block；旧代码写成 event.block，导致该值为空、process() 抛
     // "reading 'input'" 异常，且文本块缺 start/stop 会使所有文本 delta 被 processDelta 丢弃，
     // 最终页面 contentLen=0 无任何反馈。
+    const ensureTextBlock = (): void => {
+      if (textBlockOpen) return
+      // 若推理块正开着，先关闭它再开文本块，避免两个块同时占用同一个 index
+      if (reasonBlockOpen) closeReasonBlock()
+      pushEvent({ type: 'content_block_start', index: blockIndex, content_block: { type: 'text' } })
+      textBlockOpen = true
+    }
     const closeTextBlock = (): void => {
       if (!textBlockOpen) return
       pushEvent({ type: 'content_block_stop', index: blockIndex })
       blockIndex++
       textBlockOpen = false
-    }
-    const ensureTextBlock = (): void => {
-      if (textBlockOpen) return
-      pushEvent({ type: 'content_block_start', index: blockIndex, content_block: { type: 'text' } })
-      textBlockOpen = true
     }
     const closeReasonBlock = (): void => {
       if (!reasonBlockOpen) return
@@ -247,7 +249,8 @@ function createApiClientStream(
     }
     const ensureReasonBlock = (): void => {
       if (reasonBlockOpen) return
-      if (textBlockOpen) return // 推理块与文本块互斥，避免共享 index 冲突
+      // 若文本块正开着，先关闭它再开推理块，避免互斥导致推理丢弃
+      if (textBlockOpen) closeTextBlock()
       pushEvent({ type: 'content_block_start', index: blockIndex, content_block: { type: 'thinking' } })
       reasonBlockOpen = true
     }
