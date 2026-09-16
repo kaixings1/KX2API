@@ -1,0 +1,14 @@
+npm notice run kx2code@1.0.0 test:unit
+npm notice run vitest run
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.ts:28:26). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.11 D:/KX2API
+
+
+ Test Files  29 passed (29)
+      Tests  501 passed (501)
+   Start at  23:28:58
+   Duration  8.66s (transform 27.88s, setup 0ms, import 37.39s, tests 5.05s, environment 87ms)
+

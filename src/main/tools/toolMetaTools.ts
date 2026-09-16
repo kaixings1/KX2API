@@ -178,10 +178,12 @@ export function loadTools(
   ids: string[],
   tools: ToolDefinition[],
   roles: Parameters<typeof resolveRole>[0],
-  sessionId: string = DEFAULT_SESSION
+  sessionId: string = DEFAULT_SESSION,
+  /** 显式指定角色；不传则用会话已设置的角色（默认 default） */
+  roleId?: string
 ): LoadResult {
   const state = getState(sessionId)
-  const role = resolveRole(roles, state.roleId)
+  const role = resolveRole(roles, roleId || state.roleId)
   const loaded: string[] = []
   const rejected: Array<{ id: string; reason: string }> = []
 
