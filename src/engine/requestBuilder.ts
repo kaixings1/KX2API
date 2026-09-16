@@ -4,6 +4,7 @@
  * 组装系统提示词、规范化消息、工具定义、模型参数，输出 Anthropic/OpenAI 请求。
  */
 import { MessageNormalizer, type InternalMessage } from "./messageNormalizer.ts";
+import { ensureToolResultPairing } from "./messageIntegrity.ts";
 
 export interface ToolDefinition {
   name: string;
@@ -63,10 +64,11 @@ export class RequestBuilder {
 
   async build(params: RequestParams): Promise<APIRequest> {
     const provider = params.provider ?? "openai";
-    const messages = this.normalizer.normalize(
-      params.messages.map((m) => ({ ...m, role: m.role === "tool" ? "tool" : m.role })),
-      provider,
-    );
+    // 发请求前的最后一道防线：修复 tool_use / tool_result 配对。
+    // 压缩、会话恢复、中断都可能留下孤立 tool_result 或缺失结果，
+    // 这两种情况下 Anthropic / OpenAI 都会直接 400，整轮对话无法继续。
+    const paired = ensureToolResultPairing(params.messages);
+    const messages = this.normalizer.normalize(paired, provider);
 
     // Phase 2: 注入 preAnalysis 建议到 system prompt
     let systemPrompt = params.system

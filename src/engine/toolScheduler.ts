@@ -4,6 +4,7 @@
  * 权限检查 → 分组（并行/串行）→ 执行 → 合并结果（保持顺序）。
  */
 import type { ToolCall } from "./responseHandler.ts";
+import { maybePersistToolResult } from "./toolResultStore.ts";
 
 // [LOCAL] 本地定义工具类型，适配 D:\doge-code\src\ 架构
 export interface Tool {
@@ -130,7 +131,10 @@ export class ToolScheduler {
       const output = await this.executor.execute(tool, call.input, {
         timeout: (tool as { timeout?: number }).timeout ?? 600000,
       });
-      return { success: true, output, toolUseId: call.id };
+      // 超大结果落盘，上下文里只留预览 + 文件路径（模型可用 Read 读全文）。
+      // 这样「读日志/跑构建/列大目录」这类工具不会一次吃光上下文窗口。
+      const persisted = await maybePersistToolResult(String(output ?? ""), call.id);
+      return { success: true, output: persisted, toolUseId: call.id };
     } catch (e) {
       return { success: false, error: e instanceof Error ? e.message : String(e), toolUseId: call.id };
     }

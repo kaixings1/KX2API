@@ -4,8 +4,17 @@
  * 策略：summary / truncate / selective（策略模式，对应文档 01 §7.2）。
  */
 import type { InternalMessage } from "./messageNormalizer.ts";
+import { splitAtSafeBoundary, ensureToolResultPairing, groupMessagesByApiRound } from "./messageIntegrity.ts";
 
 export interface CompactOptions {
+  /**
+   * 保留最近多少**轮**（API 往返次数），而非消息条数。
+   *
+   * 语义变更说明：原实现按消息条数 `slice(-N)` 切分，切点会落在
+   * `assistant(tool_use)` 与 `tool_result` 之间，导致保留段以孤立 tool_result
+   * 开头 —— Anthropic / OpenAI 都会直接 400。现在改为按 API 轮次边界切分，
+   * 配对完整性由 splitAtSafeBoundary 保证。
+   */
   preserveRecentCount: number;
   preserveSystemMessages: boolean;
   preserveToolResults?: boolean;
@@ -33,16 +42,20 @@ export class SummaryStrategy implements CompactStrategy {
   async compact(messages: InternalMessage[], options: CompactOptions): Promise<InternalMessage[]> {
     const system = options.preserveSystemMessages ? messages.filter((m) => m.role === "system") : [];
     const nonSys = messages.filter((m) => m.role !== "system");
-    const recent = nonSys.slice(-options.preserveRecentCount);
-    const old = nonSys.slice(0, -options.preserveRecentCount);
-    if (old.length === 0) return [...system, ...recent];
+    // 按 API 轮次边界切分，保证 recent 与 old 各自配对完整
+    const { kept: recent, dropped: old } = splitAtSafeBoundary(nonSys, options.preserveRecentCount);
+    if (old.length === 0) return ensureToolResultPairing([...system, ...recent]);
 
     // 有 LLM client 时生成真实摘要，否则回退到占位摘要
     const summary = this._llmClient
       ? await this.generateSummaryWithLLM(old)
       : await this.generateSummaryFallback(old);
 
-    return [...system, { role: "system", content: `[会话摘要]\n${summary}` }, ...recent];
+    return ensureToolResultPairing([
+      ...system,
+      { role: "system", content: `[会话摘要]\n${summary}` },
+      ...recent,
+    ]);
   }
 
   /**
@@ -116,7 +129,8 @@ export class TruncateStrategy implements CompactStrategy {
   async compact(messages: InternalMessage[], options: CompactOptions): Promise<InternalMessage[]> {
     const system = options.preserveSystemMessages ? messages.filter((m) => m.role === "system") : [];
     const nonSys = messages.filter((m) => m.role !== "system");
-    return [...system, ...nonSys.slice(-options.preserveRecentCount)];
+    const { kept } = splitAtSafeBoundary(nonSys, options.preserveRecentCount);
+    return ensureToolResultPairing([...system, ...kept]);
   }
 }
 
@@ -125,16 +139,18 @@ export class SelectiveStrategy implements CompactStrategy {
   async compact(messages: InternalMessage[], options: CompactOptions): Promise<InternalMessage[]> {
     const system = options.preserveSystemMessages ? messages.filter((m) => m.role === "system") : [];
     const nonSys = messages.filter((m) => m.role !== "system");
-    const recent = nonSys.slice(-options.preserveRecentCount);
-    const old = nonSys.slice(0, -options.preserveRecentCount);
-    const important = old.filter((msg) => {
-      if (options.preserveToolResults && msg.role === "tool") return true;
-      const c = typeof msg.content === "string" ? msg.content : "";
-      if (c.includes("```")) return true;
-      if (/重要|关键|决定|决策|结论|important|key|decision/.test(c)) return true;
-      return false;
-    });
-    return [...system, ...important, ...recent];
+    const { kept: recent, dropped: old } = splitAtSafeBoundary(nonSys, options.preserveRecentCount);
+    // 只挑选「整轮」保留：若单独挑出旧消息里的 tool 结果，会立刻产生孤立 tool_result
+    const importantGroups = groupMessagesByApiRound(old).filter(group =>
+      group.some((msg) => {
+        if (options.preserveToolResults && msg.role === "tool") return true;
+        const c = typeof msg.content === "string" ? msg.content : "";
+        if (c.includes("```")) return true;
+        if (/重要|关键|决定|决策|结论|important|key|decision/.test(c)) return true;
+        return false;
+      }),
+    );
+    return ensureToolResultPairing([...system, ...importantGroups.flat(), ...recent]);
   }
 }
 

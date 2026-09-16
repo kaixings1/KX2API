@@ -143,6 +143,19 @@ async function setupApp(): Promise<void> {
   })
 
   await logManager.initialize(debugFilePath)
+
+  // 工具结果落盘目录：超限的工具输出（读日志、跑构建、列大目录）会写到这里，
+  // 上下文里只留预览 + 路径，模型按需 Read 取回。放在 userData 下便于随应用清理。
+  try {
+    const { setToolResultsBaseDir, cleanupToolResults } = await import('../engine/toolResultStore.ts')
+    const resultsDir = join(app.getPath('userData'), 'tool-results-root')
+    setToolResultsBaseDir(resultsDir)
+    const removed = await cleanupToolResults(30)
+    logManager.info('[App] Tool result store ready', { dir: resultsDir, cleaned: removed })
+  } catch (err) {
+    logManager.warn('[App] Tool result store init failed', { error: String(err) })
+  }
+
   await registerIpcHandlers(mainWindow)
   registerTaskHandlers(mainWindow)
   registerAgentHandlers(mainWindow)

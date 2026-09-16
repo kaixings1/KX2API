@@ -36,7 +36,11 @@ export class MessageNormalizer {
         });
       }
     }
-    return this.mergeConsecutive(result);
+    // mergeConsecutive 是静态方法，必须经由类名调用。
+    // 原代码写 `this.mergeConsecutive(...)`，实例上并不存在该属性，
+    // 任何需要合并的消息序列都会抛 TypeError —— 这也是 Anthropic
+    // 分支此前完全不工作的原因之一。
+    return MessageNormalizer.mergeConsecutive(result);
   }
 
   private normalizeForOpenAI(messages: InternalMessage[]): APIMessage[] {
@@ -92,7 +96,18 @@ export class MessageNormalizer {
     return typeof c === "string" ? c : c;
   }
 
-  /** 合并连续相同角色的消息（供 messages.ts 复用） */
+  /**
+   * 合并连续相同角色的消息（供 messages.ts 复用）。
+   *
+   * 关键约束：当两条消息的 content **都是内容块数组**（Anthropic 的
+   * `tool_result` / `text` 块）时必须拼成数组，绝不能各自 JSON.stringify 后
+   * 当字符串相接 —— 那会把 `tool_result` 结构降级为纯文本，Anthropic 收到后
+   * 认为 assistant 的 `tool_use` 没有配对结果，直接返回 400
+   * （"tool_use ids were found without tool_result blocks"）。
+   *
+   * 并行工具调用时每条 tool 消息各产出一条 role='user' 的消息，必然触发合并，
+   * 所以这条路径是常态而非边界情况。
+   */
   static mergeConsecutive(messages: APIMessage[]): APIMessage[] {
     if (messages.length <= 1) return messages;
     const out: APIMessage[] = [{ ...messages[0] }];
@@ -100,15 +115,37 @@ export class MessageNormalizer {
       const prev = out[out.length - 1];
       const curr = messages[i];
       if (prev.role === curr.role) {
-        const asString = (c: unknown): string => {
-          if (typeof c === 'string') return c;
-          try { return JSON.stringify(c) } catch { return String(c) }
+        // 数组 + 数组 → 数组合并（保结构）
+        if (Array.isArray(prev.content) && Array.isArray(curr.content)) {
+          prev.content = [...prev.content, ...curr.content];
+          continue;
+        }
+        // 字符串 + 字符串 → 直接换行拼接
+        if (typeof prev.content === 'string' && typeof curr.content === 'string') {
+          prev.content = `${prev.content}\n${curr.content}`;
+          continue;
+        }
+        // 类型不一致：把字符串一侧包成 text 块，仍保持数组形态，
+        // 避免出现「数组被 stringify 成字符串」的降级。
+        const toBlocks = (c: unknown): Array<Record<string, unknown>> => {
+          if (Array.isArray(c)) return c as Array<Record<string, unknown>>;
+          if (typeof c === 'string') return [{ type: 'text', text: c }];
+          return [{ type: 'text', text: safeStringify(c) }];
         };
-        prev.content = `${asString(prev.content)}\n${asString(curr.content)}`;
+        prev.content = [...toBlocks(prev.content), ...toBlocks(curr.content)];
       } else {
         out.push({ ...curr });
       }
     }
     return out;
+  }
+}
+
+function safeStringify(c: unknown): string {
+  if (typeof c === 'string') return c;
+  try {
+    return JSON.stringify(c);
+  } catch {
+    return String(c);
   }
 }
