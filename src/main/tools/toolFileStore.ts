@@ -35,6 +35,16 @@ type Kind = 'tools' | 'groups' | 'hintRules'
 const EXT_JSON = '.json'
 const EXT_XML = '.xml'
 
+/**
+ * 内置实体的「覆盖层」子目录名。
+ *
+ * 内置工具/分组/规则来自 default-data.json + commandRegistry，本不落盘；
+ * 但用户需要能自定义内置项（改描述/用法/参数/启用状态/执行模板）。为避免把
+ * 255 个内置实体全量铺到磁盘、以及内置模板升级后被旧副本污染，这里只在
+ * builtin/<kind>/ 下存「用户改动过的那几个」，读取时按 id 覆盖到内置模板上。
+ */
+const BUILTIN_DIR = 'builtin'
+
 // ==================== XML 序列化（单向：对象 -> XML；XML -> 对象仅基础还原） ====================
 
 function esc(s: unknown): string {
@@ -135,60 +145,60 @@ function push(out: Record<string, unknown>, key: string, value: unknown): void {
 
 // ==================== 文件读 / 写 ====================
 
-function dirOf(kind: Kind): string {
-  return join(ROOT(), kind)
+function dirOf(kind: Kind, builtin = false): string {
+  return builtin ? join(ROOT(), BUILTIN_DIR, kind) : join(ROOT(), kind)
 }
 
-function ensureDir(kind: Kind): void {
-  const d = dirOf(kind)
+function ensureDir(kind: Kind, builtin = false): void {
+  const d = dirOf(kind, builtin)
   if (!existsSync(d)) mkdirSync(d, { recursive: true })
 }
 
-function jsonFile(kind: Kind, id: string): string {
-  return join(dirOf(kind), `${id}${EXT_JSON}`)
+function jsonFile(kind: Kind, id: string, builtin = false): string {
+  return join(dirOf(kind, builtin), `${id}${EXT_JSON}`)
 }
 
-function xmlFile(kind: Kind, id: string): string {
-  return join(dirOf(kind), `${id}${EXT_XML}`)
+function xmlFile(kind: Kind, id: string, builtin = false): string {
+  return join(dirOf(kind, builtin), `${id}${EXT_XML}`)
 }
 
-function readJson<T>(kind: Kind, id: string): T | null {
-  const p = jsonFile(kind, id)
+function readJson<T>(kind: Kind, id: string, builtin = false): T | null {
+  const p = jsonFile(kind, id, builtin)
   if (!existsSync(p)) return null
   try { return JSON.parse(readFileSync(p, 'utf-8')) as T } catch { return null }
 }
 
-function readXmlAsJson(kind: Kind, id: string): Record<string, unknown> | null {
-  const p = xmlFile(kind, id)
+function readXmlAsJson(kind: Kind, id: string, builtin = false): Record<string, unknown> | null {
+  const p = xmlFile(kind, id, builtin)
   if (!existsSync(p)) return null
   try { return fromXml(readFileSync(p, 'utf-8')) } catch { return null }
 }
 
 /** JSON 优先、XML 兜底读取一个实体 */
-function readEntity<T>(kind: Kind, id: string): T | undefined {
-  const j = readJson<T>(kind, id)
+function readEntity<T>(kind: Kind, id: string, builtin = false): T | undefined {
+  const j = readJson<T>(kind, id, builtin)
   if (j && typeof j === 'object') return j
-  const x = readXmlAsJson(kind, id)
+  const x = readXmlAsJson(kind, id, builtin)
   if (x && typeof x === 'object') return x as unknown as T
   return undefined
 }
 
 /** 写 JSON（权威）+ 写 XML（镜像） */
-function writeEntity(kind: Kind, id: string, entity: Record<string, unknown>): void {
-  ensureDir(kind)
-  writeFileSync(jsonFile(kind, id), JSON.stringify(entity, null, 2), 'utf-8')
+function writeEntity(kind: Kind, id: string, entity: Record<string, unknown>, builtin = false): void {
+  ensureDir(kind, builtin)
+  writeFileSync(jsonFile(kind, id, builtin), JSON.stringify(entity, null, 2), 'utf-8')
   try {
-    writeFileSync(xmlFile(kind, id), toXml(entity), 'utf-8')
+    writeFileSync(xmlFile(kind, id, builtin), toXml(entity), 'utf-8')
   } catch { /* XML 镜像失败不阻断 */ }
 }
 
-function deleteEntity(kind: Kind, id: string): void {
-  try { rmSync(jsonFile(kind, id), { force: true }) } catch { /* ignore */ }
-  try { rmSync(xmlFile(kind, id), { force: true }) } catch { /* ignore */ }
+function deleteEntity(kind: Kind, id: string, builtin = false): void {
+  try { rmSync(jsonFile(kind, id, builtin), { force: true }) } catch { /* ignore */ }
+  try { rmSync(xmlFile(kind, id, builtin), { force: true }) } catch { /* ignore */ }
 }
 
-function existingIds(kind: Kind): string[] {
-  const d = dirOf(kind)
+function existingIds(kind: Kind, builtin = false): string[] {
+  const d = dirOf(kind, builtin)
   if (!existsSync(d)) return []
   const set = new Set<string>()
   for (const n of readdirSync(d)) {
@@ -224,8 +234,14 @@ export const toolFileStore = {
   deleteGroup(id: string): void { deleteEntity('groups', id) },
   deleteHintRule(id: string): void { deleteEntity('hintRules', id) },
   resetAll(): void {
+    // 自定义目录
     for (const k of (['tools', 'groups', 'hintRules'] as Kind[])) {
       const d = dirOf(k)
+      if (existsSync(d)) rmSync(d, { recursive: true, force: true })
+    }
+    // 内置覆盖层目录（用户对内置项的改动）也一并清掉，才算真正「恢复默认」
+    for (const k of (['tools', 'groups', 'hintRules'] as Kind[])) {
+      const d = dirOf(k, true)
       if (existsSync(d)) rmSync(d, { recursive: true, force: true })
     }
   },
@@ -239,6 +255,71 @@ export const toolFileStore = {
       groups: existingIds('groups').length,
       hintRules: existingIds('hintRules').length,
     }
+  },
+
+  // ==================== 内置覆盖层（builtin/ 子目录） ====================
+  //
+  // 内置实体本不落盘，用户改动以「覆盖层」形式单独存放：文件在
+  // userData/tools/builtin/<kind>/<id>.json，读取时按 id 覆盖内置模板。
+  // 这样既能自定义任意内置命令，又不会把几百个内置实体铺满磁盘，
+  // 内置模板升级后也不会被旧副本顶掉（没改过的项永远跟着模板走）。
+
+  /** 列出所有被用户改动过的内置工具覆盖项 */
+  listBuiltinTools(): ToolDefinition[] {
+    return existingIds('tools', true)
+      .map(id => readEntity<ToolDefinition>('tools', id, true))
+      .filter((t): t is ToolDefinition => !!t)
+  },
+  listBuiltinGroups(): ToolGroup[] {
+    return existingIds('groups', true)
+      .map(id => readEntity<ToolGroup>('groups', id, true))
+      .filter((g): g is ToolGroup => !!g)
+  },
+  listBuiltinHintRules(): ToolHintRule[] {
+    return existingIds('hintRules', true)
+      .map(id => readEntity<ToolHintRule>('hintRules', id, true))
+      .filter((r): r is ToolHintRule => !!r)
+  },
+
+  /** 写内置覆盖项（用户保存对内建实体的修改） */
+  saveBuiltinTool(t: ToolDefinition): void {
+    writeEntity('tools', t.id, t as unknown as Record<string, unknown>, true)
+  },
+  saveBuiltinGroup(g: ToolGroup): void {
+    writeEntity('groups', g.id, g as unknown as Record<string, unknown>, true)
+  },
+  saveBuiltinHintRule(r: ToolHintRule): void {
+    writeEntity('hintRules', r.id, r as unknown as Record<string, unknown>, true)
+  },
+
+  /** 删除内置覆盖项 = 恢复该实体的内置默认 */
+  deleteBuiltinTool(id: string): void { deleteEntity('tools', id, true) },
+  deleteBuiltinGroup(id: string): void { deleteEntity('groups', id, true) },
+  deleteBuiltinHintRule(id: string): void { deleteEntity('hintRules', id, true) },
+
+  /** 该内置实体是否已被用户改动过（决定页面上能否「恢复默认」） */
+  hasBuiltinOverride(kind: Kind, id: string): boolean {
+    return existsSync(jsonFile(kind, id, true)) || existsSync(xmlFile(kind, id, true))
+  },
+
+  /**
+   * 懒生成：把内置实体按当前生效值落盘成一份可编辑的 JSON+XML 文件。
+   * 供「点击条目 → 打开对应文件」用：用户没改过的内置项在磁盘上本来没有
+   * 文件，打开前先物化一份，避免打开空白。已存在则不覆盖。
+   */
+  materializeBuiltin(kind: Kind, id: string, entity: Record<string, unknown>): void {
+    if (this.hasBuiltinOverride(kind, id)) return
+    writeEntity(kind, id, entity, true)
+  },
+
+  /** 内置覆盖层的磁盘路径（供「在文件管理器中显示」用） */
+  builtinPathOf(kind: Kind, id: string): string {
+    return jsonFile(kind, id, true)
+  },
+
+  /** 自定义实体文件的磁盘路径 */
+  customPathOf(kind: Kind, id: string): string {
+    return jsonFile(kind, id)
   },
 }
 

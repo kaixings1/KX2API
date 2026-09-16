@@ -1353,6 +1353,43 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     }
   })
 
+  // 把内置实体恢复成内置默认（删掉用户覆盖层，回到模板值）
+  ipcMain.handle(
+    IpcChannels.TOOLS_RESET_BUILTIN,
+    async (_, kind: 'tool' | 'group' | 'hintRule', id: string) => {
+      try {
+        const done = toolManager.resetBuiltin(kind, id)
+        if (!done) return { success: false, error: 'Builtin entity not found' }
+        return { success: true }
+      } catch (e) {
+        return { success: false, error: (e as Error).message }
+      }
+    }
+  )
+
+  // 确保实体在磁盘上有可编辑文件，返回路径。内置项若没被改过会先物化一份。
+  ipcMain.handle(IpcChannels.TOOLS_ENSURE_FILE, async (_, id: string) => {
+    try {
+      const path = toolManager.ensureToolFile(id)
+      if (!path) return { success: false, error: 'Tool not found' }
+      return { success: true, data: { path } }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // 在系统文件管理器中定位并选中该工具的可编辑 JSON 文件
+  ipcMain.handle(IpcChannels.TOOLS_REVEAL_FILE, async (_, id: string) => {
+    try {
+      const path = toolManager.ensureToolFile(id)
+      if (!path) return { success: false, error: 'Tool not found' }
+      shell.showItemInFolder(path)
+      return { success: true, data: { path } }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
   // ==================== Store Initialization ====================
   try {
     await storeManager.initialize()

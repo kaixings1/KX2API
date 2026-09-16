@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { BackButton } from '@/components/ui/back-button'
 import { ParameterEditor } from './ParameterEditor'
-import { Trash2, Loader2, FolderOpen } from 'lucide-react'
+import { Trash2, Loader2, FolderOpen, FileText, RotateCcw } from 'lucide-react'
 
 const api = window.electronAPI.tools
 
@@ -53,7 +53,7 @@ export function ToolDetailPage() {
   const [groups, setGroups] = useState<ToolGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '', parameters: [] as ToolParameter[] })
+  const [form, setForm] = useState({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '', parameters: [] as ToolParameter[], template: '' })
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -72,6 +72,7 @@ export function ToolDetailPage() {
             platform: found.platform,
             tags: (Array.isArray(found.tags) ? found.tags : []).join(', '),
             parameters: Array.isArray(found.parameters) ? [...found.parameters] : [],
+            template: found.template || '',
           })
         }
         setGroups(res.data.groups)
@@ -95,6 +96,8 @@ export function ToolDetailPage() {
       platform: form.platform,
       tags: form.tags.split(',').map(s => s.trim()).filter(Boolean),
       parameters: form.parameters,
+      // 留空表示不使用模板，回落到代码内既有实现；有值则覆写该命令的执行行为
+      template: form.template.trim(),
     })
     setEditOpen(false)
     loadData()
@@ -111,6 +114,32 @@ export function ToolDetailPage() {
     if (!confirm(t('tools.confirmDelete', '确定删除此工具?'))) return
     await api.remove(id)
     navigate('/tools')
+  }
+
+  /** 打开该工具对应的 JSON/XML 文件（内置项首次会先物化一份再定位） */
+  const handleOpenFile = async () => {
+    if (!id) return
+    const res = await api.ensureFile(id)
+    if (!res.success || !res.data) {
+      alert(res.error || t('tools.openFileFailed', '打开文件失败'))
+      return
+    }
+    await api.revealFile(id)
+    // 提示可编辑位置：改完文件后需重新加载才会反映到界面
+    alert(t('tools.fileHint', '已为该命令生成可编辑文件：\n{path}\n\n修改后请重新打开本页查看效果。')
+      .replace('{path}', res.data.path))
+  }
+
+  /** 把内置命令恢复成内置默认（清除用户覆盖） */
+  const handleResetBuiltin = async () => {
+    if (!id) return
+    if (!confirm(t('tools.confirmResetBuiltin', '恢复为内置默认？你对该命令的自定义将被清除。'))) return
+    const res = await api.resetBuiltin('tool', id)
+    if (!res.success) {
+      alert(res.error || t('tools.resetFailed', '恢复失败'))
+      return
+    }
+    loadData()
   }
 
   const relatedGroups = groups.filter(g => g.toolIds.includes(id || ''))
@@ -153,6 +182,18 @@ export function ToolDetailPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>{t('common.edit', '编辑')}</Button>
+          {/* 打开对应的 JSON/XML 文件：内置命令磁盘上本无文件，点开时先按当前值物化一份 */}
+          <Button variant="outline" size="sm" onClick={handleOpenFile}>
+            <FileText className="h-3 w-3 mr-1" />
+            {t('tools.openFile', '打开文件')}
+          </Button>
+          {/* 只有内置项且被改过才需要「恢复默认」 */}
+          {tool.builtin && (
+            <Button variant="outline" size="sm" onClick={handleResetBuiltin}>
+              <RotateCcw className="h-3 w-3 mr-1" />
+              {t('tools.resetBuiltin', '恢复默认')}
+            </Button>
+          )}
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">{tool.enabled ? t('common.enabled', '启用') : t('common.disabled', '禁用')}</span>
             <Switch checked={tool.enabled} onCheckedChange={handleToggle} />
@@ -311,6 +352,18 @@ export function ToolDetailPage() {
                 value={form.parameters}
                 onChange={params => setForm(p => ({ ...p, parameters: params }))}
               />
+            </div>
+            <div>
+              <Label>{t('tools.templateLabel', '执行模板 (可选)')}</Label>
+              <textarea
+                className="w-full min-h-[88px] font-mono text-xs bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1.5"
+                placeholder={t('tools.templatePlaceholder', '留空则用内置实现。\n本地执行示例: git status --short {args}\n模型执行示例: 请分析 {input} 并给出结论')}
+                value={form.template}
+                onChange={e => setForm(p => ({ ...p, template: e.target.value }))}
+              />
+              <p className="text-xs text-[var(--text-dim)] mt-1">
+                {t('tools.templateHint', '可用占位符：{args} 参数、{input} 输入、{name} 命令名、{cwd} 当前目录。含 ai/llm 标签的命令走模型执行，其余走本地 shell。')}
+              </p>
             </div>
             <Button onClick={handleSave} className="w-full">{t('common.save', '保存')}</Button>
           </div>

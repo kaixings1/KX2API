@@ -296,6 +296,12 @@ export const IpcChannels = {
   TOOLS_MATCH_HINTS: 'tools:matchHints',
   TOOLS_RESET: 'tools:reset',
   TOOLS_GET_BY_ID: 'tools:getById',
+  /** 把某个内置工具/分组/规则恢复成内置默认（删除其覆盖层文件） */
+  TOOLS_RESET_BUILTIN: 'tools:resetBuiltin',
+  /** 确保实体有可编辑文件并返回其路径（内置项会先物化一份） */
+  TOOLS_ENSURE_FILE: 'tools:ensureFile',
+  /** 在系统文件管理器中定位并选中该实体的 JSON 文件 */
+  TOOLS_REVEAL_FILE: 'tools:revealFile',
 
   // Generic management import/export
   MGMT_EXPORT: 'mgmt:export',

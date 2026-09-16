@@ -632,6 +632,9 @@ declare const electronAPI: {
         removeHintRule: (id: string) => Promise<{ success: boolean; error?: string }>;
         matchHints: (input: string) => Promise<{ success: boolean; data?: { groups: any[]; tools: any[] }; error?: string }>;
         reset: () => Promise<{ success: boolean }>;
+        resetBuiltin: (kind: 'tool' | 'group' | 'hintRule', id: string) => Promise<{ success: boolean; error?: string }>;
+        ensureFile: (id: string) => Promise<{ success: boolean; data?: { path: string }; error?: string }>;
+        revealFile: (id: string) => Promise<{ success: boolean; data?: { path: string }; error?: string }>;
     };
     otherConfig: {
         get: () => Promise<{ success: boolean; config?: any }>;

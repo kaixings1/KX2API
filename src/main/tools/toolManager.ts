@@ -53,6 +53,19 @@ function loadDefaultHintRules(): ToolHintRule[] {
   }
 }
 
+/**
+ * 取出「参与内置差异比较」的字段并序列化。
+ * 排除 id / builtin（结构性字段）与 createdAt / updatedAt（系统时间戳，
+ * 每次加载都会不同，纳入比较会导致内置项被误判为「已改动」而写入覆盖层）。
+ */
+function comparableFields(entity: object): string {
+  const skip = new Set(['id', 'builtin', 'createdAt', 'updatedAt'])
+  const entries = Object.entries(entity as Record<string, unknown>)
+    .filter(([k]) => !skip.has(k))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+  return JSON.stringify(entries)
+}
+
 export class ToolManager {
   private store: ToolManagementStore
 
@@ -95,17 +108,38 @@ export class ToolManager {
     const customGroups = toolFileStore.listGroups()
     const customRules = toolFileStore.listHintRules()
 
-    // 内存 store = 内置(默认) + 自定义(文件)。自定义按 id 覆盖内置同名（编辑内置工具即覆盖）。
+    // 内置覆盖层：用户对内置项的改动（仅存改过的，按 id 覆盖回内置模板）。
+    const builtinToolOverrides = toolFileStore.listBuiltinTools()
+    const builtinGroupOverrides = toolFileStore.listBuiltinGroups()
+    const builtinRuleOverrides = toolFileStore.listBuiltinHintRules()
+
+    // 合并顺序（后者覆盖前者）：
+    //   内置模板 → 内置覆盖层（用户改的内置项）→ 自定义实体（用户自建）
+    // 这样自定义实体仍可整体覆盖同 id 的内置项（等价「接管」该命令）。
     const toolMap = new Map<string, ToolDefinition>()
     for (const t of base.tools) toolMap.set(t.id, t)
+    for (const t of builtinToolOverrides) {
+      const prev = toolMap.get(t.id)
+      toolMap.set(t.id, prev ? { ...prev, ...t } : t)
+    }
     for (const t of customTools) toolMap.set(t.id, t)
-    const groups = [...base.groups]
+
+    const mergeById = <T extends { id: string }>(list: T[], overrides: T[]): T[] => {
+      const out = [...list]
+      for (const o of overrides) {
+        const idx = out.findIndex(x => x.id === o.id)
+        if (idx >= 0) out[idx] = { ...out[idx], ...o }
+        else out.push(o)
+      }
+      return out
+    }
+    const groups = mergeById(base.groups, builtinGroupOverrides)
     for (const g of customGroups) {
       const idx = groups.findIndex(x => x.id === g.id)
       if (idx >= 0) groups[idx] = g
       else groups.push(g)
     }
-    const rules = [...base.hintRules]
+    const rules = mergeById(base.hintRules, builtinRuleOverrides)
     for (const r of customRules) {
       const idx = rules.findIndex(x => x.id === r.id)
       if (idx >= 0) rules[idx] = r
@@ -150,10 +184,32 @@ export class ToolManager {
 
   private saveStore(): void {
     try {
-      // 文件化主存储：只对「非内置」实体写文件（builtin 来自模板，不落盘）。
-      for (const t of this.store.tools) if (!t.builtin) toolFileStore.saveTool(t)
-      for (const g of this.store.groups) if (!g.builtin) toolFileStore.saveGroup(g)
-      for (const r of this.store.hintRules) if (!r.builtin) toolFileStore.saveHintRule(r)
+      // 文件化主存储，分两层落盘：
+      //   - 自定义实体（builtin=false）→ tools/groups/hintRules/ 下的 <id>.json
+      //   - 内置覆盖项（builtin=true 且被改过）→ builtin/<kind>/ 下的 <id>.json
+      // 内置项不整体复制：只有「与内置模板不同」的才写覆盖层，避免磁盘铺满
+      // 几百个文件、也避免内置模板升级后被旧副本顶掉。
+      for (const t of this.store.tools) {
+        if (t.builtin) {
+          if (this.differsFromBuiltin(t.id, t)) toolFileStore.saveBuiltinTool(t)
+        } else {
+          toolFileStore.saveTool(t)
+        }
+      }
+      for (const g of this.store.groups) {
+        if (g.builtin) {
+          if (this.differsFromBuiltin(g.id, g)) toolFileStore.saveBuiltinGroup(g)
+        } else {
+          toolFileStore.saveGroup(g)
+        }
+      }
+      for (const r of this.store.hintRules) {
+        if (r.builtin) {
+          if (this.differsFromBuiltin(r.id, r)) toolFileStore.saveBuiltinHintRule(r)
+        } else {
+          toolFileStore.saveHintRule(r)
+        }
+      }
       // 清理磁盘上已不存在的自定义文件（删除/移出等导致的内存空位）
       const toolIds = new Set(this.store.tools.filter(t => !t.builtin).map(t => t.id))
       const groupIds = new Set(this.store.groups.filter(g => !g.builtin).map(g => g.id))
@@ -162,6 +218,22 @@ export class ToolManager {
       for (const id of toolFileStore.listGroups().map(g => g.id)) if (!groupIds.has(id)) toolFileStore.deleteGroup(id)
       for (const id of toolFileStore.listHintRules().map(r => r.id)) if (!ruleIds.has(id)) toolFileStore.deleteHintRule(id)
     } catch { /* ignore */ }
+  }
+
+  /**
+   * 判断一个内置实体是否已被用户改动（相对内置模板）。
+   * 只比较可编辑字段；createdAt/updatedAt 属于系统字段不参与判断，
+   * 否则每次加载都会因时间戳漂移而误写覆盖层文件。
+   */
+  private differsFromBuiltin(id: string, entity: { id: string }): boolean {
+    const base = this.createDefaultStore()
+    const list: { id: string }[] =
+      (base.tools as unknown as { id: string }[]).some(x => x.id === id) ? base.tools
+        : (base.groups as unknown as { id: string }[]).some(x => x.id === id) ? base.groups
+          : base.hintRules
+    const origin = (list as { id: string }[]).find(x => x.id === id)
+    if (!origin) return false
+    return comparableFields(entity) !== comparableFields(origin)
   }
 
   private createDefaultStore(): ToolManagementStore {
@@ -231,13 +303,19 @@ export class ToolManager {
     const existingIdx = this.store.tools.findIndex(t => t.id === tool.name)
     if (existingIdx >= 0) {
       const existing = this.store.tools[existingIdx]
+      const wasBuiltin = existing.builtin
       this.store.tools[existingIdx] = {
         ...existing,
         ...tool,
         id: tool.name,
         parameters: tool.parameters || existing.parameters || [],
+        // 同名添加视为「用自定义命令接管该命令」：脱离内置身份，
+        // 之后它按自定义实体落盘（而非写进内置覆盖层）。
+        builtin: false,
         updatedAt: Date.now(),
       }
+      // 原来是内置项的话，其覆盖层已无意义，清掉避免残留在 builtin/ 目录
+      if (wasBuiltin) toolFileStore.deleteBuiltinTool(tool.name)
       this.saveStore()
       return this.store.tools[existingIdx]
     }
@@ -254,6 +332,10 @@ export class ToolManager {
     return newTool
   }
 
+  /**
+   * 更新工具。内置工具同样可编辑（描述 / 用法 / 参数 / 标签 / 启用状态 /
+   * 执行模板），改动由 saveStore 写进内置覆盖层，可随时 resetTool 还原。
+   */
   updateTool(id: string, updates: Partial<Omit<ToolDefinition, 'id' | 'builtin'>>): ToolDefinition | null {
     const idx = this.store.tools.findIndex(t => t.id === id)
     if (idx < 0) return null
@@ -262,9 +344,20 @@ export class ToolManager {
     return this.store.tools[idx]
   }
 
+  /**
+   * 删除工具。
+   * 内置工具不允许真正删除（它是命令注册表的一部分，删了就没有实现可跑），
+   * 但允许「禁用」——语义上等价于从可用列表移除，且可随时恢复。
+   */
   removeTool(id: string): boolean {
     const tool = this.store.tools.find(t => t.id === id)
-    if (!tool || tool.builtin) return false
+    if (!tool) return false
+    if (tool.builtin) {
+      tool.enabled = false
+      tool.updatedAt = Date.now()
+      this.saveStore()
+      return true
+    }
     this.store.tools = this.store.tools.filter(t => t.id !== id)
     // 从所有分组中移除
     for (const group of this.store.groups) {
@@ -272,6 +365,55 @@ export class ToolManager {
     }
     this.saveStore()
     return true
+  }
+
+  /**
+   * 把某个内置实体恢复成内置默认：
+   * 删掉它的覆盖层文件，再用模板值重置内存中的对应项。
+   */
+  resetBuiltin(kind: 'tool' | 'group' | 'hintRule', id: string): boolean {
+    const base = this.createDefaultStore()
+    if (kind === 'tool') {
+      const idx = this.store.tools.findIndex(t => t.id === id)
+      if (idx < 0) return false
+      const origin = base.tools.find(t => t.id === id)
+      if (!origin) return false
+      this.store.tools[idx] = { ...origin, updatedAt: Date.now() }
+      toolFileStore.deleteBuiltinTool(id)
+    } else if (kind === 'group') {
+      const idx = this.store.groups.findIndex(g => g.id === id)
+      if (idx < 0) return false
+      const origin = base.groups.find(g => g.id === id)
+      if (!origin) return false
+      this.store.groups[idx] = { ...origin }
+      toolFileStore.deleteBuiltinGroup(id)
+    } else {
+      const idx = this.store.hintRules.findIndex(r => r.id === id)
+      if (idx < 0) return false
+      const origin = base.hintRules.find(r => r.id === id)
+      if (!origin) return false
+      this.store.hintRules[idx] = { ...origin }
+      toolFileStore.deleteBuiltinHintRule(id)
+    }
+    return true
+  }
+
+  /**
+   * 确保某工具在磁盘上有可编辑文件，返回其 JSON 路径。
+   * 用户没改过的内置项磁盘上本来没有文件，打开前先按当前生效值物化一份，
+   * 避免「点击打开」时拿到空文件或报路径不存在。
+   */
+  ensureToolFile(id: string): string | null {
+    const tool = this.store.tools.find(t => t.id === id)
+    if (!tool) return null
+    if (tool.builtin) {
+      // 内置项：物化到覆盖层目录（已存在则不覆盖，保住用户改动）
+      toolFileStore.materializeBuiltin('tools', id, tool as unknown as Record<string, unknown>)
+      return toolFileStore.builtinPathOf('tools', id)
+    }
+    // 自定义项：写回它自己的文件，路径在 tools/ 而非 builtin/tools/
+    toolFileStore.saveTool(tool)
+    return toolFileStore.customPathOf('tools', id)
   }
 
   toggleTool(id: string): ToolDefinition | null {

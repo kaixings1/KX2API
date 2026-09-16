@@ -11,6 +11,45 @@ import { QueryEngine, type EngineOptions } from './index.ts'
 import { commandRegistry, type CommandResult } from './commands/registry.ts'
 import { toolCollection } from '../main/proxy/tools/toolCollection.ts'
 import { Team } from '../main/agent/team/team.ts'
+import { execaCommand } from './utils/exec.ts'
+import { toolManager } from '../main/tools/toolManager.ts'
+
+/**
+ * 取某命令的声明式执行模板（工具管理页为内置命令配的 template）。
+ * 只对 exec / llm 语义的命令生效：exec 走本地 shell，llm 交模型。
+ * 未配置模板（或模板为空）时返回 null，调用方回落到代码内既有实现。
+ */
+function resolveCommandTemplate(name: string): { template: string; type: 'exec' | 'llm' } | null {
+  try {
+    const tool = toolManager.getTool(name)
+    const template = tool?.template
+    if (!tool || !template || !template.trim()) return null
+    // llm 类命令走提示词模板；其余（含 local/exec）一律按 shell 模板处理
+    const type: 'exec' | 'llm' = tool.tags?.includes('ai') || tool.tags?.includes('llm') ? 'llm' : 'exec'
+    return { template, type }
+  } catch {
+    // 工具管理未就绪时不影响命令执行，静默回落
+    return null
+  }
+}
+
+/**
+ * 渲染模板占位符：
+ *   {args}  → 原始参数以空格拼接
+ *   {input} → 同 {args}（提示词模板里更自然的叫法）
+ *   {name}  → 命令名（不含 /）
+ *   {cwd}   → 当前工作目录
+ * 未识别的占位符原样保留，避免误伤模板里的花括号（如 JS/JSON 片段）。
+ */
+function renderTemplate(template: string, args: string[], name: string, type: 'exec' | 'llm'): string {
+  const argsText = args.join(' ')
+  return template
+    .replace(/\{args\}/g, argsText)
+    .replace(/\{input\}/g, argsText)
+    .replace(/\{name\}/g, name)
+    .replace(/\{cwd\}/g, process.cwd())
+    .replace(/\{mode\}/g, type)
+}
 
 export interface EngineConfig {
   apiKey: string
@@ -116,6 +155,24 @@ export class LegacyQueryEngine {
     if (trimmed === 'team') {
       const result = await this.runTeamMode(args.join(' ') || '未指定任务')
       return { success: true, output: result }
+    }
+
+    // 声明式执行模板优先：工具管理页给某命令配了 template 时，用模板覆写执行行为，
+    // 无需改代码即可自定义内置命令。exec → 本地 shell；llm → 交给模型。
+    const tpl = resolveCommandTemplate(trimmed)
+    if (tpl) {
+      const rendered = renderTemplate(tpl.template, args, trimmed, tpl.type)
+      if (tpl.type === 'llm') {
+        // 交给上层 agent 处理：把渲染后的提示词作为 needsAgent 的输出抛回去
+        return { success: true, output: '', needsAgent: true, plan: { prompt: rendered } }
+      }
+      try {
+        const { stdout, stderr } = await execaCommand(rendered, process.cwd())
+        const out = [stdout, stderr].filter(Boolean).join('\n')
+        return { success: true, output: out || '(命令执行成功，无输出)' }
+      } catch (e) {
+        return { success: false, output: '', error: `模板执行失败: ${(e as Error).message}` }
+      }
     }
 
     const cmd = toolCollection.getTool(trimmed) || commandRegistry.get(trimmed)

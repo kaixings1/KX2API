@@ -12,12 +12,26 @@ import type { ToolDefinition, ToolGroup, ToolHintRule } from '../types'
 // 通过 vi.hoisted 创建模块级共享的可变 store，供 vi.mock 工厂与测试体安全访问
 const mockStore: { data: Record<string, unknown> } = vi.hoisted(() => ({ data: {} }))
 
-// 文件化主存储的替身：tools/groups/hintRules 代表「文件目录」里的自定义数据
+// 文件化主存储的替身：tools/groups/hintRules 代表「文件目录」里的自定义数据，
+// builtinXxx 代表内置覆盖层目录（用户对内置项改动的产物）。
 const mockFile: {
   tools: ToolDefinition[]
   groups: ToolGroup[]
   hintRules: ToolHintRule[]
-} = vi.hoisted(() => ({ tools: [], groups: [], hintRules: [] }))
+  builtinTools: ToolDefinition[]
+  builtinGroups: ToolGroup[]
+  builtinHintRules: ToolHintRule[]
+} = vi.hoisted(() => ({
+  tools: [], groups: [], hintRules: [],
+  builtinTools: [], builtinGroups: [], builtinHintRules: [],
+}))
+
+/** 把实体写进某个数组（存在则替换） */
+function upsertInto<T extends { id: string }>(list: T[], entity: T): void {
+  const idx = list.findIndex(x => x.id === entity.id)
+  if (idx >= 0) list[idx] = entity
+  else list.push(entity)
+}
 
 vi.mock('../../store/store', () => ({
   storeManager: {
@@ -26,9 +40,12 @@ vi.mock('../../store/store', () => ({
   },
 }))
 
-// mock 命令注册表：只返回空的工具列表，避免拖入真实引擎依赖
+// mock 命令注册表：默认返回空列表以避免拖入真实引擎依赖；
+// 测试需要构造「内置命令」时可往 mockRegistry.commands 里塞。
+const mockRegistry: { commands: Array<{ name: string; description: string }> } =
+  vi.hoisted(() => ({ commands: [] }))
 vi.mock('../../../engine/commands/registry', () => ({
-  commandRegistry: { getAll: () => [] },
+  commandRegistry: { getAll: () => [...mockRegistry.commands] },
 }))
 
 // mock 文件化存储层：list 从 mockFile 读取，save/delete 落到 mockFile
@@ -55,8 +72,33 @@ vi.mock('../toolFileStore', () => ({
     deleteTool: (id: string) => { mockFile.tools = mockFile.tools.filter(x => x.id !== id) },
     deleteGroup: (id: string) => { mockFile.groups = mockFile.groups.filter(x => x.id !== id) },
     deleteHintRule: (id: string) => { mockFile.hintRules = mockFile.hintRules.filter(x => x.id !== id) },
-    resetAll: () => { mockFile.tools = []; mockFile.groups = []; mockFile.hintRules = [] },
+    resetAll: () => {
+      mockFile.tools = []; mockFile.groups = []; mockFile.hintRules = []
+      mockFile.builtinTools = []; mockFile.builtinGroups = []; mockFile.builtinHintRules = []
+    },
     countCustom: () => ({ tools: mockFile.tools.length, groups: mockFile.groups.length, hintRules: mockFile.hintRules.length }),
+    // ---- 内置覆盖层 ----
+    listBuiltinTools: () => [...mockFile.builtinTools],
+    listBuiltinGroups: () => [...mockFile.builtinGroups],
+    listBuiltinHintRules: () => [...mockFile.builtinHintRules],
+    saveBuiltinTool: (t: ToolDefinition) => { upsertInto(mockFile.builtinTools, t) },
+    saveBuiltinGroup: (g: ToolGroup) => { upsertInto(mockFile.builtinGroups, g) },
+    saveBuiltinHintRule: (r: ToolHintRule) => { upsertInto(mockFile.builtinHintRules, r) },
+    deleteBuiltinTool: (id: string) => { mockFile.builtinTools = mockFile.builtinTools.filter(x => x.id !== id) },
+    deleteBuiltinGroup: (id: string) => { mockFile.builtinGroups = mockFile.builtinGroups.filter(x => x.id !== id) },
+    deleteBuiltinHintRule: (id: string) => { mockFile.builtinHintRules = mockFile.builtinHintRules.filter(x => x.id !== id) },
+    hasBuiltinOverride: (kind: string, id: string) => {
+      const list: { id: string }[] = kind === 'tools' ? mockFile.builtinTools
+        : kind === 'groups' ? mockFile.builtinGroups : mockFile.builtinHintRules
+      return list.some(x => x.id === id)
+    },
+    materializeBuiltin: (kind: string, id: string, entity: Record<string, unknown>) => {
+      const list = kind === 'tools' ? mockFile.builtinTools
+        : kind === 'groups' ? mockFile.builtinGroups : mockFile.builtinHintRules
+      if (!list.some(x => x.id === id)) upsertInto(list as { id: string }[], entity as { id: string })
+    },
+    builtinPathOf: (kind: string, id: string) => `builtin/${kind}/${id}.json`,
+    customPathOf: (kind: string, id: string) => `${kind}/${id}.json`,
   },
   migrateCustomRulesFromStore: () => ({ tools: 0, groups: 0, hintRules: 0 }),
 }))
@@ -105,14 +147,22 @@ function hintRule(over: Partial<ToolHintRule> & { id: string }): ToolHintRule {
 
 /** 新建一个从给定初始数据启动的 ToolManager，隔离 store 与文件 */
 function fresh(initial?: Partial<ToolManagementStore>): ToolManager {
-  // 重置文件目录替身
+  // 重置文件目录替身（含内置覆盖层）与命令注册表替身
   mockFile.tools = []
   mockFile.groups = []
   mockFile.hintRules = []
+  mockFile.builtinTools = []
+  mockFile.builtinGroups = []
+  mockFile.builtinHintRules = []
+  mockRegistry.commands = []
   const empty: ToolManagementStore = { tools: [], groups: [], hintRules: [] }
   const init = { ...empty, ...(initial ?? {}) }
-  // 只把「非内置」实体写入文件（文件层只存自定义）
-  for (const t of init.tools || []) if (!t.builtin) mockFile.tools.push(t)
+  // 内置项对应「命令注册表里的命令」，测试通过 mockRegistry 注入；
+  // 非内置项才是落盘的实体（文件层只存自定义）。
+  for (const t of init.tools || []) {
+    if (t.builtin) mockRegistry.commands.push({ name: t.name, description: t.description })
+    else mockFile.tools.push(t)
+  }
   for (const g of init.groups || []) if (!g.builtin) mockFile.groups.push(g)
   for (const r of init.hintRules || []) if (!r.builtin) mockFile.hintRules.push(r)
   mockStore.data = { toolManagement: { tools: init.tools, groups: init.groups, hintRules: init.hintRules } }
@@ -162,12 +212,16 @@ describe('ToolManager — 工具 CRUD', () => {
     expect(m.getEnabledTools()).toHaveLength(0)
   })
 
-  it('removeTool 删除并清理分组引用；builtin 拒绝删除', () => {
+  it('removeTool 删除并清理分组引用；builtin 不可真删，改为禁用', () => {
     const m2 = fresh({
       tools: [tool('ls', { builtin: true }), tool('custom')],
       groups: [group('g', 'G', ['custom', 'ls'])],
     })
-    expect(m2.removeTool('ls')).toBe(false)
+    // 内置项不允许从表里消失（命令注册表仍有实现），但可被禁用
+    expect(m2.removeTool('ls')).toBe(true)
+    expect(m2.getTool('ls')).toBeTruthy()
+    expect(m2.getTool('ls')!.enabled).toBe(false)
+    // 自定义项正常删除，并从分组引用中清理
     expect(m2.removeTool('custom')).toBe(true)
     expect(m2.getGroup('g')!.toolIds).toEqual(['ls'])
   })
@@ -301,5 +355,73 @@ describe('ToolManager — normalizeStore 历史脏数据规整', () => {
     expect(m.getTool('x')!.parameters).toEqual([])
     expect(m.getGroup('g')!.toolIds).toEqual([])
     expect(() => m.getToolsInGroup('g')).not.toThrow()
+  })
+})
+
+describe('ToolManager — 内置命令自定义（覆盖层）', () => {
+  /** 造一个「内置命令」：注册进 mockRegistry，并带内置模板值 */
+  const builtinLs = () => tool('ls', { builtin: true, description: '列出目录文件' })
+
+  it('内置命令可编辑，改动写入覆盖层而非丢失', () => {
+    const m = fresh({ tools: [builtinLs()] })
+    expect(m.getTool('ls')!.description).toBe('列出目录文件')
+
+    m.updateTool('ls', { description: '我改过的描述' })
+
+    expect(m.getTool('ls')!.description).toBe('我改过的描述')
+    // 覆盖层文件里应记下这次改动（内置项不再"改完就丢"）
+    expect(mockFile.builtinTools.find(t => t.id === 'ls')?.description).toBe('我改过的描述')
+  })
+
+  it('内置命令的 template 可保存并透传', () => {
+    const m = fresh({ tools: [builtinLs()] })
+    m.updateTool('ls', { template: 'ls -la {args}' })
+    expect(m.getTool('ls')!.template).toBe('ls -la {args}')
+    expect(mockFile.builtinTools.find(t => t.id === 'ls')?.template).toBe('ls -la {args}')
+  })
+
+  it('内置命令禁用后仍可恢复为默认', () => {
+    const m = fresh({ tools: [builtinLs()] })
+    m.updateTool('ls', { description: '改过的' })
+    expect(m.getTool('ls')!.description).toBe('改过的')
+
+    expect(m.resetBuiltin('tool', 'ls')).toBe(true)
+    // 回到内置模板值，且覆盖层文件被清除
+    expect(m.getTool('ls')!.description).toBe('列出目录文件')
+    expect(mockFile.builtinTools.find(t => t.id === 'ls')).toBeUndefined()
+  })
+
+  it('未被改动的内置项不写覆盖层（避免铺满磁盘）', () => {
+    const m = fresh({ tools: [builtinLs()] })
+    // 只读一遍数据，不产生任何持久化
+    m.getAllTools()
+    expect(mockFile.builtinTools).toHaveLength(0)
+  })
+
+  it('自定义命令仍能整体覆盖同 id 的内置命令', () => {
+    const m = fresh({ tools: [builtinLs()] })
+    m.addTool({
+      name: 'ls', displayName: '我的 ls', description: '覆盖版', usage: '/ls',
+      platform: 'all', parameters: [], tags: [], enabled: true,
+    })
+    expect(m.getTool('ls')!.description).toBe('覆盖版')
+    expect(m.getTool('ls')!.builtin).toBe(false)
+  })
+
+  it('ensureToolFile 对内置项物化出可编辑文件', () => {
+    const m = fresh({ tools: [builtinLs()] })
+    const path = m.ensureToolFile('ls')
+    expect(path).toBe('builtin/tools/ls.json')
+    expect(mockFile.builtinTools.find(t => t.id === 'ls')).toBeTruthy()
+  })
+
+  it('resetToDefault 同时清掉内置覆盖层', () => {
+    const m = fresh({ tools: [builtinLs()] })
+    m.updateTool('ls', { description: '改过的' })
+    expect(mockFile.builtinTools).toHaveLength(1)
+
+    m.resetToDefault()
+    expect(mockFile.builtinTools).toHaveLength(0)
+    expect(m.getTool('ls')!.description).toBe('列出目录文件')
   })
 })

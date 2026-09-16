@@ -1378,6 +1378,21 @@ const electronAPI = {
 
     getById: (id: string): Promise<{ success: boolean; data?: any; error?: string }> =>
       ipcRenderer.invoke('tools:getById', id),
+
+    /** 把内置工具/分组/规则恢复成内置默认（清除用户对其的覆盖） */
+    resetBuiltin: (
+      kind: 'tool' | 'group' | 'hintRule',
+      id: string
+    ): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('tools:resetBuiltin', kind, id),
+
+    /** 确保实体已有可编辑文件（内置项首次会物化一份），返回 JSON 文件路径 */
+    ensureFile: (id: string): Promise<{ success: boolean; data?: { path: string }; error?: string }> =>
+      ipcRenderer.invoke('tools:ensureFile', id),
+
+    /** 在系统文件管理器中定位并选中该工具的 JSON 文件 */
+    revealFile: (id: string): Promise<{ success: boolean; data?: { path: string }; error?: string }> =>
+      ipcRenderer.invoke('tools:revealFile', id),
   },
 
   on: (channel: string, callback: (...args: unknown[]) => void) => {

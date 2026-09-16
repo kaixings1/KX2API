@@ -25,8 +25,16 @@ export interface ToolDefinition {
   tags: string[]
   /** 是否启用（勾选） */
   enabled: boolean
-  /** 是否内置（不可删除） */
+  /** 是否内置（不可删除；但可编辑/禁用，改动落在 builtin 覆盖层） */
   builtin: boolean
+  /**
+   * 声明式执行模板：仅对 exec / llm 类命令生效，用于在不改代码的前提下
+   * 覆写命令的执行行为。
+   *   - exec：shell 命令模板，支持 {cwd} {args} 占位符，走本地 shell 执行
+   *   - llm ：提示词模板，支持 {input} {args} 占位符，交给模型执行
+   * 留空则回落到代码内既有实现（impl.ts）。
+   */
+  template?: string
   /** 创建时间 */
   createdAt: number
   /** 更新时间 */
