@@ -162,7 +162,9 @@ export class MessageLoop {
               continue
             }
           }
-          await this.deps.stateMachine.transition("done");
+          if (!this.deps.stateMachine.isTerminal()) {
+            await this.deps.stateMachine.transition("done");
+          }
           break;
         }
         if (this.deps.stateMachine.state === "should_continue") {
