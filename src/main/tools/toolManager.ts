@@ -5,9 +5,11 @@
  * 内置分组和提示规则从 default-data.json 读取
  */
 
-import type { ToolDefinition, ToolGroup, ToolHintRule, ToolManagementStore } from './types'
+import type { ToolDefinition, ToolGroup, ToolHintRule, ToolManagementStore, ToolRole } from './types'
 import { commandRegistry } from '../../engine/commands/registry'
 import { toolFileStore, migrateCustomRulesFromStore } from './toolFileStore'
+import { defaultRoles, resolveRole } from './toolRoles'
+import { normalizeToolLabels } from './toolLabels'
 import { join } from 'path'
 import { readFileSync, existsSync } from 'node:fs'
 
@@ -146,7 +148,7 @@ export class ToolManager {
       else rules.push(r)
     }
 
-    return this.normalizeStore({ tools: [...toolMap.values()], groups, hintRules: rules })
+    return this.normalizeStore({ tools: [...toolMap.values()], groups, hintRules: rules, roles: base.roles })
   }
 
   /**
@@ -245,6 +247,7 @@ export class ToolManager {
       tools: builtinTools,
       groups: builtinGroups,
       hintRules: builtinHintRules,
+      roles: defaultRoles(),
     }
   }
 
@@ -253,20 +256,33 @@ export class ToolManager {
    */
   private syncFromRegistry(): ToolDefinition[] {
     const registryCommands = commandRegistry.getAll()
-    return registryCommands.map((cmd, index) => ({
-      id: cmd.name,
-      name: cmd.name,
-      displayName: cmd.name,
-      description: cmd.description,
-      usage: `/${cmd.name}`,
-      platform: 'all' as const,
-      parameters: [],
-      tags: this.inferTags(cmd.name),
-      enabled: true,
-      builtin: true,
-      createdAt: Date.now() - index,
-      updatedAt: Date.now() - index,
-    }))
+    return registryCommands.map((cmd, index) => {
+      const tags = this.inferTags(cmd.name)
+      // dev.txt §4：补齐七维标签与风险/成本，供检索、权限与默认加载决策使用。
+      // 这里只做「推导」，用户显式设置的值会在 loadStore 合并覆盖层时优先。
+      const { labels, risk, cost } = normalizeToolLabels({ name: cmd.name, tags })
+      const isMeta = (cmd as { group?: string }).group === 'meta'
+      return {
+        id: cmd.name,
+        name: cmd.name,
+        displayName: cmd.name,
+        description: cmd.description,
+        usage: `/${cmd.name}`,
+        platform: 'all' as const,
+        parameters: [],
+        tags,
+        enabled: true,
+        builtin: true,
+        labels,
+        risk: isMeta ? 'readonly' as const : risk,
+        cost: isMeta ? 'low' as const : cost,
+        version: '1.0.0',
+        // 元工具（tool_search/load/...）是 L0 常驻核心，不可被 LRU 淘汰
+        alwaysOn: isMeta,
+        createdAt: Date.now() - index,
+        updatedAt: Date.now() - index,
+      }
+    })
   }
 
   private inferTags(name: string): string[] {
@@ -292,6 +308,17 @@ export class ToolManager {
 
   getAllTools(): ToolDefinition[] {
     return [...this.store.tools]
+  }
+
+  /** 全部角色配置（缺失时回落到内置默认角色，保证调用方总能拿到可用配置） */
+  getAllRoles(): ToolRole[] {
+    const roles = this.store.roles
+    return roles && roles.length > 0 ? [...roles] : defaultRoles()
+  }
+
+  /** 按 id 取角色，未命中返回 default */
+  getRole(id: string): ToolRole {
+    return resolveRole(this.getAllRoles(), id)
   }
 
   getTool(id: string): ToolDefinition | undefined {

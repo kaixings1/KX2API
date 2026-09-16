@@ -3203,4 +3203,57 @@ commandRegistry.register({
   },
 })
 
+// ==================== 元工具（dev.txt §6）====================
+//
+// 工具库变大后不可能把全部 schema 常驻上下文，模型需要「搜索 → 加载 → 调用 → 卸载」。
+// 这五个元工具常驻上下文（L0 核心），是最小可用的工具发现机制。
+//
+// 依赖方向：registry（engine）→ toolManager（main）。为避免打包期循环依赖，
+// 这里用动态 import 在调用时取依赖，而不是顶层静态导入。
+
+/** 惰性构造元工具执行体（首次调用时组装依赖） */
+async function metaHandlers(): Promise<Record<string, (args: string[]) => Promise<CommandResult>>> {
+  const [{ toolManager }, { createMetaToolHandlers }] = await Promise.all([
+    import('../../main/tools/toolManager'),
+    import('../../main/tools/toolMetaTools'),
+  ])
+  return createMetaToolHandlers({
+    getTools: () => toolManager.getAllTools(),
+    getGroups: () => toolManager.getAllGroups().map(g => ({
+      id: g.id, name: g.name, description: g.description, toolIds: g.toolIds,
+    })),
+    getRoles: () => toolManager.getAllRoles(),
+  })
+}
+
+/** 把元工具包成 registry 可注册的命令 */
+function registerMetaTool(name: string, description: string, usage: string) {
+  commandRegistry.register({
+    name,
+    description,
+    group: 'meta',
+    execute: async (args: string[]): Promise<CommandResult> => {
+      try {
+        const handlers = await metaHandlers()
+        const fn = handlers[name]
+        if (!fn) return { success: false, error: `元工具未实现: ${name}` }
+        const res = await fn(args)
+        return {
+          success: res.success,
+          output: res.error || res.output || '',
+          error: res.error,
+        }
+      } catch (e) {
+        return { success: false, error: `元工具执行失败: ${(e as Error).message}（用法：${usage}）` }
+      }
+    },
+  })
+}
+
+registerMetaTool('tool_search', '搜索可用工具（按关键词/组/标签），返回工具卡片供加载', 'tool_search <关键词> [--group <组>] [--tags a,b] [--limit N]')
+registerMetaTool('tool_load', '把工具加载进当前会话的活跃集，使其可被调用', 'tool_load <工具id...>')
+registerMetaTool('tool_unload', '从活跃集卸载工具，释放上下文', 'tool_unload <工具id...>')
+registerMetaTool('tool_active', '列出当前活跃（已加载）的工具', 'tool_active')
+registerMetaTool('tool_describe', '查看某个工具的详细文档、参数与使用时机', 'tool_describe <工具id>')
+
 // Total AI agent commands: 210
