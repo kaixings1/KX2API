@@ -560,20 +560,13 @@ export async function sendOpenAIStreamWithTools(
     content: typeof m.content === 'string' ? m.content : m.content,
   }))
 
-  const maxRounds = config.maxToolRounds || MAX_TOOL_ROUNDS
-  const maxRepeat = config.maxRepeat || 3
-  let repeatCount = 0
-  let lastToolSignature = ''
-
-  function toolSignature(tools: ContentBlock[]): string {
-    return tools.map(tc => `${tc.name}:${JSON.stringify(tc.input || {})}`).join('|')
-  }
-
-  for (let round = 0; round < maxRounds; round++) {
+  // 单轮请求：不再在此处循环执行工具。工具由 MessageLoop 调度后，
+  // 通过下一轮 query 重新进入本函数（history 已包含工具结果）。
+  for (let round = 0; round < 1; round++) {
     const raw = (config.baseUrl || 'https://api.openai.com').replace(/\/$/, '')
     const hasEndpoint = raw.includes('/chat/completions')
     const endpoint = hasEndpoint ? raw : raw + '/v1/chat/completions'
-    console.log(`[API] Tool round ${round + 1}/${maxRounds}`, { endpoint, model: config.model, repeatCount })
+    console.log('[API] single-round request', { endpoint, model: config.model })
 
     const client = axios.create({
       baseURL: raw,
@@ -745,53 +738,14 @@ export async function sendOpenAIStreamWithTools(
       return
     }
 
+    // 工具执行权统一归属 MessageLoop（架构 A）：
+    // 本函数只负责「发一次请求 + 把 tool_use 推回上层」，不再自行执行工具。
+    // 这样权限检查、并行编排、自动修复、循环守卫、上下文压缩都只有一条实现路径。
     for (const tc of toolCalls) {
       callbacks.onToolUse(tc)
     }
-
-    const toolResults: { role: 'tool'; content: string; tool_call_id: string }[] = []
-    for (const tc of toolCalls) {
-      let args: string[] = []
-      if (Array.isArray(tc.input?.args)) {
-        args = tc.input.args.map((a: any) => String(a))
-      } else if (tc.input?.raw) {
-        args = [String(tc.input.raw)]
-      } else if (tc.input && typeof tc.input === 'object') {
-        args = Object.entries(tc.input).filter(([k]) => k !== 'raw').map(([, v]) => String(v))
-      }
-      console.log(`[API] Executing tool: /${tc.name}`, { args, input: JSON.stringify(tc.input).slice(0, 50) })
-      const result = await executeLocalTool(tc.name, args)
-      toolResults.push({ role: 'tool', content: result.output, tool_call_id: tc.id || '' })
-
-      // 实时把工具执行结果反馈给前端（半流式），确保即使模型后续不转述，
-      // 用户也一定能立刻看到命令输出（如目录列表）。
-      if (result.output) {
-        callbacks.onText(result.output)
-        callbacks.onText('\n\n')
-      }
-    }
-
-    const currentSignature = toolSignature(toolCalls)
-    if (currentSignature && currentSignature === lastToolSignature) {
-      repeatCount++
-      console.log(`[API] Repeat detected (${repeatCount}/${maxRepeat}): ${currentSignature.slice(0, 80)}`)
-      if (repeatCount >= maxRepeat) {
-        callbacks.onDone(`(检测到工具调用重复循环，已停止。重复次数: ${repeatCount})`, [])
-        return
-      }
-    } else {
-      repeatCount = 0
-    }
-    lastToolSignature = currentSignature
-
-    apiMessages.push({ role: 'assistant', content: fullText || null, tool_calls: toolCalls.map(tc => ({
-      id: tc.id,
-      type: 'function',
-      function: { name: tc.name || '', arguments: JSON.stringify(tc.input || {}) },
-    })) })
-    for (const tr of toolResults) {
-      apiMessages.push({ role: 'tool', content: tr.content, tool_call_id: tr.tool_call_id })
-    }
+    callbacks.onDone(fullText, toolCalls)
+    return
   }
 
   callbacks.onDone('(工具调用达到最大轮数限制)', [])

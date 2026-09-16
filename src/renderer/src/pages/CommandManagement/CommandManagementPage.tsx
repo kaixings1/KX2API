@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Play, Trash2, Edit3, Save, X, RotateCcw, Terminal, Search,
-  ChevronDown, ChevronUp, Copy, Check, Info, Tag,
+  ChevronDown, ChevronUp, Copy, Check, Info, Tag, Loader2,
 } from 'lucide-react'
 
 // ==================== Types ====================

@@ -292,6 +292,8 @@ function createApiClientStream(
     // 当前文本块的索引。StreamProcessor 用 delta.index 与 content_block_stop.index
     // 对应来按块聚合文本，因此每个内容块占用一个递增的 index。
     let blockIndex = 0
+    /** 本轮回推给引擎的工具调用数，决定 stopReason 是 tool_use 还是 end_turn */
+    let forwardedToolCalls = 0
     let textBlockOpen = false
     // 独立的推理块索引（与文本块共用递增 index，但用额外标志区分类型）
     let reasonBlockOpen = false
@@ -353,22 +355,37 @@ function createApiClientStream(
           pushEvent({ type: 'content_block_delta', index: blockIndex, delta: { type: 'thinking_delta', text } })
         },
         onToolUse: (block) => {
-          // 工具已由 sendMessageStream 内的多轮循环自行执行并将结果喂回，
-          // 这里仅记录日志，不向 MessageLoop 推送 tool_use 事件，避免引擎
-          // 对该工具重复执行。文本流会正常聚合并返回给前端展示。
+          // 架构 A：工具执行权归属 MessageLoop。
+          // 这里把 tool_use 转成引擎可识别的 content_block 事件推回，
+          // 由 MessageLoop → ToolScheduler 完成权限检查、并行编排与执行。
           closeTextBlock()
           closeReasonBlock()
-          console.log(`[EngineBridge][API] tool executed by client: /${block.name} len=${fullText.length}`)
+          const idx = blockIndex
+          pushEvent({
+            type: 'content_block_start',
+            index: idx,
+            content_block: {
+              type: 'tool_use',
+              id: block.id,
+              name: block.name,
+              input: block.input || {},
+            },
+          })
+          pushEvent({ type: 'content_block_stop', index: idx })
+          blockIndex++
+          forwardedToolCalls++
+          console.log(`[EngineBridge][API] tool_use forwarded to engine: /${block.name}`)
         },
         onDone: () => {
           closeTextBlock()
           closeReasonBlock()
           pushEvent({ type: 'message_stop' })
-          // message_delta 的 usage 会被 MessageLoop 记入 TokenBudgetManager。
-          // 恒为 0 会让预算器拿不到任何真实基准，只能长期依赖本地估算。
+          // 本轮若产生过 tool_use，必须以 tool_use 结束：MessageLoop 据此进入
+          // 工具执行分支，执行完再发起下一轮；否则会当作终答直接收尾，工具永不执行。
+          const hasToolUse = forwardedToolCalls > 0
           pushEvent({
             type: 'message_delta',
-            stopReason: 'end_turn',
+            stopReason: hasToolUse ? 'tool_use' : 'end_turn',
             usage: {
               inputTokens: estimateRequestTokens(messages),
               outputTokens: Math.ceil(fullText.length / 4),
@@ -396,7 +413,7 @@ function createApiClientStream(
         pushEvent({ type: 'message_stop' })
         pushEvent({
           type: 'message_delta',
-          stopReason: 'end_turn',
+          stopReason: forwardedToolCalls > 0 ? 'tool_use' : 'end_turn',
           usage: {
             inputTokens: estimateRequestTokens(messages),
             outputTokens: Math.ceil(fullText.length / 4),

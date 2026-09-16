@@ -10,6 +10,7 @@
 
 import { BrowserWindow, session, Cookie } from 'electron'
 import { EventEmitter } from 'events'
+import { logManager } from '../logger/manager'
 
 const KIMI_SESSION_PARTITION = 'persist:kimi-login'
 const KIMI_API_BASE = 'https://www.kimi.com'

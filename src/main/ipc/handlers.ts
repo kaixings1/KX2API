@@ -40,6 +40,7 @@ import type { Provider, Account, ProxyStatus, ProviderCheckResult, OAuthResult, 
 import type { SystemPrompt, SessionConfig, SessionRecord, ManagementApiConfig } from '../store/types'
 import type { ProviderType } from '../oauth/types'
 import { logger } from '../logger/manager'
+import { allLegacyToolPlugins } from '../../engine/plugin/legacyToolPlugins'
 
 // 引擎引用（通过 engine-bridge 设置，避免直接导入 engine 模块）
 let engine: {

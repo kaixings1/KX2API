@@ -212,13 +212,15 @@ describe('工具定义生成', () => {
     expect(defs[0].function.parameters).toBeTruthy()
   })
 
-  it('提示词列出本组全部工具', () => {
+  it('提示词只给计数与约定，不罗列工具清单', () => {
+    // 工具的名称/描述/参数 schema 已由请求的 tools 字段承载，
+    // 正文再列一遍是重复信息，会白白占用上下文。
     const resolved = resolveActiveTools(base({ groupIds: ['programming'] }))
     const hint = buildToolHint(resolved)
-    expect(hint).toContain('编程')
-    expect(hint).toContain('- ls')
-    expect(hint).toContain('read-file')
-    expect(hint).not.toContain('- dir')
+    expect(hint).toContain('tools 字段')
+    expect(hint).toContain(String(resolved.tools.length))
+    expect(hint).not.toContain('- ls')
+    expect(hint).not.toContain('- read-file')
   })
 
   it('没有可用工具时明确告知模型不要调用工具', () => {

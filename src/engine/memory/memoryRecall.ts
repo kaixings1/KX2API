@@ -177,20 +177,39 @@ function normalizeMemoryType(raw: string | undefined): MemoryType | undefined {
 
 // ─────────────────────────────── 相关性打分 ───────────────────────────────
 
-/** 英文/数字连续串，以及单个中文字符，都算作独立词元 */
+/**
+ * 分词：拉丁/数字按词切，中文切**二元组**（bigram）。
+ *
+ * 中文刻意不用单字：单个汉字（"理""子""用"）几乎出现在任何中文描述里，
+ * 会让「量子物理问题」这类完全无关的查询也命中一堆记忆（噪声召回）。
+ * 二元组要求相邻两字都相同，判别力显著更高。
+ */
 function tokenize(text: string): string[] {
   const lowered = text.toLowerCase()
   const tokens: string[] = []
-  for (const m of lowered.matchAll(/[a-z0-9_]+|[\u4e00-\u9fa5]/g)) {
+  for (const m of lowered.matchAll(/[a-z0-9_]+/g)) {
     tokens.push(m[0])
+  }
+  for (const m of lowered.matchAll(/[\u4e00-\u9fa5]+/g)) {
+    const run = m[0]
+    if (run.length === 1) {
+      tokens.push(run)
+      continue
+    }
+    for (let i = 0; i + 2 <= run.length; i++) {
+      tokens.push(run.slice(i, i + 2))
+    }
   }
   return tokens
 }
 
 const STOP_WORDS = new Set([
+  // 英文虚词
   'the', 'a', 'an', 'is', 'are', 'to', 'of', 'and', 'or', 'in', 'on', 'for', 'it',
   'this', 'that', 'with', 'as', 'be', 'by', 'at', 'from',
-  '的', '了', '是', '在', '和', '我', '你', '他', '它', '请', '把', '给', '为',
+  // 中文高频虚词二元组：在查询与记忆里都出现，无区分度
+  '什么', '怎么', '如何', '可以', '需要', '如果', '因为', '所以', '这个', '那个',
+  '问题', '情况', '时候', '一下', '我们', '你们', '是否', '还是', '就是',
 ])
 
 /**

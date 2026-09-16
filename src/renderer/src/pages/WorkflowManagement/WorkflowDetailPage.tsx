@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from '@/components/ui/label'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { BackButton } from '@/components/ui/back-button'
-import { Trash2, Play, Loader2 } from 'lucide-react'
+import { Trash2, Play, Loader2, XCircle } from 'lucide-react'
 
 const workflowsApi = window.electronAPI.workflows
 

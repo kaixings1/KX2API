@@ -200,22 +200,21 @@ export function buildOpenAIToolDefinitions(tools: ManagedTool[]): Array<{
 }
 
 /**
- * 生成给模型的「本组可用工具」提示块。
- * 每次请求都拼在 system 消息里，保证切组后立刻生效。
+ * 生成给模型的工具提示块。
+ *
+ * 只输出「调用约定」这类无法由 tools 字段表达的信息，**不再罗列工具清单**：
+ * 可用工具的名称、描述、参数 schema 全部在请求的 tools 字段里，
+ * 在 system 正文再列一遍等于同一份信息发两次，纯属浪费 token
+ * （工具多时正文那份会吃掉数千 token）。
+ *
+ * 保留一句计数，是因为模型据此判断「本轮是否真的没有工具」，
+ * 避免在零工具时仍尝试发起调用。
  */
 export function buildToolHint(resolved: ResolvedTools): string {
   if (resolved.tools.length === 0) {
     return '【工具】当前没有启用任何工具，请直接用文字回答，不要输出工具调用。'
   }
-  const scope = resolved.isGlobal
-    ? '全局组（所有已启用工具）'
-    : `工具组：${resolved.groupNames.join(' + ')}`
-  const lines = resolved.tools.map(t => `- ${t.name} — ${describeTool(t)}`)
-  return [
-    `【工具】${scope}，共 ${resolved.tools.length} 个。`,
-    '只能使用下面列出的工具名，不要自造；需要操作时用约定的工具调用格式。',
-    ...lines,
-  ].join('\n')
+  return `【工具】本轮随请求提供了 ${resolved.tools.length} 个工具（见 tools 字段），只能使用其中列出的名字，不要自造。`
 }
 
 /** 从「工具管理」store + 配置里解析当前生效工具，并把开关写入环境变量 */
