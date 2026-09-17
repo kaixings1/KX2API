@@ -11,7 +11,7 @@ import { predefinedAgents, type SubAgentConfig } from "./config.ts";
 // 仅类型引用，避免与 index.ts 形成运行时循环（index.ts import 本模块）。
 import type { QueryEngine, EngineOptions } from "../index.ts";
 
-/** QueryEngine 构造器签名（由 index.ts 通过 provideEngineConstructor 注��默认实现） */
+/** QueryEngine 构造器签名（由 index.ts 通过 provideEngineConstructor 注入默认实现） */
 export type QueryEngineConstructor = new (opts: EngineOptions) => QueryEngine;
 
 /** 全局默认引擎构造器；由 index.ts 装配时注入（延迟注入避免循环） */

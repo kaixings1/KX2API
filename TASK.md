@@ -1164,6 +1164,48 @@ engine 单测必须放 `tests/engine/` 用 node:test。
 **验证**：typecheck 0（除另一会话新建的 `src/engine/orchestrator/` 8 处未跟踪文件）/ build ✅ /
 test:all ✅（agent 47 + management 74 + extras **557** + unit 1190，0 失败）。
 
+## 第十二轮：typecheck 再次归零（并发会话写坏修复）
+
+处理用户要求的「typecheck 现有 8 处错误」。过程中错误清单**每轮都在变**
+（3 → 15 → 0 → 又冒新的），因为并发会话在同时改文件。
+
+### 修复一：knowledgeGraph.ts 混入 U+FFFD
+
+报 `TS1490: File appears to be binary` + `TS1005`，实际是两处字符被替换成 U+FFFD：
+
+```
+let targetPath: string | n\uFFFDull = null      // 应为 string | null
+// 调用点：符号名 + ( （忽略跨文件同\uFFFD的重复匹配）
+```
+
+（两处最终由并发会话自行修复；排查方法已记入记忆 —— 按字节扫会淹没在中文 UTF-8 噪声里，
+必须按字符扫 `U+FFFD`。）
+
+### 修复二：plainTextToolCallRepair.ts 被截掉 300 行（严重）
+
+文件从 **617 行被截成 239 行**，丢失 `collectOuterTagAsTool` 后半段、
+`collectFencedJson`、`parseXmlArgs`、`collectFlatXmlTools` 及
+`parsePlainTextToolCalls` / `extractPlainTextToolCalls` / `stripPlainTextToolCalls`
+**三个导出函数**。表现为 esbuild 转换失败（`354:15 ERROR: Unexpected ":"`）。
+
+处置：**没有盲目 `git checkout`**（会抹掉并发会话的工作）。流程为
+`git diff` 辨析 → `git show HEAD:` 导出完整版恢复 → 手工合并有效新增 → 补测试锁定。
+救回的有效新增：`<invoke name="list_dir">` 属性兼容（外层通用容器 + name 属性取工具名）。
+
+### 修复三：WorkflowStage 缺 'discuss'
+
+`orchestrator/orchestrator.ts` 用了 `'discuss'` 阶段但类型联合里没有。
+（并发会话已补 `'discuss'` 到 `messages.ts`。）
+
+### 新增测试
+
+`tests/engine/plaintext-whitelist.test.ts` +4 例，锁定「外层标签即工具名」与
+`<invoke name="...">` 解析：外层标签是工具名、name 属性优先、非工具名不识别、
+无参数空容器不识别。
+
+**最终状态**：typecheck **0 错误** / `npm run build` ✅ /
+`npm run test:all` ✅（agent 47 + management 74 + extras **561** + unit 1190，0 失败）。
+
 ### CI 转为阻断式
 
 类型错误归零后，按 `ci.yml` 原注释里的约定，把 `typecheck-app` 的
