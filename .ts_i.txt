@@ -181,18 +181,6 @@ src/main/ipc/chat-handlers.ts(170,34): error TS2345: Argument of type '{ timesta
 src/main/ipc/chat-handlers.ts(791,49): error TS2345: Argument of type '{ id: string; description: string; }' is not assignable to parameter of type 'Objective'.
   Property 'priority' is missing in type '{ id: string; description: string; }' but required in type 'Objective'.
 src/main/ipc/chat-handlers.ts(799,34): error TS2551: Property 'discussionRounds' does not exist on type 'ExecutionReport'. Did you mean 'discussions'?
-src/main/ipc/handlers.ts(928,42): error TS2339: Property 'getConfig' does not exist on type 'McpService'.
-src/main/ipc/handlers.ts(1725,49): error TS2345: Argument of type 'Partial<import("D:/KX2API/src/shared/types").AppConfig>' is not assignable to parameter of type 'Partial<import("D:/KX2API/src/main/store/types").AppConfig>'.
-  Types of property 'contextManagement' are incompatible.
-    Type 'unknown' is not assignable to type 'ContextManagementConfig | undefined'.
-src/main/ipc/handlers.ts(2308,5): error TS2322: Type 'import("D:/KX2API/src/main/store/types").LogEntry[]' is not assignable to type 'import("D:/KX2API/src/shared/types").LogEntry[]'.
-  Property 'category' is missing in type 'import("D:/KX2API/src/main/store/types").LogEntry' but required in type 'import("D:/KX2API/src/shared/types").LogEntry'.
-src/main/ipc/handlers.ts(2332,5): error TS2322: Type 'import("D:/KX2API/src/main/store/types").LogEntry | undefined' is not assignable to type 'import("D:/KX2API/src/shared/types").LogEntry | undefined'.
-  Property 'category' is missing in type 'import("D:/KX2API/src/main/store/types").LogEntry' but required in type 'import("D:/KX2API/src/shared/types").LogEntry'.
-src/main/ipc/handlers.ts(2418,11): error TS2339: Property 'isQuitting' does not exist on type 'App'.
-src/main/ipc/handlers.ts(2652,9): error TS2339: Property 'isQuitting' does not exist on type 'App'.
-src/main/ipc/handlers.ts(2660,24): error TS2554: Expected 0 arguments, but got 1.
-src/main/ipc/handlers.ts(2665,11): error TS2339: Property 'registerEngineHandlers' does not exist on type 'typeof import("D:/KX2API/src/main/engine-bridge")'.
 src/main/lsp/LSPClient.ts(117,21): error TS18048: 'process' is possibly 'undefined'.
 src/main/lsp/LSPClient.ts(117,29): error TS2339: Property 'env' does not exist on type 'ChildProcess'.
 src/main/lsp/LSPClient.ts(286,36): error TS2769: No overload matches this call.
@@ -427,8 +415,6 @@ src/main/proxy/toolCalling/toolCallExtractor.ts(930,32): error TS2345: Argument 
 src/main/proxy/toolCalling/toolCallExtractor.ts(946,32): error TS2345: Argument of type 'string | Record<string, string>' is not assignable to parameter of type 'Record<string, unknown>'.
   Type 'string' is not assignable to type 'Record<string, unknown>'.
 src/main/proxy/toolCalling/toolCallExtractor.ts(1150,11): error TS2322: Type '{}' is not assignable to type 'string'.
-src/main/proxy/toolCalling/ToolCallingEngine.ts(38,33): error TS1016: A required parameter cannot follow an optional parameter.
-src/main/proxy/toolCalling/ToolCallingEngine.ts(58,35): error TS1016: A required parameter cannot follow an optional parameter.
 src/main/proxy/toolCalling/ToolCallingEngine.ts(142,7): error TS2345: Argument of type 'NormalizedToolDefinition[]' is not assignable to parameter of type 'ChatCompletionTool[]'.
   Type 'NormalizedToolDefinition' is missing the following properties from type 'ChatCompletionTool': type, function
 src/main/proxy/toolCalling/ToolCallingEngine.ts(150,9): error TS2322: Type 'ChatCompletionTool[] | null | undefined' is not assignable to type 'ChatCompletionTool[] | undefined'.

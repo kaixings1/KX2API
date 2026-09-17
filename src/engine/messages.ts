@@ -28,6 +28,11 @@ export const SYNTHETIC_TOOL_RESULT_PLACEHOLDER = '❌ 错误: [工具结果因�
 
 // ============ 扩展类型 ============
 
+/** 窄化内容块为对象块（InternalContent 允许字符串混入，工具块操作只处理对象） */
+function isContentBlock(b: string | Record<string, unknown>): b is Record<string, unknown> {
+  return typeof b === 'object' && b !== null;
+}
+
 export type NormalizedMessage = InternalMessage & {
   uuid?: string;
   isMeta?: boolean;
@@ -269,20 +274,20 @@ export function isToolMessage(message: InternalMessage): boolean {
 export function isToolUseRequestMessage(message: InternalMessage): boolean {
   if (message.role !== 'assistant') return false;
   const blocks = Array.isArray(message.content) ? message.content : [];
-  return blocks.some((b: Record<string, unknown>) => b.type === 'tool_use');
+  return blocks.some((b) => isContentBlock(b) && b.type === 'tool_use');
 }
 
 export function isToolUseResultMessage(message: InternalMessage): boolean {
   if (message.role !== 'user') return false;
   if (typeof message.content === 'string') return false;
   const blocks = Array.isArray(message.content) ? message.content : [];
-  return blocks.some((b: Record<string, unknown>) => b.type === 'tool_result');
+  return blocks.some((b) => isContentBlock(b) && b.type === 'tool_result');
 }
 
 export function isThinkingMessage(message: InternalMessage): boolean {
   if (message.role !== 'assistant') return false;
   const blocks = Array.isArray(message.content) ? message.content : [];
-  return blocks.some((b: Record<string, unknown>) => b.type === 'thinking');
+  return blocks.some((b) => isContentBlock(b) && b.type === 'thinking');
 }
 
 export function isProgressMessage(message: InternalMessage): boolean {
@@ -298,7 +303,7 @@ export function isProgressMessage(message: InternalMessage): boolean {
 export function hasToolError(message: InternalMessage): boolean {
   if (message.role !== 'user' || typeof message.content === 'string') return false;
   const blocks = Array.isArray(message.content) ? message.content : [];
-  return blocks.some((b: Record<string, unknown>) => b.type === 'tool_result' && b.is_error === true);
+  return blocks.some((b) => isContentBlock(b) && b.type === 'tool_result' && b.is_error === true);
 }
 
 export function isTerminalMessage(message: InternalMessage): boolean {
@@ -323,7 +328,7 @@ export function hasToolCallsInLastAssistantTurn(
     const message = messages[i];
     if (message && message.role === 'assistant') {
       const blocks = Array.isArray(message.content) ? message.content : [];
-      return blocks.some((b: Record<string, unknown>) => b.type === 'tool_use');
+      return blocks.some((b) => isContentBlock(b) && b.type === 'tool_use');
     }
   }
   return false;
@@ -345,7 +350,7 @@ export function isEmptyMessageText(text: string): boolean {
 export function countToolCalls(messages: InternalMessage[]): number {
   return messages.reduce((count, msg) => {
     if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-      count += msg.content.filter((b: Record<string, unknown>) => b.type === 'tool_use').length;
+      count += msg.content.filter((b) => isContentBlock(b) && b.type === 'tool_use').length;
     }
     return count;
   }, 0);
@@ -372,8 +377,8 @@ export function reorderMessagesInUI(
   for (const msg of messages) {
     if (isToolUseRequestMessage(msg)) {
       const blocks = Array.isArray(msg.content) ? msg.content : [];
-      const toolUseBlock = blocks.find((b: Record<string, unknown>) => b.type === 'tool_use');
-      if (toolUseBlock && typeof toolUseBlock.id === 'string') {
+      const toolUseBlock = blocks.find((b) => isContentBlock(b) && b.type === 'tool_use');
+      if (isContentBlock(toolUseBlock) && typeof toolUseBlock.id === 'string') {
         const id = toolUseBlock.id as string;
         if (!pendingToolBlocks.has(id)) {
           pendingToolBlocks.set(id, { toolUse: null, preHooks: [], toolResult: null, postHooks: [] });
@@ -385,7 +390,7 @@ export function reorderMessagesInUI(
 
     if (isToolUseResultMessage(msg)) {
       const blocks = Array.isArray(msg.content) ? msg.content : [];
-      const toolResultBlock = blocks.find((b: Record<string, unknown>) => b.type === 'tool_result');
+      const toolResultBlock = blocks.find((b) => isContentBlock(b) && b.type === 'tool_result');
       if (toolResultBlock && typeof (toolResultBlock as Record<string, unknown>).tool_use_id === 'string') {
         const id = (toolResultBlock as Record<string, unknown>).tool_use_id as string;
         if (!pendingToolBlocks.has(id)) {
@@ -407,8 +412,8 @@ export function reorderMessagesInUI(
   for (const msg of result) {
     if (isToolUseRequestMessage(msg)) {
       const blocks = Array.isArray(msg.content) ? msg.content : [];
-      const toolUseBlock = blocks.find((b: Record<string, unknown>) => b.type === 'tool_use');
-      if (toolUseBlock && typeof toolUseBlock.id === 'string') {
+      const toolUseBlock = blocks.find((b) => isContentBlock(b) && b.type === 'tool_use');
+      if (isContentBlock(toolUseBlock) && typeof toolUseBlock.id === 'string') {
         const id = toolUseBlock.id as string;
         if (!processed.has(id)) {
           processed.add(id);
@@ -438,15 +443,15 @@ export function ensureToolResultPairing(
   for (const msg of messages) {
     if (isToolUseRequestMessage(msg)) {
       const blocks = Array.isArray(msg.content) ? msg.content : [];
-      const toolUseBlock = blocks.find((b: Record<string, unknown>) => b.type === 'tool_use');
-      if (toolUseBlock && typeof toolUseBlock.id === 'string') {
+      const toolUseBlock = blocks.find((b) => isContentBlock(b) && b.type === 'tool_use');
+      if (isContentBlock(toolUseBlock) && typeof toolUseBlock.id === 'string') {
         const id = toolUseBlock.id as string;
         pendingToolUses.set(id, msg);
       }
       result.push(msg);
     } else if (isToolUseResultMessage(msg)) {
       const blocks = Array.isArray(msg.content) ? msg.content : [];
-      const toolResultBlock = blocks.find((b: Record<string, unknown>) => b.type === 'tool_result');
+      const toolResultBlock = blocks.find((b) => isContentBlock(b) && b.type === 'tool_result');
       if (toolResultBlock && typeof (toolResultBlock as Record<string, unknown>).tool_use_id === 'string') {
         const id = (toolResultBlock as Record<string, unknown>).tool_use_id as string;
         pendingToolUses.delete(id);
@@ -521,7 +526,7 @@ export function filterOrphanedThinkingOnlyMessages(
     const msg = messages[i];
     if (i < lastAssistantIdx && msg.role === 'assistant') {
       const blocks = Array.isArray(msg.content) ? msg.content : [];
-      const hasNonThinking = blocks.some((b: Record<string, unknown>) => b.type !== 'thinking');
+      const hasNonThinking = blocks.some((b) => isContentBlock(b) && b.type !== 'thinking');
       const hasText = typeof msg.content === 'string' && msg.content.trim().length > 0;
       if (!hasNonThinking && !hasText) continue;
     }
@@ -549,7 +554,7 @@ export function ensureNonEmptyAssistantContent(
     const text = extractTextContent(msg.content);
     if (text.trim().length === 0 && Array.isArray(msg.content)) {
       const blocks = msg.content as Array<Record<string, unknown>>;
-      const hasToolUse = blocks.some((b: Record<string, unknown>) => b.type === 'tool_use');
+      const hasToolUse = blocks.some((b) => isContentBlock(b) && b.type === 'tool_use');
       if (!hasToolUse) {
         return { ...msg, content: [{ type: 'text', text: '(无内容)' }] };
       }

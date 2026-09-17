@@ -114,7 +114,7 @@ export function createLSPClient(
         // 1. Spawn LSP server process
         process = spawn(command, args, {
           stdio: ['pipe', 'pipe', 'pipe'],
-          env: { ...process.env, ...options?.env },
+          env: { ...globalThis.process.env, ...options?.env },
           cwd: options?.cwd,
           // Prevent visible console window on Windows (no-op on other platforms)
           windowsHide: true,
@@ -283,7 +283,7 @@ export function createLSPClient(
         return
       }
       checkStartFailed()
-      connection.onRequest(method, handler)
+      connection.onRequest(method, handler as (params: unknown) => unknown)
     },
 
     async stop(): Promise<void> {

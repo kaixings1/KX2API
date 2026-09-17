@@ -9,7 +9,7 @@
 import { fileURLToPath } from 'node:url'
 import type { PublishDiagnosticsParams } from 'vscode-languageserver-protocol'
 import { logManager } from '../logger/manager'
-import { registerPendingLSPDiagnostic, type DiagnosticFile } from './LSPDiagnosticRegistry'
+import { registerPendingLSPDiagnostic, type DiagnosticFile, type LSPDiagnostic } from './LSPDiagnosticRegistry'
 import type { LSPServerManager } from './LSPServerManager'
 
 function errMsg(e: unknown): string {
@@ -41,8 +41,12 @@ export function formatDiagnosticsForAttachment(params: PublishDiagnosticsParams)
   } catch {
     uri = params.uri
   }
-  const diagnostics = params.diagnostics.map((diag) => ({
-    message: diag.message,
+  const diagnostics: LSPDiagnostic[] = params.diagnostics.map((diag): LSPDiagnostic => ({
+    message: typeof diag.message === 'object' && diag.message !== null && 'value' in diag.message
+      ? String((diag.message as { value: unknown }).value)
+      : typeof diag.message === 'string'
+        ? diag.message
+        : String(diag.message),
     severity: mapLSPSeverity(diag.severity),
     range: {
       start: { line: diag.range.start.line, character: diag.range.start.character },

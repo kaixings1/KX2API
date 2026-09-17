@@ -91,11 +91,13 @@ export async function executeLsp(
   character?: number,
 ): Promise<{ success: boolean; output: string; error?: string }> {
   if (!isLspConnected()) {
-    return { success: false, error: 'LSP 未连接：请先在主进程初始化 LSP 并配置服务器' }
+    const error = 'LSP 未连接：请先在主进程初始化 LSP 并配置服务器'
+    return { success: false, error, output: error }
   }
   const manager = getLspServerManager()
   if (!manager) {
-    return { success: false, error: 'LSP 服务器管理器不可用' }
+    const error = 'LSP 服务器管理器不可用'
+    return { success: false, error, output: error }
   }
 
   try {
@@ -109,7 +111,8 @@ export async function executeLsp(
     }
 
     if (!filePath) {
-      return { success: false, error: `操作 ${op} 需要文件路径` }
+      const error = `操作 ${op} 需要文件路径`
+      return { success: false, error, output: error }
     }
 
     const ln = line ?? 1
@@ -134,7 +137,7 @@ export async function executeLsp(
       const items = await manager.sendRequest<Array<{ uri: string }>>(
         filePath,
         'textDocument/prepareCallHierarchy',
-        position(filePath, line, col),
+        position(filePath, ln, col),
       )
       if (!items || items.length === 0) {
         return { success: true, output: '在此位置未找到调用层次项' }
@@ -147,7 +150,7 @@ export async function executeLsp(
     const params =
       method === 'textDocument/documentSymbol'
         ? { textDocument: { uri: pathToFileURL(path.resolve(filePath)).href } }
-        : position(filePath, line, col)
+        : position(filePath, ln, col)
 
     const result = await manager.sendRequest<unknown>(filePath, method, params)
     return {
@@ -156,7 +159,8 @@ export async function executeLsp(
     }
   } catch (error) {
     errLog(`LSP ${op} 失败: ${(error as Error).message}`)
-    return { success: false, error: `执行 ${op} 失败: ${(error as Error).message}` }
+    const message = `执行 ${op} 失败: ${(error as Error).message}`
+    return { success: false, error: message, output: message }
   }
 }
 

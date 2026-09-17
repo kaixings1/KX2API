@@ -14,6 +14,29 @@ import type { NormalizedToolDefinition, ToolCallingPlan, ToolCallingTransformRes
 import { promptAdapterRegistry } from './promptAdapters/PromptAdapterRegistry.ts'
 import { promptInjectionService } from '../services/promptInjectionService.ts'
 
+/**
+ * NormalizedToolDefinition（扁平）→ ChatCompletionTool（OpenAI 嵌套式）。
+ *
+ * 两者结构不同：
+ *   前者 { name, description, parameters }
+ *   后者 { type: 'function', function: { name, description, parameters } }
+ *
+ * PromptInjectionService 与 legacy 的 promptAdapterRegistry 都要后者，
+ * 而 plan.tools 是前者 —— 之前直接传导致 TS2345。
+ */
+function toChatCompletionTools(
+  defs: readonly NormalizedToolDefinition[],
+): ChatCompletionTool[] {
+  return defs.map(d => ({
+    type: 'function' as const,
+    function: {
+      name: d.name,
+      description: d.description,
+      parameters: d.parameters,
+    },
+  }))
+}
+
 export class ToolCallingEngine {
   private readonly config: ToolCallingConfig
   private readonly PATH_CACHE_TTL_MS = 5 * 60_000
@@ -35,7 +58,7 @@ export class ToolCallingEngine {
     this.pathCache.delete(requestId)
   }
 
-  cachePath(requestId?: string, path: string): void {
+  cachePath(path: string, requestId?: string): void {
     const key = requestId || ''
     if (!key || !path) return
     this._pruneExpired()
@@ -55,7 +78,7 @@ export class ToolCallingEngine {
     }
   }
 
-  resolvePath(requestId?: string, filename: string): string | null {
+  resolvePath(filename: string, requestId?: string): string | null {
     const cached = this.getCachedPaths(requestId)
     for (const fullPath of cached) {
       const basename = fullPath.split(/[\\/]/).pop()
@@ -139,7 +162,7 @@ export class ToolCallingEngine {
     // Try PromptInjectionService first (auto-detect client, inject managed protocol)
     const injectionResult = promptInjectionService.process(
       request.messages,
-      plan.tools,
+      toChatCompletionTools(plan.tools),
       actualModel,
       provider.id
     )
@@ -147,7 +170,7 @@ export class ToolCallingEngine {
     if (injectionResult.injected) {
       return {
         messages: injectionResult.messages,
-        tools: plan.mode === 'disabled' ? request.tools : null,
+        tools: plan.mode === 'disabled' ? request.tools : void 0,
         plan,
       }
     }
@@ -155,13 +178,13 @@ export class ToolCallingEngine {
     // Fallback: legacy promptAdapterRegistry path
     const clientAdapted = promptAdapterRegistry.transformRequest(
       request.messages,
-      plan.tools,
+      toChatCompletionTools(plan.tools),
       actualModel,
       provider.id
     )
 
     let messagesToUse: ChatMessage[]
-    let toolsToUse: ChatCompletionTool[] | null
+    let toolsToUse: ChatCompletionTool[] | undefined
 
     if (clientAdapted.injected && clientAdapted.cleaned) {
       messagesToUse = clientAdapted.messages
@@ -174,7 +197,7 @@ export class ToolCallingEngine {
     }
 
     messagesToUse = injectPrompt(messagesToUse, renderPrompt(plan.protocol, plan.tools, this.config, cachedPaths))
-    toolsToUse = plan.mode === 'disabled' ? request.tools : null
+    toolsToUse = plan.mode === 'disabled' ? request.tools : void 0
 
     // Validate tool call history structure before returning
     if (plan.mode !== 'disabled') {
@@ -219,12 +242,15 @@ export class ToolCallingEngine {
     }
 
     for (const call of parseResult.toolCalls) {
-      if (call.name === 'read_file') {
-        const args = typeof call.arguments === 'string' ? call.arguments : JSON.stringify(call.arguments)
+      // 协议解析器返回的是 OpenAI 风格的 ToolCall：
+      // { id, type: 'function', function: { name, arguments } } —— 不是扁平结构。
+      const fn = (call as { function?: { name?: string; arguments?: unknown } }).function
+      if (fn?.name === 'read_file') {
+        const args = typeof fn.arguments === 'string' ? fn.arguments : JSON.stringify(fn.arguments)
         try {
           const parsed = JSON.parse(args)
           if (parsed && typeof parsed.path === 'string') {
-            this.cachePath(plan.diagnostics.requestId, parsed.path)
+            this.cachePath(parsed.path, plan.diagnostics.requestId)
           }
         } catch {
           // ignore parse errors
@@ -246,7 +272,9 @@ function renderPrompt(
   config: ToolCallingConfig,
   cachedPaths: string[] = [],
 ): string {
-  const prompt = getToolProtocol(protocol).renderPrompt(tools, cachedPaths)
+  // 所有协议实现的 renderPrompt 都只接受 tools —— 没有 cachedPaths 参数
+  // （各实现见 protocols/*.ts）。此前多传了一个实参，TS 报 TS2554。
+  const prompt = getToolProtocol(protocol).renderPrompt(tools)
   const forceHint = config.mode === 'force'
     ? '\n\n## MANDATORY TOOL CALL\nYou MUST call exactly one tool for every user request. Do NOT reply with plain text. Output ONLY the tool call block.'
     : ''

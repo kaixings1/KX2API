@@ -26,16 +26,27 @@ export interface PlainTextToolCallBlock {
 let aliasMapCache: Record<string, string> | null = null
 function getAliasMap(): Record<string, string> {
   if (aliasMapCache) return aliasMapCache
-  // 同步内联兜底，避免依赖 toolNameResolver 的具体路径/导出被改变而失效
-  return {
-    'pwd': '_current_directory', 'ls': 'list_directory', 'list_dir': 'ls',
-    'dir': 'dir_list', 'list_directory': 'ls', 'list_files': 'ls',
-    'current_directory': 'pwd', 'ls_dir': 'ls', 'read_directory': 'ls',
-    'show_directory': 'ls', 'local_list_dir': 'ls', 'local_directory': 'ls',
-    'local_dir': 'ls', 'read_file': 'cat', 'get_file': 'cat',
+  // 同步内联兜底（方向：模型自造名 → 真实注册命令名），
+  // 避免依赖 toolNameResolver 的具体路径/导出被改变而失效。
+  aliasMapCache = {
+    // 目录 / 文件列举
+    'list_dir': 'ls', 'list_directory': 'ls', 'list_files': 'ls',
+    'ls_dir': 'ls', 'dir_list': 'dir', 'read_directory': 'ls',
+    'show_directory': 'ls', 'current_directory': 'pwd',
+    '_current_directory': 'pwd', 'get_current_directory': 'pwd',
+    // local_* 系
+    'local_dir': 'ls', 'local_directory': 'ls', 'local_dirs': 'ls',
+    'local_list': 'ls', 'local_list_dir': 'ls', 'local_dir_list': 'dir',
+    'local_list_directory': 'ls', 'local_files': 'ls',
+    // 文件读取 / 搜索
+    'read_file': 'cat', 'get_file': 'cat', 'readfile': 'cat',
     'search_files': 'find', 'find_file': 'find', 'find_files': 'find',
-    'list_files': 'ls',
+    'search_text': 'findstr', 'findstr_search': 'findstr',
+    'grep_search': 'grep', 'search_files2': 'grep',
+    // 系统 / 环境
+    'current_path': 'pwd', 'print_directory': 'pwd', 'print_working_directory': 'pwd',
   }
+  return aliasMapCache
 }
 
 /** 工具名字段候选（按优先级） */
@@ -298,6 +309,53 @@ function collectTaggedTools(
   return blocks
 }
 
+/**
+ * 收集「外层标签即工具名」形态的调用：`<list_dir><path>D:\KX2API\build</path></list_dir>`。
+ *
+ * 某些模型按自己记忆/习惯，直接拿工具名当 XML 外层标签，参数以子标签形式平铺在内。
+ * 这与默认形态（外层 `<tool_call>` 容器 + 内层 `<toolName>` + `<arguments>`）正好相反，
+ * 既有的 collectTaggedTools / collectFlatXmlTools 都用「name 子标签」来定位工具名，
+ * 对这种「外层即工具名」的形态完全解析不到 —— 这正是 `<list_dir>` 起不到的根因之一。
+ *
+ * 判定（三重收紧，避免把文档正文里的 HTML 标签误当工具）：
+ *   1. 外包标签名必须能通过 isAllowedToolName（含别名兜底，list_dir→ls 也放行）；
+ *   2. 内层必须至少有一个「参数子标签」（形如 <key>value</key>）—— 无参数的
+ *      `<div></div>`、纯文本 `<p>你好</p>` 不算；
+ *   3. 内层子标签名排除 name/tool/fn 这类「工具名声明」（那种走 collectTaggedTools）。
+ */
+function collectOuterTagAsTool(
+  text: string,
+  allowedNames?: ReadonlySet<string> | null,
+): PlainTextToolCallBlock[] {
+  const blocks: PlainTextToolCallBlock[] = []
+  const OUTER_TAG_RE = /<([a-zA-Z_][\w:\-]*)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi
+  let m: RegExpExecArray | null
+  while ((m = OUTER_TAG_RE.exec(text)) !== null) {
+    const tagName = m[1].trim()
+    const inner = m[2]
+    // 外层标签必须是合法命令名（含别名兜底）；非命令名（<html>、<document>）跳过
+    if (!isAllowedToolName(tagName, allowedNames)) continue
+    // 内层必须至少有一个「参数子标签」，否则视为空容器/纯文本标签
+    const CHILD_RE = /<\s*([a-zA-Z_][\w-]*)\b[^>]*>([\s\S]*?)<\s*\/\s*\1\s*>/gi
+    let childSeen = false
+    const obj: Record<string, unknown> = {}
+    let cm: RegExpExecArray | null
+    CHILD_RE.lastIndex = 0
+    while ((cm = CHILD_RE.exec(inner)) !== null) {
+      const key = cm[1].trim()
+      const val = cm[2].trim()
+      if (!key) continue
+      // 跳过 name 类标签：那是 collectTaggedTools 的专责
+      if (/^(name|toolName|tool_name|tool|fn|function)$/i.test(key)) continue
+      childSeen = true
+      obj[key] = val
+    }
+    if (!childSeen || Object.keys(obj).length === 0) continue
+    blocks.push({ name: tagName, arguments: obj })
+  }
+  return blocks
+}
+
 /** 收集代码围栏内的 JSON 工具调用 */
 function collectFencedJson(
   text: string,
@@ -398,6 +456,10 @@ export function parsePlainTextToolCalls(
   const tagged = collectTaggedTools(text, allowedNames)
   if (tagged.length > 0) return tagged
 
+  // 外层标签即工具名（<list_dir><path>...</path></list_dir>）
+  const outerTag = collectOuterTagAsTool(text, allowedNames)
+  if (outerTag.length > 0) return outerTag
+
   // 扁平 XML 工具调用（无外层包裹、camelCase 子标签）
   const flatXml = collectFlatXmlTools(text, allowedNames)
   if (flatXml.length > 0) return flatXml
@@ -423,6 +485,10 @@ export function extractPlainTextToolCalls(
 
   const tagged = collectTaggedTools(text, allowedNames)
   if (tagged.length > 0) return tagged
+
+  // 外层标签即工具名（<list_dir><path>...</path></list_dir>）
+  const outerTag = collectOuterTagAsTool(text, allowedNames)
+  if (outerTag.length > 0) return outerTag
 
   const flatXml = collectFlatXmlTools(text, allowedNames)
   if (flatXml.length > 0) return flatXml
