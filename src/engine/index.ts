@@ -23,6 +23,7 @@ import { AutoFixLoop } from "./autoFixLoop.ts";
 import { GitContextInjector, type GitContextConfig } from "./gitContext.ts";
 import { saveSessionSnapshot, loadSessionSnapshotSync, clearSessionSnapshot, type SessionMessageSnapshot } from "./sessionRecovery.ts";
 import { createSandboxedExecutor, type SandboxConfig, type SandboxPolicy, getDefaultSandboxPolicy, createDefaultSandboxConfig } from "./sandbox/index.ts";
+import { HookManager } from "./hooks/hookManager.ts";
 import { createSecurityEnhancer } from "./securityEnhancer.ts";
 import {
   buildSystemPrompt as buildEnhancedSystemPrompt,
@@ -84,10 +85,9 @@ export interface EngineOptions {
   acceptanceCriteria?: unknown[];
   /**
    * Hook 管理器（吸收自 ECC hooks）：注册 PreToolUse/PostToolUse 拦截器。
-   * 原引用 ./hooks/hookManager.js，但工程内并无该模块（钩子实现在 main 层
-   * 经 ToolHooks 注入）。本字段虽无消费点，但作为配置项保留，类型泛化为 unknown。
+   * 由上层经 setHookManager() 注入，引擎自身不持有逻辑依赖。
    */
-  hookManager?: unknown;
+  hookManager?: HookManager;
   /** 自动继续配置：由配置决定是否在特定场景自动注入「继续」。默认关闭 */
   autoContinue?: AutoContinueConfig;
   /** 循环控制参数（轮数上限、连续失败阈值等）；缺省用默认值 */
@@ -134,6 +134,7 @@ export class QueryEngine {
   readonly retryHandler = new RetryHandler();
   readonly subAgentManager = new SubAgentManager();
   readonly recovery: ErrorRecovery;
+  private hookManagerInstance?: HookManager;
   private _preAnalysis: Array<{ type: string; message: string; line?: number }>;
   readonly conversation: Conversation;
   private abortController: AbortController = new AbortController();
@@ -474,6 +475,12 @@ export class QueryEngine {
    */
   setToolHooks(hooks: ToolHooks): void {
     this.toolSchedulerInstance?.setHooks(hooks)
+  }
+
+  /** 注入事件钩子管理器（启动时调用）；未注入时跳过，不影响既有行为 */
+  setHookManager(hm?: HookManager): void {
+    this.hookManagerInstance = hm
+    this.toolSchedulerInstance?.setHookManager(hm)
   }
 
   /**

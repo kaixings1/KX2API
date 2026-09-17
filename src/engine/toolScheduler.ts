@@ -8,6 +8,7 @@ import { maybePersistToolResult } from "./toolResultStore.ts";
 import { needsRepair, repairArgsBySchema } from "./tool-harness/jsonSchemaRepair.ts";
 import { formatToolError, formatValidationError, issuesFromSimpleErrors } from "./errors/toolErrorFormat.ts";
 import { evaluatePermission, explainRule, type PermissionRule } from "./permissions/permissionRules.ts";
+import type { HookManager } from "./hooks/hookManager.ts";
 
 // [LOCAL] 本地定义工具类型，适配 D:\doge-code\src\ 架构
 export interface Tool {
@@ -71,6 +72,7 @@ export class ToolScheduler {
   private hooks: ToolHooks = {}
   /** 参数级权限规则；默认空（不改变既有行为） */
   private permissionRules: PermissionRule[] = []
+  private hookManager?: HookManager
 
   constructor(
     private registry: Map<string, Tool>,
@@ -81,6 +83,11 @@ export class ToolScheduler {
   /** 注入钩子回调（主进程启动时调用） */
   setHooks(hooks: ToolHooks): void {
     this.hooks = hooks
+  }
+
+  /** 注入事件钩子管理器（启动时调用）；未注入时跳过，不影响既有行为 */
+  setHookManager(hm?: HookManager): void {
+    this.hookManager = hm
   }
 
   /**
@@ -269,6 +276,27 @@ export class ToolScheduler {
       }
     }
 
+    // 事件钩子：PreToolUse 可在执行前拦截（如密钥检测、文件类型警告）。
+    if (this.hookManager) {
+      try {
+        const preResult = await this.hookManager.trigger({
+          type: 'PreToolUse',
+          toolName: call.name,
+          input,
+        })
+        if (preResult.allow === false) {
+          return {
+            success: false,
+            error: preResult.reason || '被事件钩子拒绝',
+            toolUseId: call.id,
+            metadata: { deniedByHook: true },
+          };
+        }
+      } catch (e) {
+        console.warn(`[TOOL] PreToolUse 事件钩子异常（已忽略）: ${(e as Error).message}`);
+      }
+    }
+
     try {
       const output = await this.executor.execute(tool, input, {
         // 工具自带 timeout 优先；否则用注入的默认值，最后回落到 10 分钟
@@ -289,6 +317,20 @@ export class ToolScheduler {
           console.warn(`[TOOL] PostToolUse 钩子异常（已忽略）: ${(e as Error).message}`);
         }
       }
+      // 事件钩子：PostToolUse 记录审计日志、统计等
+      if (this.hookManager) {
+        try {
+          await this.hookManager.trigger({
+            type: 'PostToolUse',
+            toolName: call.name,
+            input,
+            success: true,
+            output: finalOutput,
+          })
+        } catch {
+          /* 审计钩子异常不影响主流程 */
+        }
+      }
       return { success: true, output: finalOutput, toolUseId: call.id };
     } catch (e) {
       // 统一的错误格式化：合并 message / stderr / stdout，超长时**中间**截断
@@ -299,6 +341,20 @@ export class ToolScheduler {
           await this.hooks.postToolUse(call.name, input, false, errMsg);
         } catch {
           /* 钩子异常已在上方记录过，此处静默 */
+        }
+      }
+      // 事件钩子：PostToolUseFailure 累计失败计数
+      if (this.hookManager) {
+        try {
+          await this.hookManager.trigger({
+            type: 'PostToolUseFailure',
+            toolName: call.name,
+            input,
+            success: false,
+            error: errMsg,
+          })
+        } catch {
+          /* 审计钩子异常不影响主流程 */
         }
       }
       return { success: false, error: errMsg, toolUseId: call.id };

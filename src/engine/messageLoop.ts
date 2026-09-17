@@ -126,8 +126,14 @@ export class MessageLoop {
    * 原实现在构造函数里做兜底赋值，然而 TS 不认"构造期赋值" ——
    * 19 处调用全部报 TS2722（Cannot invoke an object which is possibly 'undefined'）。
    * 改为存一份非空引用：可选性只体现在 deps 入参上，内部一律用本字段。
+   *
+   * ⚠️ 不能在构造期把引用快照下来：QueryEngine.setLoopEventHandler() 会在每次
+   * query() 前**事后替换** deps.onEvent，快照会让新 handler 永远收不到事件
+   * （表现为界面不显示内容、也不停止）。故用 getter 每次动态取。
    */
-  private readonly emit: (event: AgentEvent) => void;
+  private get emit(): (event: AgentEvent) => void {
+    return this.deps.onEvent ?? (() => {})
+  }
   /**
    * 会话级滚动记忆（单次对话内、只喂给压缩）。
    *
@@ -142,8 +148,6 @@ export class MessageLoop {
 
   constructor(private deps: MessageLoopDeps) {
     this.limits = resolveLoopConfig(this.deps.loopLimits)
-    // 存一份非空引用：deps.onEvent 可选，但内部到处直接调用它
-    this.emit = this.deps.onEvent ?? (() => {})
     if (this.deps.autoFixLoop?.enabled) {
       this.autoFixLoop = new AutoFixLoop({
         ...this.deps.autoFixLoop,
@@ -542,10 +546,18 @@ export class MessageLoop {
     if (!shouldContinue) {
       return false;
     }
-    this.deps.conversation.messages.push({
-      role: "system",
-      content: "Continuing to next iteration.",
-    } as InternalMessage);
+    // 仅在「本轮没有工具调用」时插入续跑提示。
+    //
+    // 有工具调用时，assistant(含 tool_use) 必须与其 tool 结果**紧邻**，
+    // 中间插入任何消息都会被上游判为
+    //   400: tool calls and tool results do not match
+    // （该提示对模型也无价值：下一轮随即带回工具结果）。
+    if (processed.toolCalls.length === 0) {
+      this.deps.conversation.messages.push({
+        role: "system",
+        content: "Continuing to next iteration.",
+      } as InternalMessage);
+    }
 
     if (processed.toolCalls.length > 0) {
       // 模型常发出 MCP/OpenAI 风格工具名（filesystem.list_directory、local_dir_list_2026 等），

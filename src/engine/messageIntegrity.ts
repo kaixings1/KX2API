@@ -79,9 +79,8 @@ export function groupMessagesByApiRound(messages: InternalMessage[]): InternalMe
 export function ensureToolResultPairing(messages: InternalMessage[]): InternalMessage[] {
   const out: InternalMessage[] = []
 
-  // ── Pass 1：清掉重复 tool_use，收集合法的 tool_use id 及其顺序 ──
+  // ── Pass 1：清掉重复 tool_use，并按**出现顺序**收集本次 assistant 的 tool_use id ──
   const seenToolUse = new Set<string>()
-  const orderedToolUseIds: string[] = []
 
   const pass1: InternalMessage[] = []
   for (const msg of messages) {
@@ -100,7 +99,6 @@ export function ensureToolResultPairing(messages: InternalMessage[]): InternalMe
           continue
         }
         seenToolUse.add(b.id)
-        orderedToolUseIds.push(b.id)
       }
       keptBlocks.push(b)
     }
@@ -112,57 +110,62 @@ export function ensureToolResultPairing(messages: InternalMessage[]): InternalMe
     )
   }
 
-  // ── Pass 2：剥离孤立 / 重复 tool_result，记录已解析的 id ──
-  const resolvedToolUse = new Set<string>()
+  // ── Pass 2：按「assistant → 其全部 tool 结果」重排 ──
+  //
+  // 原实现只做「剥离孤立 / 补占位」，完全不动顺序。而严格的 API 实现既要求
+  // 配对存在，也要求结果与对应 tool_use 保持相邻且顺序一致，否则报
+  //   400: tool calls and tool results do not match
+  // 常见触发场景：同一 assistant 的多个结果乱序、结果之间夹了 system 消息、
+  // 压缩后占位结果被追加到末尾。这里统一按 tool_use 的原始顺序收拢。
+  const resultById = new Map<string, InternalMessage>()
+  const groupless: InternalMessage[] = []
+
   for (const msg of pass1) {
     if (msg.role !== 'tool') {
-      out.push(msg)
+      groupless.push(msg)
       continue
     }
     const id = msg.toolUseId
-    const known = typeof id === 'string' && id.length > 0 && seenToolUse.has(id)
+    const known = typeof id === "string" && id.length > 0 && seenToolUse.has(id)
     if (!known) {
       if (process.env.KX2_DEBUG_INTEGRITY === '1') {
         console.warn(`[MessageIntegrity] 剥离孤立 tool_result: ${String(id)}`)
       }
       continue
     }
-    if (resolvedToolUse.has(id)) {
+    if (resultById.has(id)) {
       if (process.env.KX2_DEBUG_INTEGRITY === '1') {
         console.warn(`[MessageIntegrity] 剥离重复 tool_result: ${id}`)
       }
       continue
     }
-    resolvedToolUse.add(id)
-    out.push(msg)
+    resultById.set(id, msg)
   }
 
-  // ── Pass 3：为缺失结果的 tool_use 补合成结果 ──
-  const missing = orderedToolUseIds.filter(id => !resolvedToolUse.has(id))
-  if (missing.length > 0) {
-    if (process.env.KX2_DEBUG_INTEGRITY === '1') {
-      console.warn(`[MessageIntegrity] 补 ${missing.length} 条缺失工具结果: ${missing.join(', ')}`)
+  // 重建：遇到 assistant(tool_use) 时，立刻按顺序补上它的全部结果
+  for (const msg of groupless) {
+    if (!isAssistantWithToolUse(msg)) {
+      out.push(msg)
+      continue
     }
-    for (const id of missing) {
-      const placeholder: InternalMessage = {
-        role: 'tool',
-        toolUseId: id,
-        content: SYNTHETIC_TOOL_RESULT_PLACEHOLDER,
-      }
-      // 尽量插在最后一个已解析结果的后面，保持「助手 → 工具结果」的相邻性；
-      // 找不到位置就追加到末尾。
-      const lastToolIdx = findLastIndex(out, m => m.role === 'tool')
-      if (lastToolIdx >= 0) {
-        out.splice(lastToolIdx + 1, 0, placeholder)
+    out.push(msg)
+    for (const id of collectToolUseIds(msg)) {
+      const existing = resultById.get(id)
+      if (existing) {
+        out.push(existing)
       } else {
-        out.push(placeholder)
+        // 缺失结果 → 补占位，且必须紧跟在对应的 tool_use 之后
+        out.push({
+          role: 'tool',
+          toolUseId: id,
+          content: SYNTHETIC_TOOL_RESULT_PLACEHOLDER,
+        })
       }
     }
   }
 
   return out
 }
-
 function findLastIndex<T>(arr: T[], pred: (x: T) => boolean): number {
   for (let i = arr.length - 1; i >= 0; i--) {
     if (pred(arr[i])) return i
