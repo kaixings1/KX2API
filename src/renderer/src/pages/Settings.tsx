@@ -13,6 +13,8 @@ import {
   ToolRuntimeSettings,
   MemorySettings,
   SubagentSettings,
+  ProxyRuntimeSettings,
+  LogRuntimeSettings,
 } from '@/components/settings'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { Sun, Settings as SettingsIcon, Database, Shield, Key, SlidersHorizontal, Bot } from 'lucide-react'
@@ -106,10 +108,12 @@ export function Settings() {
           <MemorySettings />
           <SubagentSettings />
           <LoadBalancerSettings />
+          <ProxyRuntimeSettings />
         </TabsContent>
 
-        <TabsContent value="advanced" className="mt-6">
+        <TabsContent value="advanced" className="mt-6 space-y-6">
           <LogCategoryConfig />
+          <LogRuntimeSettings />
         </TabsContent>
       </Tabs>
     </div>
