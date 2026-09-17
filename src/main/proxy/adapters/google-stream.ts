@@ -37,7 +37,8 @@ export class GoogleStreamHandler {
 
   static isDone(chunk: GeminiStreamChunk): boolean {
     const finishReason = chunk.candidates?.[0]?.finishReason
-    return finishReason && finishReason !== 'STOP' && finishReason !== 'MAX_TOKENS'
+    // 显式布尔化：`a && b` 会返回 a 本身（string），与声明的 boolean 不符
+    return !!finishReason && finishReason !== 'STOP' && finishReason !== 'MAX_TOKENS'
   }
 }
 

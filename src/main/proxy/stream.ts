@@ -158,7 +158,8 @@ export class StreamHandler {
     let isBufferingToolCall = false
     let toolCallIndex = 0
 
-    const emitToolCalls = (toolCalls: any[], transformedData: any) => {
+    // pushFn 由 Transform 实例提供；箭头函数里的 this 是 StreamHandler，不能直接 this.push
+    const emitToolCalls = (toolCalls: any[], transformedData: any, pushFn: (data: string) => void) => {
       for (const tc of toolCalls) {
         tc.index = toolCallIndex++
         const toolCallData = {
@@ -173,7 +174,7 @@ export class StreamHandler {
           }]
         }
         isFirstChunk = false
-        this.push(formatter.formatJSON(toolCallData))
+        pushFn(formatter.formatJSON(toolCallData))
       }
     }
 
@@ -190,7 +191,7 @@ export class StreamHandler {
                 const results = detector.feed(contentBuffer)
                 for (const r of results) {
                   if (r.kind === 'tool_calls') {
-                    emitToolCalls(r.toolCalls, {})
+                    emitToolCalls(r.toolCalls, {}, d => this.push(d))
                   } else if (r.kind === 'text') {
                     const finalData = transformChunk({ content: r.content }, model, responseId, created, isFirstChunk)
                     if (finalData) {
@@ -205,7 +206,7 @@ export class StreamHandler {
               const flushResults = detector.flush()
               for (const r of flushResults) {
                 if (r.kind === 'tool_calls') {
-                  emitToolCalls(r.toolCalls, {})
+                  emitToolCalls(r.toolCalls, {}, d => this.push(d))
                 } else if (r.kind === 'text') {
                   const finalData = transformChunk({ content: r.content }, model, responseId, created, isFirstChunk)
                   if (finalData) {
@@ -254,7 +255,7 @@ export class StreamHandler {
               for (const r of results) {
                 if (r.kind === 'tool_calls') {
                   // Found complete tool call via queue detector
-                  emitToolCalls(r.toolCalls, transformedData)
+                  emitToolCalls(r.toolCalls, transformedData, d => this.push(d))
                   contentBuffer = ''
                 } else if (r.kind === 'text') {
                   // Queue head flushed as text
@@ -322,7 +323,7 @@ export class StreamHandler {
 
                 if (toolCalls.length > 0) {
                   // We found complete tool calls!
-                  emitToolCalls(toolCalls, transformedData)
+                  emitToolCalls(toolCalls, transformedData, d => this.push(d))
 
                   // Reset buffer with remaining content
                   contentBuffer = cleanContent
@@ -354,13 +355,16 @@ export class StreamHandler {
               }
 
               // Normal text output
-              transformedData.choices[0].delta.content = contentBuffer
+              const outDelta = transformedData.choices[0]?.delta
+              if (outDelta) outDelta.content = contentBuffer
               contentBuffer = ''
             }
 
             // Handle tool_calls in streaming response
-            if (parsedData.choices && parsedData.choices[0] && parsedData.choices[0].delta && parsedData.choices[0].delta.tool_calls) {
-              transformedData.choices[0].delta.tool_calls = parsedData.choices[0].delta.tool_calls
+            const inDelta = parsedData.choices?.[0]?.delta
+            const outDelta2 = transformedData.choices[0]?.delta
+            if (inDelta?.tool_calls && outDelta2) {
+              outDelta2.tool_calls = inDelta.tool_calls
             }
 
             // Only push if we are NOT currently buffering a potential tool call
@@ -381,7 +385,7 @@ export class StreamHandler {
         const flushResults = detector.flush()
         for (const r of flushResults) {
           if (r.kind === 'tool_calls') {
-            emitToolCalls(r.toolCalls, {})
+            emitToolCalls(r.toolCalls, {}, d => this.push(d))
           } else if (r.kind === 'text') {
             const finalData = transformChunk({ content: r.content }, model, responseId, created, isFirstChunk)
             if (finalData) {

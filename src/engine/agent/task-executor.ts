@@ -39,8 +39,9 @@ export interface ExecutorOptions {
   /** 持久化目录（断点续跑） */
   stateDir?: string
   /** LLM 配置（用于 llm 类型子任务） */
+  /** LLM 配置（用于 llm 类型子任务）；形状与 ApiConfig 对齐，避免两侧漂移 */
   llmConfig?: {
-    provider: string
+    provider: 'anthropic' | 'openai' | 'custom'
     apiKey: string
     model: string
     baseUrl?: string
@@ -313,12 +314,14 @@ export class TaskExecutor {
 
   private toLlmConfig() {
     if (!this.llmConfig) return undefined
+    const { provider, apiKey, model, baseUrl, maxTokens } = this.llmConfig
+    // 条件展开：ApiConfig 的可选字段不接受显式 undefined
     return {
-      provider: this.llmConfig.provider,
-      apiKey: this.llmConfig.apiKey,
-      model: this.llmConfig.model,
-      baseUrl: this.llmConfig.baseUrl,
-      maxTokens: this.llmConfig.maxTokens,
+      provider,
+      apiKey,
+      model,
+      ...(baseUrl ? { baseUrl } : {}),
+      ...(maxTokens !== undefined ? { maxTokens } : {}),
     }
   }
 

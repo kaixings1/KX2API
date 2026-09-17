@@ -4,4 +4,4 @@
 
 export { type AgentRecord, type AgentStatus, type AgentExecutionEvent, type AgentExecuteResult } from './types'
 export { type IAgentStore } from './AgentStore'
-export { type IAgentExecutor } from './AgentExecutor'
+export { AgentExecutor } from './AgentExecutor'

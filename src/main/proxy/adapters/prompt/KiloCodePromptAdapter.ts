@@ -85,7 +85,7 @@ export class KiloCodePromptAdapter extends BasePromptAdapter {
     return false
   }
 
-  toolsToPrompt(tools: ChatCompletionTool[], variant?: PromptVariant): string {
+  toolsToPrompt(tools: ChatCompletionTool[], variant?: PromptVariant | null): string {
     if (!tools || tools.length === 0) {
       return ''
     }

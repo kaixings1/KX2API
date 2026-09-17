@@ -389,7 +389,7 @@ export function readAgentLoopConfig(): AgentLoopConfig | undefined {
  * 长期传 0 会让 TokenBudgetManager 完全失去真实基准。
  * 这里按 4 字符/token 粗估（中文场景偏保守，宁可高估也不低估到无感）。
  */
-function estimateRequestTokens(messages: Array<{ content: unknown }>): number {
+function estimateRequestTokens(messages: ReadonlyArray<Record<string, unknown>>): number {
   let chars = 0
   for (const m of messages) {
     chars += typeof m.content === 'string' ? m.content.length : 0
@@ -820,7 +820,8 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
       const composed = composeSystemPrompt(active.systemPrompt, active.promptGroups)
       const opts: EngineOptions = {
         model: active.model || 'gpt-4o',
-        provider: active.provider || 'openai',
+        // 'custom' 是自定义 OpenAI 兼容端点，协议上与 'openai' 同路
+        provider: active.provider === 'anthropic' ? 'anthropic' : 'openai',
         maxOutputTokens: 4096,
         systemPrompt: withLayoutGuard(composed || defaultSystem),
         skills,

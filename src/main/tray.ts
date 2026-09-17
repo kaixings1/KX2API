@@ -1,6 +1,7 @@
 import { Tray, Menu, nativeImage, BrowserWindow, app, MenuItem } from 'electron'
 import { join } from 'path'
 import { getProxyStatus } from './ipc/handlers'
+import { markAppQuitting } from './index'
 
 let tray: Tray | null = null
 let isProxyRunning = false
@@ -164,7 +165,7 @@ function buildContextMenu(mainWindow: BrowserWindow | null): Menu {
     {
       label: 'Exit',
       click: () => {
-        (app as any).isQuitting = true
+        markAppQuitting()
         app.quit()
       },
     },

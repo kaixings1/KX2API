@@ -74,16 +74,18 @@ export function createAccount(
     userId?: string
   }
 ): Omit<Account, 'id' | 'createdAt' | 'updatedAt'> {
+  // Account 上没有 userId / usageCount / metadata：
+  //   userId     → 并入 credentials（凭据的存放处）
+  //   usageCount → Account.requestCount
   return {
     providerId,
-    credentials,
-    name: accountInfo?.name,
+    credentials: accountInfo?.userId
+      ? { ...credentials, userId: accountInfo.userId }
+      : credentials,
+    name: accountInfo?.name || providerId,
     email: accountInfo?.email,
-    userId: accountInfo?.userId,
     status: 'active',
-    lastUsed: undefined,
-    usageCount: 0,
-    metadata: {},
+    requestCount: 0,
   }
 }
 

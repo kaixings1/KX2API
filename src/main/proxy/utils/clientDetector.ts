@@ -270,7 +270,9 @@ export function cleanToolPrompts(messages: ChatMessage[]): ChatMessage[] {
   const allContent = extractAllContent(messages)
   const clientResult = detectClientFromContent(allContent)
 
-  if (!clientResult.promptSectionMarkers) {
+  // markers 是 client 配置项（CLIENT_SIGNATURES），不在 DetectionResult 上。
+  // 该 client 未配置 markers 时，无需清理，原样返回。
+  if (!getPromptSectionMarkers(clientResult.clientType)) {
     return messages
   }
 

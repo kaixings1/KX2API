@@ -89,6 +89,8 @@ export class AgentsService {
     const now = Date.now()
     const agent: AgentRecord = {
       ...data,
+      // status 在入参里可选，但 AgentRecord 要求必填，新建默认 idle
+      status: data.status ?? 'idle',
       id,
       createdAt: now,
       updatedAt: now,

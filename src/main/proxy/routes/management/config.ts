@@ -7,11 +7,10 @@ import Router from '@koa/router'
 import type { Context } from 'koa'
 import { managementAuthMiddleware } from '../../middleware/managementAuth'
 import ConfigManager from '../../../store/config'
-import type {
-  ManagementApiResponse,
-  AppConfig,
-  ConfigUpdateRequest,
-} from '../../../../shared/types'
+import type { ManagementApiResponse, ConfigUpdateRequest } from '../../../../shared/types'
+// AppConfig 以 main/store/types 为准：本文件直接读写 ConfigManager，
+// 用 shared 版会与真实落盘结构错位（两套 AppConfig 平行演化）。
+import type { AppConfig } from '../../../store/types'
 
 const router = new Router({ prefix: '/v0/management/config' })
 

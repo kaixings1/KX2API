@@ -61,6 +61,8 @@ export class ProviderManager {
     name: string
     authType: AuthType
     apiEndpoint: string
+    /** 聊天接口路径（相对 apiEndpoint），如 /v1/chat/completions */
+    chatPath?: string
     headers?: Record<string, string>
     description?: string
     icon?: string
@@ -186,7 +188,7 @@ export class ProviderManager {
     if (result) {
       storeManager.addLog('info', `Delete provider: ${provider.name}`, {
         providerId: id,
-        deletedAccounts: accounts.length,
+        data: { deletedAccounts: accounts.length },
       })
     }
     

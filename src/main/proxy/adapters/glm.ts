@@ -717,7 +717,7 @@ export class GLMStreamHandler {
   private model: string
   private created: number
   private onEnd?: any
-  private toolStreamParser?: ToolStreamParser
+  private toolStreamParser?: ToolStreamParser | null
   private toolCallingPlan?: ToolCallingPlan
   private userPrompt: string = ''
   // 用户消息里附带/上传的文件名（从 request.messages 提取，与 chatCompletion
@@ -1109,8 +1109,8 @@ export class GLMStreamHandler {
         return
       }
       // Flush any remaining tool call buffer
-      const baseChunk = createBaseChunk(this.conversationId, this.model, this.created)
-      const flushChunks = this.toolStreamParser?.flush(baseChunk) ?? []
+      const flushChunks =
+        this.toolStreamParser?.flush(createBaseChunk(this.conversationId, this.model, this.created)) ?? []
       for (const outChunk of flushChunks) {
         transStream.write(`data: ${JSON.stringify(outChunk)}\n\n`)
       }
@@ -1189,6 +1189,10 @@ export class GLMStreamHandler {
         console.log(`[GLM] 流已收口(重复close，忽略) emittedTool=${emittedClose} injectedTool=${this.injectedTool}`)
         return
       }
+      // baseChunk / flushChunks 需在下方日志分支里读取，故先解析；
+      // 原实现把声明放在日志之后，会命中块级作用域 TDZ（TS2448/TS2454）。
+      const baseChunk = createBaseChunk(this.conversationId, this.model, this.created)
+      const flushChunks = this.toolStreamParser?.flush(baseChunk) ?? []
       // 小结本次流：网页原生工具 / 代理注入工具 / 无工具
       if (injectedClose) {
         console.log(`[GLM] 流正常结束(close) → 代理注入工具: name=${injectedClose.name} args=${JSON.stringify(injectedClose.arguments)}`)
@@ -1213,8 +1217,6 @@ export class GLMStreamHandler {
           return
         }
       }
-      const baseChunk = createBaseChunk(this.conversationId, this.model, this.created)
-      const flushChunks = this.toolStreamParser?.flush(baseChunk) ?? []
       for (const outChunk of flushChunks) {
         transStream.write(`data: ${JSON.stringify(outChunk)}\n\n`)
       }

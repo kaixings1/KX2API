@@ -1,5 +1,7 @@
 import { storeManager } from '../store/store'
-import type { Provider, AuthType } from '../../shared/types'
+import type { AuthType } from '../../shared/types'
+// Provider 以 main/store/types 为准（本文件直接交给 storeManager 落盘）
+import type { Provider } from '../store/types'
 import type { CredentialField } from '../store/types'
 
 export interface CustomProviderData {

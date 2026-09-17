@@ -7,10 +7,9 @@ import Router from '@koa/router'
 import type { Context } from 'koa'
 import { managementAuthMiddleware } from '../../middleware/managementAuth'
 import sessionManager from '../../sessionManager'
-import type { 
-  SessionRecord,
-  ManagementApiResponse 
-} from '../../../../shared/types'
+import type { ManagementApiResponse } from '../../../../shared/types'
+// SessionRecord 的单一真源在 main/store/types（shared/types 未定义该类型）
+import type { SessionRecord } from '../../../store/types'
 
 const router = new Router({ prefix: '/v0/management' })
 

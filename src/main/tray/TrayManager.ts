@@ -11,6 +11,7 @@ import path from 'path'
 import { TrayWindow } from './TrayWindow'
 import { ConfigManager } from '../store/config'
 import { IpcChannels } from '../ipc/channels'
+import { markAppQuitting } from '../index'
 
 const isWindows = process.platform === 'win32'
 const isLinux = process.platform === 'linux'
@@ -145,7 +146,7 @@ export class TrayManager {
 
     ipcMain.on(IpcChannels.TRAY_QUIT_APP, () => {
       this.destroy()
-      ;(app as any).isQuitting = true
+      markAppQuitting()
       app.quit()
     })
   }
@@ -199,7 +200,7 @@ export class TrayManager {
         label: isZh ? '退出 Chat2API' : 'Quit Chat2API',
         click: () => {
           this.destroy()
-          ;(app as any).isQuitting = true
+          markAppQuitting()
           app.quit()
         },
       },

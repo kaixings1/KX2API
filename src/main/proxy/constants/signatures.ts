@@ -171,6 +171,7 @@ export const FORMAT_SIGNATURES: Record<ToolCallFormat, string[]> = {
   native: [],
   managed_xml: ['<|KX2API|tool_calls>', '<|KX2API|invoke', '<|CHAT2API|tool_calls>'],
   kimi: ['<|tool_calls_section_begin|>', '<|tool_call_begin|>', '<|tool_call_argument_begin|>', '<|tool_call_end|>', '<|tool_calls_section_end|>'],
+  unknown: [],
 }
 
 /**

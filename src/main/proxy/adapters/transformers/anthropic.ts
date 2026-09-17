@@ -28,7 +28,7 @@ export function toAnthropicMessages(messages: ChatMessage[], systemPrompt?: stri
         content: [
           {
             type: 'tool_result',
-            tool_use_id: msg.toolCallId || '',
+            tool_use_id: msg.tool_call_id || '',
             content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
           },
         ],
@@ -133,10 +133,12 @@ export function fromAnthropicResponse(resp: any): ChatCompletionResponse {
         finish_reason: resp.stop_reason === 'end_turn' ? 'stop' : resp.stop_reason || 'stop',
       },
     ],
-    usage: resp.usage ? {
-      promptTokens: resp.usage.input_tokens,
-      completionTokens: resp.usage.output_tokens,
-      totalTokens: resp.usage.input_tokens + resp.usage.output_tokens,
-    } : undefined,
+    usage: resp.usage
+      ? {
+          prompt_tokens: resp.usage.input_tokens,
+          completion_tokens: resp.usage.output_tokens,
+          total_tokens: resp.usage.input_tokens + resp.usage.output_tokens,
+        }
+      : undefined,
   }
 }

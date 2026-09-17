@@ -65,7 +65,8 @@ export function partitionToolCalls(
 
 function findToolDefinition(
   toolDefinitions: ToolDefinition[],
-  name: string,
+  /** 允许 undefined：ContentBlock.name 是可选字段，无名即查不到 */
+  name: string | undefined,
 ): ToolDefinition | undefined {
   return toolDefinitions.find(t => t.function.name === name)
 }

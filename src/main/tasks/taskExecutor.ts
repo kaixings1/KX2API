@@ -28,7 +28,7 @@ class TaskExecution {
   readonly taskId: string
   readonly abortSignal: AbortSignal
   readonly onComplete?: (task: TaskRecord) => void
-  readonly onEvent?: (event: TaskExecutorOptions['onEvent']) => void
+  readonly onEvent?: (event: AgentEvent & { logEntry: { time: number; event: string; detail?: string } }) => void
 
   private _aborted = false
 

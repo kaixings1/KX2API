@@ -100,12 +100,17 @@ export interface EngineOptions {
   auditBufferSize?: number;
   /** 审计落盘间隔（毫秒）；缺省 10000 */
   auditFlushIntervalMs?: number;
-  /** 技能分��配置（吸收自 CLI 版）：工具分类和技能列表 */
+  /** 技能分层配置（吸收自 CLI 版）：工具分类和技能列表 */
   skills?: Array<{ name: string; description: string; category?: string }>;
   /** 智能体配置（吸收自 CLI 版）：主智能体列表 */
   agents?: Array<{ name: string; description: string; model?: string }>;
   /** 子代理配置（吸收自 CLI 版）：子代理列表 */
   subagents?: Array<{ name: string; description: string }>;
+  /**
+   * 图片上下文预算：控制 history 中 base64 图片的保留量。
+   * 由 main 层经 readImageBudgetConfig() 从用户配置读出后注入。
+   */
+  imageBudget?: import("../shared/types").ImageBudgetConfig;
 }
 
 /**

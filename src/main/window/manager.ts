@@ -6,6 +6,23 @@ import { storeManager } from '../store/store'
 let mainWindow: BrowserWindow | null = null
 
 /**
+ * 应用是否正在退出。
+ *
+ * Electron 的 App 类型没有 isQuitting 字段；原先的模块增强（types/electron.d.ts）
+ * 与 src/main/index.ts 的写法并存且互相冲突，故这里改为本模块自持状态：
+ * 「正在退出」是应用自己的状态，由退出流程调用 markQuitting() 标记。
+ */
+let isQuitting = false
+
+export function markQuitting(): void {
+  isQuitting = true
+}
+
+export function isQuittingApp(): boolean {
+  return isQuitting
+}
+
+/**
  * 解析应用图标路径。
  *
  * 原实现用 `join(__dirname, '../../resources/icon.png')`：
@@ -102,7 +119,7 @@ export function createWindow(options: WindowOptions = {}): BrowserWindow {
         : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://127.0.0.1:* http://localhost:*;"
 
       const headers: Record<string, string[]> = {}
-      for (const [key, value] of Object.entries(details.responseHeaders)) {
+      for (const [key, value] of Object.entries(details.responseHeaders ?? {})) {
         headers[key] = Array.isArray(value) ? value : [String(value)]
       }
       headers['Content-Security-Policy'] = [csp]
@@ -134,7 +151,7 @@ export function createWindow(options: WindowOptions = {}): BrowserWindow {
   })
 
   mainWindow.on('close', (event) => {
-    if (!app.isQuitting) {
+    if (!isQuitting) {
       try {
         const config = storeManager.getConfig()
         if (config.minimizeToTray) {

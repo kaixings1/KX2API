@@ -11,7 +11,8 @@
  * 注意：不使用 tree-sitter（依赖过大），用 ripgrep + 正则替代。
  */
 
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { existsSync as existsSyncSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
 /** 原生 ripgrep 替代：列出目录下匹配类型的文件 */
@@ -113,7 +114,25 @@ async function ripGrep(args: string[], cwdOrFile: string, _signal?: AbortSignal)
   return ripGrepContent(args, cwdOrFile);
 }
 
-const fs = { existsSync: (_p?: string): boolean => true };
+// 真实 fs 适配层。
+//
+// 原实现是 `const fs = { existsSync: () => true }` 这样的残缺桩：existsSync 恒真，
+// 且完全没有 readFile / stat。结果是 repoMap 自己的符号扫描全部落空，
+// 而依赖同一适配层的 codeVectorStore 一调用 index() 就崩（TS2339）。
+// 这里换成 node:fs/promises 的真实异步实现，两个模块一起恢复可用。
+const fs = {
+  existsSync: (p?: string): boolean => {
+    if (!p) return false;
+    try {
+      return existsSyncSync(p);
+    } catch {
+      return false;
+    }
+  },
+  readFile: (p: string, enc?: BufferEncoding): Promise<string> =>
+    enc ? readFile(p, { encoding: enc }) : readFile(p, { encoding: "utf-8" }),
+  stat: (p: string) => stat(p),
+};
 const expandPath = (p: string) => p;
 const getFsImplementation = () => fs;
 

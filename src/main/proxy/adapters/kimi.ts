@@ -721,7 +721,7 @@ export class KimiStreamHandler {
   async handleStream(stream: any): Promise<PassThrough> {
     const transStream = new PassThrough()
     const created = unixTimestamp()
-    let buffer = Buffer.alloc(0)
+    let buffer: Buffer = Buffer.alloc(0)
     let sentRole = false
 
     stream.on('data', (chunk: Buffer) => {
@@ -1056,7 +1056,7 @@ export class KimiStreamHandler {
     const created = unixTimestamp()
     let content = ''
     let reasoningContent = ''
-    let buffer = Buffer.alloc(0)
+    let buffer: Buffer = Buffer.alloc(0)
     let currentPhase: 'thinking' | 'answer' | undefined = undefined
 
     return new Promise((resolve, reject) => {

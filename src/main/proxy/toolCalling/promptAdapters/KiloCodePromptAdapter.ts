@@ -103,12 +103,12 @@ export class KiloCodePromptAdapter extends BasePromptAdapter {
   }
 
   parseToolCalls(content: string): ParseResult {
-    const { toolCalls } = extractToolCallsFromText(content, 'default')
+    const { toolCalls } = extractToolCallsFromText(content)
 
     return {
       content,
-      toolCalls: toolCalls.map(tc => ({
-        index: tc.index,
+      toolCalls: toolCalls.map((tc, index) => ({
+        index,
         id: tc.id,
         type: tc.type,
         function: tc.function,

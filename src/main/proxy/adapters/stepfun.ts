@@ -817,7 +817,7 @@ export class StepFunAdapter {
           status: statusCode || 200,
           stream,
           headers: responseHeaders,
-          error: serverError,
+          error: serverError ?? undefined,
         })
       })
 
@@ -1165,7 +1165,7 @@ export class StepFunAdapter {
           status: statusCode || 200,
           stream,
           headers: responseHeaders,
-          error: serverError,
+          error: serverError ?? undefined,
         })
       })
 

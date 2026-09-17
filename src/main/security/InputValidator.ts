@@ -146,11 +146,11 @@ export class InputValidator {
           errors.push(`Field ${key} must be of type ${fieldRule.type}`)
         }
 
-        if (fieldRule.maxLength && typeof fieldValue === 'string' && fieldValue.length > fieldRule.maxLength) {
+        if (typeof fieldRule.maxLength === 'number' && typeof fieldValue === 'string' && fieldValue.length > fieldRule.maxLength) {
           errors.push(`Field ${key} exceeds max length of ${fieldRule.maxLength}`)
         }
 
-        if (fieldRule.pattern && typeof fieldValue === 'string' && !fieldRule.pattern.test(fieldValue)) {
+        if (fieldRule.pattern instanceof RegExp && typeof fieldValue === 'string' && !fieldRule.pattern.test(fieldValue)) {
           errors.push(`Field ${key} does not match required pattern`)
         }
       }

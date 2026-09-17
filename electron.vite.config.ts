@@ -23,10 +23,12 @@ export default defineConfig({
       })
     ],
     build: {
+      // electron-vite 需要显式入口：lib.entry 既可被其校验器识别，
+      // 也等价于此前的 rollupOptions.input（缺失时构建直接失败）。
+      lib: {
+        entry: resolve(__dirname, 'src/main/index.ts'),
+      },
       rollupOptions: {
-        input: {
-          index: resolve(__dirname, 'src/main/index.ts')
-        },
         output: {
           format: 'es'
         }

@@ -52,6 +52,30 @@ interface StoredCookies {
   [name: string]: string
 }
 
+/**
+ * 归一化凭据里的 cookies 字段。
+ * 兼容三种来源：未设置、JSON 字符串、已经是对象。
+ */
+function parseStoredCookies(raw: unknown): StoredCookies {
+  if (!raw) return {}
+  if (typeof raw === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      return parseStoredCookies(parsed)
+    } catch {
+      return {}
+    }
+  }
+  if (typeof raw === 'object') {
+    const out: StoredCookies = {}
+    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+      if (typeof v === 'string') out[k] = v
+    }
+    return out
+  }
+  return {}
+}
+
 const sessionCache = new Map<string, SessionData>()
 const cookiesCache = new Map<string, StoredCookies>()
 
@@ -166,8 +190,10 @@ export class PerplexityAdapter {
     this.provider = provider
     this.account = account
     this.cookie = account.credentials.sessionToken || account.credentials.cookie || account.credentials.token || ''
-    // Store all cookies from credentials for Cloudflare-protected requests
-    this.allCookies = account.credentials.cookies || {}
+    // Store all cookies from credentials for Cloudflare-protected requests.
+    // credentials 的值类型是 string，但 cookies 可能是 JSON 字符串或已是对象，
+    // 两种都要能吃下，否则会把 string 当成 cookie 表用。
+    this.allCookies = parseStoredCookies(account.credentials.cookies)
     // Ensure session token is in allCookies
     if (this.cookie && !this.allCookies['__Secure-next-auth.session-token']) {
       this.allCookies['__Secure-next-auth.session-token'] = this.cookie

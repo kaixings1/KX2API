@@ -850,7 +850,7 @@ const agentImpl: CommandRunner = {
  * /agents-platform 命令：查看代理平台信息
  */
 const agentsPlatformImpl: CommandRunner = {
-  type: 'team',
+  type: 'local',
   description: '代理平台信息',
   execute: async (args, cwd) => {
     const { DEFAULT_BUILT_IN_AGENTS } = await import('./subagent/definitions.ts')

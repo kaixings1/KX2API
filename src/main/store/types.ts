@@ -171,6 +171,8 @@ export interface Account {
   status: AccountStatus
   /** Last used time (timestamp) */
   lastUsed?: number
+  /** Last status check time (timestamp) */
+  lastStatusCheck?: number
   /** Created time (timestamp) */
   createdAt: number
   /** Updated time (timestamp) */
@@ -546,6 +548,11 @@ export interface AppConfig {
    * 于是 MCP 配置**实际存不下来**，且 11 处报 TS2352/TS2339。
    */
   mcp?: McpConfig
+  /**
+   * 界面语言。
+   * 与 shared/types 的 AppConfig.language 保持一致（托盘菜单据此切中英文）。
+   */
+  language?: 'zh-CN' | 'en-US'
 }
 
 /**

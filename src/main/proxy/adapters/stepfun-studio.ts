@@ -643,7 +643,7 @@ export class StepFunStudioAdapter {
           status: statusCode || 200,
           stream,
           headers: responseHeaders,
-          error: serverError,
+          error: serverError ?? undefined,
         })
       })
 

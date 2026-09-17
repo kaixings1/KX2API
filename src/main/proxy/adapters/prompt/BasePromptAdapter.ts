@@ -32,7 +32,8 @@ export interface TransformResult {
   messages: ChatMessage[]
   tools: ChatCompletionTool[] | undefined
   injected: boolean
-  variant?: PromptVariant
+  /** 与 PromptAdapter.getPromptVariant 的约定一致：用 null 显式表示「无匹配变体」 */
+  variant?: PromptVariant | null
 }
 
 /**
@@ -53,7 +54,7 @@ export interface PromptAdapter {
   detectSignatures: string[]
 
   hasPromptInjected(messages: ChatMessage[]): boolean
-  toolsToPrompt(tools: ChatCompletionTool[], variant?: PromptVariant): string
+  toolsToPrompt(tools: ChatCompletionTool[], variant?: PromptVariant | null): string
   parseToolCalls(content: string): ParseResult
   getPromptVariant(model: string, provider?: string): PromptVariant | null
   transformRequest(
@@ -87,7 +88,7 @@ export abstract class BasePromptAdapter implements PromptAdapter {
     return false
   }
 
-  abstract toolsToPrompt(tools: ChatCompletionTool[], variant?: PromptVariant): string
+  abstract toolsToPrompt(tools: ChatCompletionTool[], variant?: PromptVariant | null): string
   abstract parseToolCalls(content: string): ParseResult
 
   getPromptVariant(model: string, provider?: string): PromptVariant | null {
@@ -166,7 +167,7 @@ export abstract class BasePromptAdapter implements PromptAdapter {
             if (typeof part === 'string') {
               parts.push(part)
             } else if (part && typeof part === 'object' && 'text' in part) {
-              parts.push(part.text)
+              if (typeof part.text === 'string') parts.push(part.text)
             }
           }
         }

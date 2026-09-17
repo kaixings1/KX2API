@@ -11,6 +11,8 @@ export interface PluginRecord {
   enabled: boolean
   installed: boolean
   icon?: string
+  /** 最近一次活跃时间（ms），由 updatePlugin 写入 */
+  lastActiveAt?: number
 }
 
 const DATA_DIR = join(app.getPath('userData'), 'data', 'plugins')

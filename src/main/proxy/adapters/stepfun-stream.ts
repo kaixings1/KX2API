@@ -104,7 +104,7 @@ export class StepFunStreamHandler {
       }
     })
 
-    stream.on('error', (err) => {
+    stream.on('error', (err: Error) => {
       if (this.safetyTimerRef) { clearTimeout(this.safetyTimerRef); this.safetyTimerRef = null }
       console.error('[StepFun Stream] Stream error:', err)
       transStream.emit('error', err)
@@ -377,7 +377,7 @@ export class StepFunStreamHandler {
           })
         })
 
-        stream.on('error', (err) => {
+        stream.on('error', (err: Error) => {
           console.error('[StepFun] Non-stream error:', err)
           reject(err)
         })

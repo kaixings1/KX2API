@@ -82,13 +82,13 @@ export class PromptAdapterRegistry {
     const allContent = this.extractAllContent(messages)
 
     if (!allContent) {
-      return undefined
+      return null
     }
 
     const detectionResult = detectClientFromContent(allContent)
 
     if (detectionResult.clientType === 'unknown') {
-      return undefined
+      return null
     }
 
     const adapter = this.findAdapterByClientType(detectionResult.clientType)
@@ -99,7 +99,7 @@ export class PromptAdapterRegistry {
       )
     }
 
-    return adapter
+    return adapter ?? null
   }
 
   /**

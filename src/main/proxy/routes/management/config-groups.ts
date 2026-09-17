@@ -96,7 +96,19 @@ router.post('/', async (ctx: Context) => {
     const body = ctx.request.body as {
       id: string
       data?: {
-        presets?: Record<string, unknown>
+        // HTTP 边界的不可信输入：在此收窄为 ConfigGroupData 期望的形状
+        presets?: Record<
+          string,
+          {
+            provider: string
+            baseURL: string
+            apiKey: string
+            model: string
+            savedModels?: string[]
+            savedApiKeys?: string[]
+            tokens?: Record<string, number>
+          }
+        >
         activePreset?: string
       }
     }
@@ -131,7 +143,19 @@ router.put('/:id', async (ctx: Context) => {
     const id = ctx.params.id
     const body = ctx.request.body as {
       data?: {
-        presets?: Record<string, unknown>
+        // HTTP 边界的不可信输入：在此收窄为 ConfigGroupData 期望的形状
+        presets?: Record<
+          string,
+          {
+            provider: string
+            baseURL: string
+            apiKey: string
+            model: string
+            savedModels?: string[]
+            savedApiKeys?: string[]
+            tokens?: Record<string, number>
+          }
+        >
         activePreset?: string
       }
     }

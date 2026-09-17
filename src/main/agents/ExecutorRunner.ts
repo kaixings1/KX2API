@@ -11,9 +11,10 @@
 
 import { BrowserWindow } from 'electron'
 import { IpcChannels } from '../ipc/channels'
-import { agentsStore, type AgentRecord } from './registerHandlers'
+import { agentsStore } from './registerHandlers'
 import { AgentExecutor } from './AgentExecutor'
-import type { AgentExecutionEvent } from './types'
+// AgentRecord 的单一真源是 ./types（registerHandlers 只是本地重声明，并未导出）
+import type { AgentExecutionEvent, AgentRecord } from './types'
 
 type AbortSignal = { aborted: boolean; reason?: string }
 
@@ -129,6 +130,8 @@ export function onError(agentId: string, cb: (event: { agentId: string; error: s
 
 async function sendEvent(event: AgentExecutionEvent): Promise<void> {
   if (!mainWindow || mainWindow.isDestroyed()) return
+  // agentId 是事件路由依据；缺失说明事件不由本执行器产生，直接忽略
+  if (!event.agentId) return
 
   if (event.type === 'chunk' && event.content) {
     mainWindow.webContents.send(IpcChannels.AGENTS_STREAM_OUTPUT, {

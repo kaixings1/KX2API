@@ -70,7 +70,9 @@ router.post('/completions', async (ctx: Context) => {
   const requestId = generateRequestId()
   const clientIP = getClientIP(ctx)
 
-  console.log(`[Chat] ENTER reqId=${requestId} model=${ctx.request.body?.model || '?'} stream=${ctx.request.body?.stream || '?'}`)
+  // koa-bodyparser 未增强 @types/koa 的 body 类型（默认 {}），先断言再取字段
+  const rawBody = ctx.request.body as { model?: string; stream?: boolean } | undefined
+  console.log(`[Chat] ENTER reqId=${requestId} model=${rawBody?.model || '?'} stream=${rawBody?.stream || '?'}`)
 
   let request: ChatCompletionRequest
   try {
@@ -418,9 +420,11 @@ router.post('/completions', async (ctx: Context) => {
       // Create a wrapper stream to handle errors and collect content
       const wrapperStream = new PassThrough()
 
-      // Propagate generatedByProxy flag for server middleware logging
+      // Propagate generatedByProxy flag for server middleware logging.
+      // PassThrough 本身没有该字段，是运行时挂在流上的自定义标记，
+      // 由 server.ts 经 ctx.body 读取（(gen) 标签）。
       if (result.generatedByProxy) {
-        wrapperStream.generatedByProxy = true
+        ;(wrapperStream as PassThrough & { generatedByProxy?: boolean }).generatedByProxy = true
       }
 
       // Collect stream content for logging (raw SSE output)

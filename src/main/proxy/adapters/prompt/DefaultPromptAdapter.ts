@@ -9,7 +9,7 @@ import { ChatMessage, ChatCompletionTool, ToolCall } from '../../types'
 import { BasePromptAdapter, PromptVariant, TransformResult, ParseResult, ToolCallFormat } from './BasePromptAdapter'
 import { ClientType } from '../../utils/promptSignatures'
 import { parseToolCallsFromText } from '../../utils/toolParser'
-import { TOOL_PROMPT_SIGNATURES, hasGeneralToolPromptSignature } from '../../constants/signatures'
+import { GENERAL_TOOL_SIGNATURES, hasGeneralToolPromptSignature } from '../../constants/signatures'
 import { DEFAULT_VARIANT, XML_VARIANT } from '../../prompt/variants'
 
 /**
@@ -20,7 +20,7 @@ export class DefaultPromptAdapter extends BasePromptAdapter {
   name = 'default'
   clientType: ClientType = 'unknown'
   
-  detectSignatures = TOOL_PROMPT_SIGNATURES.general
+  detectSignatures = GENERAL_TOOL_SIGNATURES
 
   constructor() {
     super()
@@ -39,7 +39,7 @@ export class DefaultPromptAdapter extends BasePromptAdapter {
     return false
   }
 
-  toolsToPrompt(tools: ChatCompletionTool[], variant?: PromptVariant): string {
+  toolsToPrompt(tools: ChatCompletionTool[], variant?: PromptVariant | null): string {
     if (!tools || tools.length === 0) {
       return ''
     }

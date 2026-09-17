@@ -55,11 +55,13 @@ export function fromOpenAIResponse(resp: Record<string, any>): ChatCompletionRes
         finish_reason: choice?.finish_reason || 'stop',
       },
     ],
-    usage: resp.usage ? {
-      promptTokens: resp.usage.prompt_tokens,
-      completionTokens: resp.usage.completion_tokens,
-      totalTokens: resp.usage.total_tokens,
-    } : undefined,
+    usage: resp.usage
+      ? {
+          prompt_tokens: resp.usage.prompt_tokens,
+          completion_tokens: resp.usage.completion_tokens,
+          total_tokens: resp.usage.total_tokens,
+        }
+      : undefined,
   }
 }
 

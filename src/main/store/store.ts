@@ -188,7 +188,7 @@ class StoreManager {
     try {
       if (safeStorage.isEncryptionAvailable()) {
         const key = this.readOrCreateEncryptionKey()
-        return key
+        return key ?? undefined
       }
     } catch (error) {
       console.warn('Encryption unavailable, using unencrypted storage:', error)

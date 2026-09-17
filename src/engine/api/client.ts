@@ -685,7 +685,7 @@ export async function sendOpenAIStreamWithTools(
         // console.log(`[API][STREAM] END chunkCount=${chunkCount} rawBytes=${rawBytes} sseLines=${sseLines} dataLines=${dataLines} fullTextLen=${fullText.length} toolCalls=${toolCalls.length}`)
         resolve()
       })
-      httpStream.on('error', (err) => {
+      httpStream.on('error', (err: Error) => {
         console.error(`[API][STREAM] ERROR chunkCount=${chunkCount} rawBytes=${rawBytes}:`, err)
         reject(err)
       })

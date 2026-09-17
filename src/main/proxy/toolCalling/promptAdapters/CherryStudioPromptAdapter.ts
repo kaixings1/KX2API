@@ -108,9 +108,9 @@ export class CherryStudioPromptAdapter extends BasePromptAdapter {
       toolCalls = this.parseXmlToolCalls(content)
     } else if (content.includes('[function_calls]')) {
       format = 'bracket'
-      const result = extractToolCallsFromText(content, 'default')
-      toolCalls = result.toolCalls.map(tc => ({
-        index: tc.index,
+      const result = extractToolCallsFromText(content)
+      toolCalls = result.toolCalls.map((tc, index) => ({
+        index,
         id: tc.id,
         type: tc.type,
         function: tc.function,

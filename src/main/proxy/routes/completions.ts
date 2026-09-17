@@ -36,7 +36,7 @@ function generateRequestId(): string {
 /**
  * Convert prompt to messages format
  */
-function promptToMessages(prompt: string | string[]): Array<{ role: string; content: string }> {
+function promptToMessages(prompt: string | string[]): Array<{ role: 'user' | 'assistant'; content: string }> {
   if (Array.isArray(prompt)) {
     return prompt.map((p, index) => ({
       role: index % 2 === 0 ? 'user' : 'assistant',

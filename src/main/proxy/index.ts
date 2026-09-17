@@ -14,7 +14,8 @@ export { LoadBalancer, loadBalancer } from './loadbalancer'
 export { ModelMapper, modelMapper } from './modelMapper'
 export { RequestForwarder, requestForwarder } from './forwarder'
 export { StreamHandler, streamHandler } from './stream'
-export { routes } from './routes'
+// ./routes 的默认导出是「路由数组」，具名导出是各个 router
+export { default as routes } from './routes'
 
 // Expose for standalone proxy test (standalone-proxy-test.js)
 declare const globalThis: any

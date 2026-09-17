@@ -1033,7 +1033,34 @@ normalize 之前，与 `enforceToolResultBudget` 同一位置）：
 3. **on-demand 排查顺序**：先 `useTranslation=False` 筛出完全没接入 i18n 的文件，再逐个处理 ——
    比按字符串特征硬扫准得多。
 
-## 第一轮遗留待办（2026-09-18 复核）
+## 第九轮：子代理命令接线缺陷修复（2026-09-17）
+
+上一轮遗留的 `/agent` 子代理命令接入，核对后发现四类真实缺陷并修复。
+
+| # | 位置 | 问题 | 后果 |
+|---|---|---|---|
+| 1 | `engine/commands/registry.ts` | `name: 'agent'` **注册两次**（`:842`、`:3425`） | registry 是 `Map.set` last-wins → 前一处成为不可达死代码；后一处还用 `as any` 硬编码 `apiKey: ''` 绕开真实配置。已删后一处 |
+| 2 | `engine/agent/dispatcher.ts` | `dispatchSubagent` 内 `const startTime = Date.now()` 声明后从未使用 | 死变量，已删 |
+| 3 | `engine/agent/command-runners.ts` | `CommandRunner.config` 内联定义为 `provider: string`，与 `ApiConfig.provider`（联合字面量）分歧 | 传给 `new AgentDispatcher(config)` 报 TS2345。**不做断言**，改为直接复用 `ApiConfig`（`import type`），消除双份定义 |
+| 4 | 同上 | `agentsPlatformImpl` 实现是纯本地字符串拼接，却标 `type: 'team'` | dispatcher 会走 `dispatchWithDecomposition`，白跑一次 LLM 任务拆解。已改回 `'local'` |
+
+**另修**：`agentImpl` 的 `config` 为可选参数，调用方不传时子代理拿不到 apiKey，
+`sendMessageStream` 必然失败且报错晦涩。已加显式前置校验返回中文提示。
+（已确认 `runner.execute(args, cwd, this.config)` 三处调用点均透传真配置，守卫有效。）
+
+### 核对纪律（并发会话）
+
+`command-runners.ts` 本轮被另一会话同步改动，出现「`rg` 命中陈旧内容、`Read` 才是当前态」
+的现象 —— 报重复声明时须重新 Read 确认，不可基于 rg 的滞后命中删代码。
+本仓库有两张命令表（`commandRunners` 运行时执行表 / `commandRegistry` 元数据表），
+**加命令前必须全文搜索命令名**，两张表都可能已有同名项。
+
+### 验证
+
+- `npm run build` ✅
+- `npm run test:all` ✅ agent 47 / management 74 / extras 555 / unit 1189，**0 失败**
+- `npm run typecheck` → 173 处存量错误（改动文件 0 新增）
+
 
 - [x] 把 `npm run typecheck` 接入 CI — **已修正**：原 CI 指向 `project/tsconfig.json`（另一个项目），
   主应用从未被检查。已拆为 `typecheck-project` + `typecheck-app`（后者盯 `tsconfig.check.json`，

@@ -165,6 +165,8 @@ export function registerChatHandlers(): void {
         chatEngineModel: engineModel,
         chatUpstreamUrl: upstreamUrl,
         chatNotes: '[IPC] Message received, forwarding to Engine',
+        // 请求刚开始，耗时未知；成功路径会用真实测量值更新
+        latency: 0,
       })
     } catch {
       storeManager.addRequestLog({
@@ -180,6 +182,8 @@ export function registerChatHandlers(): void {
         chatEngineInput: text,
         chatNotes: '[IPC] Engine not ready',
         errorMessage: '引擎未初始化',
+        // 引擎未初始化即失败，没有产生耗时
+        latency: 0,
       })
       const initErr = formatSystemError('引擎未初始化', getLang())
       sender.send(IpcChannels.CHAT_STREAM_ERROR, { requestId, error: initErr })
@@ -791,12 +795,15 @@ export function registerChatHandlers(): void {
       const report = await orchestrator.execute({
         id: 'team-' + Date.now(),
         description,
+        // Objective.priority 必填；约定数值越大越优先，普通互动取中位
+        priority: 5,
       })
 
       sender.send(IpcChannels.TEAM_STREAM_DONE, {
         success: report.success,
         totalDurationMs: report.totalDurationMs,
-        discussionRounds: report.discussionRounds,
+        // ExecutionReport 的字段是 discussions（数组），这里要的是轮次数
+        discussionRounds: report.discussions?.length ?? 0,
         taskResults: report.taskResults,
         planId: report.planId,
       })
