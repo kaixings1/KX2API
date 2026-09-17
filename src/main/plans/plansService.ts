@@ -6,7 +6,7 @@ export interface PlanStep {
   id: string
   description: string
   status: 'pending' | 'completed' | string
-  result?: string
+  result?: string | null
 }
 
 export interface PlanRecord {
@@ -16,7 +16,7 @@ export interface PlanRecord {
   status: 'pending' | 'running' | 'completed' | 'failed'
   steps: PlanStep[]
   createdAt: number
-  completedAt?: number
+  completedAt?: number | null
 }
 
 const DATA_DIR = join(app.getPath('userData'), 'data', 'plans')

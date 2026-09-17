@@ -18,13 +18,15 @@ export interface TaskRecord {
   description: string
   status: 'todo' | 'in_progress' | 'done' | 'cancelled'
   priority: 'low' | 'medium' | 'high'
-  assignee?: string
+  // 以下字段落盘时会显式写 null（表示「明确了：目前没有」），
+  // 与「字段缺失」的 undefined 语义不同，故类型允许 null。
+  assignee?: string | null
   tags: string[]
   createdAt: number
-  dueAt?: number
-  completedAt?: number
+  dueAt?: number | null
+  completedAt?: number | null
   /** 执行结果（AI 回复） */
-  result?: string
+  result?: string | null
   /** 执行日志 */
   executionLog?: Array<{ time: number; event: string; detail?: string }>
 }

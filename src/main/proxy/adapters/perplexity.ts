@@ -22,7 +22,8 @@ const FAKE_HEADERS: Record<string, string> = {
 
 interface PerplexityMessage {
   role: 'user' | 'assistant' | 'system' | 'tool'
-  content: string | null
+  /** 支持纯文本或多模态内容块（与 OpenAI 线格式一致） */
+  content: string | Array<{ type: string; text?: string }> | null
   tool_call_id?: string
   tool_calls?: any[]
 }

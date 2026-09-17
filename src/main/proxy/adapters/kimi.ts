@@ -50,6 +50,8 @@ interface KimiMessage {
 
 interface ChatCompletionRequest {
   model: string
+  /** 映射前的原始模型名（forwarder 传入，用于特性检测） */
+  originalModel?: string
   messages: KimiMessage[]
   stream?: boolean
   temperature?: number
