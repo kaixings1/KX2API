@@ -196,6 +196,7 @@ function stageToRole(stage: WorkflowStage): AgentRole {
     implement: 'engineer',
     verify: 'qa',
     review: 'team_leader',
+    discuss: 'team_leader',
     done: 'supervisor',
     failed: 'supervisor',
   }
@@ -211,6 +212,7 @@ function getStageDescription(stage: WorkflowStage, task: string, index: number):
     implement: `[实现] 根据任务计划，为"${task}"编写代码。`,
     verify: `[验证] 运行测试，验证实现是否正确。`,
     review: `[审查] 对所有阶段输出进行最终审查。`,
+    discuss: `[讨论] 各角色就"${task}"的方案进行多轮讨论并达成共识。`,
     done: '[完成] 所有阶段已完成。',
     failed: '[失败] 任务执行失败。',
   }

@@ -101,8 +101,20 @@ export class PlanningFlow extends BaseFlow {
     }));
   }
 
-  async execute(input: string, executorFn: (step: PlanStep, agentKey?: string) => Promise<string>): Promise<FlowResult> {
+  async execute(
+    input: string,
+    executorFn?: (step: PlanStep, agentKey?: string) => Promise<string>,
+  ): Promise<FlowResult> {
     const start = Date.now();
+    // 分步 Flow 依赖外部执行器；缺失时明确失败，而不是在循环里 undefined(...) 崩掉
+    if (!executorFn) {
+      return {
+        success: false,
+        output: 'PlanningFlow error: 缺少 executor（分步执行需要传入步骤执行器）',
+        stepsCompleted: this.plan.steps.filter(s => s.status === 'completed').length,
+        durationMs: Date.now() - start,
+      };
+    }
     try {
       if (this.plan.steps.length === 0) {
         this.plan.steps = [

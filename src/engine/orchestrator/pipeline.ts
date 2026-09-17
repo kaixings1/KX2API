@@ -4,7 +4,7 @@
  * Pipeline 执行器 — 严格顺序流水线
  */
 
-import type { WorkflowStage, AgentMessage, OrchestrationResult, RoleExecutionResult, OrchestratorConfig } from './messages.ts'
+import type { WorkflowStage, AgentRole, AgentMessage, OrchestrationResult, RoleExecutionResult, OrchestratorConfig } from './messages.ts'
 import { buildAgentDefinition } from './agentRole.ts'
 
 // Pipeline 阶段定义
@@ -45,7 +45,7 @@ export class PipelineExecutor {
     const roleResults: RoleExecutionResult[] = []
     let previousOutput = ''
 
-    const stages = this.config.mode === 'parallel'
+    const stages: WorkflowStage[] = this.config.mode === 'parallel'
       ? ['research', 'analyze', 'plan', 'implement', 'verify', 'review']
       : PIPELINE_STAGES
 
@@ -208,6 +208,7 @@ export class PipelineExecutor {
       implement: `## 实现阶段\n\n任务：${task}\n\n请根据任务计划编写代码：\n1. 按计划逐步实现\n2. 遵循项目代码规范\n3. 每个 commit 有清晰的 message\n4. 完成后运行相关测试\n5. 如果测试失败，自动修复`,
       verify: `## 验证阶段\n\n任务：${task}\n\n请验证实现是否正确：\n1. 运行相关测试（单元测试 + 集成测试）\n2. 检查代码覆盖率\n3. 验证是否符合 PRD 的验收标准\n4. 输出质量报告`,
       review: `## 最终审查阶段\n\n任务：${task}\n\n请对所有阶段输出进行最终审查：\n1. 检查所有阶段输出是否完整\n2. 验证实现是否满足需求\n3. 检查代码质量和规范\n4. 给出最终结论：通过 / 不通过（附带原因）`,
+      discuss: `## 讨论阶段\n\n任务：${task}\n\n请各角色就方案进行多轮讨论：\n1. 明确各自的关注点与约束\n2. 指出方案中的分歧与风险\n3. 收敛到可执行的共识（以 [CONSENSUS] 标记结论）`,
       done: '',
       failed: '',
     }
@@ -253,17 +254,25 @@ export class PipelineExecutor {
       qualityScore,
       totalDuration: Date.now() - startTime,
       totalIterations: this.totalIterations,
-      summary: this.buildSummary(success, finalStage, results, qualityScore),
+      // 总耗时需显式传入：buildSummary 是独立方法，拿不到此处的 startTime
+      summary: this.buildSummary(success, finalStage, results, qualityScore, Date.now() - startTime),
       artifacts: this.artifacts,
     }
   }
 
-  private buildSummary(success: boolean, finalStage: WorkflowStage, results: RoleExecutionResult[], qualityScore: number): string {
+  private buildSummary(
+    success: boolean,
+    finalStage: WorkflowStage,
+    results: RoleExecutionResult[],
+    qualityScore: number,
+    /** 总耗时（ms），由调用方传入 */
+    totalDuration: number,
+  ): string {
     const status = success ? '✅ 成功' : '❌ 失败'
     const lines = [
       `${status} | 最终阶段: ${finalStage}`,
       `质量评分: ${qualityScore}/100`,
-      `总耗时: ${this.formatDuration(this.totalDuration)}`,
+      `总耗时: ${this.formatDuration(totalDuration)}`,
       `总迭代: ${this.totalIterations}`,
       '',
       '阶段执行结果:',
@@ -322,8 +331,8 @@ function computeQualityScore(results: RoleExecutionResult[]): number {
 // 阶段 → 角色映射
 // ---------------------------------------------------------------------------
 
-function stageToRole(stage: WorkflowStage): string {
-  const map: Record<WorkflowStage, string> = {
+function stageToRole(stage: WorkflowStage): AgentRole {
+  const map: Record<WorkflowStage, AgentRole> = {
     research: 'researcher',
     analyze: 'pm',
     design: 'architect',
@@ -331,6 +340,7 @@ function stageToRole(stage: WorkflowStage): string {
     implement: 'engineer',
     verify: 'qa',
     review: 'team_leader',
+    discuss: 'team_leader',
     done: 'supervisor',
     failed: 'supervisor',
   }

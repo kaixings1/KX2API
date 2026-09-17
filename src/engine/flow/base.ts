@@ -1,10 +1,9 @@
 /**
- * engine/flow/base.ts — Flow 基类
+ * engine/flow/base.ts — Flow 基类（吸收 OpenManus BaseFlow）
  *
  * Flow 是可组合的执行单元，封装一组 Agent 的编排逻辑。
  * 与 MessageLoop 的区别：Flow 控制"哪个 Agent 执行哪一步"，MessageLoop 控制单次对话迭代。
  */
-
 export interface FlowAgent {
   key: string;
   description: string;
@@ -66,6 +65,17 @@ export abstract class BaseFlow {
     this.agents.set(agent.key, agent);
   }
 
-  /** 执行 Flow（子类实现） */
-  abstract execute(input: string): Promise<FlowResult>;
+  /**
+   * 执行 Flow（子类实现）。
+   *
+   * `executor` 是**可选**的步骤执行器：分步型 Flow（如 PlanningFlow）需要它
+   * 来实际执行每一步；单体型 Flow 不需要。
+   *
+   * 必须声明在基类上，否则子类增参会被判为「与基类签名不兼容」（TS2416/TS2322）——
+   * 那正是 LSP：基类能调用的地方，子类也必须能调用。
+   */
+  abstract execute(
+    input: string,
+    executor?: (step: unknown, agentKey?: string) => Promise<string>,
+  ): Promise<FlowResult>;
 }

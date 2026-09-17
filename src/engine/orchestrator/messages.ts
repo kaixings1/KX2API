@@ -52,6 +52,8 @@ export type WorkflowStage =
   | 'implement'
   | 'verify'
   | 'review'
+  /** 多角色讨论（对应 OrchestratorConfig.mode === 'discuss'） */
+  | 'discuss'
   | 'done'
   | 'failed'
 

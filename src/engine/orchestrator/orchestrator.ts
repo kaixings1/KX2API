@@ -37,7 +37,9 @@ export class Orchestrator {
     const startTime = Date.now()
     try {
       const result = await this._runImpl(taskDescription)
-      this.deps.onTraceEnd?.(traceId, result.summary ?? '', [`mode:${this.config.mode}`])
+      if (traceId) {
+        this.deps.onTraceEnd?.(traceId, result.summary ?? '', [`mode:${this.config.mode}`])
+      }
 
       if (traceId && this.deps.onTracePersist) {
         this.deps.onTracePersist({
@@ -53,7 +55,7 @@ export class Orchestrator {
       return result
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
-      this.deps.onTraceFail?.(traceId, errMsg)
+      if (traceId) this.deps.onTraceFail?.(traceId, errMsg)
 
       if (traceId && this.deps.onTracePersist) {
         this.deps.onTracePersist({

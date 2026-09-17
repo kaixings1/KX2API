@@ -254,7 +254,7 @@ export function buildKnowledgeGraph(files: GraphSourceFile[], options: BuildOpti
       const base = resolveImportSpecifier(file.path, imp.specifier, extensions)
       if (!base) continue
       // 匹配 base + ext / base/index + ext
-      let targetPath: string | n�ull = null
+      let targetPath: string | null = null
       for (const ext of extensions) {
         if (fileNodes.has(`${base}${ext}`)) { targetPath = `${base}${ext}`; break }
         if (fileNodes.has(`${base}/index${ext}`)) { targetPath = `${base}/index${ext}`; break }
@@ -317,7 +317,7 @@ export function buildKnowledgeGraph(files: GraphSourceFile[], options: BuildOpti
         if (/^\s*(import|export\s+import|const\s+[\w$]+\s*=\s*require\s*\()/.test(line)) continue
 
         for (const [name, targetNode] of globalSymbols) {
-          // 调用点：符号名 + ( （忽略跨文件同�的重复匹配）
+          // 调用点：符号名 + ( （忽略跨文件名重复匹配）
           const callRe = new RegExp(`\\b${escapeRegExp(name)}\\s*\\(`)
           if (callRe.test(line)) {
             const caller = findEnclosingSymbol(lines, i, syms)
