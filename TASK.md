@@ -361,14 +361,15 @@
 - **`looksWorthRemembering`**：回合结束后台提取的廉价预筛，明显不该记的直接跳过，
   不必再花一次模型调用
 
-### 五、架构冲突记录（未改）
+### 五、架构冲突记录（memoryTool 目录不一致已解决，见「memory_* 工具闭环」）
 
 - **`src/memory/memoryTool.ts` 与记忆系统目录不一致**：前者基于 `/memories` 路径的
-  通用文件操作（view/create/str_replace/insert/delete/rename），后者用
+  通用文件操作（view/create/str_replace/insert/update/rename），目标用
   `.doge/projects/<编码项目>/memory/`。两套并存，调用方容易写错目录。
-  建议：`memoryTool` 改为委托 `memoryWriter`，或明确标注为「通用文件工具」与记忆系统解耦。
-- **回合结束后台提取尚未接线**：`looksWorthRemembering` + `writeMemory` 已就绪，
-  但还没有在主循环结束后触发提取的调用点（需要决定用规则提取还是模型提取）。
+  **已解决**：默认落盘根改为统一走 `resolveMemoryDir()`（见下方小节）。
+- **回合结束后台提取接线**：`looksWorthRemembering` + `writeMemory` 已就绪，
+  调用点在 `src/main/ipc/chat-handlers.ts:249` 的 `runPostTurnTasks`（回合成功结束后
+  由 `eng.query()` 返回处 `void` 触发，不阻塞）。
 
 ### 六、验证结果
 
@@ -697,6 +698,41 @@ blockingLimit          = effectiveContextWindow - 3_000   ← 高于自动压缩
 - [ ] **会话转录**（`sessionTranscript` 落盘压缩前原文，供事后追溯）
 - [ ] **对话恢复 / 会话恢复**（`conversationRecovery` + `sessionRestore` 的容错四层）
 - [ ] **会话级记忆 SessionMemory**（与 memdir 不同层次：单次对话内、只喂给 compact）
+
+## 第六轮后：memory_* 工具与记忆系统目录闭环（2026-09-18）
+
+### 解决的问题
+
+`memoryTool`（Claude Cookbooks memory_tool 移植，6 个 `memory_*` 工具）
+原先写死到 `./memory_storage/memories`；而记忆召回/写入系统（`memoryRecall`/
+`memoryWriter`）用 `resolveMemoryDir()` → `<homedir>/.doge/projects/<编码>/memory`。
+**两套目录脱节** → 模型用 `memory_create` 写入的记忆，召回系统永远读不到，
+记忆机制形同两半。且 `./memory_storage` 是相对路径，Electron 打包后工作目录不固定，
+定位更不稳。
+
+### 改动
+
+| 文件 | 改动 |
+|---|---|
+| `src/memory/memoryTool.ts` | `MemoryToolHandler` 默认落盘根从写死 `./memory_storage/memories` 改为 `resolveMemoryDir()`；新增只读 `root` getter；构造暴露显式 `basePath`（测试用）仍走传统 `<base>/memories` 语义 |
+| `src/engine/plugin/memoryToolPlugin.ts` | 删除写死的 `MEMORY_ROOT='./memory_storage'`，`new MemoryToolHandler()` 缺省走统一目录 |
+| `src/__tests__/engine/memoryToolRecall.test.ts` | 新增 3 项回归：默认根==`resolveMemoryDir()` / `memory_create`写入→`recallMemories` 同一目录召回 / `../` 逃逸被拦 |
+
+### 设计取舍
+
+- **保留 `/memories` 虚拟根契约**：对模型仍是 `/memories/notes.md`，工具层不变，
+  仅真实落盘位置迁移到记忆系统目录 —— 最小侵入。
+- **召回不依赖 MEMORY.md 索引**：`scanMemories` 遍历目录下所有 `.md`
+  （含 frontmatter 即可召回），故目录统一即闭环，无需在 memoryTool 里强行维护索引。
+  索引维护仍由 `memoryWriter`（唯一写入口）负责，职责不扩散。
+- 记忆内容需带 `name/description/type` frontmatter 才能被召回系统标准识别；
+  无 frontmatter 的纯文件会以文件名降级召回（约定：模型应写入带 frontmatter 的记忆）。
+
+### 验证
+
+- `npm run build` ✅
+- `npm run test:all` ✅ 四套全绿：management 74 / extras 546 / unit **1005**（新增 3）/ 0 失败
+- `npx vitest run src/__tests__/engine/memoryToolRecall.test.ts` → 3/3 通过
 
 ## 第一轮遗留待办
 
