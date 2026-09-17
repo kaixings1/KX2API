@@ -90,12 +90,12 @@ export class McpService {
   async testConnection(server: McpServerConfig): Promise<McpConnectionResult> {
     try {
       if (!server.enabled) {
-        return { connected: false, tools: [], error: 'Server is disabled' }
+        return { connected: false, tools: [], error: '服务器已禁用' }
       }
 
       // 基本配置校验
       if (server.type === 'stdio' && !server.command) {
-        return { connected: false, tools: [], error: 'Missing command for stdio server' }
+        return { connected: false, tools: [], error: 'stdio 服务器缺少 command' }
       }
       if ((server.type === 'sse' || server.type === 'websocket') && !server.url) {
         return { connected: false, tools: [], error: 'Missing URL for remote server' }

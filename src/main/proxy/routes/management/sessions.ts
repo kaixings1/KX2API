@@ -59,7 +59,7 @@ router.get('/sessions', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(transformedSessions)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get sessions'
+    const errorMessage = error instanceof Error ? error.message : '获取会话列表失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -76,7 +76,7 @@ router.get('/sessions/:id', managementAuthMiddleware, async (ctx: Context) => {
     
     if (!session) {
       ctx.status = 404
-      ctx.body = createErrorResponse('session_not_found', `Session not found: ${id}`)
+      ctx.body = createErrorResponse('session_not_found', `会话不存在：${id}`)
       return
     }
     
@@ -84,7 +84,7 @@ router.get('/sessions/:id', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(transformedSession)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get session'
+    const errorMessage = error instanceof Error ? error.message : '获取会话失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -101,7 +101,7 @@ router.delete('/sessions/:id', managementAuthMiddleware, async (ctx: Context) =>
     
     if (!session) {
       ctx.status = 404
-      ctx.body = createErrorResponse('session_not_found', `Session not found: ${id}`)
+      ctx.body = createErrorResponse('session_not_found', `会话不存在：${id}`)
       return
     }
     
@@ -109,14 +109,14 @@ router.delete('/sessions/:id', managementAuthMiddleware, async (ctx: Context) =>
     
     if (!deleted) {
       ctx.status = 500
-      ctx.body = createErrorResponse('delete_failed', `Failed to delete session: ${id}`)
+      ctx.body = createErrorResponse('delete_failed', `删除会话失败：${id}`)
       return
     }
     
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse({ id, deleted: true })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to delete session'
+    const errorMessage = error instanceof Error ? error.message : '删除会话失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -133,7 +133,7 @@ router.delete('/sessions', managementAuthMiddleware, async (ctx: Context) => {
     
     if (!body || body.confirm !== true) {
       ctx.status = 400
-      ctx.body = createErrorResponse('confirmation_required', 'Request body must include { confirm: true } to clear all sessions')
+      ctx.body = createErrorResponse('confirmation_required', '清空全部会话需在请求体带上 { confirm: true }')
       return
     }
     
@@ -142,7 +142,7 @@ router.delete('/sessions', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse({ cleared: true })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to clear sessions'
+    const errorMessage = error instanceof Error ? error.message : '清空会话失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }

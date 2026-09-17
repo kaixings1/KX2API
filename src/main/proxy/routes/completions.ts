@@ -61,7 +61,7 @@ router.post('/completions', async (ctx: Context) => {
     ctx.status = 400
     ctx.body = {
       error: {
-        message: 'Invalid request body',
+        message: '请求体不合法',
         type: 'invalid_request_error',
       },
     }
@@ -72,7 +72,7 @@ router.post('/completions', async (ctx: Context) => {
     ctx.status = 400
     ctx.body = {
       error: {
-        message: 'Missing required field: model',
+        message: '缺少必填字段：model',
         type: 'invalid_request_error',
         param: 'model',
       },
@@ -84,7 +84,7 @@ router.post('/completions', async (ctx: Context) => {
     ctx.status = 400
     ctx.body = {
       error: {
-        message: 'Missing required field: prompt',
+        message: '缺少必填字段：prompt',
         type: 'invalid_request_error',
         param: 'prompt',
       },
@@ -107,7 +107,7 @@ router.post('/completions', async (ctx: Context) => {
     ctx.status = 503
     ctx.body = {
       error: {
-        message: `No available account for model: ${request.model}`,
+        message: `没有可用于模型 ${request.model} 的账户`,
         type: 'service_unavailable_error',
         code: 'no_available_account',
       },

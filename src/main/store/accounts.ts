@@ -201,7 +201,7 @@ export class AccountManager {
       storeManager.updateAccount(account.id, { todayUsed: 0 })
     }
     
-    storeManager.addLog('info', 'Reset daily usage count for all accounts')
+    storeManager.addLog('info', '重置所有账户的当日用量计数')
   }
 
   /**
@@ -215,7 +215,7 @@ export class AccountManager {
     if (!account) {
       return {
         valid: false,
-        error: 'Account not found',
+        error: '账户不存在',
         validatedAt: Date.now(),
       }
     }
@@ -225,7 +225,7 @@ export class AccountManager {
     if (!provider) {
       return {
         valid: false,
-        error: 'Provider not found',
+        error: '供应商不存在',
         validatedAt: Date.now(),
       }
     }

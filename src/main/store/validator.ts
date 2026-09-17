@@ -78,7 +78,7 @@ class OpenAIValidator implements Validator {
       if (axiosError.response?.status === 429) {
         return {
           valid: false,
-          error: 'Rate limit exceeded, please try again later',
+          error: '触发限流，请稍后重试',
           validatedAt: Date.now(),
         }
       }
@@ -93,7 +93,7 @@ class OpenAIValidator implements Validator {
     
     return {
       valid: false,
-      error: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error: `Validation failed: ${error instanceof Error ? error.message : '未知错误'}`,
       validatedAt: Date.now(),
     }
   }
@@ -173,7 +173,7 @@ class ClaudeValidator implements Validator {
       if (axiosError.response?.status === 429) {
         return {
           valid: false,
-          error: 'Rate limit exceeded, please try again later',
+          error: '触发限流，请稍后重试',
           validatedAt: Date.now(),
         }
       }
@@ -182,7 +182,7 @@ class ClaudeValidator implements Validator {
       if (errorData?.type === 'invalid_request_error' && errorData.message?.includes('credit')) {
         return {
           valid: false,
-          error: 'Insufficient account balance',
+          error: '账户余额不足',
           validatedAt: Date.now(),
         }
       }
@@ -197,7 +197,7 @@ class ClaudeValidator implements Validator {
     
     return {
       valid: false,
-      error: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error: `Validation failed: ${error instanceof Error ? error.message : '未知错误'}`,
       validatedAt: Date.now(),
     }
   }
@@ -269,7 +269,7 @@ class ChatGPTWebValidator implements Validator {
       if (axiosError.response?.status === 401 || axiosError.response?.status === 403) {
         return {
           valid: false,
-          error: 'Invalid or expired Cookie',
+          error: 'Cookie 无效或已过期',
           validatedAt: Date.now(),
         }
       }
@@ -277,7 +277,7 @@ class ChatGPTWebValidator implements Validator {
       if (axiosError.response?.status === 429) {
         return {
           valid: false,
-          error: 'Rate limit exceeded, please try again later',
+          error: '触发限流，请稍后重试',
           validatedAt: Date.now(),
         }
       }
@@ -291,7 +291,7 @@ class ChatGPTWebValidator implements Validator {
     
     return {
       valid: false,
-      error: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error: `Validation failed: ${error instanceof Error ? error.message : '未知错误'}`,
       validatedAt: Date.now(),
     }
   }
@@ -316,7 +316,7 @@ class GenericTokenValidator implements Validator {
     if (!token) {
       return {
         valid: false,
-        error: 'Missing authentication token',
+        error: '缺少认证 Token',
         validatedAt: Date.now(),
       }
     }
@@ -351,7 +351,7 @@ class GenericTokenValidator implements Validator {
         if (axiosError.response?.status === 401) {
           return {
             valid: false,
-            error: 'Invalid authentication token',
+            error: '认证 Token 无效',
             validatedAt: Date.now(),
           }
         }
@@ -365,7 +365,7 @@ class GenericTokenValidator implements Validator {
       
       return {
         valid: false,
-        error: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: `Validation failed: ${error instanceof Error ? error.message : '未知错误'}`,
         validatedAt: Date.now(),
       }
     }
@@ -412,7 +412,7 @@ export async function validateCredentials(
   } catch (error) {
     return {
       valid: false,
-      error: `Validation exception: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error: `Validation exception: ${error instanceof Error ? error.message : '未知错误'}`,
       validatedAt: Date.now(),
     }
   }
@@ -436,7 +436,7 @@ export async function validateCredentialsBatch(
     if (!credentials) {
       results.set(provider.id, {
         valid: false,
-        error: 'Missing credentials',
+        error: '缺少凭证',
         validatedAt: Date.now(),
       })
       return

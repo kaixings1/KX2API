@@ -74,7 +74,7 @@ router.get('/chat-sessions', managementAuthMiddleware, async (ctx: Context) => {
     const { providerId, accountId } = readTarget(ctx)
     const adapter = resolveTarget(providerId, accountId)
     if (!adapter) {
-      return fail(ctx, 404, 'no_account', 'No usable provider account found')
+      return fail(ctx, 404, 'no_account', '没有可用的供应商账户')
     }
 
     const q = ctx.query as Record<string, string>
@@ -92,7 +92,7 @@ router.get('/chat-sessions', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(result)
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Failed to list chat sessions'
+    const msg = error instanceof Error ? error.message : '列出会话失败'
     fail(ctx, 500, 'internal_error', msg)
   }
 })
@@ -105,7 +105,7 @@ router.get('/chat-sessions/search', managementAuthMiddleware, async (ctx: Contex
     const { providerId, accountId } = readTarget(ctx)
     const adapter = resolveTarget(providerId, accountId)
     if (!adapter) {
-      return fail(ctx, 404, 'no_account', 'No usable provider account found')
+      return fail(ctx, 404, 'no_account', '没有可用的供应商账户')
     }
 
     const query = (ctx.query.query as string) || ''
@@ -118,7 +118,7 @@ router.get('/chat-sessions/search', managementAuthMiddleware, async (ctx: Contex
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse({ sessions })
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Failed to search chat sessions'
+    const msg = error instanceof Error ? error.message : '搜索会话失败'
     fail(ctx, 500, 'internal_error', msg)
   }
 })
@@ -131,18 +131,18 @@ router.get('/chat-sessions/:id', managementAuthMiddleware, async (ctx: Context) 
     const { providerId, accountId } = readTarget(ctx)
     const adapter = resolveTarget(providerId, accountId)
     if (!adapter) {
-      return fail(ctx, 404, 'no_account', 'No usable provider account found')
+      return fail(ctx, 404, 'no_account', '没有可用的供应商账户')
     }
 
     const session = await adapter.getChatSession(ctx.params.id)
     if (!session) {
-      return fail(ctx, 404, 'chat_session_not_found', `Chat session not found: ${ctx.params.id}`)
+      return fail(ctx, 404, 'chat_session_not_found', `会话不存在：${ctx.params.id}`)
     }
 
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(session)
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Failed to get chat session'
+    const msg = error instanceof Error ? error.message : '获取会话失败'
     fail(ctx, 500, 'internal_error', msg)
   }
 })
@@ -156,7 +156,7 @@ router.post('/chat-sessions', managementAuthMiddleware, async (ctx: Context) => 
     const { providerId, accountId } = readTarget(ctx)
     const adapter = resolveTarget(providerId, accountId)
     if (!adapter) {
-      return fail(ctx, 404, 'no_account', 'No usable provider account found')
+      return fail(ctx, 404, 'no_account', '没有可用的供应商账户')
     }
 
     const body = (ctx.request.body || {}) as Record<string, any>
@@ -172,7 +172,7 @@ router.post('/chat-sessions', managementAuthMiddleware, async (ctx: Context) => 
     ctx.status = 201
     ctx.body = createSuccessResponse({ chatSessionId: sessionId })
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Failed to create chat session'
+    const msg = error instanceof Error ? error.message : '创建会话失败'
     fail(ctx, 500, 'internal_error', msg)
   }
 })
@@ -186,7 +186,7 @@ router.patch('/chat-sessions/:id', managementAuthMiddleware, async (ctx: Context
     const { providerId, accountId } = readTarget(ctx)
     const adapter = resolveTarget(providerId, accountId)
     if (!adapter) {
-      return fail(ctx, 404, 'no_account', 'No usable provider account found')
+      return fail(ctx, 404, 'no_account', '没有可用的供应商账户')
     }
 
     const body = (ctx.request.body || {}) as Record<string, any>
@@ -208,7 +208,7 @@ router.patch('/chat-sessions/:id', managementAuthMiddleware, async (ctx: Context
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse({ chatSessionId: id, ...results })
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Failed to update chat session'
+    const msg = error instanceof Error ? error.message : '更新会话失败'
     fail(ctx, 500, 'internal_error', msg)
   }
 })
@@ -221,19 +221,19 @@ router.delete('/chat-sessions/:id', managementAuthMiddleware, async (ctx: Contex
     const { providerId, accountId } = readTarget(ctx)
     const adapter = resolveTarget(providerId, accountId)
     if (!adapter) {
-      return fail(ctx, 404, 'no_account', 'No usable provider account found')
+      return fail(ctx, 404, 'no_account', '没有可用的供应商账户')
     }
 
     const id = ctx.params.id
     const ok = await adapter.deleteSession(id)
     if (!ok) {
-      return fail(ctx, 500, 'delete_failed', `Failed to delete chat session: ${id}`)
+      return fail(ctx, 500, 'delete_failed', `删除会话失败：${id}`)
     }
 
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse({ chatSessionId: id, deleted: true })
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Failed to delete chat session'
+    const msg = error instanceof Error ? error.message : '删除会话失败'
     fail(ctx, 500, 'internal_error', msg)
   }
 })
@@ -247,24 +247,24 @@ router.delete('/chat-sessions', managementAuthMiddleware, async (ctx: Context) =
     const body = (ctx.request.body || {}) as Record<string, any>
     if (body.confirm !== true) {
       return fail(ctx, 400, 'confirmation_required',
-        'Request body must include { confirm: true } to delete all chat sessions')
+        '删除全部会话需在请求体带上 { confirm: true }')
     }
 
     const { providerId, accountId } = readTarget(ctx)
     const adapter = resolveTarget(providerId, accountId)
     if (!adapter) {
-      return fail(ctx, 404, 'no_account', 'No usable provider account found')
+      return fail(ctx, 404, 'no_account', '没有可用的供应商账户')
     }
 
     const ok = await adapter.deleteAllChats()
     if (!ok) {
-      return fail(ctx, 500, 'delete_failed', 'Failed to delete all chat sessions')
+      return fail(ctx, 500, 'delete_failed', '删除全部会话失败')
     }
 
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse({ deleted: true })
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Failed to delete chat sessions'
+    const msg = error instanceof Error ? error.message : '删除会话失败'
     fail(ctx, 500, 'internal_error', msg)
   }
 })

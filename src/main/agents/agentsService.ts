@@ -111,7 +111,7 @@ export class AgentsService {
 
   async execute(id: string, _input: string): Promise<AgentExecuteResult> {
     const agent = agentsStore.get(id)
-    if (!agent) return { success: false, error: `Agent not found: ${id}` }
+    if (!agent) return { success: false, error: `智能体不存在：${id}` }
 
     const control = { abort: false }
     runningAgents.set(id, control)
@@ -119,7 +119,7 @@ export class AgentsService {
 
     try {
       const t0 = Date.now()
-      if (control.abort) throw new Error('Aborted by user')
+      if (control.abort) throw new Error('已被用户中止')
 
       const durationMs = Date.now() - t0
       agentsStore.set(id, { ...agentsStore.get(id)!, status: 'idle', lastActiveAt: Date.now() })

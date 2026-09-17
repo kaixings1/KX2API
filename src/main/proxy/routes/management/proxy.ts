@@ -63,7 +63,7 @@ router.post('/start', async (ctx: Context) => {
   try {
     if (proxyServer.isRunning()) {
       ctx.status = 400
-      ctx.body = createErrorResponse('already_running', 'Proxy service is already running')
+      ctx.body = createErrorResponse('already_running', '代理服务已在运行')
       return
     }
 
@@ -75,7 +75,7 @@ router.post('/start', async (ctx: Context) => {
 
     if (!success) {
       ctx.status = 500
-      ctx.body = createErrorResponse('start_failed', 'Failed to start proxy service')
+      ctx.body = createErrorResponse('start_failed', '启动代理服务失败')
       return
     }
 
@@ -88,7 +88,7 @@ router.post('/start', async (ctx: Context) => {
       host: statusData.host,
     })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to start proxy service'
+    const errorMessage = error instanceof Error ? error.message : '启动代理服务失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -98,7 +98,7 @@ router.post('/stop', async (ctx: Context) => {
   try {
     if (!proxyServer.isRunning()) {
       ctx.status = 400
-      ctx.body = createErrorResponse('not_running', 'Proxy service is not running')
+      ctx.body = createErrorResponse('not_running', '代理服务未运行')
       return
     }
 
@@ -106,7 +106,7 @@ router.post('/stop', async (ctx: Context) => {
 
     if (!success) {
       ctx.status = 500
-      ctx.body = createErrorResponse('stop_failed', 'Failed to stop proxy service')
+      ctx.body = createErrorResponse('stop_failed', '停止代理服务失败')
       return
     }
 
@@ -115,7 +115,7 @@ router.post('/stop', async (ctx: Context) => {
       isRunning: false,
     })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to stop proxy service'
+    const errorMessage = error instanceof Error ? error.message : '停止代理服务失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -131,7 +131,7 @@ router.post('/restart', async (ctx: Context) => {
 
     if (!success) {
       ctx.status = 500
-      ctx.body = createErrorResponse('restart_failed', 'Failed to restart proxy service')
+      ctx.body = createErrorResponse('restart_failed', '重启代理服务失败')
       return
     }
 
@@ -144,7 +144,7 @@ router.post('/restart', async (ctx: Context) => {
       host: statusData.host,
     })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to restart proxy service'
+    const errorMessage = error instanceof Error ? error.message : '重启代理服务失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -157,7 +157,7 @@ router.get('/status', async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(statusData)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get proxy status'
+    const errorMessage = error instanceof Error ? error.message : '获取代理状态失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }

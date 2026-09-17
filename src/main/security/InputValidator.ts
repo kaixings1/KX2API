@@ -25,23 +25,23 @@ export class InputValidator {
     const errors: string[] = []
 
     if (typeof value !== 'string') {
-      return { valid: false, errors: ['Value must be a string'] }
+      return { valid: false, errors: ['值必须是字符串'] }
     }
 
     if (!options.allowEmpty && value.length === 0) {
-      errors.push('Value cannot be empty')
+      errors.push('值不能为空')
     }
 
     if (options.minLength && value.length < options.minLength) {
-      errors.push(`Value must be at least ${options.minLength} characters`)
+      errors.push(`值的长度至少为 ${options.minLength} 个字符`)
     }
 
     if (options.maxLength && value.length > options.maxLength) {
-      errors.push(`Value must be at most ${options.maxLength} characters`)
+      errors.push(`值的长度至多为 ${options.maxLength} 个字符`)
     }
 
     if (options.pattern && !options.pattern.test(value)) {
-      errors.push('Value does not match required pattern')
+      errors.push('值不匹配要求的格式')
     }
 
     return {
@@ -58,22 +58,22 @@ export class InputValidator {
     const errors: string[] = []
 
     if (!path || path.trim().length === 0) {
-      return { valid: false, errors: ['Path cannot be empty'] }
+      return { valid: false, errors: ['路径不能为空'] }
     }
 
     if (path.includes('..')) {
-      errors.push('Path traversal detected (.. is not allowed)')
+      errors.push('检测到路径穿越（不允许 ..）')
     }
 
     const dangerousChars = /[<>:"|?*\x00-\x1f]/
     if (dangerousChars.test(path)) {
-      errors.push('Path contains dangerous characters')
+      errors.push('路径包含危险字符')
     }
 
     const reservedNames = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i
     const basename = path.split(/[\\/]/).pop() || ''
     if (reservedNames.test(basename.split('.')[0])) {
-      errors.push('Path uses reserved Windows name')
+      errors.push('路径使用了 Windows 保留名')
     }
 
     return {
@@ -90,18 +90,18 @@ export class InputValidator {
     const errors: string[] = []
 
     if (!command || command.trim().length === 0) {
-      return { valid: false, errors: ['Command cannot be empty'] }
+      return { valid: false, errors: ['命令不能为空'] }
     }
 
     const dangerousPatterns = [
-      { pattern: /rm\s+-rf\s+\//, message: 'Recursive delete from root' },
-      { pattern: /:\(\)\s*\{\s*:\|:\&\s*\}\s*;/, message: 'Fork bomb detected' },
-      { pattern: /mkfs/, message: 'Filesystem format command' },
-      { pattern: /dd\s+.*of=\/dev\//, message: 'Direct device write' },
-      { pattern: />\s*\/dev\/sd[a-z]/, message: 'Direct device write' },
-      { pattern: /chmod\s+777\s+\//, message: 'Setting world-writable on root' },
-      { pattern: /curl.*\|\s*sh/, message: 'Remote code execution via curl' },
-      { pattern: /wget.*\|\s*sh/, message: 'Remote code execution via wget' },
+      { pattern: /rm\s+-rf\s+\//, message: '从根目录递归删除' },
+      { pattern: /:\(\)\s*\{\s*:\|:\&\s*\}\s*;/, message: '检测到 fork 炸弹' },
+      { pattern: /mkfs/, message: '文件系统格式化命令' },
+      { pattern: /dd\s+.*of=\/dev\//, message: '直接写入设备' },
+      { pattern: />\s*\/dev\/sd[a-z]/, message: '直接写入设备' },
+      { pattern: /chmod\s+777\s+\//, message: '对根目录设置全局可写' },
+      { pattern: /curl.*\|\s*sh/, message: '经由 curl 的远程代码执行' },
+      { pattern: /wget.*\|\s*sh/, message: '经由 wget 的远程代码执行' },
     ]
 
     for (const { pattern, message } of dangerousPatterns) {
@@ -111,7 +111,7 @@ export class InputValidator {
     }
 
     if (/[$`]/.test(command) && !command.startsWith('echo')) {
-      errors.push('Potential command injection (shell metacharacters)')
+      errors.push('可能存在命令注入（shell 元字符）')
     }
 
     return {
@@ -128,7 +128,7 @@ export class InputValidator {
     const errors: string[] = []
 
     if (typeof value !== 'object' || value === null) {
-      return { valid: false, errors: ['Value must be an object'] }
+      return { valid: false, errors: ['值必须是对象'] }
     }
 
     for (const [key, rule] of Object.entries(schema)) {

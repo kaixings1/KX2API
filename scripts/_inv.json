@@ -190,224 +190,9 @@
   "Agent is already running"
  ],
  [
-  "src/main/ipc/chat-handlers.ts",
-  122,
-  "Engine not initialized"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  182,
-  "Engine not initialized"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  184,
-  "Engine not initialized"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  282,
-  "Engine not initialized"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  347,
-  "Engine not initialized"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  374,
-  "Engine not initialized"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  594,
-  "Config group not found"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  607,
-  "Config group not found"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  620,
-  "Config group already exists"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  632,
-  "Config group not found"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  636,
-  "Failed to write config group"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  649,
-  "Config group not found"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  661,
-  "Config group not found"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  675,
-  "Config group not found"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  684,
-  "No active preset in config group"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  689,
-  "Active preset not found in config group"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  734,
-  "Engine not initialized"
- ],
- [
-  "src/main/ipc/chat-handlers.ts",
-  735,
-  "Engine not initialized"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  451,
-  "Plan not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  471,
-  "Plan not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  491,
-  "Plan not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  492,
-  "Plan is already running"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  493,
-  "Plan has no steps to execute"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  715,
-  "Command not found"
- ],
- [
   "src/main/ipc/handlers.ts",
   750,
   "Command not found: ${idOrName}"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  797,
-  "Workflow not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  817,
-  "Workflow not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  837,
-  "Workflow not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  918,
-  "Server not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  945,
-  "Data must be an array"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1124,
-  "Plugin not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1213,
-  "Tool not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1223,
-  "Cannot remove builtin tool"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1233,
-  "Tool not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1252,
-  "Group not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1262,
-  "Cannot remove builtin group"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1278,
-  "Tool already in group or group not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1306,
-  "Rule not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1316,
-  "Cannot remove builtin rule"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1351,
-  "Tool not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1363,
-  "Builtin entity not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1375,
-  "Tool not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1386,
-  "Tool not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1407,
-  "Role not found"
  ],
  [
   "src/main/ipc/handlers.ts",
@@ -416,38 +201,13 @@
  ],
  [
   "src/main/ipc/handlers.ts",
-  1857,
-  "Provider not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
   1929,
   "Failed to sync models"
  ],
  [
   "src/main/ipc/handlers.ts",
-  1945,
-  "Provider not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  1963,
-  "This provider does not support dynamic model updates"
- ],
- [
-  "src/main/ipc/handlers.ts",
   1993,
   "Failed to fetch models: HTTP ${response.status}"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  2002,
-  "No models found in the response"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  2027,
-  "Failed to parse models from the response"
  ],
  [
   "src/main/ipc/handlers.ts",
@@ -468,26 +228,6 @@
   "src/main/ipc/handlers.ts",
   2100,
   "Failed to reset models"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  2170,
-  "Provider not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  2218,
-  "Account not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  2223,
-  "Provider not found"
- ],
- [
-  "src/main/ipc/handlers.ts",
-  2228,
-  "This feature is not available for this provider"
  ],
  [
   "src/main/ipc/handlers.ts",
@@ -1201,32 +941,32 @@
  ],
  [
   "src/main/proxy/forwarder.ts",
-  616,
+  631,
   "Form submission to "
  ],
  [
   "src/main/proxy/forwarder.ts",
-  643,
+  658,
   "Please summarize the following conversation concisely, keeping key information and context:"
  ],
  [
   "src/main/proxy/forwarder.ts",
-  691,
+  706,
   "Failed to generate conversation summary."
  ],
  [
   "src/main/proxy/forwarder.ts",
-  694,
+  709,
   "Failed to generate conversation summary due to an error."
  ],
  [
   "src/main/proxy/forwarder.ts",
-  842,
+  857,
   "Request failed after retries"
  ],
  [
   "src/main/proxy/forwarder.ts",
-  1674,
+  1689,
   "No response or stream received"
  ],
  [
@@ -1270,46 +1010,6 @@
   "Stream request to ${url}, bot=${request.bot_id}"
  ],
  [
-  "src/main/proxy/adapters/deepseek.ts",
-  142,
-  "Token invalid or expired, please get a new Token"
- ],
- [
-  "src/main/proxy/adapters/deepseek.ts",
-  146,
-  "Failed to acquire token: HTTP ${result.status}"
- ],
- [
-  "src/main/proxy/adapters/deepseek.ts",
-  154,
-  "Failed to acquire token: ${errorMsg}"
- ],
- [
-  "src/main/proxy/adapters/deepseek.ts",
-  195,
-  "Failed to create session: ${result.data?.msg || result.data?.data?.biz_msg || result.status}"
- ],
- [
-  "src/main/proxy/adapters/deepseek.ts",
-  254,
-  "Failed to get challenge: ${result.data?.msg || result.data?.data?.biz_msg || result.status}"
- ],
- [
-  "src/main/proxy/adapters/deepseek.ts",
-  273,
-  "Challenge calculation failed"
- ],
- [
-  "src/main/proxy/adapters/glm.ts",
-  160,
-  "Token refresh failed: ${errorMsg}"
- ],
- [
-  "src/main/proxy/adapters/glm.ts",
-  257,
-  "File upload failed: HTTP ${response.status}"
- ],
- [
   "src/main/proxy/adapters/google.ts",
   122,
   "Stream request to ${url}"
@@ -1318,11 +1018,6 @@
   "src/main/proxy/adapters/groq.ts",
   142,
   "Stream request to ${url}, model=${transformed.model}"
- ],
- [
-  "src/main/proxy/adapters/kimi.ts",
-  104,
-  "Token invalid or expired"
  ],
  [
   "src/main/proxy/adapters/kimi.ts",
@@ -1335,49 +1030,9 @@
   "Focus on the latest message from user"
  ],
  [
-  "src/main/proxy/adapters/kimi.ts",
-  485,
-  "Token invalid or expired after all retries (including persistent session)"
- ],
- [
-  "src/main/proxy/adapters/kimi.ts",
-  489,
-  "Completion request failed: HTTP ${freshResponse.status}"
- ],
- [
-  "src/main/proxy/adapters/kimi.ts",
-  495,
-  "Token invalid or expired after retry, persistent session not available"
- ],
- [
-  "src/main/proxy/adapters/kimi.ts",
-  499,
-  "Completion request failed: HTTP ${retryResponse.status}"
- ],
- [
-  "src/main/proxy/adapters/kimi.ts",
-  506,
-  "Completion request failed: HTTP ${response.status}"
- ],
- [
   "src/main/proxy/adapters/mimo.ts",
   382,
   "Mimo failed to save conversation: ${msg || message || "
- ],
- [
-  "src/main/proxy/adapters/mimo.ts",
-  427,
-  "Mimo credentials not configured. Please add service_token, user_id, and ph_token in account settings."
- ],
- [
-  "src/main/proxy/adapters/mimo.ts",
-  474,
-  "Mimo credentials not configured"
- ],
- [
-  "src/main/proxy/adapters/mimo.ts",
-  523,
-  "Mimo credentials not configured"
  ],
  [
   "src/main/proxy/adapters/minimax.ts",
@@ -1745,494 +1400,9 @@
   "No available account for model: ${request.model}"
  ],
  [
-  "src/main/proxy/routes/management/accounts.ts",
-  71,
-  "Failed to get accounts"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  90,
-  "Failed to get accounts by provider"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  108,
-  "Account not found: ${id}"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  116,
-  "Failed to get account"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  132,
-  "Missing required field: providerId"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  138,
-  "Missing required field: name"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  144,
-  "Missing or invalid required field: credentials"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  161,
-  "Failed to create account"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  185,
-  "Account not found: ${id}"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  211,
-  "Failed to update account"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  219,
-  "Failed to update account"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  237,
-  "Account not found: ${id}"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  244,
-  "Failed to delete account"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  261,
-  "Account not found: ${id}"
- ],
- [
-  "src/main/proxy/routes/management/accounts.ts",
-  270,
-  "Failed to validate account"
- ],
- [
-  "src/main/proxy/routes/management/apiKeys.ts",
-  88,
-  "Failed to get API keys"
- ],
- [
-  "src/main/proxy/routes/management/apiKeys.ts",
-  105,
-  "Missing required field: name"
- ],
- [
-  "src/main/proxy/routes/management/apiKeys.ts",
-  134,
-  "Failed to create API key"
- ],
- [
-  "src/main/proxy/routes/management/apiKeys.ts",
-  195,
-  "Failed to update API key"
- ],
- [
-  "src/main/proxy/routes/management/apiKeys.ts",
-  231,
-  "Failed to delete API key"
- ],
- [
-  "src/main/proxy/routes/management/apiKeys.ts",
-  273,
-  "Failed to regenerate API key"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  77,
-  "No usable provider account found"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  95,
-  "Failed to list chat sessions"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  108,
-  "No usable provider account found"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  121,
-  "Failed to search chat sessions"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  134,
-  "No usable provider account found"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  139,
-  "Chat session not found: ${ctx.params.id}"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  145,
-  "Failed to get chat session"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  159,
-  "No usable provider account found"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  175,
-  "Failed to create chat session"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  189,
-  "No usable provider account found"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  211,
-  "Failed to update chat session"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  224,
-  "No usable provider account found"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  230,
-  "Failed to delete chat session: ${id}"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  236,
-  "Failed to delete chat session"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  250,
-  "Request body must include { confirm: true } to delete all chat sessions"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  256,
-  "No usable provider account found"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  261,
-  "Failed to delete all chat sessions"
- ],
- [
-  "src/main/proxy/routes/management/chatSessions.ts",
-  267,
-  "Failed to delete chat sessions"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  40,
-  "Failed to list config groups"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  52,
-  "No active config group"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  62,
-  "Failed to get active config group"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  76,
-  "Config group not found"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  87,
-  "Failed to get config group"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  106,
-  "Missing required field: id"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  114,
-  "Config group already exists"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  122,
-  "Failed to create config group"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  142,
-  "Config group not found"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  155,
-  "Failed to write config group"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  163,
-  "Failed to update config group"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  178,
-  "Config group not found"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  185,
-  "Failed to delete config group"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  200,
-  "Config group not found"
- ],
- [
-  "src/main/proxy/routes/management/config-groups.ts",
-  208,
-  "Failed to set active config group"
- ],
- [
-  "src/main/proxy/routes/management/config.ts",
-  118,
-  "Request body must be a valid configuration object"
- ],
- [
   "src/main/proxy/routes/management/config.ts",
   208,
   "Request body must contain a "
- ],
- [
-  "src/main/proxy/routes/management/modelMappings.ts",
-  54,
-  "Failed to get model mappings"
- ],
- [
-  "src/main/proxy/routes/management/modelMappings.ts",
-  70,
-  "Missing required field: requestModel"
- ],
- [
-  "src/main/proxy/routes/management/modelMappings.ts",
-  76,
-  "Missing required field: actualModel"
- ],
- [
-  "src/main/proxy/routes/management/modelMappings.ts",
-  83,
-  "Model mapping already exists: ${request.requestModel}"
- ],
- [
-  "src/main/proxy/routes/management/modelMappings.ts",
-  100,
-  "Failed to create model mapping"
- ],
- [
-  "src/main/proxy/routes/management/modelMappings.ts",
-  118,
-  "Model mapping not found: ${model}"
- ],
- [
-  "src/main/proxy/routes/management/modelMappings.ts",
-  134,
-  "Failed to update model mapping"
- ],
- [
-  "src/main/proxy/routes/management/modelMappings.ts",
-  152,
-  "Model mapping not found: ${model}"
- ],
- [
-  "src/main/proxy/routes/management/modelMappings.ts",
-  159,
-  "Failed to delete model mapping"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  46,
-  "Failed to get providers"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  59,
-  "Provider not found"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  66,
-  "Failed to get provider"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  78,
-  "Missing required field: name"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  84,
-  "Missing required field: authType"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  90,
-  "Missing required field: apiEndpoint"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  110,
-  "Failed to create provider"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  124,
-  "Provider not found"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  170,
-  "Failed to update provider"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  177,
-  "Failed to update provider"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  198,
-  "Provider not found"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  205,
-  "Failed to delete provider"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  218,
-  "Missing or invalid required field: enabled (must be boolean)"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  225,
-  "Provider not found"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  233,
-  "Failed to update provider status"
- ],
- [
-  "src/main/proxy/routes/management/providers.ts",
-  240,
-  "Failed to update provider status"
- ],
- [
-  "src/main/proxy/routes/management/proxy.ts",
-  66,
-  "Proxy service is already running"
- ],
- [
-  "src/main/proxy/routes/management/proxy.ts",
-  78,
-  "Failed to start proxy service"
- ],
- [
-  "src/main/proxy/routes/management/proxy.ts",
-  91,
-  "Failed to start proxy service"
- ],
- [
-  "src/main/proxy/routes/management/proxy.ts",
-  101,
-  "Proxy service is not running"
- ],
- [
-  "src/main/proxy/routes/management/proxy.ts",
-  109,
-  "Failed to stop proxy service"
- ],
- [
-  "src/main/proxy/routes/management/proxy.ts",
-  118,
-  "Failed to stop proxy service"
- ],
- [
-  "src/main/proxy/routes/management/proxy.ts",
-  134,
-  "Failed to restart proxy service"
- ],
- [
-  "src/main/proxy/routes/management/proxy.ts",
-  147,
-  "Failed to restart proxy service"
- ],
- [
-  "src/main/proxy/routes/management/proxy.ts",
-  160,
-  "Failed to get proxy status"
- ],
- [
-  "src/main/proxy/routes/management/sessions.ts",
-  62,
-  "Failed to get sessions"
- ],
- [
-  "src/main/proxy/routes/management/sessions.ts",
-  79,
-  "Session not found: ${id}"
- ],
- [
-  "src/main/proxy/routes/management/sessions.ts",
-  87,
-  "Failed to get session"
- ],
- [
-  "src/main/proxy/routes/management/sessions.ts",
-  104,
-  "Session not found: ${id}"
- ],
- [
-  "src/main/proxy/routes/management/sessions.ts",
-  112,
-  "Failed to delete session: ${id}"
- ],
- [
-  "src/main/proxy/routes/management/sessions.ts",
-  119,
-  "Failed to delete session"
- ],
- [
-  "src/main/proxy/routes/management/sessions.ts",
-  136,
-  "Request body must include { confirm: true } to clear all sessions"
- ],
- [
-  "src/main/proxy/routes/management/sessions.ts",
-  145,
-  "Failed to clear sessions"
  ],
  [
   "src/main/proxy/routes/management/toolCalling.ts",
@@ -2371,133 +1541,13 @@
  ],
  [
   "src/main/security/InputValidator.ts",
-  28,
-  "Value must be a string"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  32,
-  "Value cannot be empty"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  36,
-  "Value must be at least ${options.minLength} characters"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  40,
-  "Value must be at most ${options.maxLength} characters"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  44,
-  "Value does not match required pattern"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  61,
-  "Path cannot be empty"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  65,
-  "Path traversal detected (.. is not allowed)"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  70,
-  "Path contains dangerous characters"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  76,
-  "Path uses reserved Windows name"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  93,
-  "Command cannot be empty"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  97,
-  "Recursive delete from root"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  98,
-  "Fork bomb detected"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  99,
-  "Filesystem format command"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  100,
-  "Direct device write"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  101,
-  "Direct device write"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  103,
-  "Remote code execution via curl"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  104,
-  "Remote code execution via wget"
- ],
- [
-  "src/main/security/InputValidator.ts",
   109,
   "Dangerous command detected: ${message}"
  ],
  [
   "src/main/security/InputValidator.ts",
-  114,
-  "Potential command injection (shell metacharacters)"
- ],
- [
-  "src/main/security/InputValidator.ts",
-  131,
-  "Value must be an object"
- ],
- [
-  "src/main/security/InputValidator.ts",
   138,
   "Missing required field: ${key}"
- ],
- [
-  "src/main/security/PathGuard.ts",
-  46,
-  "Path is empty"
- ],
- [
-  "src/main/security/PathGuard.ts",
-  56,
-  "Path traversal detected: escapes root directory"
- ],
- [
-  "src/main/security/PathGuard.ts",
-  65,
-  "Access to blocked directory: ${blocked}"
- ],
- [
-  "src/main/security/PathGuard.ts",
-  78,
-  "Path is not in allowed directories"
- ],
- [
-  "src/main/security/PathGuard.ts",
-  89,
-  "Blocked file extension: ${ext}"
  ],
  [
   "src/main/security/PathGuard.ts",
@@ -2515,36 +1565,6 @@
   "Account not found: ${id}"
  ],
  [
-  "src/main/store/accounts.ts",
-  204,
-  "Reset daily usage count for all accounts"
- ],
- [
-  "src/main/store/accounts.ts",
-  218,
-  "Account not found"
- ],
- [
-  "src/main/store/accounts.ts",
-  228,
-  "Provider not found"
- ],
- [
-  "src/main/store/config.ts",
-  39,
-  "Update app configuration"
- ],
- [
-  "src/main/store/config.ts",
-  53,
-  "Reset app configuration to default values"
- ],
- [
-  "src/main/store/config.ts",
-  74,
-  "Port number must be between 1-65535"
- ],
- [
   "src/main/store/config.ts",
   126,
   "Set model mapping: ${mapping.requestModel} -> ${mapping.actualModel}"
@@ -2558,46 +1578,6 @@
   "src/main/store/config.ts",
   162,
   "Batch set model mappings: ${mappings.length} items"
- ],
- [
-  "src/main/store/config.ts",
-  257,
-  "Log retention days must be between 1-365"
- ],
- [
-  "src/main/store/config.ts",
-  279,
-  "Request timeout must be between 1000-300000 milliseconds"
- ],
- [
-  "src/main/store/config.ts",
-  299,
-  "Retry count must be between 0-10"
- ],
- [
-  "src/main/store/config.ts",
-  317,
-  "Proxy port must be between 1-65535"
- ],
- [
-  "src/main/store/config.ts",
-  323,
-  "Log retention days must be between 1-365"
- ],
- [
-  "src/main/store/config.ts",
-  329,
-  "Request timeout must be between 1000-300000 milliseconds"
- ],
- [
-  "src/main/store/config.ts",
-  335,
-  "Retry count must be between 0-10"
- ],
- [
-  "src/main/store/config.ts",
-  399,
-  "Import app configuration"
  ],
  [
   "src/main/store/providers.ts",
@@ -2616,63 +1596,8 @@
  ],
  [
   "src/main/store/store.ts",
-  411,
-  "Storage not initialized, please call initialize() first"
- ],
- [
-  "src/main/store/store.ts",
   1660,
   "Model with display name "
- ],
- [
-  "src/main/store/store.ts",
-  1679,
-  "Provider not found"
- ],
- [
-  "src/main/store/store.ts",
-  1817,
-  "Request log manager is not initialized"
- ],
- [
-  "src/main/store/store.ts",
-  1824,
-  "App log manager is not initialized"
- ],
- [
-  "src/main/store/validator.ts",
-  81,
-  "Rate limit exceeded, please try again later"
- ],
- [
-  "src/main/store/validator.ts",
-  176,
-  "Rate limit exceeded, please try again later"
- ],
- [
-  "src/main/store/validator.ts",
-  185,
-  "Insufficient account balance"
- ],
- [
-  "src/main/store/validator.ts",
-  272,
-  "Invalid or expired Cookie"
- ],
- [
-  "src/main/store/validator.ts",
-  280,
-  "Rate limit exceeded, please try again later"
- ],
- [
-  "src/main/store/validator.ts",
-  319,
-  "Missing authentication token"
- ],
- [
-  "src/main/store/validator.ts",
-  354,
-  "Invalid authentication token"
  ],
  [
   "src/main/tasks/tasksService.ts",
@@ -2730,26 +1655,6 @@
   "Workflow not found"
  ],
  [
-  "src/renderer/src/components/models/ModelEditor.tsx",
-  74,
-  "Failed to load models"
- ],
- [
-  "src/renderer/src/components/models/ModelEditor.tsx",
-  131,
-  "Failed to add model"
- ],
- [
-  "src/renderer/src/components/models/ModelEditor.tsx",
-  158,
-  "Failed to remove model"
- ],
- [
-  "src/renderer/src/components/models/ModelEditor.tsx",
-  189,
-  "Failed to reset models"
- ],
- [
   "src/renderer/src/components/providers/AddAccountDialog.tsx",
   365,
   "Login window was closed"
@@ -2760,144 +1665,14 @@
   "Login window was closed"
  ],
  [
-  "src/renderer/src/components/proxy/ProxyStatus.tsx",
-  84,
-  "Unable to stop proxy service"
- ],
- [
-  "src/renderer/src/pages/About.tsx",
-  165,
-  "Update check failed"
- ],
- [
-  "src/security/InputValidator.ts",
-  29,
-  "Value must be a string"
- ],
- [
-  "src/security/InputValidator.ts",
-  33,
-  "Value cannot be empty"
- ],
- [
-  "src/security/InputValidator.ts",
-  37,
-  "Value must be at least ${options.minLength} characters"
- ],
- [
-  "src/security/InputValidator.ts",
-  41,
-  "Value must be at most ${options.maxLength} characters"
- ],
- [
-  "src/security/InputValidator.ts",
-  45,
-  "Value does not match required pattern"
- ],
- [
-  "src/security/InputValidator.ts",
-  63,
-  "Path cannot be empty"
- ],
- [
-  "src/security/InputValidator.ts",
-  68,
-  "Path traversal detected (.. is not allowed)"
- ],
- [
-  "src/security/InputValidator.ts",
-  79,
-  "Path contains dangerous characters"
- ],
- [
-  "src/security/InputValidator.ts",
-  86,
-  "Path uses reserved Windows name"
- ],
- [
-  "src/security/InputValidator.ts",
-  103,
-  "Command cannot be empty"
- ],
- [
-  "src/security/InputValidator.ts",
-  108,
-  "Recursive delete from root"
- ],
- [
-  "src/security/InputValidator.ts",
-  109,
-  "Fork bomb detected"
- ],
- [
-  "src/security/InputValidator.ts",
-  110,
-  "Filesystem format command"
- ],
- [
-  "src/security/InputValidator.ts",
-  111,
-  "Direct device write"
- ],
- [
-  "src/security/InputValidator.ts",
-  112,
-  "Direct device write"
- ],
- [
-  "src/security/InputValidator.ts",
-  114,
-  "Remote code execution via curl"
- ],
- [
-  "src/security/InputValidator.ts",
-  115,
-  "Remote code execution via wget"
- ],
- [
   "src/security/InputValidator.ts",
   120,
   "Dangerous command detected: ${message}"
  ],
  [
   "src/security/InputValidator.ts",
-  126,
-  "Potential command injection (shell metacharacters)"
- ],
- [
-  "src/security/InputValidator.ts",
-  143,
-  "Value must be an object"
- ],
- [
-  "src/security/InputValidator.ts",
   150,
   "Missing required field: ${key}"
- ],
- [
-  "src/security/PathGuard.ts",
-  49,
-  "Path is empty"
- ],
- [
-  "src/security/PathGuard.ts",
-  61,
-  "Path traversal detected: escapes root directory"
- ],
- [
-  "src/security/PathGuard.ts",
-  71,
-  "Access to blocked directory: ${blocked}"
- ],
- [
-  "src/security/PathGuard.ts",
-  85,
-  "Path is not in allowed directories"
- ],
- [
-  "src/security/PathGuard.ts",
-  97,
-  "Blocked file extension: ${ext}"
  ],
  [
   "src/security/PathGuard.ts",

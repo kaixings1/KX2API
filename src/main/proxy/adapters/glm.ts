@@ -157,7 +157,7 @@ export class GLMAdapter {
     const isSuccess = code === 0 || status === 0
     if (response.status !== 200 || !isSuccess) {
       const errorMsg = message || `HTTP ${response.status}`
-      throw new Error(`Token refresh failed: ${errorMsg}`)
+      throw new Error(`Token 刷新失败：${errorMsg}`)
     }
 
     const { access_token, refresh_token } = response.data.result
@@ -254,7 +254,7 @@ export class GLMAdapter {
     )
 
     if (response.status !== 200 || !response.data?.result) {
-      throw new Error(`File upload failed: HTTP ${response.status}`)
+      throw new Error(`文件上传失败：HTTP ${response.status}`)
     }
 
     console.log('[GLM] File uploaded successfully:', response.data.result.source_id)

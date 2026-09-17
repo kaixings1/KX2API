@@ -101,7 +101,7 @@ function getJwtExpiry(token: string): number | null {
 function checkResult(result: AxiosResponse, refreshToken: string): any {
   if (result.status === 401) {
     accessTokenMap.delete(refreshToken)
-    throw new Error('Token invalid or expired')
+    throw new Error('Token 无效或已过期')
   }
   if (!result.data) {
     return null
@@ -129,7 +129,7 @@ export class KimiAdapter {
 
   private async acquireToken(): Promise<{ accessToken: string; userId: string }> {
     if (!this.token) {
-      throw new Error('Kimi Token not configured')
+      throw new Error('未配置 Kimi Token')
     }
 
     let result = accessTokenMap.get(this.token)
@@ -482,28 +482,28 @@ export class KimiAdapter {
           )
 
           if (freshResponse.status === 401) {
-            throw new Error('Token invalid or expired after all retries (including persistent session)')
+            throw new Error('所有重试（含持久会话）后 Token 仍无效或已过期')
           }
 
           if (freshResponse.status !== 200) {
-            throw new Error(`Completion request failed: HTTP ${freshResponse.status}`)
+            throw new Error(`补全请求失败：HTTP ${freshResponse.status}`)
           }
 
           return { response: freshResponse, conversationId: chatId }
         }
 
-        throw new Error('Token invalid or expired after retry, persistent session not available')
+        throw new Error('重试后 Token 无效或已过期，且无可用持久会话')
       }
 
       if (retryResponse.status !== 200) {
-        throw new Error(`Completion request failed: HTTP ${retryResponse.status}`)
+        throw new Error(`补全请求失败：HTTP ${retryResponse.status}`)
       }
 
       return { response: retryResponse, conversationId: chatId }
     }
 
     if (response.status !== 200) {
-      throw new Error(`Completion request failed: HTTP ${response.status}`)
+      throw new Error(`补全请求失败：HTTP ${response.status}`)
     }
 
     return { response, conversationId: chatId }

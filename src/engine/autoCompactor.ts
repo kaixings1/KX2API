@@ -218,7 +218,7 @@ export class AutoCompactor {
   }
 
   setDefaultStrategy(name: string): void {
-    if (!this.strategies.has(name)) throw new Error(`Strategy not found: ${name}`);
+    if (!this.strategies.has(name)) throw new Error(`未找到压缩策略：${name}`);
     this.defaultStrategy = name;
   }
 

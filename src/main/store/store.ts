@@ -408,7 +408,7 @@ class StoreManager {
     if (!this.isInitialized || !this.store) {
       const errorMsg = this.initializationError 
         ? `Storage initialization failed: ${this.initializationError.message}`
-        : 'Storage not initialized, please call initialize() first'
+        : '存储尚未初始化，请先调用 initialize()'
       throw new Error(errorMsg)
     }
   }
@@ -1676,7 +1676,7 @@ class StoreManager {
     
     const provider = this.getProviderById(providerId)
     if (!provider) {
-      throw new Error('Provider not found')
+      throw new Error('供应商不存在')
     }
 
     const overrides = this.getUserModelOverrides()
@@ -1814,14 +1814,14 @@ class StoreManager {
 
   private getRequestLogManager(): RequestLogManager {
     if (!this.requestLogManager) {
-      throw new Error('Request log manager is not initialized')
+      throw new Error('请求日志管理器未初始化')
     }
     return this.requestLogManager
   }
 
   private getAppLogManager(): AppLogManager {
     if (!this.appLogManager) {
-      throw new Error('App log manager is not initialized')
+      throw new Error('应用日志管理器未初始化')
     }
     return this.appLogManager
   }

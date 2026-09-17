@@ -139,19 +139,19 @@ export class DeepSeekAdapter {
     console.log('[DeepSeek] Token response status:', result.status)
     
     if (result.status === 401 || result.status === 403) {
-      throw new Error(`Token invalid or expired, please get a new Token`)
+      throw new Error(`Token 无效或已过期，请获取新的 Token`)
     }
 
     if (result.status !== 200) {
-      throw new Error(`Failed to acquire token: HTTP ${result.status}`)
+      throw new Error(`获取 Token 失败：HTTP ${result.status}`)
     }
 
     // Response structure: { code: 0, data: { biz_code: 0, biz_data: { token: "..." } } }
     const bizData = result.data?.data?.biz_data || result.data?.biz_data
     if (!bizData?.token) {
-      const errorMsg = result.data?.msg || result.data?.data?.biz_msg || 'Unknown error'
+      const errorMsg = result.data?.msg || result.data?.data?.biz_msg || '未知错误'
       console.log('[DeepSeek] Token response data:', JSON.stringify(result.data, null, 2))
-      throw new Error(`Failed to acquire token: ${errorMsg}`)
+      throw new Error(`获取 Token 失败：${errorMsg}`)
     }
 
     const accessToken = bizData.token
@@ -192,7 +192,7 @@ export class DeepSeekAdapter {
     // Response structure: { code: 0, data: { biz_code: 0, biz_data: { id: "..." } } }
     const bizData = result.data?.data?.biz_data || result.data?.biz_data
     if (result.status !== 200 || !bizData?.chat_session?.id) {
-      throw new Error(`Failed to create session: ${result.data?.msg || result.data?.data?.biz_msg || result.status}`)
+      throw new Error(`创建会话失败：${result.data?.msg || result.data?.data?.biz_msg || result.status}`)
     }
 
     const sessionId = bizData?.chat_session?.id
@@ -251,7 +251,7 @@ export class DeepSeekAdapter {
     // Response structure: { code: 0, data: { biz_code: 0, biz_data: { challenge: {...} } } }
     const bizData = result.data?.data?.biz_data || result.data?.biz_data
     if (result.status !== 200 || !bizData?.challenge) {
-      throw new Error(`Failed to get challenge: ${result.data?.msg || result.data?.data?.biz_msg || result.status}`)
+      throw new Error(`获取 challenge 失败：${result.data?.msg || result.data?.data?.biz_msg || result.status}`)
     }
 
     return bizData.challenge
@@ -261,7 +261,7 @@ export class DeepSeekAdapter {
     const { algorithm, challenge: challengeStr, salt, difficulty, expire_at, signature } = challenge
     
     if (algorithm !== 'DeepSeekHashV1') {
-      throw new Error(`Unsupported algorithm: ${algorithm}`)
+      throw new Error(`不支持的算法：${algorithm}`)
     }
     
     console.log('[DeepSeek] Challenge parameters:', { difficulty })
@@ -270,7 +270,7 @@ export class DeepSeekAdapter {
     const answer = deepSeekHash.calculateHash(algorithm, challengeStr, salt, difficulty, expire_at)
     
     if (answer === undefined) {
-      throw new Error('Challenge calculation failed')
+      throw new Error('challenge 计算失败')
     }
     
     console.log('[DeepSeek] Challenge answer found:', answer)

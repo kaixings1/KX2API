@@ -67,7 +67,7 @@ export function installPlugin(pluginId: string): { success: boolean; error?: str
     saveAll(all)
     return { success: true }
   }
-  return { success: false, error: 'Plugin not found' }
+  return { success: false, error: '插件不存在' }
 }
 
 export function uninstallPlugin(pluginId: string): { success: boolean; error?: string } {
@@ -79,7 +79,7 @@ export function uninstallPlugin(pluginId: string): { success: boolean; error?: s
     saveAll(all)
     return { success: true }
   }
-  return { success: false, error: 'Plugin not found' }
+  return { success: false, error: '插件不存在' }
 }
 
 export function enablePlugin(pluginId: string): { success: boolean } {
@@ -112,7 +112,7 @@ export function updatePlugin(pluginId: string): { success: boolean; error?: stri
     saveAll(all)
     return { success: true }
   }
-  return { success: false, error: 'Plugin not found' }
+  return { success: false, error: '插件不存在' }
 }
 
 export function addPlugin(data: Omit<PluginRecord, 'id'>): PluginRecord {

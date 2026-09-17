@@ -188,7 +188,7 @@ export class ProviderChecker {
     phToken: string
   ): TokenCheckResult {
     if (!serviceToken || !userId || !phToken) {
-      return { valid: false, error: 'Missing required credentials: service_token, user_id, ph_token' }
+      return { valid: false, error: '缺少必需的凭证：service_token、user_id、ph_token' }
     }
 
     return {
@@ -201,7 +201,7 @@ export class ProviderChecker {
 
   private static async checkStepFunToken(token: string, webId?: string): Promise<TokenCheckResult> {
     if (!token) {
-      return { valid: false, error: 'Token is required' }
+      return { valid: false, error: '缺少 Token' }
     }
 
     // API key format (sk-*)
@@ -250,7 +250,7 @@ export class ProviderChecker {
       return {
         valid: false,
         error: 'StepFun session is not activated (token has activated=false). '
-          + 'Log in at chat.stepfun.com in a normal browser tab and copy a fresh Oasis-Token.',
+          + '请在普通浏览器标签页登录 chat.stepfun.com，然后复制新的 Oasis-Token。',
       }
     }
 
@@ -368,7 +368,7 @@ export class ProviderChecker {
       }
       
       if (response.status === 401 || response.data?.code === 40003 || response.data?.data?.biz_code === 40003) {
-        return { valid: false, error: 'Token expired or invalid' }
+        return { valid: false, error: 'Token 已过期或无效' }
       }
       
       return { valid: false, error: `Validation failed: ${response.data?.msg || response.data?.message || JSON.stringify(response.data)}` }
@@ -442,7 +442,7 @@ export class ProviderChecker {
       }
       
       if (response.status === 401 || response.data?.status === 40001) {
-        return { valid: false, error: 'Token expired or invalid' }
+        return { valid: false, error: 'Token 已过期或无效' }
       }
       
       return { valid: false, error: `Validation failed: ${response.data?.message || response.data?.msg || JSON.stringify(response.data)}` }
@@ -512,7 +512,7 @@ export class ProviderChecker {
         }
       }
       
-      return { valid: false, error: 'Token expired or invalid' }
+      return { valid: false, error: 'Token 已过期或无效' }
     } catch (error) {
       console.error('[Kimi] Validation error:', error)
       return {
@@ -561,7 +561,7 @@ export class ProviderChecker {
       }
       
       if (!realUserID) {
-        return { valid: false, error: 'Cannot extract user ID from token' }
+        return { valid: false, error: '无法从 Token 中解析用户 ID' }
       }
       
       const uuid = realUserID
@@ -628,7 +628,7 @@ export class ProviderChecker {
       }
       
       if (response.data?.statusInfo?.code === 1001) {
-        return { valid: false, error: 'Token expired or invalid' }
+        return { valid: false, error: 'Token 已过期或无效' }
       }
       
       return { valid: false, error: `Validation failed: ${response.data?.statusInfo?.message || 'Unknown error'}` }
@@ -719,7 +719,7 @@ export class ProviderChecker {
       }
 
       if (response.status === 401) {
-        return { valid: false, error: 'Token expired or invalid' }
+        return { valid: false, error: 'Token 已过期或无效' }
       }
 
       return { valid: false, error: `Validation failed: HTTP ${response.status}` }
@@ -735,11 +735,11 @@ export class ProviderChecker {
 
   private static checkPerplexityToken(sessionToken: string): TokenCheckResult {
     if (!sessionToken) {
-      return { valid: false, error: 'Session token is required' }
+      return { valid: false, error: '缺少会话 Token' }
     }
 
     if (sessionToken.length < 100) {
-      return { valid: false, error: 'Session token appears to be invalid (too short)' }
+      return { valid: false, error: '会话 Token 似乎无效（长度过短）' }
     }
 
     return {
@@ -878,7 +878,7 @@ export class ProviderChecker {
       })
 
       if (response.status !== 200) {
-        throw new Error(`Failed to fetch models: HTTP ${response.status}`)
+        throw new Error(`获取模型失败：HTTP ${response.status}`)
       }
 
       const models = response.data.data || []

@@ -81,7 +81,7 @@ router.post('/completions', async (ctx: Context) => {
     ctx.status = 400
     ctx.body = {
       error: {
-        message: 'Invalid request body',
+        message: '请求体不合法',
         type: 'invalid_request_error',
         param: null,
         code: null,
@@ -95,7 +95,7 @@ router.post('/completions', async (ctx: Context) => {
     ctx.status = 400
     ctx.body = {
       error: {
-        message: 'Missing required field: model',
+        message: '缺少必填字段：model',
         type: 'invalid_request_error',
         param: 'model',
         code: null,
@@ -109,7 +109,7 @@ router.post('/completions', async (ctx: Context) => {
     ctx.status = 400
     ctx.body = {
       error: {
-        message: 'Missing required field: messages',
+        message: '缺少必填字段：messages',
         type: 'invalid_request_error',
         param: 'messages',
         code: null,

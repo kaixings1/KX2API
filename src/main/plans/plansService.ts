@@ -97,10 +97,10 @@ export function deletePlan(id: string): boolean {
 
 export function executePlan(id: string): { success: boolean; error?: string } {
   const plan = getPlanById(id)
-  if (!plan) return { success: false, error: 'Plan not found' }
+  if (!plan) return { success: false, error: '计划不存在' }
 
   if (plan.status === 'running') {
-    return { success: false, error: 'Plan is already running' }
+    return { success: false, error: '计划正在运行中' }
   }
 
   const updatedSteps = plan.steps.map((s, i) => ({
@@ -119,5 +119,5 @@ export function executePlan(id: string): { success: boolean; error?: string } {
     completedAt: allDone ? Date.now() : null,
   })
 
-  return result ? { success: true } : { success: false, error: 'Failed to update plan' }
+  return result ? { success: true } : { success: false, error: '更新计划失败' }
 }

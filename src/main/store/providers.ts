@@ -253,7 +253,7 @@ export class ProviderManager {
     const allProviders = [...defaultBuiltin, ...customProviders]
     storeManager.getStore()?.set('providers', allProviders)
     
-    storeManager.addLog('info', 'Reset built-in provider configuration')
+    storeManager.addLog('info', '重置内置供应商配置')
   }
 
   /**

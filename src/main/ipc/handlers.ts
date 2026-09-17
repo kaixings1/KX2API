@@ -747,7 +747,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
         || Array.from(commandsStore.values()).find(c => c.name === idOrName)
       if (!command) {
         console.warn('[CMD] EXECUTE: not found, id/name=', idOrName)
-        return { success: false, error: `Command not found: ${idOrName}` }
+        return { success: false, error: `命令不存在：${idOrName}` }
       }
 
       const cmdArgs = args && args.length > 0 ? args : (command.args || [])
@@ -1610,7 +1610,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     registerErrorRecoveryHandlers(mainWindow)
     if (mainWindow) {
       mainWindow.webContents.send(IpcChannels.STORE_INIT_ERROR, {
-        message: error instanceof Error ? error.message : 'Failed to initialize storage'
+        message: error instanceof Error ? error.message : '初始化存储失败'
       })
     }
     return
@@ -1926,7 +1926,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to sync models',
+        error: error instanceof Error ? error.message : '同步模型失败',
       }
     }
   })
@@ -1990,7 +1990,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       if (response.status !== 200) {
         return {
           success: false,
-          error: `Failed to fetch models: HTTP ${response.status}`,
+          error: `获取模型失败：HTTP ${response.status}`,
         }
       }
 
@@ -2041,7 +2041,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       console.error('[IPC] Failed to update models:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update models',
+        error: error instanceof Error ? error.message : '更新模型失败',
       }
     }
   })
@@ -2065,7 +2065,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       console.error('[IPC] Failed to add custom model:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to add custom model',
+        error: error instanceof Error ? error.message : '添加自定义模型失败',
         models: [],
       }
     }
@@ -2081,7 +2081,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       console.error('[IPC] Failed to remove model:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to remove model',
+        error: error instanceof Error ? error.message : '移除模型失败',
         models: [],
       }
     }
@@ -2097,7 +2097,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       console.error('[IPC] Failed to reset models:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to reset models',
+        error: error instanceof Error ? error.message : '重置模型失败',
         models: [],
       }
     }
@@ -2234,7 +2234,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       console.error('[IPC] Failed to clear chats:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to clear chats'
+        error: error instanceof Error ? error.message : '清空会话失败'
       }
     }
   })
@@ -2626,7 +2626,7 @@ function registerErrorRecoveryHandlers(mainWindow: BrowserWindow | null): void {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to initialize storage'
+        error: error instanceof Error ? error.message : '初始化存储失败'
       }
     }
   })

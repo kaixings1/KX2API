@@ -55,7 +55,7 @@ router.get('/statistics', async (ctx: Context) => {
       data: response,
     } as ManagementApiResponse<StatisticsResponse>
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
     ctx.status = 500
     ctx.body = {
       success: false,
@@ -104,7 +104,7 @@ router.get('/health', async (ctx: Context) => {
       proxy: ProxyStatusResponse
     }>
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
     ctx.status = 500
     ctx.body = {
       success: false,
@@ -195,7 +195,7 @@ router.get('/logs', async (ctx: Context) => {
       }>
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
     ctx.status = 500
     ctx.body = {
       success: false,

@@ -43,7 +43,7 @@ router.get('/', async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(providers)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get providers'
+    const errorMessage = error instanceof Error ? error.message : '获取供应商列表失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -56,14 +56,14 @@ router.get('/:id', async (ctx: Context) => {
 
     if (!provider) {
       ctx.status = 404
-      ctx.body = createErrorResponse('not_found', 'Provider not found')
+      ctx.body = createErrorResponse('not_found', '供应商不存在')
       return
     }
 
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(provider)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get provider'
+    const errorMessage = error instanceof Error ? error.message : '获取供应商失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -75,19 +75,19 @@ router.post('/', async (ctx: Context) => {
 
     if (!request.name || typeof request.name !== 'string') {
       ctx.status = 400
-      ctx.body = createErrorResponse('invalid_request', 'Missing required field: name')
+      ctx.body = createErrorResponse('invalid_request', '缺少必填字段：name')
       return
     }
 
     if (!request.authType) {
       ctx.status = 400
-      ctx.body = createErrorResponse('invalid_request', 'Missing required field: authType')
+      ctx.body = createErrorResponse('invalid_request', '缺少必填字段：authType')
       return
     }
 
     if (!request.apiEndpoint || typeof request.apiEndpoint !== 'string') {
       ctx.status = 400
-      ctx.body = createErrorResponse('invalid_request', 'Missing required field: apiEndpoint')
+      ctx.body = createErrorResponse('invalid_request', '缺少必填字段：apiEndpoint')
       return
     }
 
@@ -107,7 +107,7 @@ router.post('/', async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(provider)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create provider'
+    const errorMessage = error instanceof Error ? error.message : '创建供应商失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -121,7 +121,7 @@ router.put('/:id', async (ctx: Context) => {
     const existingProvider = ProviderManager.getById(id)
     if (!existingProvider) {
       ctx.status = 404
-      ctx.body = createErrorResponse('not_found', 'Provider not found')
+      ctx.body = createErrorResponse('not_found', '供应商不存在')
       return
     }
 
@@ -167,14 +167,14 @@ router.put('/:id', async (ctx: Context) => {
 
     if (!updatedProvider) {
       ctx.status = 500
-      ctx.body = createErrorResponse('update_failed', 'Failed to update provider')
+      ctx.body = createErrorResponse('update_failed', '更新供应商失败')
       return
     }
 
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(updatedProvider)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update provider'
+    const errorMessage = error instanceof Error ? error.message : '更新供应商失败'
 
     if (errorMessage.includes('Built-in providers cannot modify')) {
       ctx.status = 403
@@ -195,14 +195,14 @@ router.delete('/:id', async (ctx: Context) => {
 
     if (!deleted) {
       ctx.status = 404
-      ctx.body = createErrorResponse('not_found', 'Provider not found')
+      ctx.body = createErrorResponse('not_found', '供应商不存在')
       return
     }
 
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse({ id, deleted: true })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to delete provider'
+    const errorMessage = error instanceof Error ? error.message : '删除供应商失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -215,14 +215,14 @@ router.patch('/:id/status', async (ctx: Context) => {
 
     if (request.enabled === undefined || typeof request.enabled !== 'boolean') {
       ctx.status = 400
-      ctx.body = createErrorResponse('invalid_request', 'Missing or invalid required field: enabled (must be boolean)')
+      ctx.body = createErrorResponse('invalid_request', '缺少或无效的必填字段：enabled（必须是布尔值）')
       return
     }
 
     const existingProvider = ProviderManager.getById(id)
     if (!existingProvider) {
       ctx.status = 404
-      ctx.body = createErrorResponse('not_found', 'Provider not found')
+      ctx.body = createErrorResponse('not_found', '供应商不存在')
       return
     }
 
@@ -230,14 +230,14 @@ router.patch('/:id/status', async (ctx: Context) => {
 
     if (!updatedProvider) {
       ctx.status = 500
-      ctx.body = createErrorResponse('update_failed', 'Failed to update provider status')
+      ctx.body = createErrorResponse('update_failed', '更新供应商状态失败')
       return
     }
 
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(updatedProvider)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update provider status'
+    const errorMessage = error instanceof Error ? error.message : '更新供应商状态失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }

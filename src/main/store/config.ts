@@ -36,7 +36,7 @@ export class ConfigManager {
     
     const updated = storeManager.updateConfig(updates)
     
-    storeManager.addLog('info', 'Update app configuration', {
+    storeManager.addLog('info', '更新应用配置', {
       data: { updates },
     })
     
@@ -50,7 +50,7 @@ export class ConfigManager {
   static reset(): AppConfig {
     storeManager.resetConfig()
     
-    storeManager.addLog('info', 'Reset app configuration to default values')
+    storeManager.addLog('info', '将应用配置重置为默认值')
     
     return DEFAULT_CONFIG
   }
@@ -71,7 +71,7 @@ export class ConfigManager {
    */
   static setProxyPort(port: number): void {
     if (port < 1 || port > 65535) {
-      throw new Error('Port number must be between 1-65535')
+      throw new Error('端口号必须在 1-65535 之间')
     }
     
     this.update({ proxyPort: port })
@@ -254,7 +254,7 @@ export class ConfigManager {
    */
   static setLogRetentionDays(days: number): void {
     if (days < 1 || days > 365) {
-      throw new Error('Log retention days must be between 1-365')
+      throw new Error('日志保留天数必须在 1-365 之间')
     }
     
     this.update({ logRetentionDays: days })
@@ -276,7 +276,7 @@ export class ConfigManager {
    */
   static setRequestTimeout(timeout: number): void {
     if (timeout < 1000 || timeout > 300000) {
-      throw new Error('Request timeout must be between 1000-300000 milliseconds')
+      throw new Error('请求超时必须在 1000-300000 毫秒之间')
     }
     
     this.update({ requestTimeout: timeout })
@@ -296,7 +296,7 @@ export class ConfigManager {
    */
   static setRetryCount(count: number): void {
     if (count < 0 || count > 10) {
-      throw new Error('Retry count must be between 0-10')
+      throw new Error('重试次数必须在 0-10 之间')
     }
     
     this.update({ retryCount: count })
@@ -314,25 +314,25 @@ export class ConfigManager {
     
     if (config.proxyPort !== undefined) {
       if (config.proxyPort < 1 || config.proxyPort > 65535) {
-        errors.push('Proxy port must be between 1-65535')
+        errors.push('代理端口必须在 1-65535 之间')
       }
     }
     
     if (config.logRetentionDays !== undefined) {
       if (config.logRetentionDays < 1 || config.logRetentionDays > 365) {
-        errors.push('Log retention days must be between 1-365')
+        errors.push('日志保留天数必须在 1-365 之间')
       }
     }
     
     if (config.requestTimeout !== undefined) {
       if (config.requestTimeout < 1000 || config.requestTimeout > 300000) {
-        errors.push('Request timeout must be between 1000-300000 milliseconds')
+        errors.push('请求超时必须在 1000-300000 毫秒之间')
       }
     }
     
     if (config.retryCount !== undefined) {
       if (config.retryCount < 0 || config.retryCount > 10) {
-        errors.push('Retry count must be between 0-10')
+        errors.push('重试次数必须在 0-10 之间')
       }
     }
 
@@ -396,7 +396,7 @@ export class ConfigManager {
     
     this.update(config)
     
-    storeManager.addLog('info', 'Import app configuration')
+    storeManager.addLog('info', '导入应用配置')
     
     return { success: true, errors: [] }
   }

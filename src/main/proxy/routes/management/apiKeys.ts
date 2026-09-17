@@ -85,7 +85,7 @@ router.get('/api-keys', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(maskedKeys)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get API keys'
+    const errorMessage = error instanceof Error ? error.message : '获取 API Key 列表失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -102,7 +102,7 @@ router.post('/api-keys', managementAuthMiddleware, async (ctx: Context) => {
     
     if (!request.name || typeof request.name !== 'string' || request.name.trim() === '') {
       ctx.status = 400
-      ctx.body = createErrorResponse('invalid_request', 'Missing required field: name')
+      ctx.body = createErrorResponse('invalid_request', '缺少必填字段：name')
       return
     }
     
@@ -131,7 +131,7 @@ router.post('/api-keys', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(newKey)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create API key'
+    const errorMessage = error instanceof Error ? error.message : '创建 API Key失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -161,7 +161,7 @@ router.put('/api-keys/:id', managementAuthMiddleware, async (ctx: Context) => {
     if (request.name !== undefined) {
       if (typeof request.name !== 'string' || request.name.trim() === '') {
         ctx.status = 400
-        ctx.body = createErrorResponse('invalid_request', 'Invalid field: name must be a non-empty string')
+        ctx.body = createErrorResponse('invalid_request', '字段无效：name 必须是非空字符串')
         return
       }
       existingKey.name = request.name.trim()
@@ -174,7 +174,7 @@ router.put('/api-keys/:id', managementAuthMiddleware, async (ctx: Context) => {
     if (request.enabled !== undefined) {
       if (typeof request.enabled !== 'boolean') {
         ctx.status = 400
-        ctx.body = createErrorResponse('invalid_request', 'Invalid field: enabled must be a boolean')
+        ctx.body = createErrorResponse('invalid_request', '字段无效：enabled 必须是布尔值')
         return
       }
       existingKey.enabled = request.enabled
@@ -192,7 +192,7 @@ router.put('/api-keys/:id', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(maskedKey)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update API key'
+    const errorMessage = error instanceof Error ? error.message : '更新 API Key失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -228,7 +228,7 @@ router.delete('/api-keys/:id', managementAuthMiddleware, async (ctx: Context) =>
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse({ id, deleted: true })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to delete API key'
+    const errorMessage = error instanceof Error ? error.message : '删除 API Key失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -270,7 +270,7 @@ router.post('/api-keys/:id/regenerate', managementAuthMiddleware, async (ctx: Co
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(existingKey)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to regenerate API key'
+    const errorMessage = error instanceof Error ? error.message : '重新生成 API Key失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }

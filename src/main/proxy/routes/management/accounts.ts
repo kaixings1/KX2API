@@ -68,7 +68,7 @@ router.get('/accounts', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(maskedAccounts)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get accounts'
+    const errorMessage = error instanceof Error ? error.message : '获取账户列表失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -87,7 +87,7 @@ router.get('/providers/:providerId/accounts', managementAuthMiddleware, async (c
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(maskedAccounts)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get accounts by provider'
+    const errorMessage = error instanceof Error ? error.message : '按供应商获取账户失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -105,7 +105,7 @@ router.get('/accounts/:id', managementAuthMiddleware, async (ctx: Context) => {
     
     if (!account) {
       ctx.status = 404
-      ctx.body = createErrorResponse('account_not_found', `Account not found: ${id}`)
+      ctx.body = createErrorResponse('account_not_found', `账户不存在：${id}`)
       return
     }
     
@@ -113,7 +113,7 @@ router.get('/accounts/:id', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(maskedAccount)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get account'
+    const errorMessage = error instanceof Error ? error.message : '获取账户失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -129,19 +129,19 @@ router.post('/accounts', managementAuthMiddleware, async (ctx: Context) => {
     
     if (!request.providerId) {
       ctx.status = 400
-      ctx.body = createErrorResponse('invalid_request', 'Missing required field: providerId')
+      ctx.body = createErrorResponse('invalid_request', '缺少必填字段：providerId')
       return
     }
     
     if (!request.name) {
       ctx.status = 400
-      ctx.body = createErrorResponse('invalid_request', 'Missing required field: name')
+      ctx.body = createErrorResponse('invalid_request', '缺少必填字段：name')
       return
     }
     
     if (!request.credentials || typeof request.credentials !== 'object') {
       ctx.status = 400
-      ctx.body = createErrorResponse('invalid_request', 'Missing or invalid required field: credentials')
+      ctx.body = createErrorResponse('invalid_request', '缺少或无效的必填字段：credentials')
       return
     }
     
@@ -158,7 +158,7 @@ router.post('/accounts', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(maskedAccount)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create account'
+    const errorMessage = error instanceof Error ? error.message : '创建账户失败'
     
     if (errorMessage.includes('not found')) {
       ctx.status = 404
@@ -182,7 +182,7 @@ router.put('/accounts/:id', managementAuthMiddleware, async (ctx: Context) => {
     const existingAccount = AccountManager.getById(id, false)
     if (!existingAccount) {
       ctx.status = 404
-      ctx.body = createErrorResponse('account_not_found', `Account not found: ${id}`)
+      ctx.body = createErrorResponse('account_not_found', `账户不存在：${id}`)
       return
     }
     
@@ -208,7 +208,7 @@ router.put('/accounts/:id', managementAuthMiddleware, async (ctx: Context) => {
     
     if (!updatedAccount) {
       ctx.status = 500
-      ctx.body = createErrorResponse('update_failed', 'Failed to update account')
+      ctx.body = createErrorResponse('update_failed', '更新账户失败')
       return
     }
     
@@ -216,7 +216,7 @@ router.put('/accounts/:id', managementAuthMiddleware, async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(maskedAccount)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update account'
+    const errorMessage = error instanceof Error ? error.message : '更新账户失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -234,14 +234,14 @@ router.delete('/accounts/:id', managementAuthMiddleware, async (ctx: Context) =>
     
     if (!deleted) {
       ctx.status = 404
-      ctx.body = createErrorResponse('account_not_found', `Account not found: ${id}`)
+      ctx.body = createErrorResponse('account_not_found', `账户不存在：${id}`)
       return
     }
     
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse({ id, deleted: true })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to delete account'
+    const errorMessage = error instanceof Error ? error.message : '删除账户失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -258,7 +258,7 @@ router.post('/accounts/:id/validate', managementAuthMiddleware, async (ctx: Cont
     const existingAccount = AccountManager.getById(id, false)
     if (!existingAccount) {
       ctx.status = 404
-      ctx.body = createErrorResponse('account_not_found', `Account not found: ${id}`)
+      ctx.body = createErrorResponse('account_not_found', `账户不存在：${id}`)
       return
     }
     
@@ -267,7 +267,7 @@ router.post('/accounts/:id/validate', managementAuthMiddleware, async (ctx: Cont
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(validationResult)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to validate account'
+    const errorMessage = error instanceof Error ? error.message : '校验账户失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }

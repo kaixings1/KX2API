@@ -37,7 +37,7 @@ router.get('/', async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(groups)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to list config groups'
+    const errorMessage = error instanceof Error ? error.message : '列出配置组失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -49,7 +49,7 @@ router.get('/active', async (ctx: Context) => {
     const active = configGroupManager.getActiveGroup()
     if (!active) {
       ctx.status = 404
-      ctx.body = createErrorResponse('not_found', 'No active config group')
+      ctx.body = createErrorResponse('not_found', '没有生效的配置组')
       return
     }
     const data = configGroupManager.readGroup(active.id)
@@ -59,7 +59,7 @@ router.get('/active', async (ctx: Context) => {
       data,
     })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get active config group'
+    const errorMessage = error instanceof Error ? error.message : '获取生效的配置组失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -73,7 +73,7 @@ router.get('/:id', async (ctx: Context) => {
 
     if (!group) {
       ctx.status = 404
-      ctx.body = createErrorResponse('not_found', 'Config group not found')
+      ctx.body = createErrorResponse('not_found', '配置组不存在')
       return
     }
 
@@ -84,7 +84,7 @@ router.get('/:id', async (ctx: Context) => {
       data,
     })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to get config group'
+    const errorMessage = error instanceof Error ? error.message : '获取配置组失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -103,7 +103,7 @@ router.post('/', async (ctx: Context) => {
 
     if (!body.id || typeof body.id !== 'string') {
       ctx.status = 400
-      ctx.body = createErrorResponse('invalid_request', 'Missing required field: id')
+      ctx.body = createErrorResponse('invalid_request', '缺少必填字段：id')
       return
     }
 
@@ -111,7 +111,7 @@ router.post('/', async (ctx: Context) => {
 
     if (!group) {
       ctx.status = 409
-      ctx.body = createErrorResponse('conflict', 'Config group already exists')
+      ctx.body = createErrorResponse('conflict', '配置组已存在')
       return
     }
 
@@ -119,7 +119,7 @@ router.post('/', async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(group)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create config group'
+    const errorMessage = error instanceof Error ? error.message : '创建配置组失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -139,7 +139,7 @@ router.put('/:id', async (ctx: Context) => {
     const existing = configGroupManager.readGroup(id)
     if (!existing) {
       ctx.status = 404
-      ctx.body = createErrorResponse('not_found', 'Config group not found')
+      ctx.body = createErrorResponse('not_found', '配置组不存在')
       return
     }
 
@@ -152,7 +152,7 @@ router.put('/:id', async (ctx: Context) => {
 
     if (!success) {
       ctx.status = 500
-      ctx.body = createErrorResponse('update_failed', 'Failed to write config group')
+      ctx.body = createErrorResponse('update_failed', '写入配置组失败')
       return
     }
 
@@ -160,7 +160,7 @@ router.put('/:id', async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(group)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update config group'
+    const errorMessage = error instanceof Error ? error.message : '更新配置组失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -175,14 +175,14 @@ router.delete('/:id', async (ctx: Context) => {
 
     if (!success) {
       ctx.status = 404
-      ctx.body = createErrorResponse('not_found', 'Config group not found')
+      ctx.body = createErrorResponse('not_found', '配置组不存在')
       return
     }
 
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse({ id, deleted: true })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to delete config group'
+    const errorMessage = error instanceof Error ? error.message : '删除配置组失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }
@@ -197,7 +197,7 @@ router.patch('/:id/activate', async (ctx: Context) => {
 
     if (!success) {
       ctx.status = 404
-      ctx.body = createErrorResponse('not_found', 'Config group not found')
+      ctx.body = createErrorResponse('not_found', '配置组不存在')
       return
     }
 
@@ -205,7 +205,7 @@ router.patch('/:id/activate', async (ctx: Context) => {
     ctx.set('Content-Type', 'application/json')
     ctx.body = createSuccessResponse(group)
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to set active config group'
+    const errorMessage = error instanceof Error ? error.message : '设置生效的配置组失败'
     ctx.status = 500
     ctx.body = createErrorResponse('internal_error', errorMessage)
   }

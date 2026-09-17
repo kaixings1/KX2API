@@ -92,7 +92,7 @@ export function createEngine(config?: Partial<EngineConfig>): QueryEngine {
 }
 
 export function getEngine(): QueryEngine {
-  if (!engine) throw new Error('Engine not initialized')
+  if (!engine) throw new Error('引擎未初始化')
   return engine
 }
 

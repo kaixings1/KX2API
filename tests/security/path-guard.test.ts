@@ -18,7 +18,8 @@ test('PathGuard: empty path → denied', () => {
   const pg = new PathGuard({ rootDir: 'D:/project' })
   const r = pg.validate('')
   assert.strictEqual(r.allowed, false)
-  assert.strictEqual(r.reason, 'Path is empty')
+  // 拒绝原因面向用户展示，已汉化
+  assert.strictEqual(r.reason, '路径为空')
 })
 
 test('PathGuard: valid relative path → allowed', () => {
@@ -31,7 +32,7 @@ test('PathGuard: blocked .git directory → denied', () => {
   const pg = new PathGuard({ rootDir: 'D:/project' })
   const r = pg.validate('.git/config')
   assert.strictEqual(r.allowed, false)
-  assert.ok(r.reason!.includes('blocked directory'))
+  assert.ok(r.reason!.includes('禁止访问的目录'))
 })
 
 test('PathGuard: blocked .env file → denied', () => {
@@ -44,14 +45,14 @@ test('PathGuard: blocked .exe extension → denied', () => {
   const pg = new PathGuard({ rootDir: 'D:/project' })
   const r = pg.validate('app.exe')
   assert.strictEqual(r.allowed, false)
-  assert.ok(r.reason!.includes('Blocked file extension'))
+  assert.ok(r.reason!.includes('禁止的文件扩展名'))
 })
 
 test('PathGuard: path traversal with .. → denied if escapes root', () => {
   const pg = new PathGuard({ rootDir: 'D:/project' })
   const r = pg.validate('../../etc/passwd')
   assert.strictEqual(r.allowed, false)
-  assert.ok(r.reason!.includes('traversal'))
+  assert.ok(r.reason!.includes('穿越'))
 })
 
 test('PathGuard: allowedDirs restricts access', () => {
@@ -78,28 +79,29 @@ test('InputValidator: non-string → invalid', () => {
   const v = new InputValidator()
   const r = v.validateString(123)
   assert.strictEqual(r.valid, false)
-  assert.ok(r.errors[0]!.includes('string'))
+  // 校验消息已汉化（面向用户展示），断言随之匹配中文
+  assert.ok(r.errors[0]!.includes('字符串'))
 })
 
 test('InputValidator: empty string without allowEmpty → invalid', () => {
   const v = new InputValidator()
   const r = v.validateString('')
   assert.strictEqual(r.valid, false)
-  assert.ok(r.errors[0]!.includes('empty'))
+  assert.ok(r.errors[0]!.includes('不能为空'))
 })
 
 test('InputValidator: minLength enforcement', () => {
   const v = new InputValidator()
   const r = v.validateString('ab', { minLength: 3 })
   assert.strictEqual(r.valid, false)
-  assert.ok(r.errors[0]!.includes('at least'))
+  assert.ok(r.errors[0]!.includes('至少'))
 })
 
 test('InputValidator: maxLength enforcement', () => {
   const v = new InputValidator()
   const r = v.validateString('abcdef', { maxLength: 3 })
   assert.strictEqual(r.valid, false)
-  assert.ok(r.errors[0]!.includes('at most'))
+  assert.ok(r.errors[0]!.includes('至多'))
 })
 
 test('InputValidator: pattern matching', () => {
@@ -127,14 +129,14 @@ test('InputValidator: validateFilePath detects .. traversal', () => {
   const v = new InputValidator()
   const r = v.validateFilePath('../../etc/passwd')
   assert.strictEqual(r.valid, false)
-  assert.ok(r.errors[0]!.includes('traversal'))
+  assert.ok(r.errors[0]!.includes('穿越'))
 })
 
 test('InputValidator: validateFilePath detects reserved Windows names', () => {
   const v = new InputValidator()
   const r = v.validateFilePath('CON.txt')
   assert.strictEqual(r.valid, false)
-  assert.ok(r.errors[0]!.includes('reserved'))
+  assert.ok(r.errors[0]!.includes('保留'))
 })
 
 test('InputValidator: validateCommand detects rm -rf /', () => {

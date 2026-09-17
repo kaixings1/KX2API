@@ -90,7 +90,7 @@ export function registerAgentHandlers(main: BrowserWindow): void {
     try {
       const agent = agentsStore.getById(id)
       if (agent) return { success: true, data: agent }
-      return { success: false, error: 'Agent not found' }
+      return { success: false, error: '智能体不存在' }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
@@ -111,7 +111,7 @@ export function registerAgentHandlers(main: BrowserWindow): void {
   ipcMain.handle(IpcChannels.AGENTS_UPDATE, async (_, id: string, data: Partial<Omit<AgentRecord, 'id' | 'createdAt'>>) => {
     try {
       const existing = agentsStore.getById(id)
-      if (!existing) return { success: false, error: 'Agent not found' }
+      if (!existing) return { success: false, error: '智能体不存在' }
       const updated: AgentRecord = { ...existing, ...data, updatedAt: Date.now() }
       agentsStore.set(id, updated)
       return { success: true, data: updated }
@@ -135,10 +135,10 @@ export function registerAgentHandlers(main: BrowserWindow): void {
   ipcMain.handle(IpcChannels.AGENTS_EXECUTE, async (_, id: string, input: string) => {
     try {
       const agent = agentsStore.getById(id)
-      if (!agent) return { success: false, error: 'Agent not found' }
+      if (!agent) return { success: false, error: '智能体不存在' }
 
       if (agent.status === 'running') {
-        return { success: false, error: 'Agent is already running' }
+        return { success: false, error: '智能体已在运行' }
       }
 
       startExecution(id, input)

@@ -424,7 +424,7 @@ export class MimoAdapter {
     const { serviceToken, userId, phToken } = this.getCredentials()
 
     if (!serviceToken || !userId || !phToken) {
-      throw new Error('Mimo credentials not configured. Please add service_token, user_id, and ph_token in account settings.')
+      throw new Error('未配置 Mimo 凭证。请在账户设置中填写 service_token、user_id 与 ph_token。')
     }
 
     const conversationId = uuid(false)
@@ -471,7 +471,7 @@ export class MimoAdapter {
     const { serviceToken, userId, phToken } = this.getCredentials()
 
     if (!serviceToken || !userId || !phToken) {
-      throw new Error('Mimo credentials not configured')
+      throw new Error('未配置 Mimo 凭证')
     }
 
     const url = `${MIMO_API_BASE}/open-apis/chat/conversation/list?xiaomichatbot_ph=${encodeURIComponent(phToken)}`
@@ -520,7 +520,7 @@ export class MimoAdapter {
     const { serviceToken, userId, phToken } = this.getCredentials()
 
     if (!serviceToken || !userId || !phToken) {
-      throw new Error('Mimo credentials not configured')
+      throw new Error('未配置 Mimo 凭证')
     }
 
     const url = `${MIMO_API_BASE}/open-apis/chat/conversation/delete?xiaomichatbot_ph=${encodeURIComponent(phToken)}`

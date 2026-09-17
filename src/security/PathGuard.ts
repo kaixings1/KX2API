@@ -46,7 +46,7 @@ export class PathGuard {
   } {
     // 1. 检查空路径
     if (!path || path.trim().length === 0) {
-      return { allowed: false, reason: 'Path is empty' };
+      return { allowed: false, reason: '路径为空' };
     }
 
     // 2. 规范化路径
@@ -58,7 +58,7 @@ export class PathGuard {
       if (!resolved.startsWith(this.config.rootDir)) {
         return {
           allowed: false,
-          reason: 'Path traversal detected: escapes root directory',
+          reason: '检测到路径穿越：超出根目录',
         };
       }
     }
@@ -68,7 +68,7 @@ export class PathGuard {
       if (normalizedPath.includes(blocked)) {
         return {
           allowed: false,
-          reason: `Access to blocked directory: ${blocked}`,
+          reason: `禁止访问的目录：${blocked}`,
           normalizedPath,
         };
       }
@@ -82,7 +82,7 @@ export class PathGuard {
       if (!inAllowedDir) {
         return {
           allowed: false,
-          reason: 'Path is not in allowed directories',
+          reason: '路径不在允许的目录内',
           normalizedPath,
         };
       }
@@ -94,7 +94,7 @@ export class PathGuard {
       if (this.config.blockedExtensions.includes(ext)) {
         return {
           allowed: false,
-          reason: `Blocked file extension: ${ext}`,
+          reason: `禁止的文件扩展名：${ext}`,
           normalizedPath,
         };
       }

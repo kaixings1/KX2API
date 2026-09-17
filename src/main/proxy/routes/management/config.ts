@@ -93,7 +93,7 @@ router.get('/', async (ctx: Context) => {
       data: maskedConfig,
     } as ManagementApiResponse<Record<string, unknown>>
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
     ctx.status = 500
     ctx.body = {
       success: false,
@@ -115,7 +115,7 @@ router.put('/', async (ctx: Context) => {
         success: false,
         error: {
           code: 'invalid_request',
-          message: 'Request body must be a valid configuration object',
+          message: '请求体必须是合法的配置对象',
         },
       } as ManagementApiResponse
       return
@@ -144,7 +144,7 @@ router.put('/', async (ctx: Context) => {
       data: maskedConfig,
     } as ManagementApiResponse<Record<string, unknown>>
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
     ctx.status = 500
     ctx.body = {
       success: false,
@@ -168,7 +168,7 @@ router.get('/:key', async (ctx: Context) => {
         success: false,
         error: {
           code: 'config_key_not_found',
-          message: `Configuration key '${key}' not found`,
+          message: `配置项 '${key}' 不存在`,
         },
       } as ManagementApiResponse
       return
@@ -182,7 +182,7 @@ router.get('/:key', async (ctx: Context) => {
       data: maskedValue,
     } as ManagementApiResponse<unknown>
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
     ctx.status = 500
     ctx.body = {
       success: false,
@@ -219,7 +219,7 @@ router.put('/:key', async (ctx: Context) => {
         success: false,
         error: {
           code: 'config_key_not_found',
-          message: `Configuration key '${key}' not found`,
+          message: `配置项 '${key}' 不存在`,
         },
       } as ManagementApiResponse
       return
@@ -249,7 +249,7 @@ router.put('/:key', async (ctx: Context) => {
       data: maskedValue,
     } as ManagementApiResponse<unknown>
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
     ctx.status = 500
     ctx.body = {
       success: false,
