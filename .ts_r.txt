@@ -92,11 +92,6 @@ src/main/proxy/adapters/stepfun-stream.ts(107,25): error TS7006: Parameter 'err'
 src/main/proxy/adapters/stepfun-stream.ts(380,29): error TS7006: Parameter 'err' implicitly has an 'any' type.
 src/main/proxy/adapters/stepfun-studio.ts(646,11): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
   Type 'null' is not assignable to type 'string | undefined'.
-src/main/proxy/adapters/stepfun-studio.ts(916,15): error TS2367: This comparison appears to be unintentional because the types 'Promise<number>' and '0' have no overlap.
-src/main/proxy/adapters/stepfun-studio.ts(917,13): error TS2322: Type 'number' is not assignable to type 'Promise<number>'.
-src/main/proxy/adapters/stepfun-studio.ts(920,33): error TS2345: Argument of type 'Promise<number>' is not assignable to parameter of type 'number'.
-src/main/proxy/adapters/stepfun-studio.ts(1428,17): error TS2345: Argument of type 'boolean | 0' is not assignable to parameter of type 'boolean | PromiseLike<boolean>'.
-  Type '0' is not assignable to type 'boolean | PromiseLike<boolean>'.
 src/main/proxy/adapters/stepfun.ts(820,11): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
   Type 'null' is not assignable to type 'string | undefined'.
 src/main/proxy/adapters/stepfun.ts(1168,11): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
@@ -104,24 +99,8 @@ src/main/proxy/adapters/stepfun.ts(1168,11): error TS2322: Type 'string | null' 
 src/main/proxy/adapters/transformers/anthropic.ts(31,30): error TS2551: Property 'toolCallId' does not exist on type 'ChatMessage'. Did you mean 'tool_call_id'?
 src/main/proxy/adapters/transformers/anthropic.ts(137,7): error TS2322: Type '{ promptTokens: any; completionTokens: any; totalTokens: any; } | undefined' is not assignable to type '{ prompt_tokens: number; completion_tokens: number; total_tokens: number; } | undefined'.
   Object literal may only specify known properties, but 'promptTokens' does not exist in type '{ prompt_tokens: number; completion_tokens: number; total_tokens: number; }'. Did you mean to write 'prompt_tokens'?
-src/main/proxy/adapters/transformers/openai.ts(17,11): error TS2551: Property 'toolCallId' does not exist on type 'ChatMessage'. Did you mean 'tool_call_id'?
-src/main/proxy/adapters/transformers/openai.ts(18,31): error TS2551: Property 'toolCallId' does not exist on type 'ChatMessage'. Did you mean 'tool_call_id'?
-src/main/proxy/adapters/transformers/openai.ts(56,7): error TS2322: Type '{ promptTokens: any; completionTokens: any; totalTokens: any; } | undefined' is not assignable to type '{ prompt_tokens: number; completion_tokens: number; total_tokens: number; } | undefined'.
+src/main/proxy/adapters/transformers/openai.ts(59,7): error TS2322: Type '{ promptTokens: any; completionTokens: any; totalTokens: any; } | undefined' is not assignable to type '{ prompt_tokens: number; completion_tokens: number; total_tokens: number; } | undefined'.
   Object literal may only specify known properties, but 'promptTokens' does not exist in type '{ prompt_tokens: number; completion_tokens: number; total_tokens: number; }'. Did you mean to write 'prompt_tokens'?
-src/main/proxy/adapters/transformers/openai.ts(73,11): error TS2551: Property 'topP' does not exist on type 'ChatCompletionRequest'. Did you mean 'top_p'?
-src/main/proxy/adapters/transformers/openai.ts(73,50): error TS2551: Property 'topP' does not exist on type 'ChatCompletionRequest'. Did you mean 'top_p'?
-src/main/proxy/adapters/transformers/openai.ts(74,11): error TS2551: Property 'maxTokens' does not exist on type 'ChatCompletionRequest'. Did you mean 'max_tokens'?
-src/main/proxy/adapters/transformers/openai.ts(74,60): error TS2551: Property 'maxTokens' does not exist on type 'ChatCompletionRequest'. Did you mean 'max_tokens'?
-src/main/proxy/adapters/transformers/openai.ts(77,11): error TS2551: Property 'presencePenalty' does not exist on type 'ChatCompletionRequest'. Did you mean 'presence_penalty'?
-src/main/proxy/adapters/transformers/openai.ts(77,72): error TS2551: Property 'presencePenalty' does not exist on type 'ChatCompletionRequest'. Did you mean 'presence_penalty'?
-src/main/proxy/adapters/transformers/openai.ts(78,11): error TS2551: Property 'frequencyPenalty' does not exist on type 'ChatCompletionRequest'. Did you mean 'frequency_penalty'?
-src/main/proxy/adapters/transformers/openai.ts(78,74): error TS2551: Property 'frequencyPenalty' does not exist on type 'ChatCompletionRequest'. Did you mean 'frequency_penalty'?
-src/main/proxy/adapters/transformers/openai.ts(79,11): error TS2551: Property 'logitBias' does not exist on type 'ChatCompletionRequest'. Did you mean 'logit_bias'?
-src/main/proxy/adapters/transformers/openai.ts(79,46): error TS2551: Property 'logitBias' does not exist on type 'ChatCompletionRequest'. Did you mean 'logit_bias'?
-src/main/proxy/adapters/transformers/openai.ts(81,11): error TS2551: Property 'webSearch' does not exist on type 'ChatCompletionRequest'. Did you mean 'web_search'?
-src/main/proxy/adapters/transformers/openai.ts(81,46): error TS2551: Property 'webSearch' does not exist on type 'ChatCompletionRequest'. Did you mean 'web_search'?
-src/main/proxy/adapters/transformers/openai.ts(95,11): error TS2551: Property 'toolChoice' does not exist on type 'ChatCompletionRequest'. Did you mean 'tool_choice'?
-src/main/proxy/adapters/transformers/openai.ts(96,30): error TS2551: Property 'toolChoice' does not exist on type 'ChatCompletionRequest'. Did you mean 'tool_choice'?
 src/main/proxy/constants/signatures.ts(166,14): error TS2741: Property 'unknown' is missing in type '{ bracket: string[]; xml: string[]; anthropic: string[]; json: string[]; native: never[]; managed_xml: string[]; kimi: string[]; }' but required in type 'Record<ToolCallFormat, string[]>'.
 src/main/proxy/forwarder.ts(56,8): error TS2459: Module '"./services/contextManagementService"' declares 'ChatMessage' locally, but it is not exported.
 src/main/proxy/forwarder.ts(165,14): error TS2551: Property 'forwardStepFunStudio' does not exist on type 'RequestForwarder'. Did you mean 'forwardStepFun'?

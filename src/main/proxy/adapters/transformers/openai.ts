@@ -73,16 +73,16 @@ export function fromOpenAIRequest(req: ChatCompletionRequest): Record<string, an
   }
 
   if (req.temperature !== undefined) result.temperature = req.temperature
-  if (req.topP !== undefined) result.top_p = req.topP
-  if (req.maxTokens !== undefined) result.max_tokens = req.maxTokens
+  if (req.top_p !== undefined) result.top_p = req.top_p
+  if (req.max_tokens !== undefined) result.max_tokens = req.max_tokens
   if (req.stop) result.stop = req.stop
   if (req.stream !== undefined) result.stream = req.stream
-  if (req.presencePenalty !== undefined) result.presence_penalty = req.presencePenalty
-  if (req.frequencyPenalty !== undefined) result.frequency_penalty = req.frequencyPenalty
-  if (req.logitBias) result.logit_bias = req.logitBias
+  if (req.presence_penalty !== undefined) result.presence_penalty = req.presence_penalty
+  if (req.frequency_penalty !== undefined) result.frequency_penalty = req.frequency_penalty
+  if (req.logit_bias) result.logit_bias = req.logit_bias
   if (req.user) result.user = req.user
-  if (req.webSearch) result.web_search = req.webSearch
-  if (req.reasoningEffort) result.reasoning_effort = req.reasoningEffort
+  if (req.web_search) result.web_search = req.web_search
+  if (req.reasoning_effort) result.reasoning_effort = req.reasoning_effort
 
   if (req.tools && req.tools.length > 0) {
     result.tools = req.tools.map((tool: ChatCompletionTool) => ({
@@ -95,8 +95,8 @@ export function fromOpenAIRequest(req: ChatCompletionRequest): Record<string, an
     }))
   }
 
-  if (req.toolChoice) {
-    result.tool_choice = req.toolChoice
+  if (req.tool_choice) {
+    result.tool_choice = req.tool_choice
   }
 
   return result

@@ -980,12 +980,16 @@ export class StepFunStudioAdapter {
 
   // --- Connect protocol helpers ---
 
-  private async processConnectFrames(
+  // 同步实现：函数体内无任何 await，调用方（response.on('data') 回调，
+  // 非 async 上下文）按同步返回值使用 consumed。标成 async 会返回
+  // Promise<number>，导致 `consumed === 0` 恒假、`buffer.slice(consumed)`
+  // 拿到空 buffer —— 帧永远不会被消费掉（TS2367/TS2322/TS2345 三连报错即此）。
+  private processConnectFrames(
     buffer: Buffer,
     stream: PassThrough,
     model: string,
     messageIdState: { current: string },
-  ): Promise<number> {
+  ): number {
     let consumed = 0
 
     while (consumed + 5 <= buffer.length) {
@@ -1425,7 +1429,9 @@ export class StepFunStudioAdapter {
       request_.on('response', (response) => {
         clearTimeout(requestTimeout)
         const statusCode = response.statusCode
-        resolve(statusCode && statusCode < 400)
+        // 必须显式布尔化：`statusCode && ...` 在 statusCode 为 0 时会把 0 本身
+        // 交给 Promise<boolean>，类型与语义都不对。
+        resolve(typeof statusCode === 'number' && statusCode < 400)
       })
 
       request_.on('error', () => {
