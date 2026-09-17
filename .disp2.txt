@@ -1,0 +1,6 @@
+✔ AgentDispatcher - getRunnerType 识别 team 类命令 (0.8468ms)
+✔ AgentDispatcher - getRunnerType 识别 local 类命令 (0.1191ms)
+✔ AgentDispatcher - getRunnerType 识别 llm 类命令 (0.086ms)
+✔ AgentDispatcher - getRunnerType 未知命令返回 undefined (0.0785ms)
+✔ AgentDispatcher - getRegisteredCommands 返回所有已注册命令 (0.1239ms)
+✔ AgentDispatcher - dispatch 未知命令返回错误 (0.205ms)
