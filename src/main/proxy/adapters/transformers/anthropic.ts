@@ -3,7 +3,7 @@
  * Converts between Anthropic Messages API format and internal format
  */
 
-import type { ChatCompletionRequest, ChatCompletionResponse, ChatMessage, ChatCompletionTool } from '../types'
+import type { ChatCompletionRequest, ChatCompletionResponse, ChatMessage, ChatCompletionTool } from '../../types'
 
 /**
  * Convert internal ChatMessage array to Anthropic Messages format

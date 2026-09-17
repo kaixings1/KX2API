@@ -4,8 +4,8 @@
  * 子代理核心类型定义（从 D:\src\tools\AgentTool\ 移植并适配 K 体系）
  */
 
-import type { Message, ContentBlock } from '../api/client.ts'
-import type { ApiConfig } from '../api/client.ts'
+import type { Message, ContentBlock } from '../../api/client.ts'
+import type { ApiConfig } from '../../api/client.ts'
 
 /** 子代理定义 */
 export interface AgentDefinition {

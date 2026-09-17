@@ -842,8 +842,10 @@ const agentImpl: CommandRunner = {
     if (!config?.apiKey || !config.model) {
       return '子代理缺少 LLM 配置（apiKey / model）。请先在设置中配置可用的 API 后再调用 /agent。'
     }
+    // 收窄到局部常量：`config` 是可选参数，跨 await 后 TS 无法保证它非空
+    const apiConfig = { ...config, apiKey: config.apiKey, model: config.model }
     const { AgentDispatcher } = await import('./dispatcher.ts')
-    const dispatcher = new AgentDispatcher(config)
+    const dispatcher = new AgentDispatcher(apiConfig)
     const result = await dispatcher.dispatch('agent', args, { cwd })
     return result.output || result.error || '（子代理完成，无输出）'
   },
@@ -918,6 +920,7 @@ export const commandRunners = new Map<string, CommandRunner>([
   ['background', backgroundImpl],
   ['agents', agentsImpl],
   ['agents-platform', agentsPlatformImpl],
+  ['team', teamOrchestrationImpl],
   ['agent', agentImpl],
   ['add-dir', addDirImpl],
   ['config', configImpl],

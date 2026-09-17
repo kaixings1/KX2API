@@ -3,7 +3,7 @@
  * Converts between Google Gemini API format and internal format
  */
 
-import type { ChatMessage, ChatCompletionTool } from '../types'
+import type { ChatMessage, ChatCompletionTool } from '../../types'
 
 /**
  * Convert internal ChatMessage to Gemini format

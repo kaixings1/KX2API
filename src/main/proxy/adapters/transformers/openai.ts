@@ -3,7 +3,7 @@
  * Converts between OpenAI format and internal format
  */
 
-import type { ChatCompletionRequest, ChatCompletionResponse, ChatMessage, ChatCompletionTool } from '../types'
+import type { ChatCompletionRequest, ChatCompletionResponse, ChatMessage, ChatCompletionTool } from '../../types'
 
 /**
  * Convert internal ChatMessage to OpenAI format
