@@ -177,7 +177,7 @@ export function AgentLoopSettings() {
                   <span className="text-[10px] text-muted-foreground">保存中…</span>
                 )}
                 {!saving && savedAt && (
-                  <span className="text-[10px] text-emerald-500">已保存</span>
+                  <span className="text-[10px] text-emerald-500 dark:text-emerald-400">已保存</span>
                 )}
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
@@ -218,7 +218,7 @@ export function AgentLoopSettings() {
                       </Label>
                       {changed && (
                         <span
-                          className="text-[10px] text-amber-500"
+                          className="text-[10px] text-amber-500 dark:text-amber-400"
                           title={`默认 ${DEFAULT_AGENT_LOOP_CONFIG[spec.key]}`}
                         >
                           已改

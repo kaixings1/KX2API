@@ -392,42 +392,14 @@ src/main/proxy/toolCalling/browserToolExtractor.ts(475,82): error TS2339: Proper
 src/main/proxy/toolCalling/browserToolExtractor.ts(530,18): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
 src/main/proxy/toolCalling/browserToolExtractor.ts(530,41): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
 src/main/proxy/toolCalling/browserToolExtractor.ts(531,60): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
-src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.ts(12,10): error TS2459: Module '"../types"' declares 'ChatMessage' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.ts(12,23): error TS2459: Module '"../types"' declares 'ChatCompletionTool' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.ts(12,43): error TS2459: Module '"../types"' declares 'ToolCall' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.ts(151,51): error TS2345: Argument of type 'PromptVariant | null' is not assignable to parameter of type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.ts(159,7): error TS2322: Type 'PromptVariant | null' is not assignable to type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(8,10): error TS2459: Module '"../types"' declares 'ChatMessage' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(8,23): error TS2459: Module '"../types"' declares 'ChatCompletionTool' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(8,43): error TS2459: Module '"../types"' declares 'ToolCall' locally, but it is not exported.
 src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(111,56): error TS2554: Expected 1 arguments, but got 2.
 src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(113,19): error TS2339: Property 'index' does not exist on type 'ExtractedToolCall'.
-src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(184,51): error TS2345: Argument of type 'PromptVariant | null' is not assignable to parameter of type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(191,7): error TS2322: Type 'PromptVariant | null' is not assignable to type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(8,10): error TS2459: Module '"../types"' declares 'ChatMessage' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(8,23): error TS2459: Module '"../types"' declares 'ChatCompletionTool' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(8,43): error TS2459: Module '"../types"' declares 'ToolCall' locally, but it is not exported.
 src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(110,61): error TS2554: Expected 1 arguments, but got 2.
 src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(115,19): error TS2339: Property 'index' does not exist on type 'ExtractedToolCall'.
-src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(144,51): error TS2345: Argument of type 'PromptVariant | null' is not assignable to parameter of type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(151,7): error TS2322: Type 'PromptVariant | null' is not assignable to type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(12,10): error TS2459: Module '"../types"' declares 'ChatMessage' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(12,23): error TS2459: Module '"../types"' declares 'ChatCompletionTool' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(12,43): error TS2459: Module '"../types"' declares 'ToolCall' locally, but it is not exported.
 src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(106,61): error TS2554: Expected 1 arguments, but got 2.
 src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(111,19): error TS2339: Property 'index' does not exist on type 'ExtractedToolCall'.
-src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(149,51): error TS2345: Argument of type 'PromptVariant | null' is not assignable to parameter of type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(156,7): error TS2322: Type 'PromptVariant | null' is not assignable to type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(16,10): error TS2459: Module '"../types"' declares 'ChatMessage' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(16,23): error TS2459: Module '"../types"' declares 'ChatCompletionTool' locally, but it is not exported.
+src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(85,7): error TS2322: Type 'undefined' is not assignable to type 'PromptAdapter | null'.
+src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(91,7): error TS2322: Type 'undefined' is not assignable to type 'PromptAdapter | null'.
 src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(102,5): error TS2322: Type 'PromptAdapter | undefined' is not assignable to type 'PromptAdapter | null'.
   Type 'undefined' is not assignable to type 'PromptAdapter | null'.
 src/main/proxy/toolCalling/protocols/codexResponses.ts(32,11): error TS7034: Variable 'toolCalls' implicitly has type 'any[]' in some locations where its type cannot be determined.
@@ -451,6 +423,8 @@ src/main/proxy/toolCalling/ToolCallingEngine.ts(142,7): error TS2345: Argument o
   Type 'NormalizedToolDefinition' is missing the following properties from type 'ChatCompletionTool': type, function
 src/main/proxy/toolCalling/ToolCallingEngine.ts(150,9): error TS2322: Type 'ChatCompletionTool[] | null | undefined' is not assignable to type 'ChatCompletionTool[] | undefined'.
   Type 'null' is not assignable to type 'ChatCompletionTool[] | undefined'.
+src/main/proxy/toolCalling/ToolCallingEngine.ts(158,7): error TS2345: Argument of type 'NormalizedToolDefinition[]' is not assignable to parameter of type 'ChatCompletionTool[]'.
+  Type 'NormalizedToolDefinition' is missing the following properties from type 'ChatCompletionTool': type, function
 src/main/proxy/toolCalling/ToolCallingEngine.ts(177,5): error TS2322: Type 'ChatCompletionTool[] | null | undefined' is not assignable to type 'ChatCompletionTool[] | null'.
   Type 'undefined' is not assignable to type 'ChatCompletionTool[] | null'.
 src/main/proxy/toolCalling/ToolCallingEngine.ts(191,7): error TS2322: Type 'ChatCompletionTool[] | null' is not assignable to type 'ChatCompletionTool[] | undefined'.

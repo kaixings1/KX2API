@@ -181,7 +181,7 @@ export function AccountList({
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>{t('providers.total')}: {totalCount}</span>
           <span>•</span>
-          <span className="text-green-600">{activeCount} {t('providers.onlineCount')}</span>
+          <span className="text-green-600 dark:text-green-400">{activeCount} {t('providers.onlineCount')}</span>
         </div>
         <Button size="sm" onClick={onAddAccount}>
           <Plus className="mr-2 h-4 w-4" />
@@ -233,7 +233,7 @@ export function AccountList({
                         </div>
                         
                         {account.status === 'error' && account.errorMessage && (
-                          <p className="text-xs text-red-500 mt-1 truncate">
+                          <p className="text-xs text-red-500 dark:text-red-400 mt-1 truncate">
                             {account.errorMessage}
                           </p>
                         )}
@@ -299,7 +299,7 @@ export function AccountList({
                                   handleClearChats(account)
                                 }}
                                 disabled={clearingChatsId === account.id}
-                                className="text-amber-600"
+                                className="text-amber-600 dark:text-amber-400"
                               >
                                 <Trash className="mr-2 h-4 w-4" />
                                 {clearingChatsId === account.id ? t('common.loading') : t('providers.clearChats')}
@@ -336,7 +336,7 @@ export function AccountList({
             <DialogDescription>
               <div className="space-y-2">
                 <p>{t('providers.clearChatsConfirm')}</p>
-                <p className="text-amber-600 font-medium">{t('providers.clearChatsWarning')}</p>
+                <p className="text-amber-600 dark:text-amber-400 font-medium">{t('providers.clearChatsWarning')}</p>
               </div>
             </DialogDescription>
           </DialogHeader>

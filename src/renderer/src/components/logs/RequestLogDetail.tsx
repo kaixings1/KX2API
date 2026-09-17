@@ -83,8 +83,8 @@ function CopyButton({ text, className = '' }: CopyButtonProps) {
     >
       {copied ? (
         <>
-          <Check className="h-3.5 w-3.5 text-green-500" />
-          <span className="text-green-500">{t('common.copied')}</span>
+          <Check className="h-3.5 w-3.5 text-green-500 dark:text-green-400" />
+          <span className="text-green-500 dark:text-green-400">{t('common.copied')}</span>
         </>
       ) : (
         <>
@@ -419,7 +419,7 @@ export function RequestLogDetail({ log, onClose }: RequestLogDetailProps) {
                   <div>
                     <SectionHeader 
                       title={t('logs.errorMessage')} 
-                      icon={<AlertCircle className="h-4 w-4 text-red-500" />}
+                      icon={<AlertCircle className="h-4 w-4 text-red-500 dark:text-red-400" />}
                       copyText={log.errorMessage}
                     />
                     <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-lg">

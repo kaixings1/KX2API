@@ -343,7 +343,7 @@ export function TaskManagement() {
         ].map(s => (
           <SectionCard key={s.key} className={cn(s.danger && 'border-red-300 dark:border-red-700')}>
             <div className="text-center py-3">
-              <div className={cn('text-2xl font-bold', s.danger && 'text-red-500')}>{s.value}</div>
+              <div className={cn('text-2xl font-bold', s.danger && 'text-red-500 dark:text-red-400')}>{s.value}</div>
               <div className="text-xs text-muted-foreground">{s.label}</div>
             </div>
           </SectionCard>
@@ -432,7 +432,7 @@ export function TaskManagement() {
                 <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                   {task.assignee && <span>负责人: {task.assignee}</span>}
                   {task.dueAt && (
-                    <span className={cn('flex items-center gap-1', isOverdue(task) && 'text-red-500')}>
+                    <span className={cn('flex items-center gap-1', isOverdue(task) && 'text-red-500 dark:text-red-400')}>
                       <Calendar className="h-3 w-3" />
                       截止: {new Date(task.dueAt).toLocaleDateString()}
                     </span>

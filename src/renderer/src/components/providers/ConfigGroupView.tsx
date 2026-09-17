@@ -271,7 +271,7 @@ export function ConfigGroupView() {
                         </span>
                       )}
                       {isSwitchingThis && (
-                        <span className="text-xs bg-blue-500/20 text-blue-500 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="text-xs bg-blue-500/20 text-blue-500 dark:text-blue-400 px-2 py-0.5 rounded-full flex items-center gap-1">
                           <Loader2 className="h-3 w-3 animate-spin" />
                           切换中...
                         </span>
@@ -336,7 +336,7 @@ export function ConfigGroupView() {
                         <span className="opacity-70">·</span>
                         <span className="truncate max-w-[200px]">{preset.baseURL}</span>
                         {preset.hasApiKey && (
-                          <span className="text-green-500">●</span>
+                          <span className="text-green-500 dark:text-green-400">●</span>
                         )}
                         {isPresetActive && (
                           <span className="ml-auto text-[10px] bg-primary/20 px-1 rounded">活跃</span>

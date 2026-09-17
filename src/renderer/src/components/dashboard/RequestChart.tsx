@@ -29,8 +29,8 @@ export function RequestChart({ data, className }: RequestChartProps) {
   const { t } = useTranslation()
   const series = useMemo(() => [
     { key: 'requests' as const, label: t('dashboard.totalRequests'), color: 'hsl(var(--primary))' },
-    { key: 'success' as const, label: t('common.success'), color: 'hsl(142, 76%, 36%)' },
-    { key: 'failed' as const, label: t('common.error'), color: 'hsl(0, 84%, 60%)' },
+    { key: 'success' as const, label: t('common.success'), color: 'var(--success)' },
+    { key: 'failed' as const, label: t('common.error'), color: 'var(--error)' },
   ], [t])
 
   const chart = useMemo(() => {

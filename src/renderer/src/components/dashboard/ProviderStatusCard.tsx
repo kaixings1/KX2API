@@ -135,7 +135,7 @@ export function ProviderStatusCard({ providers, className }: ProviderStatusCardP
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('dashboard.successRate')}</span>
-                        <p className="font-medium text-green-500">{successRate}%</p>
+                        <p className="font-medium text-green-600 dark:text-green-400">{successRate}%</p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('providers.latency')}</span>

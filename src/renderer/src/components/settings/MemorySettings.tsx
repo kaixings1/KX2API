@@ -236,7 +236,7 @@ export function MemorySettings() {
                 每轮结束后自动判断本次对话是否值得长期保留，值得则提炼成一条记忆。
                 命中的内容会进入后续每一轮的上下文，从而跨对话生效。
                 <br />
-                <span className="text-amber-500">
+                <span className="text-amber-500 dark:text-amber-400">
                   注意：开启后每轮可能额外消耗一次模型调用，且记忆一旦写错会在后续被反复召回。
                 </span>
               </p>

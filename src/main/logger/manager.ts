@@ -29,6 +29,33 @@ export interface LogManagerOptions {
   retentionDays?: number
 }
 
+/**
+ * 日志选项。
+ *
+ * 固定字段之外允许任意附加键 —— 调用方习惯把上下文平铺进来
+ * （{@code { error: '...' }}、{@code { dir }}、{@code { providers }}），
+ * 约束过严会逼调用方改写，而"记录附加上下文"本身是合理需求。
+ */
+export interface LogOptions {
+  category?: LogCategory
+  subCategory?: string
+  accountId?: string
+  providerId?: string
+  requestId?: string
+  data?: Record<string, unknown>
+  /** 未识别的键会被收集到 data */
+  [extra: string]: unknown
+}
+
+/**
+ * 第二参数的实际类型。
+ *
+ * 历史上调用方有两种写法，都在用，所以类型要同时接受：
+ *   logManager.info('msg', { data: {...} })   // 选项对象
+ *   logManager.info('[Anthropic]', '描述')     // 直接给一段补充文本
+ */
+export type LogSecondArg = LogOptions | string
+
 export class LogManager {
   private logs: LogEntry[] = []
   private logFile: string
@@ -198,16 +225,12 @@ export class LogManager {
   log(
     level: LogLevel,
     message: string,
-    options?: {
-      category?: LogCategory
-      subCategory?: string
-      accountId?: string
-      providerId?: string
-      requestId?: string
-      data?: Record<string, unknown>
-    }
+    options?: LogSecondArg
   ): LogEntry | null {
-    const category = options?.category || 'general'
+    // 兼容两种调用形式：字符串视为附加说明文本
+    const opts: LogOptions =
+      typeof options === 'string' ? { data: { detail: options } } : (options ?? {})
+    const category = opts.category || 'general'
     const config = this.categoryConfigs[category]
 
     if (config && !config.enabled) {
@@ -223,12 +246,12 @@ export class LogManager {
       timestamp: Date.now(),
       level,
       category,
-      subCategory: options?.subCategory,
+      subCategory: opts.subCategory,
       message,
-      accountId: options?.accountId,
-      providerId: options?.providerId,
-      requestId: options?.requestId,
-      data: options?.data,
+      accountId: opts.accountId,
+      providerId: opts.providerId,
+      requestId: opts.requestId,
+      data: opts.data,
     }
 
     this.logs.push(entry)
@@ -246,56 +269,28 @@ export class LogManager {
 
   info(
     message: string,
-    options?: {
-      category?: LogCategory
-      subCategory?: string
-      accountId?: string
-      providerId?: string
-      requestId?: string
-      data?: Record<string, unknown>
-    }
+    options?: LogSecondArg
   ): LogEntry | null {
     return this.log('info', message, options)
   }
 
   warn(
     message: string,
-    options?: {
-      category?: LogCategory
-      subCategory?: string
-      accountId?: string
-      providerId?: string
-      requestId?: string
-      data?: Record<string, unknown>
-    }
+    options?: LogSecondArg
   ): LogEntry | null {
     return this.log('warn', message, options)
   }
 
   error(
     message: string,
-    options?: {
-      category?: LogCategory
-      subCategory?: string
-      accountId?: string
-      providerId?: string
-      requestId?: string
-      data?: Record<string, unknown>
-    }
+    options?: LogSecondArg
   ): LogEntry | null {
     return this.log('error', message, options)
   }
 
   debug(
     message: string,
-    options?: {
-      category?: LogCategory
-      subCategory?: string
-      accountId?: string
-      providerId?: string
-      requestId?: string
-      data?: Record<string, unknown>
-    }
+    options?: LogSecondArg
   ): LogEntry | null {
     return this.log('debug', message, options)
   }
@@ -365,7 +360,9 @@ export class LogManager {
     }
 
     for (const log of logs) {
-      ;(stats as Record<string, number>)[log.level]++
+      // 用 LogLevel 精确索引，不用 `as Record<string, number>` —— 后者断言过宽，
+      // 会让任意字符串键都被接受，TS2352 也会报"两侧类型不重叠"。
+      stats[log.level]++
       if (!stats.categories[log.category]) {
         stats.categories[log.category] = { total: 0, info: 0, warn: 0, error: 0, debug: 0 }
       }

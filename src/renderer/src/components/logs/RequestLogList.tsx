@@ -64,11 +64,11 @@ interface RowProps {
 const ITEM_HEIGHT = 72
 
 function getStatusColor(status: 'success' | 'error' | 'pending', statusCode: number) {
-  if (status === 'success') return 'bg-green-500/10 text-green-500 border-green-500/20'
-  if (status === 'pending') return 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-  if (statusCode >= 500) return 'bg-red-500/10 text-red-500 border-red-500/20'
-  if (statusCode >= 400) return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-  return 'bg-red-500/10 text-red-500 border-red-500/20'
+  if (status === 'success') return 'bg-green-500/10 text-green-500 dark:text-green-400 border-green-500/20'
+  if (status === 'pending') return 'bg-blue-500/10 text-blue-500 dark:text-blue-400 border-blue-500/20'
+  if (statusCode >= 500) return 'bg-red-500/10 text-red-500 dark:text-red-400 border-red-500/20'
+  if (statusCode >= 400) return 'bg-yellow-500/10 text-yellow-500 dark:text-yellow-400 border-yellow-500/20'
+  return 'bg-red-500/10 text-red-500 dark:text-red-400 border-red-500/20'
 }
 
 function formatTime(timestamp: number) {

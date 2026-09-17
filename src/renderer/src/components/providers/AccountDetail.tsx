@@ -208,30 +208,30 @@ export function AccountDetail({
       labelKey: 'dashboard.totalRequests',
       value: account.requestCount || 0,
       icon: BarChart3,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-100 dark:bg-blue-500/15',
     },
     {
       labelKey: 'providers.usedToday',
       value: account.todayUsed || 0,
       subtitle: account.dailyLimit ? `${t('providers.dailyLimit')}: ${account.dailyLimit}` : undefined,
       icon: Zap,
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-100',
+      color: 'text-amber-600 dark:text-amber-400',
+      bgColor: 'bg-amber-100 dark:bg-amber-500/15',
     },
     {
       labelKey: 'providers.lastCheck',
       value: formatRelativeTime(account.lastUsed),
       icon: Clock,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-100 dark:bg-purple-500/15',
     },
     {
       labelKey: 'apiKeys.createdAt',
       value: formatDate(account.createdAt),
       icon: Calendar,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-500/15',
     },
   ]
 
@@ -349,10 +349,10 @@ export function AccountDetail({
             {account.status === 'error' && account.errorMessage && (
               <div className="mt-4 p-3 bg-red-50 rounded-lg">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <AlertCircle className="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-red-700">{t('common.error')}</p>
-                    <p className="text-sm text-red-600 mt-1">{account.errorMessage}</p>
+                    <p className="text-sm font-medium text-red-700 dark:text-red-400">{t('common.error')}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">{account.errorMessage}</p>
                   </div>
                 </div>
               </div>
@@ -404,7 +404,7 @@ export function AccountDetail({
                   />
                 </div>
                 {usagePercent >= 90 && (
-                  <p className="text-xs text-red-500 mt-1">
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1">
                     {t('providers.nearLimit')}
                   </p>
                 )}
@@ -439,7 +439,7 @@ export function AccountDetail({
               <div className="space-y-4">
                 <div className="p-4 rounded-lg bg-muted/50 text-center">
                   <p className="text-sm text-muted-foreground mb-1">{t('minimax.remainingCredits')}</p>
-                  <p className="text-3xl font-bold text-green-600">{credits.remainingCredits.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">{credits.remainingCredits.toLocaleString()}</p>
                   {credits.expiresAt && (
                     <p className="text-xs text-muted-foreground mt-2">
                       {t('minimax.creditResetsAt')}: {formatDate(credits.expiresAt)}

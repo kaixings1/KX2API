@@ -80,7 +80,7 @@ export function LogRow({ entry, onClick }: LogRowProps) {
         )}
 
         {entry.error && (
-          <p className="text-xs text-red-500 truncate mt-1">
+          <p className="text-xs text-red-500 dark:text-red-400 truncate mt-1">
             {entry.error}
           </p>
         )}

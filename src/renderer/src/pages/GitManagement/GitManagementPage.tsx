@@ -136,7 +136,7 @@ export function GitManagement() {
             </div>
           </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-red-500 dark:text-red-400">{error}</p>}
 
           {status && (
             <div className="space-y-4">

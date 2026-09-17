@@ -185,7 +185,7 @@ export function ImportExportDialog({
         )}
 
         {result && (
-          <div className={`flex items-center gap-2 p-2.5 rounded-md text-sm ${result.success ? 'bg-green-50 dark:bg-green-900/20 text-green-600' : 'bg-red-50 dark:bg-red-900/20 text-red-600'}`}>
+          <div className={`flex items-center gap-2 p-2.5 rounded-md text-sm ${result.success ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
             {result.success ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
             {result.message}
           </div>

@@ -447,7 +447,7 @@ export function ModelMappingConfig({ onConfigChange }: ModelMappingConfigProps) 
             <CardTitle>{t('proxy.modelMappingConfig')}</CardTitle>
           </div>
           {hasChanges && (
-            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/50 gap-1">
+            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/50 gap-1">
               <AlertTriangle className="h-3 w-3" />
               {t('proxy.unsaved')}
             </Badge>
@@ -460,7 +460,7 @@ export function ModelMappingConfig({ onConfigChange }: ModelMappingConfigProps) 
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 p-4 rounded-lg border border-amber-500/20">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-sm">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 <span className="text-amber-700 dark:text-amber-400 font-medium">{t('proxy.unsavedChangesHint')}</span>
               </div>
               <div className="flex shrink-0 gap-2">

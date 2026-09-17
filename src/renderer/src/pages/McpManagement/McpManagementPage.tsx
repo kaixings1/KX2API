@@ -295,7 +295,7 @@ export function McpManagement() {
                       )}
                     </div>
                     {testResult && testResult.connected && (
-                      <p className="text-xs text-green-600">{t('mcp.connected', '连接成功')} - {testResult.tools.length} {t('mcp.toolsAvailable', '个工具')}</p>
+                      <p className="text-xs text-green-600 dark:text-green-400">{t('mcp.connected', '连接成功')} - {testResult.tools.length} {t('mcp.toolsAvailable', '个工具')}</p>
                     )}
                   </div>
                   <div className="flex gap-1 ml-3" onClick={e => e.stopPropagation()}>

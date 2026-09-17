@@ -806,7 +806,7 @@ export function AddProviderDialog({
                   )}
                 </Button>
                 {oauthStatus && !isOAuthLoading && (
-                  <p className={`text-sm ${validationResult.valid ? 'text-green-600' : 'text-red-500'}`}>
+                  <p className={`text-sm ${validationResult.valid ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
                     {oauthStatus}
                   </p>
                 )}
@@ -818,14 +818,14 @@ export function AddProviderDialog({
         )}
 
         {validationResult.error && (
-          <div className="flex items-center gap-2 text-sm text-red-500 bg-red-50 p-3 rounded-lg mt-4">
+          <div className="flex items-center gap-2 text-sm text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-500/15 p-3 rounded-lg mt-4">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>{validationResult.error}</span>
           </div>
         )}
 
         {validationResult.valid && validationResult.userInfo && (
-          <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg mt-4">
+          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/15 p-3 rounded-lg mt-4">
             <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
             <div>
               <span className="font-medium">{t('providers.validationSuccess')}</span>

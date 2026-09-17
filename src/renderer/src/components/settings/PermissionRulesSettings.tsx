@@ -161,7 +161,7 @@ export function PermissionRulesSettings() {
                 精确到参数级别地控制工具调用。例如放行 <code className="text-[var(--accent-primary)]">git status</code>
                 {' '}但每次询问 <code className="text-[var(--accent-primary)]">git push</code>。
                 <br />
-                <span className="text-amber-500">
+                <span className="text-amber-500 dark:text-amber-400">
                   注意：<b>拒绝</b>优先级最高，不会被其它规则放行；未命中任何规则时沿用原有的权限判定。
                 </span>
               </p>
@@ -234,7 +234,7 @@ export function PermissionRulesSettings() {
                 )}
               </>
             ) : (
-              <span className="text-amber-500">无法解析出工具名，保存后该条会被忽略</span>
+              <span className="text-amber-500 dark:text-amber-400">无法解析出工具名，保存后该条会被忽略</span>
             )}
           </p>
         )}
@@ -265,7 +265,7 @@ export function PermissionRulesSettings() {
           })}
         </div>
 
-        {error && <p className="text-[11px] text-red-500">{error}</p>}
+        {error && <p className="text-[11px] text-red-500 dark:text-red-400">{error}</p>}
       </div>
 
       {/* 规则列表 */}

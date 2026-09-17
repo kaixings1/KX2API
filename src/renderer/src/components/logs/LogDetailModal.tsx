@@ -65,7 +65,7 @@ function JsonViewer({ data }: { data: string }) {
           className="h-6 px-2"
           onClick={handleCopy}
         >
-          {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+          {copied ? <Check className="h-3 w-3 text-green-500 dark:text-green-400" /> : <Copy className="h-3 w-3" />}
         </Button>
       </div>
     </div>
@@ -154,7 +154,7 @@ export function LogDetailModal({ log, open, onClose }: LogDetailModalProps) {
 
             {log.error && (
               <div>
-                <label className="text-sm text-red-500">{t('logs.error')}</label>
+                <label className="text-sm text-red-500 dark:text-red-400">{t('logs.error')}</label>
                 <div className="mt-1 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
                   <pre className="text-sm text-red-600 dark:text-red-400 whitespace-pre-wrap break-all font-sans">
                     {log.error}

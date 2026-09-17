@@ -107,18 +107,9 @@ src/main/index.ts(58,13): error TS2300: Duplicate identifier 'App'.
 src/main/index.ts(124,9): error TS2339: Property 'isQuitting' does not exist on type 'App'.
 src/main/index.ts(147,31): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
   Type 'null' is not assignable to type 'string | undefined'.
-src/main/index.ts(156,7): error TS2353: Object literal may only specify known properties, and 'maxLogs' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/index.ts(160,56): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/index.ts(170,56): error TS2353: Object literal may only specify known properties, and 'dir' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/index.ts(172,62): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/index.ts(181,63): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/index.ts(207,65): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/index.ts(217,68): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
 src/main/index.ts(223,43): error TS2345: Argument of type 'import("D:/KX2API/src/main/store/types").ProviderType[]' is not assignable to parameter of type 'import("D:/KX2API/src/main/oauth/types").ProviderType[]'.
   Type 'import("D:/KX2API/src/main/store/types").ProviderType' is not assignable to type 'import("D:/KX2API/src/main/oauth/types").ProviderType'.
     Type '"custom"' is not assignable to type 'ProviderType'.
-src/main/index.ts(225,67): error TS2561: Object literal may only specify known properties, but 'providers' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'. Did you mean to write 'providerId'?
-src/main/index.ts(228,67): error TS2353: Object literal may only specify known properties, and 'error' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
 src/main/index.ts(283,14): error TS2339: Property 'isQuitting' does not exist on type 'App'.
 src/main/ipc/chat-handlers.ts(152,34): error TS2345: Argument of type '{ timestamp: number; status: "pending"; statusCode: number; method: string; url: string; model: string; isStream: true; responseStatus: number; chatUserInput: string; chatEngineInput: string; chatEngineUrl: string; chatEngineProvider: string; chatEngineModel: string; chatUpstreamUrl: string; chatNotes: string; }' is not assignable to parameter of type 'Omit<RequestLogEntry, "id">'.
   Property 'latency' is missing in type '{ timestamp: number; status: "pending"; statusCode: number; method: string; url: string; model: string; isStream: true; responseStatus: number; chatUserInput: string; chatEngineInput: string; chatEngineUrl: string; chatEngineProvider: string; chatEngineModel: string; chatUpstreamUrl: string; chatNotes: string; }' but required in type 'Omit<RequestLogEntry, "id">'.
@@ -151,7 +142,7 @@ src/main/ipc/handlers.ts(2414,11): error TS2339: Property 'isQuitting' does not 
 src/main/ipc/handlers.ts(2648,9): error TS2339: Property 'isQuitting' does not exist on type 'App'.
 src/main/ipc/handlers.ts(2656,24): error TS2554: Expected 0 arguments, but got 1.
 src/main/ipc/handlers.ts(2661,11): error TS2339: Property 'registerEngineHandlers' does not exist on type 'typeof import("D:/KX2API/src/main/engine-bridge")'.
-src/main/logger/manager.ts(368,9): error TS2352: Conversion of type '{ total: number; info: number; warn: number; error: number; debug: number; categories: Record<string, { total: number; info: number; warn: number; error: number; debug: number; }>; }' to type 'Record<string, number>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/main/logger/manager.ts(363,9): error TS2352: Conversion of type '{ total: number; info: number; warn: number; error: number; debug: number; categories: Record<string, { total: number; info: number; warn: number; error: number; debug: number; }>; }' to type 'Record<string, number>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
   Property 'categories' is incompatible with index signature.
     Type 'Record<string, { total: number; info: number; warn: number; error: number; debug: number; }>' is not comparable to type 'number'.
 src/main/mcp/mcpService.ts(48,22): error TS2352: Conversion of type 'AppConfig' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
@@ -176,10 +167,7 @@ src/main/oauth/cookieSessionManager.ts(92,14): error TS2769: No overload matches
     Argument of type '"certificate-error"' is not assignable to parameter of type '"will-download"'.
 src/main/oauth/cookieSessionManager.ts(93,18): error TS2345: Argument of type 'number' is not assignable to parameter of type 'boolean'.
 src/main/oauth/cookieSessionManager.ts(102,58): error TS2339: Property 'removed' does not exist on type 'Cookie'.
-src/main/oauth/cookieSessionManager.ts(133,60): error TS2561: Object literal may only specify known properties, but 'provider' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'. Did you mean to write 'providerId'?
-src/main/oauth/cookieSessionManager.ts(149,11): error TS2561: Object literal may only specify known properties, but 'provider' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'. Did you mean to write 'providerId'?
 src/main/oauth/cookieSessionManager.ts(224,10): error TS2749: 'session' refers to a value, but is being used as a type here. Did you mean 'typeof session'?
-src/main/oauth/cookieSessionManager.ts(236,37): error TS7006: Parameter 'c' implicitly has an 'any' type.
 src/main/oauth/cookieSessionManager.ts(299,10): error TS2749: 'session' refers to a value, but is being used as a type here. Did you mean 'typeof session'?
 src/main/oauth/cookieSessionManager.ts(439,12): error TS2769: No overload matches this call.
   The last overload gave the following error.
@@ -193,27 +181,13 @@ src/main/oauth/inAppLogin.ts(107,16): error TS2345: Argument of type 'number' is
 src/main/oauth/index.ts(10,48): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
 src/main/oauth/index.ts(10,66): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
 src/main/oauth/kimiSessionManager.ts(29,20): error TS2749: 'session' refers to a value, but is being used as a type here. Did you mean 'typeof session'?
-src/main/oauth/kimiSessionManager.ts(49,49): error TS7006: Parameter '_event' implicitly has an 'any' type.
-src/main/oauth/kimiSessionManager.ts(49,57): error TS7006: Parameter 'cookie' implicitly has an 'any' type.
-src/main/oauth/kimiSessionManager.ts(81,58): error TS2353: Object literal may only specify known properties, and 'tokenFound' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/oauth/kimiSessionManager.ts(90,65): error TS2353: Object literal may only specify known properties, and 'errorCode' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/oauth/kimiSessionManager.ts(109,43): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/main/oauth/kimiSessionManager.ts(50,62): error TS2339: Property 'removed' does not exist on type 'Cookie'.
 src/main/oauth/kimiSessionManager.ts(113,63): error TS2531: Object is possibly 'null'.
 src/main/oauth/kimiSessionManager.ts(117,94): error TS7006: Parameter 'c' implicitly has an 'any' type.
 src/main/oauth/manager.ts(482,70): error TS2367: This comparison appears to be unintentional because the types '"deepseek" | "kimi" | "glm" | "qwen" | "qwen-ai" | "zai" | "perplexity"' and '"stepfun"' have no overlap.
 src/main/oauth/stepfunSessionManager.ts(35,20): error TS2749: 'session' refers to a value, but is being used as a type here. Did you mean 'typeof session'?
-src/main/oauth/stepfunSessionManager.ts(61,46): error TS7006: Parameter '_request' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(61,56): error TS7006: Parameter 'callback' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,45): error TS7006: Parameter '_event' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,53): error TS7006: Parameter '_webContents' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,67): error TS7006: Parameter '_url' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,73): error TS7006: Parameter '_error' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,81): error TS7006: Parameter '_certificate' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,95): error TS7006: Parameter 'callback' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(72,49): error TS7006: Parameter '_event' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(112,65): error TS2353: Object literal may only specify known properties, and 'errorCode' does not exist in type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/oauth/stepfunSessionManager.ts(174,36): error TS7006: Parameter 'c' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(175,36): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/main/oauth/stepfunSessionManager.ts(61,65): error TS2694: Namespace 'Electron' has no exported member 'CertificateVerifyProcRequest'.
+src/main/oauth/stepfunSessionManager.ts(66,18): error TS2345: Argument of type 'number' is not assignable to parameter of type 'boolean'.
 src/main/oauth/types.ts(136,7): error TS2322: Type '"token"' is not assignable to type 'TokenType'.
 src/main/oauth/types.ts(174,7): error TS2322: Type '"token"' is not assignable to type 'TokenType'.
 src/main/oauth/types.ts(214,7): error TS2322: Type '"token"' is not assignable to type 'TokenType'.
@@ -226,10 +200,6 @@ src/main/plans/plansService.ts(119,5): error TS2322: Type 'number | null' is not
   Type 'null' is not assignable to type 'number | undefined'.
 src/main/plugins/pluginsService.ts(111,14): error TS2339: Property 'lastActiveAt' does not exist on type 'PluginRecord'.
 src/main/providers/custom.ts(185,7): error TS2353: Object literal may only specify known properties, and 'credentialFields' does not exist in type 'Provider'.
-src/main/proxy/adapters/anthropic.ts(123,36): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/anthropic.ts(140,36): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/coze.ts(90,31): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/coze.ts(106,31): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
 src/main/proxy/adapters/deepseek.ts(98,108): error TS2554: Expected 0 arguments, but got 1.
 src/main/proxy/adapters/deepseek.ts(98,228): error TS2554: Expected 0 arguments, but got 1.
 src/main/proxy/adapters/deepseek.ts(98,282): error TS2554: Expected 0 arguments, but got 1.
@@ -241,10 +211,6 @@ src/main/proxy/adapters/glm.ts(1196,23): error TS2448: Block-scoped variable 'fl
 src/main/proxy/adapters/glm.ts(1196,23): error TS2454: Variable 'flushChunks' is used before being assigned.
 src/main/proxy/adapters/google-stream.ts(40,5): error TS2322: Type 'string | boolean | undefined' is not assignable to type 'boolean'.
   Type 'undefined' is not assignable to type 'boolean'.
-src/main/proxy/adapters/google.ts(104,33): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/google.ts(122,33): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/groq.ts(121,31): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/groq.ts(142,31): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
 src/main/proxy/adapters/index.ts(12,29): error TS2305: Module '"./perplexity"' has no exported member 'PerplexityStreamHandler'.
 src/main/proxy/adapters/index.ts(38,10): error TS2305: Module '"./transformers/openai"' has no exported member 'OpenAITransformer'.
 src/main/proxy/adapters/index.ts(39,10): error TS2305: Module '"./transformers/anthropic"' has no exported member 'AnthropicTransformer'.
@@ -253,12 +219,6 @@ src/main/proxy/adapters/kimi.ts(354,39): error TS2339: Property 'originalModel' 
 src/main/proxy/adapters/kimi.ts(727,73): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer<ArrayBuffer>'.
   Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
     Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
-src/main/proxy/adapters/mistral.ts(114,34): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/mistral.ts(131,34): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/ollama.ts(123,33): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/ollama.ts(140,33): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/openai.ts(138,33): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/openai.ts(155,33): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
 src/main/proxy/adapters/perplexity.ts(3,35): error TS2307: Cannot find module '../store/types' or its corresponding type declarations.
 src/main/proxy/adapters/perplexity.ts(75,12): error TS2339: Property 'filter' does not exist on type 'never'.
 src/main/proxy/adapters/perplexity.ts(93,10): error TS2339: Property 'filter' does not exist on type 'never'.
@@ -288,8 +248,6 @@ src/main/proxy/adapters/qwen.ts(10,28): error TS7016: Could not find a declarati
 src/main/proxy/adapters/qwen.ts(308,39): error TS2339: Property 'originalModel' does not exist on type 'ChatCompletionRequest'.
 src/main/proxy/adapters/qwen.ts(860,26): error TS7006: Parameter 'zstd' implicitly has an 'any' type.
 src/main/proxy/adapters/qwen.ts(1106,28): error TS7006: Parameter 'zstd' implicitly has an 'any' type.
-src/main/proxy/adapters/siliconcloud.ts(113,39): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/siliconcloud.ts(130,39): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
 src/main/proxy/adapters/stepfun-stream.ts(107,25): error TS7006: Parameter 'err' implicitly has an 'any' type.
 src/main/proxy/adapters/stepfun-stream.ts(380,29): error TS7006: Parameter 'err' implicitly has an 'any' type.
 src/main/proxy/adapters/stepfun-studio.ts(646,11): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
@@ -303,13 +261,9 @@ src/main/proxy/adapters/stepfun.ts(820,11): error TS2322: Type 'string | null' i
   Type 'null' is not assignable to type 'string | undefined'.
 src/main/proxy/adapters/stepfun.ts(1168,11): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
   Type 'null' is not assignable to type 'string | undefined'.
-src/main/proxy/adapters/together.ts(116,35): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/together.ts(133,35): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
 src/main/proxy/adapters/transformers/anthropic.ts(6,101): error TS2307: Cannot find module '../types' or its corresponding type declarations.
 src/main/proxy/adapters/transformers/gemini.ts(6,54): error TS2307: Cannot find module '../types' or its corresponding type declarations.
 src/main/proxy/adapters/transformers/openai.ts(6,101): error TS2307: Cannot find module '../types' or its corresponding type declarations.
-src/main/proxy/adapters/xai.ts(117,30): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
-src/main/proxy/adapters/xai.ts(134,30): error TS2559: Type 'string' has no properties in common with type '{ category?: LogCategory | undefined; subCategory?: string | undefined; accountId?: string | undefined; providerId?: string | undefined; requestId?: string | undefined; data?: Record<...> | undefined; }'.
 src/main/proxy/forwarder.ts(56,8): error TS2459: Module '"./services/contextManagementService"' declares 'ChatMessage' locally, but it is not exported.
 src/main/proxy/forwarder.ts(165,14): error TS2551: Property 'forwardStepFunStudio' does not exist on type 'RequestForwarder'. Did you mean 'forwardStepFun'?
 src/main/proxy/forwarder.ts(613,9): error TS18046: 'parameters.properties' is of type 'unknown'.
@@ -318,8 +272,6 @@ src/main/proxy/forwarder.ts(626,23): error TS2769: No overload matches this call
     Argument of type 'unknown' is not assignable to parameter of type '{}'.
   Overload 2 of 2, '(o: object): string[]', gave the following error.
     Argument of type 'unknown' is not assignable to parameter of type 'object'.
-src/main/proxy/forwarder.ts(667,29): error TS7006: Parameter 'part' implicitly has an 'any' type.
-src/main/proxy/forwarder.ts(668,26): error TS7006: Parameter 'part' implicitly has an 'any' type.
 src/main/proxy/forwarder.ts(768,48): error TS2339: Property 'providerMessageId' does not exist on type 'ChatMessage'.
 src/main/proxy/forwarder.ts(1231,9): error TS2353: Object literal may only specify known properties, and 'originalModel' does not exist in type 'ChatCompletionRequest'.
 src/main/proxy/forwarder.ts(1335,9): error TS2353: Object literal may only specify known properties, and 'originalModel' does not exist in type 'ChatCompletionRequest'.
@@ -406,42 +358,14 @@ src/main/proxy/toolCalling/browserToolExtractor.ts(475,82): error TS2339: Proper
 src/main/proxy/toolCalling/browserToolExtractor.ts(530,18): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
 src/main/proxy/toolCalling/browserToolExtractor.ts(530,41): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
 src/main/proxy/toolCalling/browserToolExtractor.ts(531,60): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
-src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.ts(12,10): error TS2459: Module '"../types"' declares 'ChatMessage' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.ts(12,23): error TS2459: Module '"../types"' declares 'ChatCompletionTool' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.ts(12,43): error TS2459: Module '"../types"' declares 'ToolCall' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.ts(151,51): error TS2345: Argument of type 'PromptVariant | null' is not assignable to parameter of type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.ts(159,7): error TS2322: Type 'PromptVariant | null' is not assignable to type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(8,10): error TS2459: Module '"../types"' declares 'ChatMessage' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(8,23): error TS2459: Module '"../types"' declares 'ChatCompletionTool' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(8,43): error TS2459: Module '"../types"' declares 'ToolCall' locally, but it is not exported.
 src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(111,56): error TS2554: Expected 1 arguments, but got 2.
 src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(113,19): error TS2339: Property 'index' does not exist on type 'ExtractedToolCall'.
-src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(184,51): error TS2345: Argument of type 'PromptVariant | null' is not assignable to parameter of type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(191,7): error TS2322: Type 'PromptVariant | null' is not assignable to type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(8,10): error TS2459: Module '"../types"' declares 'ChatMessage' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(8,23): error TS2459: Module '"../types"' declares 'ChatCompletionTool' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(8,43): error TS2459: Module '"../types"' declares 'ToolCall' locally, but it is not exported.
 src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(110,61): error TS2554: Expected 1 arguments, but got 2.
 src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(115,19): error TS2339: Property 'index' does not exist on type 'ExtractedToolCall'.
-src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(144,51): error TS2345: Argument of type 'PromptVariant | null' is not assignable to parameter of type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(151,7): error TS2322: Type 'PromptVariant | null' is not assignable to type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(12,10): error TS2459: Module '"../types"' declares 'ChatMessage' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(12,23): error TS2459: Module '"../types"' declares 'ChatCompletionTool' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(12,43): error TS2459: Module '"../types"' declares 'ToolCall' locally, but it is not exported.
 src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(106,61): error TS2554: Expected 1 arguments, but got 2.
 src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(111,19): error TS2339: Property 'index' does not exist on type 'ExtractedToolCall'.
-src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(149,51): error TS2345: Argument of type 'PromptVariant | null' is not assignable to parameter of type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts(156,7): error TS2322: Type 'PromptVariant | null' is not assignable to type 'PromptVariant | undefined'.
-  Type 'null' is not assignable to type 'PromptVariant | undefined'.
-src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(16,10): error TS2459: Module '"../types"' declares 'ChatMessage' locally, but it is not exported.
-src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(16,23): error TS2459: Module '"../types"' declares 'ChatCompletionTool' locally, but it is not exported.
+src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(85,7): error TS2322: Type 'undefined' is not assignable to type 'PromptAdapter | null'.
+src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(91,7): error TS2322: Type 'undefined' is not assignable to type 'PromptAdapter | null'.
 src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(102,5): error TS2322: Type 'PromptAdapter | undefined' is not assignable to type 'PromptAdapter | null'.
   Type 'undefined' is not assignable to type 'PromptAdapter | null'.
 src/main/proxy/toolCalling/protocols/codexResponses.ts(32,11): error TS7034: Variable 'toolCalls' implicitly has type 'any[]' in some locations where its type cannot be determined.
@@ -465,6 +389,8 @@ src/main/proxy/toolCalling/ToolCallingEngine.ts(142,7): error TS2345: Argument o
   Type 'NormalizedToolDefinition' is missing the following properties from type 'ChatCompletionTool': type, function
 src/main/proxy/toolCalling/ToolCallingEngine.ts(150,9): error TS2322: Type 'ChatCompletionTool[] | null | undefined' is not assignable to type 'ChatCompletionTool[] | undefined'.
   Type 'null' is not assignable to type 'ChatCompletionTool[] | undefined'.
+src/main/proxy/toolCalling/ToolCallingEngine.ts(158,7): error TS2345: Argument of type 'NormalizedToolDefinition[]' is not assignable to parameter of type 'ChatCompletionTool[]'.
+  Type 'NormalizedToolDefinition' is missing the following properties from type 'ChatCompletionTool': type, function
 src/main/proxy/toolCalling/ToolCallingEngine.ts(177,5): error TS2322: Type 'ChatCompletionTool[] | null | undefined' is not assignable to type 'ChatCompletionTool[] | null'.
   Type 'undefined' is not assignable to type 'ChatCompletionTool[] | null'.
 src/main/proxy/toolCalling/ToolCallingEngine.ts(191,7): error TS2322: Type 'ChatCompletionTool[] | null' is not assignable to type 'ChatCompletionTool[] | undefined'.

@@ -121,7 +121,7 @@ export function ImageBudgetSettings() {
                   </Badge>
                 )}
                 {disabled && (
-                  <Badge variant="outline" className="text-[10px] text-amber-500">
+                  <Badge variant="outline" className="text-[10px] text-amber-500 dark:text-amber-400">
                     当前不裁剪
                   </Badge>
                 )}

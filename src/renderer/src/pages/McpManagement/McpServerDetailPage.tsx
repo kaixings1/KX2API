@@ -219,7 +219,7 @@ export function McpServerDetailPage() {
             <CardTitle className="text-sm">{t('mcp.connectionTest', '连接测试')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className={`text-sm ${testResult.connected ? 'text-green-600' : 'text-red-600'}`}>
+            <p className={`text-sm ${testResult.connected ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {testResult.connected ? t('mcp.connected', '连接成功') : t('mcp.connectionFailed', '连接失败')} - {testResult.tools.length} {t('mcp.toolsAvailable', '个可用工具')}
             </p>
             {testResult.tools.length > 0 && (
