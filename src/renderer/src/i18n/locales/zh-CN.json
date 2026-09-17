@@ -69,7 +69,8 @@
     "justNow": "刚刚",
     "minutesAgo": "{{count}}分钟前",
     "hoursAgo": "{{count}}小时前",
-    "daysAgo": "{{count}}天前"
+    "daysAgo": "{{count}}天前",
+    "fetchFailed": "获取数据失败"
   },
   "providers": {
     "title": "供应商管理",
@@ -241,7 +242,13 @@
     "updateModelsSuccess": "模型列表更新成功",
     "updateModelsFailed": "模型列表更新失败",
     "updateModelsNotSupported": "该供应商不支持动态更新模型",
-    "updatingModels": "正在更新模型列表..."
+    "updatingModels": "正在更新模型列表...",
+    "totalProviders": "共 {{count}} 个供应商",
+    "onlineProviders": "{{count}} 个在线",
+    "enabledProviders": "{{count}} 个已启用",
+    "typeBreakdown": "{{builtin}} 个内置，{{custom}} 个自定义",
+    "addFirstProvider": "点击上方按钮添加第一个供应商",
+    "refreshStatus": "刷新状态"
   },
   "loginGuide": {
     "getToken": "获取 {{provider}} 凭证",
@@ -258,7 +265,18 @@
     "openBrowserFailed": "打开浏览器失败",
     "openBrowserFailedDesc": "请手动访问: {{url}}",
     "pasteFailed": "粘贴失败",
-    "pasteFailedDesc": "请手动粘贴"
+    "pasteFailedDesc": "请手动粘贴",
+    "inLocalStorage": "在本地存储（Local Storage）中 → {{domain}}",
+    "inCookies": "在 Cookie 中 → {{domain}}",
+    "findFieldCopy": "找到 {{field}} 字段并复制其值",
+    "findField": "找到 {{field}} 字段",
+    "findFields": "找到 {{fields}} 等字段",
+    "openDevtoolsCookies": "打开开发者工具 → Application → Cookies",
+    "copyJwtToken": "复制 JWT Token 的值",
+    "useOauthTab": "或使用 OAuth 登录标签页自动提取",
+    "optionalRecommended": "（可选，但推荐）",
+    "copyKeyCookies": "复制全部 Cookie 或关键 Cookie：{{names}}",
+    "jwtFormatHint": "找到 \"{{field}}\" 字段（JWT 格式，以 \"eyJ...\" 开头）"
   },
   "deepseek": {
     "name": "DeepSeek",
@@ -463,7 +481,7 @@
     "mappingUpdatedPending": "模型映射 {{model}} 已修改（待保存）",
     "mappingDeletedPending": "模型映射 {{model}} 已删除（待保存）",
     "configSaved": "模型映射配置已保存",
-    "configSaveFailed": "无法保存配置，请重试",
+    "configSaveFailed": "保存配置失败",
     "unsavedChangesWarning": "您有未保存的更改，确定要离开吗？",
     "unsavedChangesHint": "您有未保存的更改，请点击保存按钮保存",
     "unsavedChangesTitle": "有未保存的更改",
@@ -542,11 +560,7 @@
     "restarting": "正在重启...",
     "proxyRestarted": "代理服务已使用新配置重启",
     "proxyRestartFailed": "代理服务重启失败",
-    "validationFailed": "验证失败",
-    "fixFormErrors": "请修正表单中的错误",
-    "proxyConfigUpdated": "代理配置已更新",
-    "configSaveFailed": "保存配置失败",
-    "saving": "保存中..."
+    "stopFailed": "无法停止代理服务"
   },
   "apiKeys": {
     "title": "API Key 管理",
@@ -677,7 +691,9 @@
     "logId": "日志 ID",
     "copiedToClipboard": "已复制到剪贴板",
     "copyFailed": "复制失败",
-    "unableToCopy": "无法复制到剪贴板"
+    "unableToCopy": "无法复制到剪贴板",
+    "noLogsYet": "暂无日志",
+    "realtimeHint": "日志会实时显示在这里"
   },
   "settings": {
     "title": "设置",
@@ -856,7 +872,9 @@
     "previous": "上一步",
     "submit": "提交",
     "reset": "重置",
-    "optional": "可选"
+    "optional": "可选",
+    "noOptionFound": "未找到选项",
+    "selectOption": "请选择…"
   },
   "proxyStatus": {
     "enabled": "已启用",
@@ -966,7 +984,11 @@
     "resetSuccess": "已恢复默认模型",
     "resetError": "恢复默认失败",
     "confirmReset": "确定要恢复默认模型吗？这将删除所有自定义模型和排除设置。",
-    "confirmDelete": "确定要删除此模型吗？"
+    "confirmDelete": "确定要删除此模型吗？",
+    "loadFailed": "加载模型失败",
+    "addFailed": "添加模型失败",
+    "removeFailed": "移除模型失败",
+    "resetFailed": "重置模型失败"
   },
   "about": {
     "tagline": "多平台 AI 服务统一管理工具",
@@ -976,7 +998,10 @@
     "reportIssue": "报告问题",
     "appUpdates": "应用更新",
     "credits": "由开源社区 ❤️ 制作",
-    "builtWith": "基于 Electron、React、TypeScript、Tailwind CSS、Zustand、Koa 等优秀的开源项目构建。"
+    "builtWith": "基于 Electron、React、TypeScript、Tailwind CSS、Zustand、Koa 等优秀的开源项目构建。",
+    "updateFailed": "更新失败",
+    "downloadFailed": "下载失败",
+    "installFailed": "安装失败"
   },
   "prompts": {
     "title": "工具调用模拟",
@@ -1168,5 +1193,12 @@
     "outOfMemory": "内存不足",
     "pageLoadFailed": "页面加载失败: {url}",
     "unknownError": "未知错误"
+  },
+  "git": {
+    "statusFailed": "获取状态失败",
+    "pullFailed": "拉取失败",
+    "pushFailed": "推送失败",
+    "cloneFailed": "克隆失败",
+    "checkoutFailed": "切换分支失败"
   }
 }

@@ -1,0 +1,105 @@
+src/renderer/src/components/AgentCard/AgentCard.tsx(48,11): error TS2322: Type '(id: string) => void' is not assignable to type '() => void'.
+src/renderer/src/components/AgentCard/AgentCard.tsx(51,11): error TS2322: Type '(agent: AgentRecord) => void' is not assignable to type '() => void'.
+src/renderer/src/components/management/ManagementToolbar.tsx(150,19): error TS18048: 'selectedIds' is possibly 'undefined'.
+src/renderer/src/components/management/ManagementToolbar.tsx(156,48): error TS2345: Argument of type 'string[] | undefined' is not assignable to parameter of type 'string[]'.
+src/renderer/src/components/management/ManagementToolbar.tsx(166,57): error TS18048: 'selectedIds' is possibly 'undefined'.
+src/renderer/src/components/management/ManagementToolbar.tsx(166,97): error TS2345: Argument of type 'string[] | undefined' is not assignable to parameter of type 'string[]'.
+src/renderer/src/components/providers/AccountDetail.tsx(184,41): error TS2339: Property 'resetStatus' does not exist on type 'AccountsAPI'.
+src/renderer/src/components/providers/AddAccountDialog.tsx(319,49): error TS2339: Property 'cookieSession' does not exist on type 'ElectronAPI'.
+src/renderer/src/components/providers/AddAccountDialog.tsx(328,27): error TS2345: Argument of type 'null' is not assignable to parameter of type 'SetStateAction<{ valid?: boolean | undefined; error?: string | undefined; userInfo?: { name?: string | undefined; email?: string | undefined; quota?: number | undefined; used?: number | undefined; } | undefined; }>'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(11,15): error TS2305: Module '"@/types/electron"' has no exported member 'ConfigGroup'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(11,28): error TS2305: Module '"@/types/electron"' has no exported member 'ConfigGroupData'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(55,48): error TS2339: Property 'configGroups' does not exist on type 'ElectronAPI'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(63,53): error TS2339: Property 'configGroups' does not exist on type 'ElectronAPI'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(87,47): error TS2339: Property 'configGroups' does not exist on type 'ElectronAPI'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(114,47): error TS2339: Property 'configGroups' does not exist on type 'ElectronAPI'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(141,47): error TS2339: Property 'configGroups' does not exist on type 'ElectronAPI'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(172,17): error TS18046: 'preset' is of type 'unknown'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(173,14): error TS18046: 'preset' is of type 'unknown'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(174,16): error TS18046: 'preset' is of type 'unknown'.
+src/renderer/src/components/providers/ConfigGroupView.tsx(175,20): error TS18046: 'preset' is of type 'unknown'.
+src/renderer/src/components/settings/ProxyRuntimeSettings.tsx(165,18): error TS2322: Type '{ className: string; }' is not assignable to type 'LibraryManagedAttributes<Record<keyof T, ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>>[keyof T], Omit<...> & RefAttributes<...>>'.
+src/renderer/src/components/ui/section-card.tsx(40,17): error TS2339: Property 'icon' does not exist on type 'JSX.IntrinsicElements'.
+src/renderer/src/hooks/useAgentExecution.ts(7,34): error TS2307: Cannot find module '../../../../main/agents/types' or its corresponding type declarations.
+src/renderer/src/hooks/useAgentExecution.ts(43,37): error TS2339: Property 'abort' does not exist on type '{ getAll: () => Promise<AgentRecord[]>; getById: (id: string) => Promise<AgentRecord | null>; create: (data: Omit<AgentRecord, "id" | ... 1 more ... | "lastActiveAt">) => Promise<...>; ... 5 more ...; onError: (callback: (data: { ...; }) => void) => () => void; }'.
+src/renderer/src/hooks/useAgentExecution.ts(48,49): error TS2339: Property 'getRunning' does not exist on type '{ getAll: () => Promise<AgentRecord[]>; getById: (id: string) => Promise<AgentRecord | null>; create: (data: Omit<AgentRecord, "id" | ... 1 more ... | "lastActiveAt">) => Promise<...>; ... 5 more ...; onError: (callback: (data: { ...; }) => void) => () => void; }'.
+src/renderer/src/hooks/useAgents.ts(6,34): error TS2307: Cannot find module '../../../../main/agents/types' or its corresponding type declarations.
+src/renderer/src/hooks/useAgents.ts(29,59): error TS2345: Argument of type 'Omit<AgentRecord, "id" | "createdAt" | "updatedAt">' is not assignable to parameter of type 'Omit<AgentRecord, "id" | "createdAt" | "lastActiveAt">'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(56,11): error TS18047: 'res' is possibly 'null'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(56,15): error TS2339: Property 'success' does not exist on type 'AgentRecord'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(56,26): error TS18047: 'res' is possibly 'null'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(56,30): error TS2339: Property 'data' does not exist on type 'AgentRecord'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(57,18): error TS18047: 'res' is possibly 'null'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(57,22): error TS2339: Property 'data' does not exist on type 'AgentRecord'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(58,21): error TS18047: 'res' is possibly 'null'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(58,25): error TS2339: Property 'agent' does not exist on type 'AgentRecord'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(59,21): error TS18047: 'res' is possibly 'null'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(59,25): error TS2339: Property 'agent' does not exist on type 'AgentRecord'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(60,23): error TS18047: 'res' is possibly 'null'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(60,27): error TS2339: Property 'agent' does not exist on type 'AgentRecord'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(61,22): error TS18047: 'res' is possibly 'null'.
+src/renderer/src/pages/AgentManagement/AgentDetailPage.tsx(61,26): error TS2339: Property 'agent' does not exist on type 'AgentRecord'.
+src/renderer/src/pages/AgentManagement/AgentManagementPage.tsx(172,9): error TS2322: Type 'Element' is not assignable to type 'string'.
+src/renderer/src/pages/AgentManagement/AgentManagementPage.tsx(199,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => string | Promise<string>'.
+src/renderer/src/pages/AgentManagement/AgentManagementPage.tsx(201,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => { success: boolean; file?: File | undefined; error?: string | undefined; } | Promise<{ success: boolean; file?: File | undefined; error?: string | undefined; }>'.
+src/renderer/src/pages/Chat/ChatPage.tsx(320,3): error TS2353: Object literal may only specify known properties, and 'heading' does not exist in type 'Components'.
+src/renderer/src/pages/Chat/ChatPage.tsx(320,13): error TS7031: Binding element 'children' implicitly has an 'any' type.
+src/renderer/src/pages/Chat/ChatPage.tsx(320,23): error TS7031: Binding element 'level' implicitly has an 'any' type.
+src/renderer/src/pages/Chat/ChatPage.tsx(1337,59): error TS2339: Property 'current' does not exist on type 'Map<string, ParsedTool>'.
+src/renderer/src/pages/CommandManagement/CommandManagementPage.tsx(310,9): error TS2322: Type '() => void' is not assignable to type '() => string | Promise<string>'.
+src/renderer/src/pages/CookieSessionPage.tsx(7,37): error TS2307: Cannot find module '../../shared/types' or its corresponding type declarations.
+src/renderer/src/pages/CookieSessionPage.tsx(18,44): error TS2339: Property 'cookieSession' does not exist on type 'ElectronAPI'.
+src/renderer/src/pages/Logs.tsx(63,14): error TS2741: Property 'stats' is missing in type '{}' but required in type 'RequestLogStatsProps'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(75,23): error TS2339: Property 'command' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(76,25): error TS2339: Property 'args' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(77,23): error TS2339: Property 'env' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(77,51): error TS2339: Property 'env' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(100,32): error TS2352: Conversion of type 'Record<string, unknown>' to type 'McpServerConfig & { enabled: boolean; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(138,28): error TS2339: Property 'error' does not exist on type '{ success: boolean; connected: boolean; tools: any[]; }'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(157,156): error TS2339: Property 'command' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(243,9): error TS2322: Type 'Element' is not assignable to type 'string'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(264,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => string | Promise<string>'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(266,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => { success: boolean; file?: File | undefined; error?: string | undefined; } | Promise<{ success: boolean; file?: File | undefined; error?: string | undefined; }>'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(290,31): error TS2339: Property 'command' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(290,141): error TS2339: Property 'command' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(290,158): error TS2339: Property 'args' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(292,31): error TS2339: Property 'headers' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(292,61): error TS2339: Property 'headers' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpManagementPage.tsx(293,99): error TS2339: Property 'headers' does not exist on type 'McpServerConfig'.
+src/renderer/src/pages/McpManagement/McpServerDetailPage.tsx(54,32): error TS2551: Property 'getServerById' does not exist on type '{ getConfig: () => Promise<{ servers: McpServerConfig[]; }>; updateConfig: (config: { servers: McpServerConfig[]; }) => Promise<{ success: boolean; }>; ... 4 more ...; getTools: (serverId: string) => Promise<...>; }'. Did you mean 'getServers'?
+src/renderer/src/pages/McpManagement/McpServerDetailPage.tsx(84,31): error TS2339: Property 'config' does not exist on type '{ servers: McpServerConfig[]; }'.
+src/renderer/src/pages/PlanManagement/PlanDetailPage.tsx(84,28): error TS2339: Property 'stepId' does not exist on type '{ phase: string; detail: string; }'.
+src/renderer/src/pages/PlanManagement/PlanDetailPage.tsx(147,33): error TS2322: Type 'PlanStep[]' is not assignable to type '{ id: string; description: string; status: string; result?: string | undefined; }[]'.
+src/renderer/src/pages/PlanManagement/PlanManagementPage.tsx(198,9): error TS2322: Type 'Element' is not assignable to type 'string'.
+src/renderer/src/pages/PlanManagement/PlanManagementPage.tsx(228,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => string | Promise<string>'.
+src/renderer/src/pages/PlanManagement/PlanManagementPage.tsx(230,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => { success: boolean; file?: File | undefined; error?: string | undefined; } | Promise<{ success: boolean; file?: File | undefined; error?: string | undefined; }>'.
+src/renderer/src/pages/PluginManagement/PluginDetailPage.tsx(42,36): error TS2339: Property 'getById' does not exist on type '{ getAll: () => Promise<PluginRecord[]>; getBuiltin: () => Promise<PluginRecord[]>; getInstalled: () => Promise<PluginRecord[]>; ... 4 more ...; update: (pluginId: string) => Promise<...>; }'.
+src/renderer/src/pages/PluginManagement/PluginDetailPage.tsx(61,33): error TS2554: Expected 1 arguments, but got 2.
+src/renderer/src/pages/PluginManagement/PluginManagementPage.tsx(151,22): error TS2339: Property 'add' does not exist on type '{ getAll: () => Promise<PluginRecord[]>; getBuiltin: () => Promise<PluginRecord[]>; getInstalled: () => Promise<PluginRecord[]>; ... 4 more ...; update: (pluginId: string) => Promise<...>; }'.
+src/renderer/src/pages/PluginManagement/PluginManagementPage.tsx(167,9): error TS2322: Type 'Element' is not assignable to type 'string'.
+src/renderer/src/pages/PluginManagement/PluginManagementPage.tsx(188,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => string | Promise<string>'.
+src/renderer/src/pages/PluginManagement/PluginManagementPage.tsx(190,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => { success: boolean; file?: File | undefined; error?: string | undefined; } | Promise<{ success: boolean; file?: File | undefined; error?: string | undefined; }>'.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(59,34): error TS2339: Property 'onStreamEvent' does not exist on type '{ getAll: () => Promise<TaskRecord[]>; getById: (id: string) => Promise<TaskRecord | null>; create: (data: Omit<TaskRecord, "id" | "createdAt">) => Promise<...>; update: (id: string, updates: Partial<...>) => Promise<...>; delete: (id: string) => Promise<...>; setStatus: (id: string, status: "done" | ... 2 more ... ...'.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(63,32): error TS2538: Type 'undefined' cannot be used as an index type.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(71,27): error TS2464: A computed property name must be of type 'string', 'number', 'symbol', or 'any'.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(81,23): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(90,40): error TS2339: Property 'getRunning' does not exist on type '{ getAll: () => Promise<TaskRecord[]>; getById: (id: string) => Promise<TaskRecord | null>; create: (data: Omit<TaskRecord, "id" | "createdAt">) => Promise<...>; update: (id: string, updates: Partial<...>) => Promise<...>; delete: (id: string) => Promise<...>; setStatus: (id: string, status: "done" | ... 2 more ... ...'.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(92,45): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(125,22): error TS2339: Property 'execute' does not exist on type '{ getAll: () => Promise<TaskRecord[]>; getById: (id: string) => Promise<TaskRecord | null>; create: (data: Omit<TaskRecord, "id" | "createdAt">) => Promise<...>; update: (id: string, updates: Partial<...>) => Promise<...>; delete: (id: string) => Promise<...>; setStatus: (id: string, status: "done" | ... 2 more ... ...'.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(138,22): error TS2339: Property 'abort' does not exist on type '{ getAll: () => Promise<TaskRecord[]>; getById: (id: string) => Promise<TaskRecord | null>; create: (data: Omit<TaskRecord, "id" | "createdAt">) => Promise<...>; update: (id: string, updates: Partial<...>) => Promise<...>; delete: (id: string) => Promise<...>; setStatus: (id: string, status: "done" | ... 2 more ... ...'.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(305,9): error TS2322: Type 'Element' is not assignable to type 'string'.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(335,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => string | Promise<string>'.
+src/renderer/src/pages/TaskManagement/TaskManagementPage.tsx(337,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => { success: boolean; file?: File | undefined; error?: string | undefined; } | Promise<{ success: boolean; file?: File | undefined; error?: string | undefined; }>'.
+src/renderer/src/pages/TeamTask/TeamTaskPage.tsx(443,11): error TS2322: Type 'unknown' is not assignable to type 'string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined'.
+src/renderer/src/pages/ToolManagement/ToolDetailPage.tsx(122,27): error TS2339: Property 'ensureFile' does not exist on type 'ToolAPI'.
+src/renderer/src/pages/ToolManagement/ToolDetailPage.tsx(127,15): error TS2339: Property 'revealFile' does not exist on type 'ToolAPI'.
+src/renderer/src/pages/ToolManagement/ToolDetailPage.tsx(137,27): error TS2339: Property 'resetBuiltin' does not exist on type 'ToolAPI'.
+src/renderer/src/pages/WorkflowManagement/WorkflowDetailPage.tsx(55,11): error TS18047: 'res' is possibly 'null'.
+src/renderer/src/pages/WorkflowManagement/WorkflowDetailPage.tsx(55,15): error TS2339: Property 'success' does not exist on type 'WorkflowRecord'.
+src/renderer/src/pages/WorkflowManagement/WorkflowDetailPage.tsx(55,26): error TS18047: 'res' is possibly 'null'.
+src/renderer/src/pages/WorkflowManagement/WorkflowDetailPage.tsx(55,30): error TS2339: Property 'workflow' does not exist on type 'WorkflowRecord'.
+src/renderer/src/pages/WorkflowManagement/WorkflowDetailPage.tsx(56,20): error TS18047: 'res' is possibly 'null'.
+src/renderer/src/pages/WorkflowManagement/WorkflowDetailPage.tsx(56,24): error TS2339: Property 'workflow' does not exist on type 'WorkflowRecord'.
+src/renderer/src/pages/WorkflowManagement/WorkflowManagementPage.tsx(178,9): error TS2322: Type 'Element' is not assignable to type 'string'.
+src/renderer/src/pages/WorkflowManagement/WorkflowManagementPage.tsx(206,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => string | Promise<string>'.
+src/renderer/src/pages/WorkflowManagement/WorkflowManagementPage.tsx(208,9): error TS2322: Type '() => Promise<void>' is not assignable to type '() => { success: boolean; file?: File | undefined; error?: string | undefined; } | Promise<{ success: boolean; file?: File | undefined; error?: string | undefined; }>'.

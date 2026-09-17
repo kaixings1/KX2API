@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import type { ProxyStatus, ProxyStatistics, Provider, Account, ProviderCheckResult, LogEntry } from '@/types/electron'
 import type { ProviderStats, ActivityItem, ChartDataPoint } from '@/components/dashboard'
+// zustand store 不是 React 组件，无法用 useTranslation，直接取 i18n 实例
+// （与 settingsStore 的做法一致）
+import i18n from '@/i18n'
 
 interface DashboardStats {
   totalRequests: number
@@ -278,7 +281,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
       set({ lastUpdated: Date.now() })
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to fetch data')
+      setError(error instanceof Error ? error.message : i18n.t('dashboard.fetchFailed', '获取数据失败'))
       setStats({
         totalRequests: 0,
         successRate: 0,

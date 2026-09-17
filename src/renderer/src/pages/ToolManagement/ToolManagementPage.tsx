@@ -16,8 +16,8 @@ import {
 } from 'lucide-react'
 import { ImportExportDialog, ManagementToolbar } from '@/components/management'
 import { ToolGroupsPanel } from './ToolGroupsPanel'
-import { ParameterEditor, type ToolParameter } from './ParameterEditor'
-import { ToolDef, ToolGroup, HintRule } from '@/types/tools'
+import { ParameterEditor, type ToolParameter as ParamEditorParam } from './ParameterEditor'
+import { ToolDef, ToolGroup, HintRule, type ToolParameter as BackingToolParam } from '@/types/tools'
 import { useToast } from '@/hooks/use-toast'
 
 // ==================== Component ====================
@@ -42,7 +42,7 @@ export function ToolManagementPage() {
 
   // Tool form
   const [editingTool, setEditingTool] = useState<string | null>(null)
-  const [toolForm, setToolForm] = useState<{ name: string; displayName: string; description: string; usage: string; platform: string; tags: string; parameters: ToolParameter[] }>({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '', parameters: [] })
+  const [toolForm, setToolForm] = useState<{ name: string; displayName: string; description: string; usage: string; platform: string; tags: string; parameters: ParamEditorParam[] }>({ name: '', displayName: '', description: '', usage: '', platform: 'all', tags: '', parameters: [] })
 
   // Group form
   const [editingGroup, setEditingGroup] = useState<string | null>(null)
@@ -148,6 +148,23 @@ export function ToolManagementPage() {
   }
 
   // ==================== Tool CRUD ====================
+
+  // 把后端的宽松 ToolParameter（types/tools）映射为 ParameterEditor 的编辑器结构。
+  // 两套类型字段不同（backing: type:string/description?/required?/default/enum；
+  // 编辑器: name/type字面量/required/description/defaultValue），编辑前需归一。
+  const backingToEditorParams = (list?: BackingToolParam[]): ParamEditorParam[] => {
+    if (!Array.isArray(list)) return []
+    return list.map((p) => {
+      const hasDefault = p.default !== null && p.default !== void 0
+      return {
+        name: p.name,
+        type: (p.type as ParamEditorParam['type']) || 'string',
+        required: Boolean(p.required),
+        description: p.description || '',
+        defaultValue: hasDefault ? String(p.default) : void 0,
+      }
+    })
+  }
 
   const handleAddTool = async () => {
     if (!toolForm.name || !toolForm.displayName) return
@@ -378,21 +395,16 @@ export function ToolManagementPage() {
   const handleExport = async () => {
     try {
       const res = await window.electronAPI.mgmt.export('tools', { tools: filteredTools, groups, hintRules: filteredRules })
-      if (res.success) {
-        const blob = new Blob([JSON.stringify({ tools: filteredTools, groups, hintRules: filteredRules }, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `tools_${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
-      } else {
+      if (!res.success) {
         showError(t('tools.exportFailed', '导出失败'))
+        return ''
       }
+      // 返回 JSON 字符串供 ImportExportDialog 统一下载
     } catch (e) {
       console.error('Export failed:', e)
       showError(t('tools.exportFailed', '导出失败'))
     }
+    return JSON.stringify({ tools: filteredTools, groups, hintRules: filteredRules }, null, 2)
   }
 
   const handleImport = async (jsonData: string) => {
@@ -417,17 +429,14 @@ export function ToolManagementPage() {
   const handleBackup = async () => {
     try {
       const res = await window.electronAPI.mgmt.backup()
-      if (res.success) {
-        const blob = new Blob([JSON.stringify({ tools: { tools: filteredTools, groups, hintRules: filteredRules } }, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `tools_backup_${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
+      if (!res.success) return { success: false, error: res.error }
+      // 生成备份文件并交给 ImportExportDialog 下载
+      const blob = new Blob([JSON.stringify({ tools: { tools: filteredTools, groups, hintRules: filteredRules } }, null, 2)], { type: 'application/json' })
+      const file = new File([blob], `tools_backup_${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' })
+      return { success: true, file }
     } catch (e) {
       console.error('Backup failed:', e)
+      return { success: false, error: (e as Error).message }
     }
   }
 
@@ -605,7 +614,7 @@ export function ToolManagementPage() {
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingTool(null)}><X className="w-3 h-3" /></Button>
                         </>
                       ) : (
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingTool(tool.id); setToolForm({ name: tool.name, displayName: tool.displayName, description: tool.description, usage: tool.usage, platform: tool.platform, tags: (Array.isArray(tool.tags) ? tool.tags : []).join(', '), parameters: tool.parameters || [] }) }}><Edit3 className="w-3 h-3" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingTool(tool.id); setToolForm({ name: tool.name, displayName: tool.displayName, description: tool.description, usage: tool.usage, platform: tool.platform, tags: (Array.isArray(tool.tags) ? tool.tags : []).join(', '), parameters: backingToEditorParams(tool.parameters) }) }}><Edit3 className="w-3 h-3" /></Button>
                       )}
                       {!tool.builtin && <Button size="icon" variant="ghost" className="h-7 w-7 text-red-400" onClick={() => handleRemoveTool(tool.id)}><Trash2 className="w-3 h-3" /></Button>}
                     </div>

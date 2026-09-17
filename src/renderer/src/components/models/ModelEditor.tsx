@@ -71,7 +71,7 @@ export function ModelEditor({
       console.error('Failed to load models:', error)
       toast({
         title: t('common.error'),
-        description: error instanceof Error ? error.message : 'Failed to load models',
+        description: error instanceof Error ? error.message : t('modelEditor.loadFailed', '加载模型失败'),
         variant: 'destructive',
       })
     } finally {
@@ -128,7 +128,7 @@ export function ModelEditor({
           description: t('modelEditor.addSuccess'),
         })
       } else {
-        throw new Error(result.error || 'Failed to add model')
+        throw new Error(result.error || t('modelEditor.addFailed', '添加模型失败'))
       }
     } catch (error) {
       console.error('Failed to add model:', error)
@@ -155,7 +155,7 @@ export function ModelEditor({
           description: t('modelEditor.removeSuccess'),
         })
       } else {
-        throw new Error(result.error || 'Failed to remove model')
+        throw new Error(result.error || t('modelEditor.removeFailed', '移除模型失败'))
       }
     } catch (error) {
       console.error('Failed to remove model:', error)
@@ -186,7 +186,7 @@ export function ModelEditor({
           description: t('modelEditor.resetSuccess'),
         })
       } else {
-        throw new Error(result.error || 'Failed to reset models')
+        throw new Error(result.error || t('modelEditor.resetFailed', '重置模型失败'))
       }
     } catch (error) {
       console.error('Failed to reset models:', error)

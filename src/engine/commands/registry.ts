@@ -2835,6 +2835,40 @@ commandRegistry.register({
 })
 
 commandRegistry.register({
+  name: 'repomap',
+  description: '代码库符号概览（用法: /repomap [目录] [数量]，按 PageRank 排序最重要的符号）',
+  execute: async (args) => {
+    try {
+      const { createRepoMap } = await import('../repoMap.ts')
+      const rootDir = args[0] || process.cwd()
+      const topN = Number(args[1]) > 0 ? Number(args[1]) : 30
+
+      const map = createRepoMap({ rootDir, maxFiles: 400 })
+      const tags = await map.getRankedTags(topN)
+      if (tags.length === 0) {
+        return {
+          success: true,
+          output: `在 ${rootDir} 下没有扫描到任何代码符号（目录不存在、或没有 .ts/.tsx/.js/.jsx 文件）。`,
+        }
+      }
+
+      // 同时给出符号总数，便于判断这次扫描是否真的走通了
+      const symbols = await map.getSymbols()
+      const lines = tags.map((t, i) => `${i + 1}. ${t.name}`)
+      return {
+        success: true,
+        output:
+          `${rootDir} 下共提取 ${symbols.length} 个符号，按重要性（PageRank）取前 ${tags.length} 个：\n` +
+          lines.join('\n') +
+          '\n\n提示：这些是代码库中最「被引用」的符号，可作为理解项目结构的入口。',
+      }
+    } catch (e) {
+      return { success: false, error: `repomap 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
   name: 'skills',
   description: '列出可用的技能',
   execute: async () => {

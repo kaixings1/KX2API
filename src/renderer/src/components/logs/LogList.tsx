@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { List } from 'react-window'
 import { Badge } from '@/components/ui/badge'
 import { useLogsStore } from '@/stores/logsStore'
@@ -103,6 +104,7 @@ function LogRow({
 }
 
 export function LogList({ height = 500, onLogClick }: LogListProps) {
+  const { t } = useTranslation()
   const { filteredLogs, selectedLog, autoScroll, isLoading, hasMore, loadMore } = useLogsStore()
   const listRef = useRef<ListImperativeHandle>(null)
 
@@ -138,8 +140,8 @@ export function LogList({ height = 500, onLogClick }: LogListProps) {
         style={{ height }}
       >
         <div className="text-center">
-          <p className="text-lg">No logs yet</p>
-          <p className="text-sm mt-1">Logs will be displayed here in real-time</p>
+          <p className="text-lg">{t('logs.noLogsYet', '暂无日志')}</p>
+          <p className="text-sm mt-1">{t('logs.realtimeHint', '日志会实时显示在这里')}</p>
         </div>
       </div>
     )

@@ -68,7 +68,8 @@
     "justNow": "Just now",
     "minutesAgo": "{{count}}m ago",
     "hoursAgo": "{{count}}h ago",
-    "daysAgo": "{{count}}d ago"
+    "daysAgo": "{{count}}d ago",
+    "fetchFailed": "Failed to fetch data"
   },
   "providers": {
     "title": "Provider Management",
@@ -240,7 +241,13 @@
     "updateModelsSuccess": "Model list updated successfully",
     "updateModelsFailed": "Failed to update model list",
     "updateModelsNotSupported": "This provider does not support dynamic model updates",
-    "updatingModels": "Updating model list..."
+    "updatingModels": "Updating model list...",
+    "totalProviders": "{{count}} providers total",
+    "onlineProviders": "{{count}} online",
+    "enabledProviders": "{{count}} enabled",
+    "typeBreakdown": "{{builtin}} built-in, {{custom}} custom",
+    "addFirstProvider": "Click the button above to add your first provider",
+    "refreshStatus": "Refresh Status"
   },
   "loginGuide": {
     "getToken": "Get {{provider}} Credentials",
@@ -257,7 +264,18 @@
     "openBrowserFailed": "Failed to open browser",
     "openBrowserFailedDesc": "Please manually visit: {{url}}",
     "pasteFailed": "Paste failed",
-    "pasteFailedDesc": "Please paste manually"
+    "pasteFailedDesc": "Please paste manually",
+    "inLocalStorage": "In Local Storage → {{domain}}",
+    "inCookies": "In Cookies → {{domain}}",
+    "findFieldCopy": "Find {{field}} field and copy its value",
+    "findField": "Find {{field}} field",
+    "findFields": "Find {{fields}} fields",
+    "openDevtoolsCookies": "Open DevTools → Application → Cookies",
+    "copyJwtToken": "Copy the JWT token value",
+    "useOauthTab": "Or use OAuth login tab for automatic extraction",
+    "optionalRecommended": "(Optional but recommended)",
+    "copyKeyCookies": "Copy all cookies or key cookies: {{names}}",
+    "jwtFormatHint": "Find \"{{field}}\" field (JWT format, starts with \"eyJ...\")"
   },
   "deepseek": {
     "name": "DeepSeek",
@@ -462,7 +480,7 @@
     "mappingUpdatedPending": "Model mapping {{model}} modified (pending save)",
     "mappingDeletedPending": "Model mapping {{model}} deleted (pending save)",
     "configSaved": "Model mapping configuration saved",
-    "configSaveFailed": "Failed to save configuration, please try again",
+    "configSaveFailed": "Failed to save configuration",
     "unsavedChangesWarning": "You have unsaved changes. Are you sure you want to leave?",
     "unsavedChangesHint": "You have unsaved changes, click save button to save",
     "unsavedChangesTitle": "Unsaved Changes",
@@ -541,11 +559,7 @@
     "restarting": "Restarting...",
     "proxyRestarted": "Proxy service has been restarted with new configuration",
     "proxyRestartFailed": "Failed to restart proxy service",
-    "validationFailed": "Validation Failed",
-    "fixFormErrors": "Please fix the errors in the form",
-    "proxyConfigUpdated": "Proxy configuration has been updated",
-    "configSaveFailed": "Failed to save configuration",
-    "saving": "Saving..."
+    "stopFailed": "Unable to stop proxy service"
   },
   "apiKeys": {
     "title": "API Key Management",
@@ -676,7 +690,9 @@
     "logId": "Log ID",
     "copiedToClipboard": "Copied to clipboard",
     "copyFailed": "Copy Failed",
-    "unableToCopy": "Unable to copy to clipboard"
+    "unableToCopy": "Unable to copy to clipboard",
+    "noLogsYet": "No logs yet",
+    "realtimeHint": "Logs will be displayed here in real-time"
   },
   "settings": {
     "title": "Settings",
@@ -855,7 +871,9 @@
     "previous": "Previous",
     "submit": "Submit",
     "reset": "Reset",
-    "optional": "Optional"
+    "optional": "Optional",
+    "noOptionFound": "No option found",
+    "selectOption": "Select option..."
   },
   "proxyStatus": {
     "enabled": "Enabled",
@@ -965,7 +983,11 @@
     "resetSuccess": "Models reset to default",
     "resetError": "Failed to reset models",
     "confirmReset": "Are you sure you want to reset to default? This will remove all custom models and exclusion settings.",
-    "confirmDelete": "Are you sure you want to delete this model?"
+    "confirmDelete": "Are you sure you want to delete this model?",
+    "loadFailed": "Failed to load models",
+    "addFailed": "Failed to add model",
+    "removeFailed": "Failed to remove model",
+    "resetFailed": "Failed to reset models"
   },
   "about": {
     "tagline": "Multi-platform AI Service Unified Management Tool",
@@ -975,7 +997,10 @@
     "reportIssue": "Report Issue",
     "appUpdates": "Application Updates",
     "credits": "Made with ❤️ by the Open Source Community",
-    "builtWith": "Built with Electron, React, TypeScript, Tailwind CSS, Zustand, Koa and other amazing open source projects."
+    "builtWith": "Built with Electron, React, TypeScript, Tailwind CSS, Zustand, Koa and other amazing open source projects.",
+    "updateFailed": "Update failed",
+    "downloadFailed": "Download failed",
+    "installFailed": "Install failed"
   },
   "prompts": {
     "title": "Function Calling Simulation",
@@ -1167,5 +1192,12 @@
     "outOfMemory": "Out of memory",
     "pageLoadFailed": "Page load failed: {url}",
     "unknownError": "Unknown error"
+  },
+  "git": {
+    "statusFailed": "Failed to get status",
+    "pullFailed": "Pull failed",
+    "pushFailed": "Push failed",
+    "cloneFailed": "Clone failed",
+    "checkoutFailed": "Checkout failed"
   }
 }

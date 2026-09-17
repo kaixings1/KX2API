@@ -448,7 +448,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     try {
       const plan = plansStore.get(id)
       if (plan) return { success: true, data: plan }
-      return { success: false, error: 'Plan not found' }
+      return { success: false, error: '计划不存在' }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
@@ -468,7 +468,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.PLANS_UPDATE, async (_, id: string, data: Partial<PlanRecord>) => {
     try {
       const existing = plansStore.get(id)
-      if (!existing) return { success: false, error: 'Plan not found' }
+      if (!existing) return { success: false, error: '计划不存在' }
       const updated = { ...existing, ...data }
       plansStore.set(id, updated)
       return { success: true, data: updated }
@@ -488,9 +488,9 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.PLANS_EXECUTE, async (_, id: string) => {
     try {
       const plan = plansStore.get(id)
-      if (!plan) return { success: false, error: 'Plan not found' }
-      if (plan.status === 'running') return { success: false, error: 'Plan is already running' }
-      if (plan.steps.length === 0) return { success: false, error: 'Plan has no steps to execute' }
+      if (!plan) return { success: false, error: '计划不存在' }
+      if (plan.status === 'running') return { success: false, error: '计划正在运行中' }
+      if (plan.steps.length === 0) return { success: false, error: '计划没有可执行的步骤' }
 
       plansStore.set(id, {
         ...plan,
@@ -712,7 +712,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       const existing = commandsStore.get(id)
       if (!existing) {
         console.warn('[CMD] UPDATE: not found, id=', id)
-        return { success: false, error: 'Command not found' }
+        return { success: false, error: '命令不存在' }
       }
       const updated = { ...existing, ...data }
       commandsStore.set(id, updated)
@@ -794,7 +794,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     try {
       const workflow = workflowsStore.get(id)
       if (workflow) return { success: true, data: workflow }
-      return { success: false, error: 'Workflow not found' }
+      return { success: false, error: '工作流不存在' }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
@@ -814,7 +814,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.WORKFLOWS_UPDATE, async (_, id: string, data: Partial<WorkflowRecord>) => {
     try {
       const existing = workflowsStore.get(id)
-      if (!existing) return { success: false, error: 'Workflow not found' }
+      if (!existing) return { success: false, error: '工作流不存在' }
       const updated = { ...existing, ...data, updatedAt: Date.now() }
       workflowsStore.set(id, updated)
       return { success: true, data: updated }
@@ -834,7 +834,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.WORKFLOWS_EXECUTE, async (_, id: string) => {
     try {
       const workflow = workflowsStore.get(id)
-      if (!workflow) return { success: false, error: 'Workflow not found' }
+      if (!workflow) return { success: false, error: '工作流不存在' }
       workflowsStore.set(id, { ...workflow, status: 'running', updatedAt: Date.now() })
       await new Promise(r => setTimeout(r, 1000))
       workflowsStore.set(id, { ...workflow, status: 'completed', updatedAt: Date.now() })
@@ -915,7 +915,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       const configRes = await mcpService.getConfig()
       const server = (configRes as any)?.servers?.find((s: any) => s.id === id)
       if (server) return { success: true, data: server }
-      return { success: false, error: 'Server not found' }
+      return { success: false, error: '服务器不存在' }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
@@ -942,7 +942,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.MGMT_IMPORT, async (_: any, moduleName: string, jsonData: string) => {
     try {
       const data = JSON.parse(jsonData)
-      if (!Array.isArray(data)) return { success: false, error: 'Data must be an array' }
+      if (!Array.isArray(data)) return { success: false, error: '数据必须是数组' }
       return { success: true, data, count: data.length }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1121,7 +1121,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     try {
       const plugin = pluginsStore.get(pluginId)
       if (plugin) return { success: true, data: plugin }
-      return { success: false, error: 'Plugin not found' }
+      return { success: false, error: '插件不存在' }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
@@ -1210,7 +1210,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_UPDATE, async (_, id: string, updates: any) => {
     try {
       const result = toolManager.updateTool(id, updates)
-      if (!result) return { success: false, error: 'Tool not found' }
+      if (!result) return { success: false, error: '工具不存在' }
       return { success: true, data: result }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1220,7 +1220,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_REMOVE, async (_, id: string) => {
     try {
       const removed = toolManager.removeTool(id)
-      if (!removed) return { success: false, error: 'Cannot remove builtin tool' }
+      if (!removed) return { success: false, error: '无法删除内置工具' }
       return { success: true }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1230,7 +1230,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_TOGGLE, async (_, id: string) => {
     try {
       const result = toolManager.toggleTool(id)
-      if (!result) return { success: false, error: 'Tool not found' }
+      if (!result) return { success: false, error: '工具不存在' }
       return { success: true, data: result }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1249,7 +1249,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_UPDATE_GROUP, async (_, id: string, updates: any) => {
     try {
       const result = toolManager.updateGroup(id, updates)
-      if (!result) return { success: false, error: 'Group not found' }
+      if (!result) return { success: false, error: '分组不存在' }
       return { success: true, data: result }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1259,7 +1259,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_REMOVE_GROUP, async (_, id: string) => {
     try {
       const removed = toolManager.removeGroup(id)
-      if (!removed) return { success: false, error: 'Cannot remove builtin group' }
+      if (!removed) return { success: false, error: '无法删除内置分组' }
       // 若删除的是当前生效组，从 enabledToolGroups 中剔除该悬空 id
       const config = storeManager.getConfig()
       const active = config.enabledToolGroups || []
@@ -1275,7 +1275,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_ADD_TO_GROUP, async (_, toolId: string, groupId: string) => {
     try {
       const added = toolManager.addToolToGroup(toolId, groupId)
-      if (!added) return { success: false, error: 'Tool already in group or group not found' }
+      if (!added) return { success: false, error: '工具已在分组中，或分组不存在' }
       return { success: true }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1303,7 +1303,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_UPDATE_HINT_RULE, async (_, id: string, updates: any) => {
     try {
       const result = toolManager.updateHintRule(id, updates)
-      if (!result) return { success: false, error: 'Rule not found' }
+      if (!result) return { success: false, error: '规则不存在' }
       return { success: true, data: result }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1313,7 +1313,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_REMOVE_HINT_RULE, async (_, id: string) => {
     try {
       const removed = toolManager.removeHintRule(id)
-      if (!removed) return { success: false, error: 'Cannot remove builtin rule' }
+      if (!removed) return { success: false, error: '无法删除内置规则' }
       return { success: true }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1348,7 +1348,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     try {
       const tool = toolManager.getTool(id)
       if (tool) return { success: true, data: tool }
-      return { success: false, error: 'Tool not found' }
+      return { success: false, error: '工具不存在' }
     } catch (e) {
       return { success: false, error: (e as Error).message }
     }
@@ -1360,7 +1360,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     async (_, kind: 'tool' | 'group' | 'hintRule', id: string) => {
       try {
         const done = toolManager.resetBuiltin(kind, id)
-        if (!done) return { success: false, error: 'Builtin entity not found' }
+        if (!done) return { success: false, error: '内置实体不存在' }
         return { success: true }
       } catch (e) {
         return { success: false, error: (e as Error).message }
@@ -1372,7 +1372,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_ENSURE_FILE, async (_, id: string) => {
     try {
       const path = toolManager.ensureToolFile(id)
-      if (!path) return { success: false, error: 'Tool not found' }
+      if (!path) return { success: false, error: '工具不存在' }
       return { success: true, data: { path } }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1383,7 +1383,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_REVEAL_FILE, async (_, id: string) => {
     try {
       const path = toolManager.ensureToolFile(id)
-      if (!path) return { success: false, error: 'Tool not found' }
+      if (!path) return { success: false, error: '工具不存在' }
       shell.showItemInFolder(path)
       return { success: true, data: { path } }
     } catch (e) {
@@ -1404,7 +1404,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.TOOLS_UPDATE_ROLE, async (_, id: string, updates: Record<string, unknown>) => {
     try {
       const result = toolManager.updateRole(id, updates as never)
-      if (!result) return { success: false, error: 'Role not found' }
+      if (!result) return { success: false, error: '角色不存在' }
       return { success: true, data: result }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -1854,7 +1854,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       return {
         providerId,
         status: 'unknown',
-        error: 'Provider not found',
+        error: '供应商不存在',
       }
     }
 
@@ -1942,7 +1942,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       if (!provider) {
         return {
           success: false,
-          error: 'Provider not found',
+          error: '供应商不存在',
         }
       }
 
@@ -1960,7 +1960,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       if (!modelsApiEndpoint) {
         return {
           success: false,
-          error: 'This provider does not support dynamic model updates',
+          error: '该供应商不支持动态更新模型',
         }
       }
 
@@ -1999,7 +1999,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       if (!Array.isArray(models) || models.length === 0) {
         return {
           success: false,
-          error: 'No models found in the response',
+          error: '响应中未找到模型',
         }
       }
 
@@ -2024,7 +2024,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       if (supportedModels.length === 0) {
         return {
           success: false,
-          error: 'Failed to parse models from the response',
+          error: '解析响应中的模型失败',
         }
       }
 
@@ -2167,7 +2167,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     }
 
     if (!provider) {
-      return { valid: false, error: 'Provider not found' }
+      return { valid: false, error: '供应商不存在' }
     }
 
     const tempAccount: Account = {
@@ -2215,17 +2215,17 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     try {
       const account = AccountManager.getById(accountId, true)
       if (!account) {
-        return { success: false, error: 'Account not found' }
+        return { success: false, error: '账户不存在' }
       }
 
       const provider = ProviderManager.getById(account.providerId)
       if (!provider) {
-        return { success: false, error: 'Provider not found' }
+        return { success: false, error: '供应商不存在' }
       }
 
       const clearChats = clearChatsHandlers[provider.id]
       if (!clearChats) {
-        return { success: false, error: 'This feature is not available for this provider' }
+        return { success: false, error: '该供应商不支持此功能' }
       }
 
       const success = await clearChats(provider, account)

@@ -31,7 +31,7 @@ export function GitManagement() {
       setStatus(res || null)
     } catch (e) {
       console.error('[GitManagement] Failed to load status:', e)
-      setError((e as Error).message || 'Failed to get status')
+      setError((e as Error).message || t('git.statusFailed', '获取状态失败'))
     }
     setLoading(false)
   }, [repoPath])
@@ -50,7 +50,7 @@ export function GitManagement() {
     if (res.success) {
       loadStatus()
     } else {
-      setError(res.error || 'Pull failed')
+      setError(res.error || t('git.pullFailed', '拉取失败'))
     }
     setLoading(false)
   }
@@ -61,7 +61,7 @@ export function GitManagement() {
     if (res.success) {
       loadStatus()
     } else {
-      setError(res.error || 'Push failed')
+      setError(res.error || t('git.pushFailed', '推送失败'))
     }
     setLoading(false)
   }
@@ -73,7 +73,7 @@ export function GitManagement() {
       setRepoPath(cloneTarget)
       setCloneDialog(false)
     } else {
-      setError(res.error || 'Clone failed')
+      setError(res.error || t('git.cloneFailed', '克隆失败'))
     }
     setLoading(false)
   }
@@ -85,7 +85,7 @@ export function GitManagement() {
       loadStatus()
       loadBranches()
     } else {
-      setError(res.error || 'Checkout failed')
+      setError(res.error || t('git.checkoutFailed', '切换分支失败'))
     }
     setLoading(false)
   }

@@ -98,7 +98,10 @@ export function About() {
       setUpdateInfo((current) => ({
         ...current,
         phase: 'error',
-        error: typeof error === 'string' ? error : error?.message || 'Update failed',
+        error:
+          typeof error === 'string'
+            ? error
+            : error?.message || t('about.updateFailed', '更新失败'),
       }))
     })
 
@@ -110,7 +113,9 @@ export function About() {
       unsubscribeDownloaded()
       unsubscribeError()
     }
-  }, [])
+    // t 随语言切换而变，需列入依赖：否则语言改变后此处仍用旧语言的文案。
+    // 重新订阅本身无副作用（只是替换事件监听）。
+  }, [t])
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B'
@@ -157,7 +162,7 @@ export function About() {
       setUpdateInfo((current) => ({
         ...current,
         phase: 'error',
-        error: getUpdateErrorMessage(error, 'Update check failed'),
+        error: getUpdateErrorMessage(error, t('settings.updateCheckFailed')),
       }))
     }
   }
@@ -176,7 +181,7 @@ export function About() {
       setUpdateInfo((current) => ({
         ...current,
         phase: 'error',
-        error: getUpdateErrorMessage(error, 'Download failed'),
+        error: getUpdateErrorMessage(error, t('about.downloadFailed', '下载失败')),
       }))
     }
   }
@@ -188,7 +193,7 @@ export function About() {
       setUpdateInfo((current) => ({
         ...current,
         phase: 'error',
-        error: getUpdateErrorMessage(error, 'Install failed'),
+        error: getUpdateErrorMessage(error, t('about.installFailed', '安装失败')),
       }))
     }
   }

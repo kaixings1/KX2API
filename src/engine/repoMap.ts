@@ -46,10 +46,22 @@ async function ripGrepFiles(args: string[], cwd: string): Promise<string[]> {
     try {
       const items = await readdir(dir, { withFileTypes: true });
       entries = items.map(e => ({ name: e.name, isFile: e.isFile() }));
-    } catch { return; }
+    } catch (e) {
+      // 不要静默吞掉：目录不可读是正常情况（权限/竞态删除），
+      // 但**代码 bug** 也会走到这里 —— 上面那处 isFile() 误调用就是这样被吞了
+      // 很久，表现为"repoMap 恒返回 0 符号"且毫无线索。
+      // 开 KX2_DEBUG_REPOMAP=1 可看到具体原因。
+      if (process.env.KX2_DEBUG_REPOMAP === '1') {
+        console.warn(`[RepoMap] 读取目录失败 ${dir}: ${(e as Error).message}`);
+      }
+      return;
+    }
     for (const entry of entries) {
       const full = join(dir, entry.name);
-      if (entry.isFile()) {
+      // 注意：entry.isFile 是在上面 map 时**求值好的布尔值**，不是 Dirent 的方法。
+      // 原实现写成 entry.isFile() —— 抛 TypeError 后被外层 catch 静默吞掉，
+      // 表现为「walk 一个文件都没遍历就返回空数组」，整个 repoMap 因此恒返回 0 符号。
+      if (entry.isFile) {
         const ext = '.' + entry.name.split('.').pop();
         if (exts.has(ext)) results.push(full);
       } else if (!entry.name.startsWith('.') && entry.name !== 'node_modules') {

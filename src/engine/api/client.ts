@@ -705,15 +705,19 @@ export async function sendOpenAIStreamWithTools(
           // 守门：只有当提取到的工具名「能真正解析到注册命令」时，才认定为工具调用。
           // 否则极可能是 API 最终正文里的接口/HTML/XML 文档示例（如 <name>用户</name>、
           // <response><id>..</id></response>），必须保留全文作为 AI 答案，绝不吞掉。
-          // 一次遍历：同时完成「是否可解析」的判定与可解析候选的收集，避免重复 import/匹配。
-          const resolvable: PlainTextToolCallBlock[] = []
+          // 一次遍历：同时完成「是否可解析」的判定、归一化命令名与候选收集。
+          // 归一化命令名（如 file_system.list_directory → ls）必须落到 toolCalls，
+          // 否则 UI/后续 tool_result 配对拿到的是模型自造的原始名，与 MessageLoop 实际
+          // 解析执行的命令不一致（也是此前「正文一条、tool_calls 却带 pwd/ls」混淆的来源）。
+          const resolvable: Array<{ name: string; arguments: Record<string, unknown> }> = []
           for (const call of xmlCalls) {
-            if (await canResolveToolName(call.name)) resolvable.push(call)
+            const resolved = await resolveToolName(call.name)
+            if (resolved !== null) resolvable.push({ name: resolved, arguments: call.arguments ?? {} })
           }
           if (resolvable.length === 0) {
             console.log(`[API] 提取到 ${xmlCalls.length} 个候选但均无法解析到命令（视为 AI 正文，保留全文返回）:`, xmlCalls.map(t => t.name).join(', '))
           } else {
-            console.log(`[API] 从正文中提取到 XML/纯文本工具调用 ${xmlCalls.length} 个, 可解析 ${resolvable.length} 个:`, xmlCalls.map(t => t.name).join(', '))
+            console.log(`[API] 从正文中提取到 XML/纯文本工具调用 ${xmlCalls.length} 个, 可解析 ${resolvable.length} 个:`, resolvable.map(t => t.name).join(', '))
             // 只把「可真正执行」的候选当作工具；不可解析的候选当作 AI 正文保留，避免误执行/吞答复。
             for (const call of resolvable) {
               toolCalls.push({
@@ -724,7 +728,13 @@ export async function sendOpenAIStreamWithTools(
               })
             }
             // 保留纯文本中非工具部分（模型常把工具调用写在正文中间），只剥离工具块，绝不整段清空。
-            fullText = stripPlainTextToolCalls(fullText)
+            // 白名单 = 正式下发工具名 ∪ 本轮可解析的归一化命令名：只删"真实能执行"的调用块，
+            // 其余正文里恰巧出现的 <name>（接口文档/HTML 示例）一律保留，防误删 AI 答案。
+            const stripAllowed = new Set<string>([
+              ...tools.map(t => t.function.name),
+              ...resolvable.map(r => r.name),
+            ])
+            fullText = stripPlainTextToolCalls(fullText, stripAllowed)
           }
         }
       } catch (e) {

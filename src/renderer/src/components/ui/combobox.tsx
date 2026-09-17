@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { Check, ChevronsUpDown, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -24,11 +25,16 @@ export function Combobox({
   options,
   value,
   onChange,
-  placeholder = 'Select option...',
-  emptyText = 'No option found.',
+  // 默认文案走 i18n：不能在解构默认值里调 t()（hook 尚未初始化），
+  // 因此这里不留默认值，在函数体内回落到翻译键。
+  placeholder,
+  emptyText,
   disabled = false,
   className,
 }: ComboboxProps) {
+  const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t('common.selectOption')
+  const resolvedEmptyText = emptyText ?? t('common.noOptionFound')
   const [isOpen, setIsOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState('')
   const containerRef = React.useRef<HTMLDivElement>(null)
@@ -85,7 +91,7 @@ export function Combobox({
         className="w-full justify-between"
       >
         <span className="truncate">
-          {selectedOption ? selectedOption.label : placeholder}
+          {selectedOption ? selectedOption.label : resolvedPlaceholder}
         </span>
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </Button>
@@ -96,7 +102,7 @@ export function Combobox({
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4 text-muted-foreground" />
               <input
-                placeholder="Search..."
+                placeholder={t('common.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -108,7 +114,7 @@ export function Combobox({
           <div className="max-h-60 overflow-auto">
             {filteredOptions.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
-                {emptyText}
+                {resolvedEmptyText}
               </div>
             ) : (
               Object.entries(groupedOptions).map(([group, groupOptions]) => (

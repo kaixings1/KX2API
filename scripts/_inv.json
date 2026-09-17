@@ -1,0 +1,3012 @@
+[
+ [
+  "src/engine/autoCompactor.ts",
+  221,
+  "Strategy not found: ${name}"
+ ],
+ [
+  "src/engine/core.ts",
+  95,
+  "Engine not initialized"
+ ],
+ [
+  "src/engine/messageLoop.ts",
+  285,
+  "Required acceptance criteria not met, continuing to fix"
+ ],
+ [
+  "src/engine/messageLoop.ts",
+  372,
+  "Token limit exceeded: ${budget.percentage * 100}%"
+ ],
+ [
+  "src/engine/messageLoop.ts",
+  436,
+  "Required acceptance criteria not met, continuing to fix"
+ ],
+ [
+  "src/engine/messageLoop.ts",
+  447,
+  "Continuing to next iteration."
+ ],
+ [
+  "src/engine/messageLoop.ts",
+  484,
+  "Previous tool calls were invalid. Please answer directly without using tools."
+ ],
+ [
+  "src/engine/messageLoop.ts",
+  487,
+  "Too many consecutive invalid tool calls, stopping"
+ ],
+ [
+  "src/engine/messageLoop.ts",
+  560,
+  "Too many consecutive tool failures, stopping tool loop"
+ ],
+ [
+  "src/engine/messageLoop.ts",
+  563,
+  "Tool calls are failing. Please answer directly without using tools."
+ ],
+ [
+  "src/engine/stateMachine.ts",
+  72,
+  "Invalid state transition: ${this.currentState} → ${to}. "
+ ],
+ [
+  "src/engine/stateMachine.ts",
+  78,
+  "Guard rejected transition: ${this.currentState} → ${to}"
+ ],
+ [
+  "src/engine/agent/task-executor.ts",
+  253,
+  "Out of memory"
+ ],
+ [
+  "src/engine/commands/registry.ts",
+  450,
+  "Coordinate team members and delegate tasks effectively"
+ ],
+ [
+  "src/engine/commands/registry.ts",
+  451,
+  "Always assign tasks to appropriate team members"
+ ],
+ [
+  "src/engine/commands/registry.ts",
+  457,
+  "Implement solutions based on requirements"
+ ],
+ [
+  "src/engine/commands/registry.ts",
+  458,
+  "Follow best practices"
+ ],
+ [
+  "src/engine/commands/registry.ts",
+  464,
+  "No task specified"
+ ],
+ [
+  "src/engine/errors/index.ts",
+  52,
+  "Token limit exceeded: ${budgetCheck.percentage * 100}% used"
+ ],
+ [
+  "src/engine/errors/index.ts",
+  60,
+  "Tool execution failed: ${toolName}"
+ ],
+ [
+  "src/engine/errors/index.ts",
+  69,
+  "Invalid state transition: ${from} → ${to}. ${reason}"
+ ],
+ [
+  "src/engine/subagent/subAgentManager.ts",
+  111,
+  "Maximum concurrent agents reached"
+ ],
+ [
+  "src/engine/tool-history-guard/fix.ts",
+  54,
+  "Reordered an adjacent tool result so it follows its matching assistant tool call."
+ ],
+ [
+  "src/engine/tool-history-guard/fix.ts",
+  83,
+  "Removed an identical duplicate tool result message."
+ ],
+ [
+  "src/engine/tool-history-guard/fix.ts",
+  115,
+  "Removed an orphan tool result message with no matching tool call anywhere in history."
+ ],
+ [
+  "src/engine/tool-history-guard/validate.ts",
+  35,
+  "Tool call is missing a valid string id."
+ ],
+ [
+  "src/engine/tool-history-guard/validate.ts",
+  52,
+  "Tool result is missing a valid tool_call_id or tool_use_id reference."
+ ],
+ [
+  "src/engine/tool-history-guard/validate.ts",
+  82,
+  "Tool result for "
+ ],
+ [
+  "src/engine/tool-history-guard/validate.ts",
+  103,
+  "Duplicate tool result found for "
+ ],
+ [
+  "src/engine/tool-history-guard/validate.ts",
+  125,
+  "Tool result for "
+ ],
+ [
+  "src/engine/tool-history-guard/validate.ts",
+  137,
+  "Tool result for "
+ ],
+ [
+  "src/engine/tool-history-guard/validate.ts",
+  154,
+  "Assistant tool call "
+ ],
+ [
+  "src/main/agents/agentsService.ts",
+  114,
+  "Agent not found: ${id}"
+ ],
+ [
+  "src/main/agents/agentsService.ts",
+  122,
+  "Aborted by user"
+ ],
+ [
+  "src/main/agents/registerHandlers.ts",
+  93,
+  "Agent not found"
+ ],
+ [
+  "src/main/agents/registerHandlers.ts",
+  114,
+  "Agent not found"
+ ],
+ [
+  "src/main/agents/registerHandlers.ts",
+  138,
+  "Agent not found"
+ ],
+ [
+  "src/main/agents/registerHandlers.ts",
+  141,
+  "Agent is already running"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  122,
+  "Engine not initialized"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  182,
+  "Engine not initialized"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  184,
+  "Engine not initialized"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  282,
+  "Engine not initialized"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  347,
+  "Engine not initialized"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  374,
+  "Engine not initialized"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  594,
+  "Config group not found"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  607,
+  "Config group not found"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  620,
+  "Config group already exists"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  632,
+  "Config group not found"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  636,
+  "Failed to write config group"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  649,
+  "Config group not found"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  661,
+  "Config group not found"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  675,
+  "Config group not found"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  684,
+  "No active preset in config group"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  689,
+  "Active preset not found in config group"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  734,
+  "Engine not initialized"
+ ],
+ [
+  "src/main/ipc/chat-handlers.ts",
+  735,
+  "Engine not initialized"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  451,
+  "Plan not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  471,
+  "Plan not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  491,
+  "Plan not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  492,
+  "Plan is already running"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  493,
+  "Plan has no steps to execute"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  715,
+  "Command not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  750,
+  "Command not found: ${idOrName}"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  797,
+  "Workflow not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  817,
+  "Workflow not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  837,
+  "Workflow not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  918,
+  "Server not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  945,
+  "Data must be an array"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1124,
+  "Plugin not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1213,
+  "Tool not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1223,
+  "Cannot remove builtin tool"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1233,
+  "Tool not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1252,
+  "Group not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1262,
+  "Cannot remove builtin group"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1278,
+  "Tool already in group or group not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1306,
+  "Rule not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1316,
+  "Cannot remove builtin rule"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1351,
+  "Tool not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1363,
+  "Builtin entity not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1375,
+  "Tool not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1386,
+  "Tool not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1407,
+  "Role not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1613,
+  "Failed to initialize storage"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1857,
+  "Provider not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1929,
+  "Failed to sync models"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1945,
+  "Provider not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1963,
+  "This provider does not support dynamic model updates"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  1993,
+  "Failed to fetch models: HTTP ${response.status}"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2002,
+  "No models found in the response"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2027,
+  "Failed to parse models from the response"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2044,
+  "Failed to update models"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2068,
+  "Failed to add custom model"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2084,
+  "Failed to remove model"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2100,
+  "Failed to reset models"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2170,
+  "Provider not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2218,
+  "Account not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2223,
+  "Provider not found"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2228,
+  "This feature is not available for this provider"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2237,
+  "Failed to clear chats"
+ ],
+ [
+  "src/main/ipc/handlers.ts",
+  2629,
+  "Failed to initialize storage"
+ ],
+ [
+  "src/main/mcp/mcpService.ts",
+  93,
+  "Server is disabled"
+ ],
+ [
+  "src/main/mcp/mcpService.ts",
+  98,
+  "Missing command for stdio server"
+ ],
+ [
+  "src/main/oauth/cookieSessionManager.ts",
+  406,
+  "Failed to clear login state"
+ ],
+ [
+  "src/main/oauth/inAppLogin.ts",
+  64,
+  "No token extraction config found for provider: ${options.providerType}"
+ ],
+ [
+  "src/main/oauth/inAppLogin.ts",
+  84,
+  "Opening login window..."
+ ],
+ [
+  "src/main/oauth/inAppLogin.ts",
+  133,
+  "Login window ready - please log in"
+ ],
+ [
+  "src/main/oauth/inAppLogin.ts",
+  140,
+  "Login window was closed"
+ ],
+ [
+  "src/main/oauth/inAppLogin.ts",
+  148,
+  "Failed to load login page: ${error.message}"
+ ],
+ [
+  "src/main/oauth/inAppLogin.ts",
+  597,
+  "Login cancelled by user"
+ ],
+ [
+  "src/main/oauth/kimiSessionManager.ts",
+  91,
+  "Failed to load Kimi page: ${errorDescription}"
+ ],
+ [
+  "src/main/oauth/manager.ts",
+  161,
+  "Mimo requires userId and phToken in addition to serviceToken"
+ ],
+ [
+  "src/main/oauth/manager.ts",
+  175,
+  "Token validation failed"
+ ],
+ [
+  "src/main/oauth/manager.ts",
+  199,
+  "Token validation failed"
+ ],
+ [
+  "src/main/oauth/manager.ts",
+  285,
+  "Opening login window..."
+ ],
+ [
+  "src/main/oauth/manager.ts",
+  533,
+  "Missing required tokens, waiting for valid login..."
+ ],
+ [
+  "src/main/oauth/manager.ts",
+  558,
+  "Waiting for session token..."
+ ],
+ [
+  "src/main/oauth/types.ts",
+  138,
+  "Enter the userToken obtained from browser LocalStorage"
+ ],
+ [
+  "src/main/oauth/types.ts",
+  149,
+  "After logging in to chatglm.cn, get refresh_token from Cookie or API response"
+ ],
+ [
+  "src/main/oauth/types.ts",
+  177,
+  "Obtain after logging in to agent.minimaxi.com, format is realUserID + "
+ ],
+ [
+  "src/main/oauth/types.ts",
+  187,
+  "After logging in to www.qianwen.com, get tongyi_sso_ticket from Cookie"
+ ],
+ [
+  "src/main/oauth/types.ts",
+  207,
+  "Get cookies from perplexity.ai browser DevTools or import HAR file"
+ ],
+ [
+  "src/main/oauth/adapters/deepseek.ts",
+  60,
+  "Please log in via browser and enter Token manually"
+ ],
+ [
+  "src/main/oauth/adapters/deepseek.ts",
+  66,
+  "Please log in via browser, extract Token from Developer Tools and enter manually"
+ ],
+ [
+  "src/main/oauth/adapters/deepseek.ts",
+  70,
+  "Failed to open browser"
+ ],
+ [
+  "src/main/oauth/adapters/deepseek.ts",
+  96,
+  "Token validation failed"
+ ],
+ [
+  "src/main/oauth/adapters/deepseek.ts",
+  100,
+  "Token validation successful"
+ ],
+ [
+  "src/main/oauth/adapters/deepseek.ts",
+  111,
+  "Token validation failed: ${errorMessage}"
+ ],
+ [
+  "src/main/oauth/adapters/deepseek.ts",
+  138,
+  "Token cannot be empty"
+ ],
+ [
+  "src/main/oauth/adapters/deepseek.ts",
+  157,
+  "Token is invalid or expired"
+ ],
+ [
+  "src/main/oauth/adapters/deepseek.ts",
+  167,
+  "Token validation failed: Invalid response data"
+ ],
+ [
+  "src/main/oauth/adapters/deepseek.ts",
+  181,
+  "Validation request failed"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  86,
+  "Please log in via browser and enter Token manually"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  92,
+  "Please log in via browser, extract Token from Developer Tools and enter manually"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  95,
+  "Failed to open browser"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  130,
+  "Token validation successful"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  144,
+  "Token validation failed: ${errorMessage}"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  218,
+  "Token validation failed: Unable to get access_token"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  225,
+  "Guest account not allowed, please login with a real account"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  241,
+  "Guest account not allowed, please login with a real account"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  248,
+  "Guest account not allowed, please login with a real account"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  255,
+  "Guest account not allowed, please login with a real account"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  262,
+  "Guest account not allowed, please login with a real account"
+ ],
+ [
+  "src/main/oauth/adapters/glm.ts",
+  285,
+  "Validation request failed"
+ ],
+ [
+  "src/main/oauth/adapters/index.ts",
+  59,
+  "Unsupported provider type: ${providerType}"
+ ],
+ [
+  "src/main/oauth/adapters/kimi.ts",
+  161,
+  "Please log in via browser and enter Token manually"
+ ],
+ [
+  "src/main/oauth/adapters/kimi.ts",
+  167,
+  "Please log in via browser, extract Token from Developer Tools and enter manually"
+ ],
+ [
+  "src/main/oauth/adapters/kimi.ts",
+  170,
+  "Failed to open browser"
+ ],
+ [
+  "src/main/oauth/adapters/kimi.ts",
+  189,
+  "Detected token type: ${tokenType === "
+ ],
+ [
+  "src/main/oauth/adapters/kimi.ts",
+  213,
+  "Token is invalid or expired"
+ ],
+ [
+  "src/main/oauth/adapters/kimi.ts",
+  223,
+  "Token validation successful"
+ ],
+ [
+  "src/main/oauth/adapters/kimi.ts",
+  234,
+  "Token validation failed: ${errorMessage}"
+ ],
+ [
+  "src/main/oauth/adapters/kimi.ts",
+  262,
+  "Token cannot be empty"
+ ],
+ [
+  "src/main/oauth/adapters/kimi.ts",
+  274,
+  "Token is invalid or expired"
+ ],
+ [
+  "src/main/oauth/adapters/kimi.ts",
+  287,
+  "Validation request failed"
+ ],
+ [
+  "src/main/oauth/adapters/mimo.ts",
+  60,
+  "Missing required cookies: ${missing.join("
+ ],
+ [
+  "src/main/oauth/adapters/mimo.ts",
+  64,
+  "Cookie validation successful"
+ ],
+ [
+  "src/main/oauth/adapters/mimo.ts",
+  94,
+  "Missing required credentials: service_token, user_id, ph_token"
+ ],
+ [
+  "src/main/oauth/adapters/minimax.ts",
+  85,
+  "Please log in via browser and enter Token manually"
+ ],
+ [
+  "src/main/oauth/adapters/minimax.ts",
+  91,
+  "Please log in via browser, extract Token from Developer Tools and enter manually"
+ ],
+ [
+  "src/main/oauth/adapters/minimax.ts",
+  94,
+  "Failed to open browser"
+ ],
+ [
+  "src/main/oauth/adapters/minimax.ts",
+  130,
+  "Token validation failed"
+ ],
+ [
+  "src/main/oauth/adapters/minimax.ts",
+  134,
+  "Token validation successful"
+ ],
+ [
+  "src/main/oauth/adapters/minimax.ts",
+  145,
+  "Token validation failed: ${errorMessage}"
+ ],
+ [
+  "src/main/oauth/adapters/minimax.ts",
+  173,
+  "Token cannot be empty"
+ ],
+ [
+  "src/main/oauth/adapters/minimax.ts",
+  240,
+  "Token is invalid or expired"
+ ],
+ [
+  "src/main/oauth/adapters/minimax.ts",
+  260,
+  "Validation request failed"
+ ],
+ [
+  "src/main/oauth/adapters/perplexity.ts",
+  53,
+  "Session token is required (__Secure-next-auth.session-token or next-auth.session-token)"
+ ],
+ [
+  "src/main/oauth/adapters/perplexity.ts",
+  57,
+  "Cookie validation successful"
+ ],
+ [
+  "src/main/oauth/adapters/perplexity.ts",
+  84,
+  "Session token is required (__Secure-next-auth.session-token or next-auth.session-token)"
+ ],
+ [
+  "src/main/oauth/adapters/qwen-ai.ts",
+  58,
+  "Token validation failed"
+ ],
+ [
+  "src/main/oauth/adapters/qwen-ai.ts",
+  62,
+  "Token validation successful"
+ ],
+ [
+  "src/main/oauth/adapters/qwen-ai.ts",
+  72,
+  "Validation request failed"
+ ],
+ [
+  "src/main/oauth/adapters/qwen-ai.ts",
+  92,
+  "Token cannot be empty"
+ ],
+ [
+  "src/main/oauth/adapters/qwen-ai.ts",
+  104,
+  "Guest account not allowed, please login with a real account"
+ ],
+ [
+  "src/main/oauth/adapters/qwen-ai.ts",
+  118,
+  "Guest account not allowed, please login with a real account"
+ ],
+ [
+  "src/main/oauth/adapters/qwen-ai.ts",
+  154,
+  "Token is invalid"
+ ],
+ [
+  "src/main/oauth/adapters/qwen.ts",
+  58,
+  "Please log in via browser and enter Ticket manually"
+ ],
+ [
+  "src/main/oauth/adapters/qwen.ts",
+  64,
+  "Please log in via browser, extract tongyi_sso_ticket from Developer Tools and enter manually"
+ ],
+ [
+  "src/main/oauth/adapters/qwen.ts",
+  67,
+  "Failed to open browser"
+ ],
+ [
+  "src/main/oauth/adapters/qwen.ts",
+  90,
+  "Ticket validation failed"
+ ],
+ [
+  "src/main/oauth/adapters/qwen.ts",
+  94,
+  "Ticket validation successful"
+ ],
+ [
+  "src/main/oauth/adapters/qwen.ts",
+  105,
+  "Ticket validation failed: ${errorMessage}"
+ ],
+ [
+  "src/main/oauth/adapters/qwen.ts",
+  125,
+  "Ticket cannot be empty"
+ ],
+ [
+  "src/main/oauth/adapters/qwen.ts",
+  156,
+  "Ticket is invalid or expired"
+ ],
+ [
+  "src/main/oauth/adapters/qwen.ts",
+  175,
+  "Validation request failed"
+ ],
+ [
+  "src/main/oauth/adapters/stepfun.ts",
+  40,
+  "Please log in via browser, the token will be auto-extracted from localStorage"
+ ],
+ [
+  "src/main/oauth/adapters/stepfun.ts",
+  46,
+  "Please log in via browser, token will be auto-extracted from localStorage"
+ ],
+ [
+  "src/main/oauth/adapters/stepfun.ts",
+  50,
+  "Failed to open browser"
+ ],
+ [
+  "src/main/oauth/adapters/stepfun.ts",
+  106,
+  "Token is required"
+ ],
+ [
+  "src/main/oauth/adapters/stepfun.ts",
+  214,
+  "Session token expired at ${expiredSegments.join("
+ ],
+ [
+  "src/main/oauth/adapters/zai.ts",
+  64,
+  "Token validation failed"
+ ],
+ [
+  "src/main/oauth/adapters/zai.ts",
+  68,
+  "Token validation successful"
+ ],
+ [
+  "src/main/oauth/adapters/zai.ts",
+  77,
+  "Validation request failed"
+ ],
+ [
+  "src/main/oauth/adapters/zai.ts",
+  103,
+  "Token cannot be empty"
+ ],
+ [
+  "src/main/oauth/adapters/zai.ts",
+  116,
+  "Guest account not allowed, please login with a real account"
+ ],
+ [
+  "src/main/oauth/adapters/zai.ts",
+  141,
+  "Token is invalid"
+ ],
+ [
+  "src/main/plans/plansService.ts",
+  100,
+  "Plan not found"
+ ],
+ [
+  "src/main/plans/plansService.ts",
+  103,
+  "Plan is already running"
+ ],
+ [
+  "src/main/plans/plansService.ts",
+  122,
+  "Failed to update plan"
+ ],
+ [
+  "src/main/plugins/pluginsService.ts",
+  70,
+  "Plugin not found"
+ ],
+ [
+  "src/main/plugins/pluginsService.ts",
+  82,
+  "Plugin not found"
+ ],
+ [
+  "src/main/plugins/pluginsService.ts",
+  115,
+  "Plugin not found"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  191,
+  "Missing required credentials: service_token, user_id, ph_token"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  204,
+  "Token is required"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  253,
+  "Log in at chat.stepfun.com in a normal browser tab and copy a fresh Oasis-Token."
+ ],
+ [
+  "src/main/providers/checker.ts",
+  300,
+  "Log in at chat.stepfun.com in a normal browser tab and copy a fresh Oasis-Token, "
+ ],
+ [
+  "src/main/providers/checker.ts",
+  371,
+  "Token expired or invalid"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  445,
+  "Token expired or invalid"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  515,
+  "Token expired or invalid"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  564,
+  "Cannot extract user ID from token"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  631,
+  "Token expired or invalid"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  722,
+  "Token expired or invalid"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  738,
+  "Session token is required"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  742,
+  "Session token appears to be invalid (too short)"
+ ],
+ [
+  "src/main/providers/checker.ts",
+  881,
+  "Failed to fetch models: HTTP ${response.status}"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  28,
+  "Provider name cannot be empty"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  32,
+  "Provider name cannot exceed 50 characters"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  38,
+  "Provider name already exists"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  77,
+  "Invalid authentication type"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  88,
+  "Header name cannot be empty"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  110,
+  "Credential field name cannot be empty"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  114,
+  "Duplicate credential field name "
+ ],
+ [
+  "src/main/providers/custom.ts",
+  119,
+  "Label for credential field "
+ ],
+ [
+  "src/main/providers/custom.ts",
+  124,
+  "Invalid type for credential field "
+ ],
+ [
+  "src/main/providers/custom.ts",
+  201,
+  "Provider not found: ${id}"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  205,
+  "Cannot modify built-in provider"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  242,
+  "Updated custom provider: ${existing.name}"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  277,
+  "Provider not found: ${id}"
+ ],
+ [
+  "src/main/providers/custom.ts",
+  297,
+  "Provider not found: ${id}"
+ ],
+ [
+  "src/main/providers/builtin/coze.ts",
+  14,
+  "Coze bot platform by ByteDance"
+ ],
+ [
+  "src/main/providers/builtin/deepseek.ts",
+  43,
+  "Authentication token obtained from DeepSeek web version, found in browser DevTools Application -> Local Storage"
+ ],
+ [
+  "src/main/providers/builtin/groq.ts",
+  14,
+  "Groq fast inference (Llama, Mixtral, Gemma)"
+ ],
+ [
+  "src/main/providers/builtin/mimo.ts",
+  46,
+  "Found in browser DevTools -> Application -> Cookies -> serviceToken"
+ ],
+ [
+  "src/main/providers/builtin/mimo.ts",
+  54,
+  "Found in browser DevTools -> Application -> Cookies -> userId"
+ ],
+ [
+  "src/main/providers/builtin/mimo.ts",
+  62,
+  "Found in browser DevTools -> Application -> Cookies -> xiaomichatbot_ph"
+ ],
+ [
+  "src/main/providers/builtin/ollama.ts",
+  26,
+  "Ollama typically runs locally without auth"
+ ],
+ [
+  "src/main/providers/builtin/perplexity.ts",
+  32,
+  "Session token obtained from Perplexity web version (__Secure-next-auth.session-token cookie)"
+ ],
+ [
+  "src/main/providers/builtin/qwen-ai.ts",
+  52,
+  "Optional cookies for enhanced compatibility"
+ ],
+ [
+  "src/main/providers/builtin/qwen-ai.ts",
+  53,
+  "Full cookie string from browser DevTools (optional but recommended)"
+ ],
+ [
+  "src/main/providers/builtin/zai.ts",
+  50,
+  "Get token from Z.ai web version, found in browser DevTools Application -> Cookie, starts with "
+ ],
+ [
+  "src/main/proxy/forwarder.ts",
+  616,
+  "Form submission to "
+ ],
+ [
+  "src/main/proxy/forwarder.ts",
+  643,
+  "Please summarize the following conversation concisely, keeping key information and context:"
+ ],
+ [
+  "src/main/proxy/forwarder.ts",
+  691,
+  "Failed to generate conversation summary."
+ ],
+ [
+  "src/main/proxy/forwarder.ts",
+  694,
+  "Failed to generate conversation summary due to an error."
+ ],
+ [
+  "src/main/proxy/forwarder.ts",
+  842,
+  "Request failed after retries"
+ ],
+ [
+  "src/main/proxy/forwarder.ts",
+  1674,
+  "No response or stream received"
+ ],
+ [
+  "src/main/proxy/server.ts",
+  285,
+  "Service is initializing"
+ ],
+ [
+  "src/main/proxy/server.ts",
+  306,
+  "Route not found: ${ctx.method} ${ctx.path}"
+ ],
+ [
+  "src/main/proxy/server.ts",
+  352,
+  "Proxy server started successfully, listening on ${this.host}:${this.port}"
+ ],
+ [
+  "src/main/proxy/server.ts",
+  372,
+  "Failed to start server: ${error instanceof Error ? error.message : "
+ ],
+ [
+  "src/main/proxy/server.ts",
+  391,
+  "Failed to stop server: ${err.message}"
+ ],
+ [
+  "src/main/proxy/server.ts",
+  399,
+  "Proxy server stopped"
+ ],
+ [
+  "src/main/proxy/adapters/anthropic.ts",
+  140,
+  "Stream request to ${url}, model=${transformed.model}"
+ ],
+ [
+  "src/main/proxy/adapters/coze.ts",
+  106,
+  "Stream request to ${url}, bot=${request.bot_id}"
+ ],
+ [
+  "src/main/proxy/adapters/deepseek.ts",
+  142,
+  "Token invalid or expired, please get a new Token"
+ ],
+ [
+  "src/main/proxy/adapters/deepseek.ts",
+  146,
+  "Failed to acquire token: HTTP ${result.status}"
+ ],
+ [
+  "src/main/proxy/adapters/deepseek.ts",
+  154,
+  "Failed to acquire token: ${errorMsg}"
+ ],
+ [
+  "src/main/proxy/adapters/deepseek.ts",
+  195,
+  "Failed to create session: ${result.data?.msg || result.data?.data?.biz_msg || result.status}"
+ ],
+ [
+  "src/main/proxy/adapters/deepseek.ts",
+  254,
+  "Failed to get challenge: ${result.data?.msg || result.data?.data?.biz_msg || result.status}"
+ ],
+ [
+  "src/main/proxy/adapters/deepseek.ts",
+  273,
+  "Challenge calculation failed"
+ ],
+ [
+  "src/main/proxy/adapters/glm.ts",
+  160,
+  "Token refresh failed: ${errorMsg}"
+ ],
+ [
+  "src/main/proxy/adapters/glm.ts",
+  257,
+  "File upload failed: HTTP ${response.status}"
+ ],
+ [
+  "src/main/proxy/adapters/google.ts",
+  122,
+  "Stream request to ${url}"
+ ],
+ [
+  "src/main/proxy/adapters/groq.ts",
+  142,
+  "Stream request to ${url}, model=${transformed.model}"
+ ],
+ [
+  "src/main/proxy/adapters/kimi.ts",
+  104,
+  "Token invalid or expired"
+ ],
+ [
+  "src/main/proxy/adapters/kimi.ts",
+  290,
+  "Focus on the latest files and messages sent by user"
+ ],
+ [
+  "src/main/proxy/adapters/kimi.ts",
+  295,
+  "Focus on the latest message from user"
+ ],
+ [
+  "src/main/proxy/adapters/kimi.ts",
+  485,
+  "Token invalid or expired after all retries (including persistent session)"
+ ],
+ [
+  "src/main/proxy/adapters/kimi.ts",
+  489,
+  "Completion request failed: HTTP ${freshResponse.status}"
+ ],
+ [
+  "src/main/proxy/adapters/kimi.ts",
+  495,
+  "Token invalid or expired after retry, persistent session not available"
+ ],
+ [
+  "src/main/proxy/adapters/kimi.ts",
+  499,
+  "Completion request failed: HTTP ${retryResponse.status}"
+ ],
+ [
+  "src/main/proxy/adapters/kimi.ts",
+  506,
+  "Completion request failed: HTTP ${response.status}"
+ ],
+ [
+  "src/main/proxy/adapters/mimo.ts",
+  382,
+  "Mimo failed to save conversation: ${msg || message || "
+ ],
+ [
+  "src/main/proxy/adapters/mimo.ts",
+  427,
+  "Mimo credentials not configured. Please add service_token, user_id, and ph_token in account settings."
+ ],
+ [
+  "src/main/proxy/adapters/mimo.ts",
+  474,
+  "Mimo credentials not configured"
+ ],
+ [
+  "src/main/proxy/adapters/mimo.ts",
+  523,
+  "Mimo credentials not configured"
+ ],
+ [
+  "src/main/proxy/adapters/minimax.ts",
+  278,
+  "Failed to register device: ${response.data?.statusInfo?.message || response.status}"
+ ],
+ [
+  "src/main/proxy/adapters/minimax.ts",
+  593,
+  "Send message failed: ${base_resp?.status_msg || "
+ ],
+ [
+  "src/main/proxy/adapters/minimax.ts",
+  610,
+  "Send message failed: ${base_resp?.status_msg || "
+ ],
+ [
+  "src/main/proxy/adapters/minimax.ts",
+  918,
+  "Failed to get user info: ${response.data?.statusInfo?.message || response.status}"
+ ],
+ [
+  "src/main/proxy/adapters/minimax.ts",
+  1153,
+  "Stream response error: ${respMessage}"
+ ],
+ [
+  "src/main/proxy/adapters/minimax.ts",
+  1374,
+  "Stream response error: ${respMessage}"
+ ],
+ [
+  "src/main/proxy/adapters/mistral.ts",
+  131,
+  "Stream request to ${url}, model=${transformed.model}"
+ ],
+ [
+  "src/main/proxy/adapters/ollama.ts",
+  140,
+  "Stream request to ${url}, model=${transformed.model}"
+ ],
+ [
+  "src/main/proxy/adapters/openai.ts",
+  155,
+  "Stream request to ${url}, model=${transformed.model}"
+ ],
+ [
+  "src/main/proxy/adapters/perplexity-stream.ts",
+  87,
+  "Network connection reset during streaming. Please check your network connection and try again."
+ ],
+ [
+  "src/main/proxy/adapters/perplexity-stream.ts",
+  90,
+  "Connection refused during streaming. The server may be temporarily unavailable."
+ ],
+ [
+  "src/main/proxy/adapters/perplexity-stream.ts",
+  93,
+  "Connection timed out during streaming. Please check your network and try again."
+ ],
+ [
+  "src/main/proxy/adapters/perplexity-stream.ts",
+  99,
+  "Network changed during streaming. Please try again."
+ ],
+ [
+  "src/main/proxy/adapters/perplexity.ts",
+  191,
+  "Network connection reset. Please check your network connection and try again."
+ ],
+ [
+  "src/main/proxy/adapters/perplexity.ts",
+  197,
+  "Connection timed out. Please check your network and try again."
+ ],
+ [
+  "src/main/proxy/adapters/perplexity.ts",
+  206,
+  "Network changed during request. Please try again."
+ ],
+ [
+  "src/main/proxy/adapters/perplexity.ts",
+  209,
+  "No internet connection. Please check your network settings."
+ ],
+ [
+  "src/main/proxy/adapters/perplexity.ts",
+  296,
+  "No user message found in request"
+ ],
+ [
+  "src/main/proxy/adapters/perplexity.ts",
+  339,
+  "Cloudflare challenge detected. Please try again later."
+ ],
+ [
+  "src/main/proxy/adapters/perplexity.ts",
+  340,
+  "Cloudflare challenge detected"
+ ],
+ [
+  "src/main/proxy/adapters/perplexity.ts",
+  346,
+  "Rate limit exceeded. Please wait a moment and try again."
+ ],
+ [
+  "src/main/proxy/adapters/perplexity.ts",
+  347,
+  "Rate limit exceeded"
+ ],
+ [
+  "src/main/proxy/adapters/qwen-ai.ts",
+  174,
+  "Failed to create chat: no chat ID returned"
+ ],
+ [
+  "src/main/proxy/adapters/qwen.ts",
+  193,
+  "Qwen ticket not configured, please add ticket in account settings"
+ ],
+ [
+  "src/main/proxy/adapters/qwen.ts",
+  212,
+  "Qwen session list failed: HTTP ${response.status}"
+ ],
+ [
+  "src/main/proxy/adapters/qwen.ts",
+  297,
+  "Qwen ticket not configured, please add ticket in account settings"
+ ],
+ [
+  "src/main/proxy/adapters/siliconcloud.ts",
+  130,
+  "Stream request to ${url}, model=${transformed.model}"
+ ],
+ [
+  "src/main/proxy/adapters/stepfun-studio.ts",
+  448,
+  "Network connection reset. Please check your network connection and try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun-studio.ts",
+  454,
+  "Connection timed out. Please check your network and try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun-studio.ts",
+  463,
+  "Network changed during request. Please try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun-studio.ts",
+  466,
+  "No internet connection. Please check your network settings."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun-studio.ts",
+  672,
+  "Request timed out. Please check your network and try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun-studio.ts",
+  688,
+  "Failed to write request: "
+ ],
+ [
+  "src/main/proxy/adapters/stepfun-studio.ts",
+  775,
+  "Request timed out. Please check your network and try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun-studio.ts",
+  791,
+  "Failed to write request: "
+ ],
+ [
+  "src/main/proxy/adapters/stepfun-studio.ts",
+  959,
+  "Request timed out. Please check your network and try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun-studio.ts",
+  975,
+  "Failed to write request: "
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  592,
+  "Network connection reset. Please check your network connection and try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  598,
+  "Connection timed out. Please check your network and try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  607,
+  "Network changed during request. Please try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  610,
+  "No internet connection. Please check your network settings."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  847,
+  "Request timed out. Please check your network and try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  863,
+  "Failed to write request: "
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  956,
+  "Request timed out. Please check your network and try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  972,
+  "Failed to write request: "
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  1200,
+  "Request timed out. Please check your network and try again."
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  1216,
+  "Failed to write request: "
+ ],
+ [
+  "src/main/proxy/adapters/stepfun.ts",
+  1656,
+  "Axios fallback failed"
+ ],
+ [
+  "src/main/proxy/adapters/together.ts",
+  133,
+  "Stream request to ${url}, model=${transformed.model}"
+ ],
+ [
+  "src/main/proxy/adapters/xai.ts",
+  134,
+  "Stream request to ${url}, model=${transformed.model}"
+ ],
+ [
+  "src/main/proxy/adapters/zai.ts",
+  271,
+  "Failed to create chat: HTTP ${response.status}"
+ ],
+ [
+  "src/main/proxy/adapters/prompt/CherryStudioPromptAdapter.ts",
+  17,
+  "Prompt variant for Cherry Studio client"
+ ],
+ [
+  "src/main/proxy/adapters/prompt/CherryStudioPromptAdapter.ts",
+  62,
+  "You can invoke the following developer tools"
+ ],
+ [
+  "src/main/proxy/adapters/prompt/KiloCodePromptAdapter.ts",
+  19,
+  "Optimized prompt variant for Kilo Code client"
+ ],
+ [
+  "src/main/proxy/adapters/prompt/KiloCodePromptAdapter.ts",
+  65,
+  "You are an expert software engineer"
+ ],
+ [
+  "src/main/proxy/adapters/prompt/KiloCodePromptAdapter.ts",
+  67,
+  "When using tools"
+ ],
+ [
+  "src/main/proxy/constants/signatures.ts",
+  49,
+  "When using tools, follow this format"
+ ],
+ [
+  "src/main/proxy/constants/signatures.ts",
+  80,
+  "You are an interactive CLI tool"
+ ],
+ [
+  "src/main/proxy/constants/signatures.ts",
+  90,
+  "In this environment you have access to a set of tools"
+ ],
+ [
+  "src/main/proxy/constants/signatures.ts",
+  98,
+  "In this environment you have access to a set of tools"
+ ],
+ [
+  "src/main/proxy/constants/signatures.ts",
+  155,
+  "You can invoke the following developer tools"
+ ],
+ [
+  "src/main/proxy/prompt/variants/deepseek.ts",
+  11,
+  "Optimized prompt variant for DeepSeek models"
+ ],
+ [
+  "src/main/proxy/prompt/variants/default.ts",
+  6,
+  "Default prompt variant for generic models"
+ ],
+ [
+  "src/main/proxy/prompt/variants/glm.ts",
+  11,
+  "Optimized prompt variant for GLM models (Zhipu Qingyan)"
+ ],
+ [
+  "src/main/proxy/prompt/variants/qwen.ts",
+  6,
+  "Optimized prompt variant for Qwen models"
+ ],
+ [
+  "src/main/proxy/routes/chat.ts",
+  84,
+  "Invalid request body"
+ ],
+ [
+  "src/main/proxy/routes/chat.ts",
+  98,
+  "Missing required field: model"
+ ],
+ [
+  "src/main/proxy/routes/chat.ts",
+  112,
+  "Missing required field: messages"
+ ],
+ [
+  "src/main/proxy/routes/chat.ts",
+  499,
+  "Stream response completed"
+ ],
+ [
+  "src/main/proxy/routes/completions.ts",
+  64,
+  "Invalid request body"
+ ],
+ [
+  "src/main/proxy/routes/completions.ts",
+  75,
+  "Missing required field: model"
+ ],
+ [
+  "src/main/proxy/routes/completions.ts",
+  87,
+  "Missing required field: prompt"
+ ],
+ [
+  "src/main/proxy/routes/completions.ts",
+  110,
+  "No available account for model: ${request.model}"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  71,
+  "Failed to get accounts"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  90,
+  "Failed to get accounts by provider"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  108,
+  "Account not found: ${id}"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  116,
+  "Failed to get account"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  132,
+  "Missing required field: providerId"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  138,
+  "Missing required field: name"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  144,
+  "Missing or invalid required field: credentials"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  161,
+  "Failed to create account"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  185,
+  "Account not found: ${id}"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  211,
+  "Failed to update account"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  219,
+  "Failed to update account"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  237,
+  "Account not found: ${id}"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  244,
+  "Failed to delete account"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  261,
+  "Account not found: ${id}"
+ ],
+ [
+  "src/main/proxy/routes/management/accounts.ts",
+  270,
+  "Failed to validate account"
+ ],
+ [
+  "src/main/proxy/routes/management/apiKeys.ts",
+  88,
+  "Failed to get API keys"
+ ],
+ [
+  "src/main/proxy/routes/management/apiKeys.ts",
+  105,
+  "Missing required field: name"
+ ],
+ [
+  "src/main/proxy/routes/management/apiKeys.ts",
+  134,
+  "Failed to create API key"
+ ],
+ [
+  "src/main/proxy/routes/management/apiKeys.ts",
+  195,
+  "Failed to update API key"
+ ],
+ [
+  "src/main/proxy/routes/management/apiKeys.ts",
+  231,
+  "Failed to delete API key"
+ ],
+ [
+  "src/main/proxy/routes/management/apiKeys.ts",
+  273,
+  "Failed to regenerate API key"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  77,
+  "No usable provider account found"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  95,
+  "Failed to list chat sessions"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  108,
+  "No usable provider account found"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  121,
+  "Failed to search chat sessions"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  134,
+  "No usable provider account found"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  139,
+  "Chat session not found: ${ctx.params.id}"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  145,
+  "Failed to get chat session"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  159,
+  "No usable provider account found"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  175,
+  "Failed to create chat session"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  189,
+  "No usable provider account found"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  211,
+  "Failed to update chat session"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  224,
+  "No usable provider account found"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  230,
+  "Failed to delete chat session: ${id}"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  236,
+  "Failed to delete chat session"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  250,
+  "Request body must include { confirm: true } to delete all chat sessions"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  256,
+  "No usable provider account found"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  261,
+  "Failed to delete all chat sessions"
+ ],
+ [
+  "src/main/proxy/routes/management/chatSessions.ts",
+  267,
+  "Failed to delete chat sessions"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  40,
+  "Failed to list config groups"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  52,
+  "No active config group"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  62,
+  "Failed to get active config group"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  76,
+  "Config group not found"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  87,
+  "Failed to get config group"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  106,
+  "Missing required field: id"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  114,
+  "Config group already exists"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  122,
+  "Failed to create config group"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  142,
+  "Config group not found"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  155,
+  "Failed to write config group"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  163,
+  "Failed to update config group"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  178,
+  "Config group not found"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  185,
+  "Failed to delete config group"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  200,
+  "Config group not found"
+ ],
+ [
+  "src/main/proxy/routes/management/config-groups.ts",
+  208,
+  "Failed to set active config group"
+ ],
+ [
+  "src/main/proxy/routes/management/config.ts",
+  118,
+  "Request body must be a valid configuration object"
+ ],
+ [
+  "src/main/proxy/routes/management/config.ts",
+  208,
+  "Request body must contain a "
+ ],
+ [
+  "src/main/proxy/routes/management/modelMappings.ts",
+  54,
+  "Failed to get model mappings"
+ ],
+ [
+  "src/main/proxy/routes/management/modelMappings.ts",
+  70,
+  "Missing required field: requestModel"
+ ],
+ [
+  "src/main/proxy/routes/management/modelMappings.ts",
+  76,
+  "Missing required field: actualModel"
+ ],
+ [
+  "src/main/proxy/routes/management/modelMappings.ts",
+  83,
+  "Model mapping already exists: ${request.requestModel}"
+ ],
+ [
+  "src/main/proxy/routes/management/modelMappings.ts",
+  100,
+  "Failed to create model mapping"
+ ],
+ [
+  "src/main/proxy/routes/management/modelMappings.ts",
+  118,
+  "Model mapping not found: ${model}"
+ ],
+ [
+  "src/main/proxy/routes/management/modelMappings.ts",
+  134,
+  "Failed to update model mapping"
+ ],
+ [
+  "src/main/proxy/routes/management/modelMappings.ts",
+  152,
+  "Model mapping not found: ${model}"
+ ],
+ [
+  "src/main/proxy/routes/management/modelMappings.ts",
+  159,
+  "Failed to delete model mapping"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  46,
+  "Failed to get providers"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  59,
+  "Provider not found"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  66,
+  "Failed to get provider"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  78,
+  "Missing required field: name"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  84,
+  "Missing required field: authType"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  90,
+  "Missing required field: apiEndpoint"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  110,
+  "Failed to create provider"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  124,
+  "Provider not found"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  170,
+  "Failed to update provider"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  177,
+  "Failed to update provider"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  198,
+  "Provider not found"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  205,
+  "Failed to delete provider"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  218,
+  "Missing or invalid required field: enabled (must be boolean)"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  225,
+  "Provider not found"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  233,
+  "Failed to update provider status"
+ ],
+ [
+  "src/main/proxy/routes/management/providers.ts",
+  240,
+  "Failed to update provider status"
+ ],
+ [
+  "src/main/proxy/routes/management/proxy.ts",
+  66,
+  "Proxy service is already running"
+ ],
+ [
+  "src/main/proxy/routes/management/proxy.ts",
+  78,
+  "Failed to start proxy service"
+ ],
+ [
+  "src/main/proxy/routes/management/proxy.ts",
+  91,
+  "Failed to start proxy service"
+ ],
+ [
+  "src/main/proxy/routes/management/proxy.ts",
+  101,
+  "Proxy service is not running"
+ ],
+ [
+  "src/main/proxy/routes/management/proxy.ts",
+  109,
+  "Failed to stop proxy service"
+ ],
+ [
+  "src/main/proxy/routes/management/proxy.ts",
+  118,
+  "Failed to stop proxy service"
+ ],
+ [
+  "src/main/proxy/routes/management/proxy.ts",
+  134,
+  "Failed to restart proxy service"
+ ],
+ [
+  "src/main/proxy/routes/management/proxy.ts",
+  147,
+  "Failed to restart proxy service"
+ ],
+ [
+  "src/main/proxy/routes/management/proxy.ts",
+  160,
+  "Failed to get proxy status"
+ ],
+ [
+  "src/main/proxy/routes/management/sessions.ts",
+  62,
+  "Failed to get sessions"
+ ],
+ [
+  "src/main/proxy/routes/management/sessions.ts",
+  79,
+  "Session not found: ${id}"
+ ],
+ [
+  "src/main/proxy/routes/management/sessions.ts",
+  87,
+  "Failed to get session"
+ ],
+ [
+  "src/main/proxy/routes/management/sessions.ts",
+  104,
+  "Session not found: ${id}"
+ ],
+ [
+  "src/main/proxy/routes/management/sessions.ts",
+  112,
+  "Failed to delete session: ${id}"
+ ],
+ [
+  "src/main/proxy/routes/management/sessions.ts",
+  119,
+  "Failed to delete session"
+ ],
+ [
+  "src/main/proxy/routes/management/sessions.ts",
+  136,
+  "Request body must include { confirm: true } to clear all sessions"
+ ],
+ [
+  "src/main/proxy/routes/management/sessions.ts",
+  145,
+  "Failed to clear sessions"
+ ],
+ [
+  "src/main/proxy/routes/management/toolCalling.ts",
+  38,
+  "Smoke fixture generated. Send it through /v1/chat/completions with a mapped model to run a live provider smoke."
+ ],
+ [
+  "src/main/proxy/services/contextManagementService.ts",
+  87,
+  "Please summarize the following conversation concisely, keeping key information and context:"
+ ],
+ [
+  "src/main/proxy/services/promptGenerator.ts",
+  186,
+  "Let me search for..."
+ ],
+ [
+  "src/main/proxy/toolCalling/diagnostics.ts",
+  16,
+  "No smoke test has been run."
+ ],
+ [
+  "src/main/proxy/toolCalling/diagnostics.ts",
+  34,
+  "Get weather for Hangzhou with the weather tool."
+ ],
+ [
+  "src/main/proxy/toolCalling/diagnostics.ts",
+  39,
+  "Get weather for a city"
+ ],
+ [
+  "src/main/proxy/toolCalling/historyGuard.ts",
+  51,
+  "Tool call is missing a valid string id."
+ ],
+ [
+  "src/main/proxy/toolCalling/historyGuard.ts",
+  66,
+  "Tool result is missing a valid tool_call_id reference."
+ ],
+ [
+  "src/main/proxy/toolCalling/historyGuard.ts",
+  90,
+  "Tool result for "
+ ],
+ [
+  "src/main/proxy/toolCalling/historyGuard.ts",
+  110,
+  "Duplicate tool result found for "
+ ],
+ [
+  "src/main/proxy/toolCalling/historyGuard.ts",
+  129,
+  "Tool result for "
+ ],
+ [
+  "src/main/proxy/toolCalling/historyGuard.ts",
+  140,
+  "Tool result for "
+ ],
+ [
+  "src/main/proxy/toolCalling/historyGuard.ts",
+  152,
+  "Assistant tool call "
+ ],
+ [
+  "src/main/proxy/toolCalling/historyGuard.ts",
+  203,
+  "Reordered an adjacent tool result so it follows its matching assistant tool call."
+ ],
+ [
+  "src/main/proxy/toolCalling/historyGuard.ts",
+  223,
+  "Removed an identical duplicate tool result message."
+ ],
+ [
+  "src/main/proxy/toolCalling/historyGuard.ts",
+  244,
+  "Removed an orphan tool result message with no matching tool call anywhere in history."
+ ],
+ [
+  "src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts",
+  19,
+  "Prompt variant for Cherry Studio client"
+ ],
+ [
+  "src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts",
+  64,
+  "You can invoke the following developer tools"
+ ],
+ [
+  "src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts",
+  20,
+  "Default prompt variant for generic models"
+ ],
+ [
+  "src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts",
+  71,
+  "You can invoke the following developer tools"
+ ],
+ [
+  "src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts",
+  20,
+  "Optimized prompt variant for Kilo Code client"
+ ],
+ [
+  "src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts",
+  66,
+  "You are an expert software engineer"
+ ],
+ [
+  "src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.ts",
+  68,
+  "When using tools"
+ ],
+ [
+  "src/main/proxy/toolCalling/protocols/managedXml.ts",
+  189,
+  "Let me check"
+ ],
+ [
+  "src/main/proxy/toolCalling/protocols/managedXml.ts",
+  194,
+  "Let me check"
+ ],
+ [
+  "src/main/proxy/utils/errors.ts",
+  45,
+  "Authentication failed for provider ${providerId}"
+ ],
+ [
+  "src/main/proxy/utils/errors.ts",
+  51,
+  "Rate limit exceeded for provider ${providerId}"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  28,
+  "Value must be a string"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  32,
+  "Value cannot be empty"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  36,
+  "Value must be at least ${options.minLength} characters"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  40,
+  "Value must be at most ${options.maxLength} characters"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  44,
+  "Value does not match required pattern"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  61,
+  "Path cannot be empty"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  65,
+  "Path traversal detected (.. is not allowed)"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  70,
+  "Path contains dangerous characters"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  76,
+  "Path uses reserved Windows name"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  93,
+  "Command cannot be empty"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  97,
+  "Recursive delete from root"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  98,
+  "Fork bomb detected"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  99,
+  "Filesystem format command"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  100,
+  "Direct device write"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  101,
+  "Direct device write"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  103,
+  "Remote code execution via curl"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  104,
+  "Remote code execution via wget"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  109,
+  "Dangerous command detected: ${message}"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  114,
+  "Potential command injection (shell metacharacters)"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  131,
+  "Value must be an object"
+ ],
+ [
+  "src/main/security/InputValidator.ts",
+  138,
+  "Missing required field: ${key}"
+ ],
+ [
+  "src/main/security/PathGuard.ts",
+  46,
+  "Path is empty"
+ ],
+ [
+  "src/main/security/PathGuard.ts",
+  56,
+  "Path traversal detected: escapes root directory"
+ ],
+ [
+  "src/main/security/PathGuard.ts",
+  65,
+  "Access to blocked directory: ${blocked}"
+ ],
+ [
+  "src/main/security/PathGuard.ts",
+  78,
+  "Path is not in allowed directories"
+ ],
+ [
+  "src/main/security/PathGuard.ts",
+  89,
+  "Blocked file extension: ${ext}"
+ ],
+ [
+  "src/main/security/PathGuard.ts",
+  100,
+  "File extension not allowed: ${ext}"
+ ],
+ [
+  "src/main/store/accounts.ts",
+  67,
+  "Provider not found: ${data.providerId}"
+ ],
+ [
+  "src/main/store/accounts.ts",
+  110,
+  "Account not found: ${id}"
+ ],
+ [
+  "src/main/store/accounts.ts",
+  204,
+  "Reset daily usage count for all accounts"
+ ],
+ [
+  "src/main/store/accounts.ts",
+  218,
+  "Account not found"
+ ],
+ [
+  "src/main/store/accounts.ts",
+  228,
+  "Provider not found"
+ ],
+ [
+  "src/main/store/config.ts",
+  39,
+  "Update app configuration"
+ ],
+ [
+  "src/main/store/config.ts",
+  53,
+  "Reset app configuration to default values"
+ ],
+ [
+  "src/main/store/config.ts",
+  74,
+  "Port number must be between 1-65535"
+ ],
+ [
+  "src/main/store/config.ts",
+  126,
+  "Set model mapping: ${mapping.requestModel} -> ${mapping.actualModel}"
+ ],
+ [
+  "src/main/store/config.ts",
+  144,
+  "Delete model mapping: ${model}"
+ ],
+ [
+  "src/main/store/config.ts",
+  162,
+  "Batch set model mappings: ${mappings.length} items"
+ ],
+ [
+  "src/main/store/config.ts",
+  257,
+  "Log retention days must be between 1-365"
+ ],
+ [
+  "src/main/store/config.ts",
+  279,
+  "Request timeout must be between 1000-300000 milliseconds"
+ ],
+ [
+  "src/main/store/config.ts",
+  299,
+  "Retry count must be between 0-10"
+ ],
+ [
+  "src/main/store/config.ts",
+  317,
+  "Proxy port must be between 1-65535"
+ ],
+ [
+  "src/main/store/config.ts",
+  323,
+  "Log retention days must be between 1-365"
+ ],
+ [
+  "src/main/store/config.ts",
+  329,
+  "Request timeout must be between 1000-300000 milliseconds"
+ ],
+ [
+  "src/main/store/config.ts",
+  335,
+  "Retry count must be between 0-10"
+ ],
+ [
+  "src/main/store/config.ts",
+  399,
+  "Import app configuration"
+ ],
+ [
+  "src/main/store/providers.ts",
+  143,
+  "Provider not found: ${id}"
+ ],
+ [
+  "src/main/store/providers.ts",
+  344,
+  "Batch update provider status: ${ids.length} providers"
+ ],
+ [
+  "src/main/store/store.ts",
+  410,
+  "Storage initialization failed: ${this.initializationError.message}"
+ ],
+ [
+  "src/main/store/store.ts",
+  411,
+  "Storage not initialized, please call initialize() first"
+ ],
+ [
+  "src/main/store/store.ts",
+  1660,
+  "Model with display name "
+ ],
+ [
+  "src/main/store/store.ts",
+  1679,
+  "Provider not found"
+ ],
+ [
+  "src/main/store/store.ts",
+  1817,
+  "Request log manager is not initialized"
+ ],
+ [
+  "src/main/store/store.ts",
+  1824,
+  "App log manager is not initialized"
+ ],
+ [
+  "src/main/store/validator.ts",
+  81,
+  "Rate limit exceeded, please try again later"
+ ],
+ [
+  "src/main/store/validator.ts",
+  176,
+  "Rate limit exceeded, please try again later"
+ ],
+ [
+  "src/main/store/validator.ts",
+  185,
+  "Insufficient account balance"
+ ],
+ [
+  "src/main/store/validator.ts",
+  272,
+  "Invalid or expired Cookie"
+ ],
+ [
+  "src/main/store/validator.ts",
+  280,
+  "Rate limit exceeded, please try again later"
+ ],
+ [
+  "src/main/store/validator.ts",
+  319,
+  "Missing authentication token"
+ ],
+ [
+  "src/main/store/validator.ts",
+  354,
+  "Invalid authentication token"
+ ],
+ [
+  "src/main/tasks/tasksService.ts",
+  153,
+  "Task not found: ${taskId}"
+ ],
+ [
+  "src/main/updater/UpdaterManager.ts",
+  162,
+  "No update available to download"
+ ],
+ [
+  "src/main/updater/UpdaterManager.ts",
+  193,
+  "No update downloaded to install"
+ ],
+ [
+  "src/main/updater/UpdaterManager.ts",
+  236,
+  "No internet connection. Please check your network and try again."
+ ],
+ [
+  "src/main/updater/UpdaterManager.ts",
+  239,
+  "Connection timed out. Please check your network and try again."
+ ],
+ [
+  "src/main/updater/UpdaterManager.ts",
+  242,
+  "Connection was reset. Please try again."
+ ],
+ [
+  "src/main/updater/UpdaterManager.ts",
+  245,
+  "Update file not found. The update may have been corrupted."
+ ],
+ [
+  "src/main/updater/UpdaterManager.ts",
+  251,
+  "Update signature verification failed. The update may be corrupted or tampered with."
+ ],
+ [
+  "src/main/updater/UpdaterManager.ts",
+  254,
+  "An unexpected error occurred during the update process."
+ ],
+ [
+  "src/main/utils/pMap.ts",
+  13,
+  "Mapper function is required"
+ ],
+ [
+  "src/main/workflows/workflowsService.ts",
+  92,
+  "Workflow not found"
+ ],
+ [
+  "src/renderer/src/components/models/ModelEditor.tsx",
+  74,
+  "Failed to load models"
+ ],
+ [
+  "src/renderer/src/components/models/ModelEditor.tsx",
+  131,
+  "Failed to add model"
+ ],
+ [
+  "src/renderer/src/components/models/ModelEditor.tsx",
+  158,
+  "Failed to remove model"
+ ],
+ [
+  "src/renderer/src/components/models/ModelEditor.tsx",
+  189,
+  "Failed to reset models"
+ ],
+ [
+  "src/renderer/src/components/providers/AddAccountDialog.tsx",
+  365,
+  "Login window was closed"
+ ],
+ [
+  "src/renderer/src/components/providers/AddProviderDialog.tsx",
+  374,
+  "Login window was closed"
+ ],
+ [
+  "src/renderer/src/components/proxy/ProxyStatus.tsx",
+  84,
+  "Unable to stop proxy service"
+ ],
+ [
+  "src/renderer/src/pages/About.tsx",
+  165,
+  "Update check failed"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  29,
+  "Value must be a string"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  33,
+  "Value cannot be empty"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  37,
+  "Value must be at least ${options.minLength} characters"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  41,
+  "Value must be at most ${options.maxLength} characters"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  45,
+  "Value does not match required pattern"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  63,
+  "Path cannot be empty"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  68,
+  "Path traversal detected (.. is not allowed)"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  79,
+  "Path contains dangerous characters"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  86,
+  "Path uses reserved Windows name"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  103,
+  "Command cannot be empty"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  108,
+  "Recursive delete from root"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  109,
+  "Fork bomb detected"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  110,
+  "Filesystem format command"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  111,
+  "Direct device write"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  112,
+  "Direct device write"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  114,
+  "Remote code execution via curl"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  115,
+  "Remote code execution via wget"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  120,
+  "Dangerous command detected: ${message}"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  126,
+  "Potential command injection (shell metacharacters)"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  143,
+  "Value must be an object"
+ ],
+ [
+  "src/security/InputValidator.ts",
+  150,
+  "Missing required field: ${key}"
+ ],
+ [
+  "src/security/PathGuard.ts",
+  49,
+  "Path is empty"
+ ],
+ [
+  "src/security/PathGuard.ts",
+  61,
+  "Path traversal detected: escapes root directory"
+ ],
+ [
+  "src/security/PathGuard.ts",
+  71,
+  "Access to blocked directory: ${blocked}"
+ ],
+ [
+  "src/security/PathGuard.ts",
+  85,
+  "Path is not in allowed directories"
+ ],
+ [
+  "src/security/PathGuard.ts",
+  97,
+  "Blocked file extension: ${ext}"
+ ],
+ [
+  "src/security/PathGuard.ts",
+  108,
+  "File extension not allowed: ${ext}"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  18,
+  "Internal server error"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  25,
+  "Request failed with status code {code}"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  28,
+  "Request timed out"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  31,
+  "Connection reset by peer"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  33,
+  "Connection timed out"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  35,
+  "Model not found or invalid"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  36,
+  "Context length exceeded"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  37,
+  "Rate limit exceeded"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  45,
+  "Command execution failed"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  50,
+  "Out of memory"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  79,
+  "Internal server error"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  81,
+  "Service temporarily unavailable"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  85,
+  "Request timed out"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  88,
+  "Connection reset by peer"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  90,
+  "Connection timed out, please check your network"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  92,
+  "Model not found or invalid"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  93,
+  "Context length exceeded"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  94,
+  "Rate limit exceeded, please try again later"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  98,
+  "Command execution failed"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  103,
+  "Out of memory"
+ ],
+ [
+  "src/shared/errorMessages.ts",
+  104,
+  "Page load failed: {url}"
+ ]
+]

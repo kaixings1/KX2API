@@ -56,6 +56,21 @@ import {
   type ChatMessage as ContextChatMessage,
 } from './services/contextManagementService'
 
+/**
+ * 代理中间调试日志开关。
+ *
+ * forwarder 里 [FWD] STEP-x / [StepFun][DIAG-FWD] / [Forwarder][DIAG] 这类
+ * 「每请求都要打」的进度/状态日志噪音很大，默认不输出；排查时设
+ * KX2_DEBUG_PROXY=1 即可全部打开。错误类日志（console.error）不受此开关影响，
+ * 始终保留。
+ */
+const DEBUG_PROXY = process.env.KX2_DEBUG_PROXY === '1'
+
+/** 仅在开启代理调试日志输出时才打印进度/状态日志 */
+function proxyDebugLog(...args: unknown[]): void {
+  if (DEBUG_PROXY) console.log(...args)
+}
+
 function shouldDeleteSession(): boolean {
   return sessionManager.shouldDeleteAfterChat()
 }

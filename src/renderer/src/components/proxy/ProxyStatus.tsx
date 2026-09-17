@@ -81,7 +81,7 @@ export function ProxyStatus({ onStatusChange }: ProxyStatusProps) {
     } else {
       toast({
         title: t('common.error'),
-        description: 'Unable to stop proxy service',
+        description: t('proxy.stopFailed', '无法停止代理服务'),
         variant: 'destructive',
       })
     }

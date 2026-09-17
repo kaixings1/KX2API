@@ -31,7 +31,6 @@
     "release",
     "legacy",
     "**/__tests__/**",
-    "**/*.d.ts",
     "**/*.js"
   ]
 }

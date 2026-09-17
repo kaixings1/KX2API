@@ -9,6 +9,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select'
+import { useTranslation } from 'react-i18next'
 import { Plus, Search, Filter, Server, RefreshCw } from 'lucide-react'
 import { ProviderCard } from './ProviderCard'
 import type { Provider, ProviderStatus } from '@/types/electron'
@@ -46,6 +47,7 @@ export function ProviderList({
   onUpdateModels,
   onManageModels,
 }: ProviderListProps) {
+  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<FilterType>('all')
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -95,7 +97,7 @@ export function ProviderList({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search providers..."
+              placeholder={t('providers.searchProviders')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 w-64"
@@ -107,11 +109,11 @@ export function ProviderList({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="builtin">Built-in</SelectItem>
-              <SelectItem value="custom">Custom</SelectItem>
-              <SelectItem value="enabled">Enabled</SelectItem>
-              <SelectItem value="disabled">Disabled</SelectItem>
+              <SelectItem value="all">{t('providers.allTypes')}</SelectItem>
+              <SelectItem value="builtin">{t('providers.builtin')}</SelectItem>
+              <SelectItem value="custom">{t('providers.custom')}</SelectItem>
+              <SelectItem value="enabled">{t('providers.enabled')}</SelectItem>
+              <SelectItem value="disabled">{t('providers.disabled')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -123,33 +125,33 @@ export function ProviderList({
             disabled={isRefreshing}
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh Status
+            {t('providers.refreshStatus')}
           </Button>
           <Button size="sm" onClick={onAddProvider}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Provider
+            {t('providers.addProvider')}
           </Button>
         </div>
       </div>
 
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
-        <span>Total {stats.total} providers</span>
+        <span>{t('providers.totalProviders', { count: stats.total })}</span>
         <span>•</span>
-        <span>{stats.online} online</span>
+        <span>{t('providers.onlineProviders', { count: stats.online })}</span>
         <span>•</span>
-        <span>{stats.enabled} enabled</span>
+        <span>{t('providers.enabledProviders', { count: stats.enabled })}</span>
         <span>•</span>
-        <span>{stats.builtin} built-in, {stats.custom} custom</span>
+        <span>{t('providers.typeBreakdown', { builtin: stats.builtin, custom: stats.custom })}</span>
       </div>
 
       {filteredProviders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
           <Server className="h-12 w-12 mb-4 opacity-50" />
-          <p className="text-lg font-medium">No providers found</p>
+          <p className="text-lg font-medium">{t('providers.noProvidersFound')}</p>
           <p className="text-sm">
-            {searchQuery || filter !== 'all' 
-              ? 'Try adjusting your search or filter'
-              : 'Click the button above to add your first provider'}
+            {searchQuery || filter !== 'all'
+              ? t('providers.tryAdjustingFilters')
+              : t('providers.addFirstProvider')}
           </p>
         </div>
       ) : (

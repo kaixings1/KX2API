@@ -119,7 +119,7 @@ export function registerChatHandlers(): void {
 
     // 检查引擎是否就绪
     if (!isEngineReady()) {
-      const initErr = formatSystemError('Engine not initialized', getLang())
+      const initErr = formatSystemError('引擎未初始化', getLang())
       sender.send(IpcChannels.CHAT_STREAM_ERROR, { requestId, error: initErr })
       return { success: false, error: initErr, requestId }
     }
@@ -179,9 +179,9 @@ export function registerChatHandlers(): void {
         chatUserInput: text,
         chatEngineInput: text,
         chatNotes: '[IPC] Engine not ready',
-        errorMessage: 'Engine not initialized',
+        errorMessage: '引擎未初始化',
       })
-      const initErr = formatSystemError('Engine not initialized', getLang())
+      const initErr = formatSystemError('引擎未初始化', getLang())
       sender.send(IpcChannels.CHAT_STREAM_ERROR, { requestId, error: initErr })
       return { success: false, error: initErr, requestId }
     }
@@ -279,7 +279,7 @@ export function registerChatHandlers(): void {
   ipcMain.handle(IpcChannels.CHAT_SUBSCRIBE_EVENTS, async (event) => {
     const sender = event.sender
     const eng = getEngineInstance()
-    if (!eng) return { success: false, error: 'Engine not initialized' }
+    if (!eng) return { success: false, error: '引擎未初始化' }
 
     const unsubscribe = () => {
       // 移除事件处理器（实际实现中需要维护订阅列表）
@@ -344,7 +344,7 @@ export function registerChatHandlers(): void {
 
   ipcMain.handle(IpcChannels.CHAT_SET_CONFIG, async (_, updates: Record<string, unknown>) => {
     if (!isEngineReady()) {
-      return { success: false, error: 'Engine not initialized' }
+      return { success: false, error: '引擎未初始化' }
     }
     try {
       // 重建引擎 API 客户端使 baseUrl / apiKey / model 真正生效。
@@ -371,7 +371,7 @@ export function registerChatHandlers(): void {
     try {
       const eng = getEngineInstance()
       if (!eng) {
-        return { success: false, error: 'Engine not initialized' }
+        return { success: false, error: '引擎未初始化' }
       }
       // QueryEngine.executeCommand：ToolCollection → 命令注册表
       const result = await eng.executeCommand(name, args)
@@ -591,7 +591,7 @@ export function registerChatHandlers(): void {
     try {
       const group = configGroupManager.getGroup(id)
       if (!group) {
-        return { success: false, error: 'Config group not found' }
+        return { success: false, error: '配置组不存在' }
       }
       const data = configGroupManager.readGroup(id)
       return { success: true, group, data }
@@ -604,7 +604,7 @@ export function registerChatHandlers(): void {
     try {
       const group = configGroupManager.getGroup(id)
       if (!group) {
-        return { success: false, error: 'Config group not found' }
+        return { success: false, error: '配置组不存在' }
       }
       const data = configGroupManager.readGroup(id)
       return { success: true, group, data }
@@ -617,7 +617,7 @@ export function registerChatHandlers(): void {
     try {
       const group = configGroupManager.createGroup(id, data)
       if (!group) {
-        return { success: false, error: 'Config group already exists' }
+        return { success: false, error: '配置组已存在' }
       }
       return { success: true, group }
     } catch (e) {
@@ -629,11 +629,11 @@ export function registerChatHandlers(): void {
     try {
       const existing = configGroupManager.readGroup(id)
       if (!existing) {
-        return { success: false, error: 'Config group not found' }
+        return { success: false, error: '配置组不存在' }
       }
       const success = configGroupManager.writeGroup(id, data)
       if (!success) {
-        return { success: false, error: 'Failed to write config group' }
+        return { success: false, error: '写入配置组失败' }
       }
       const group = configGroupManager.getGroup(id)
       return { success: true, group }
@@ -646,7 +646,7 @@ export function registerChatHandlers(): void {
     try {
       const success = configGroupManager.deleteGroup(id)
       if (!success) {
-        return { success: false, error: 'Config group not found' }
+        return { success: false, error: '配置组不存在' }
       }
       return { success: true, id, deleted: true }
     } catch (e) {
@@ -658,7 +658,7 @@ export function registerChatHandlers(): void {
     try {
       const success = configGroupManager.setActiveGroup(id)
       if (!success) {
-        return { success: false, error: 'Config group not found' }
+        return { success: false, error: '配置组不存在' }
       }
       const group = configGroupManager.getGroup(id)
       return { success: true, group }
@@ -672,7 +672,7 @@ export function registerChatHandlers(): void {
       const groups = configGroupManager.listGroups()
       const target = groups.find((g) => g.id === id)
       if (!target) {
-        return { success: false, error: 'Config group not found' }
+        return { success: false, error: '配置组不存在' }
       }
 
       // 1. 设置当前配置组为活跃
@@ -681,12 +681,12 @@ export function registerChatHandlers(): void {
       // 2. 读取目标配置组数据中的 activePreset，获取该 preset 的完整配置
       const groupData = configGroupManager.readGroup(id)
       if (!groupData || !groupData.activePreset) {
-        return { success: false, error: 'No active preset in config group' }
+        return { success: false, error: '配置组中没有已启用的预设' }
       }
 
       const preset = groupData.presets[groupData.activePreset]
       if (!preset) {
-        return { success: false, error: 'Active preset not found in config group' }
+        return { success: false, error: '配置组中未找到已启用的预设' }
       }
 
       // 3. 同步 apiKey 到代理认证列表
@@ -731,8 +731,8 @@ export function registerChatHandlers(): void {
     const sender = event.sender as WebContents
     const eng = getEngineInstance()
     if (!eng) {
-      sender.send(IpcChannels.TEAM_STREAM_ERROR, { error: 'Engine not initialized' })
-      return { success: false, error: 'Engine not initialized' }
+      sender.send(IpcChannels.TEAM_STREAM_ERROR, { error: '引擎未初始化' })
+      return { success: false, error: '引擎未初始化' }
     }
     const cfg = eng.getConfig()
     const plansDir = join(process.cwd(), '.kx2code', 'plans', 'team')
