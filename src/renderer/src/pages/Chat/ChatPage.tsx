@@ -576,7 +576,7 @@ function MessageContent({
       )}
 
       {/* Tool use section — shown above content, merged */}
-      {effectiveTools.length > 0 && !isStreaming && (
+      {effectiveTools.length > 0 && (
         <div className="tool-uses-list">
           {effectiveTools.map((tool) => (
             <ToolUseBlock key={tool.id} tool={tool} />

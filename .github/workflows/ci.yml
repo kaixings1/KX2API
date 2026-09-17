@@ -37,9 +37,7 @@ jobs:
 
   # 主应用的类型检查。
   #
-  # 注意用 continue-on-error：当前 tsconfig.check.json 下有约 710 个存量类型错误，
-  # 一次性转成阻断式会让所有 PR 无法合并。这里先「跑起来并暴露数字」，
-  # 待错误收敛到一个可控数量后再改为阻断式（去掉 continue-on-error）。
+  # 2026-09-17：类型错误已收敛到 0，按原计划转为阻断式（移除 continue-on-error）。
   #
   # 之所以必须有这个 job：原来只有 project/ 的 typecheck，主应用
   # （src/ 下 800+ 文件）的类型错误从来没有任何检查 —— esbuild 只转译不检查类型，
@@ -47,7 +45,6 @@ jobs:
   typecheck-app:
     name: TypeScript (src/)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,13 +52,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - name: Count type errors
-        run: |
-          npx tsc -p tsconfig.check.json --noEmit 2>&1 | tee /tmp/tsc.log | tail -40 || true
-          ERRORS=$(grep -c "error TS" /tmp/tsc.log || echo 0)
-          echo "## 类型错误数：$ERRORS" >> $GITHUB_STEP_SUMMARY
-          echo "类型错误数：$ERRORS"
-          echo "计划：先收敛到 0，再把本 job 改为阻断式（移除 continue-on-error）"
+      - run: npx tsc -p tsconfig.check.json --noEmit
 
   test-management:
     name: Management Tests

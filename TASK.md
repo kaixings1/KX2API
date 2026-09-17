@@ -1120,13 +1120,26 @@ forwarder 一律调 `adapter.chatCompletion()` 并期望 `{success, stream, body
 - `forwardStepFunStudio` **从未实现**，但分派表 `:207` 引用它 —— 命中即崩溃。已同构补齐。
 - MiniMax 传的 `originalModel` 不在其自用类型里、实现也从未使用 → 删。
 
-### ⚠️ 未修的雷（运行时，编译器不报）
+### 续：拆掉 `any` 工厂，排除 6 个运行时雷
 
-`createOpenAICompatibleForward` 工厂用 `any` 参数吞掉类型检查，
-**openai / groq / together / mistral / xai / siliconcloud** 这 6 个同属 chat 代，
-同样在调不存在的 `chatCompletion` —— 编译通过但运行时必然 `TypeError`。
-**下一步必须拆掉这个 `any` 工厂并同样改造。**（详见记忆
-`type-error-zero-and-adapter-split.md`）
+`createOpenAICompatibleForward` 原先用 `any` 参数吞掉类型检查，
+使 **openai / groq / together / mistral / xai / siliconcloud** 同调不存在的
+`chatCompletion` —— 编译通过但运行时必然 `TypeError`。同轮已修：
+
+- 工厂参数改为真实契约 `{ chat(); chatStream() }`，不再有 `any`。
+- 删掉 `streamHandlerClass` 参数（这些 handler 全是静态工具类，从未被实例化使用），
+  改走 `rawEventStreamToOpenAI`。
+- 响应体保留上游 `usage` / `tool_calls`，替换原先硬编码的假数据。
+- `forwarder.ts` 中 10 个 `*-stream` 死导入已移除（类本身在别处仍被引用，保留）。
+
+**当前状态**：typecheck **0 错误** / `npm run build` ✅ /
+`npm run test:all` ✅（agent 47 + management 74 + extras 555 + unit 1189，0 失败）。
+
+### CI 转为阻断式
+
+类型错误归零后，按 `ci.yml` 原注释里的约定，把 `typecheck-app` 的
+`continue-on-error: true` 移除，改回 `npx tsc -p tsconfig.check.json --noEmit`。
+本地退出码确认为 `0`，转阻断式不会误伤 PR。
 
 ### 遗留待办（需决策，均未动）
 
