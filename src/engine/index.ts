@@ -13,11 +13,12 @@ import { ToolScheduler, type PermissionManager, type ToolExecutor, type Tool, ty
 import type { PermissionRule } from "./permissions/permissionRules.ts";
 import { TokenBudgetManager } from "./tokenBudgetManager.ts";
 import type { AgentLoopConfig } from "./loopConfig.ts";
+import type { ImageBudgetOptions } from "./imageBudget.ts";
 import { AutoCompactor } from "./autoCompactor.ts";
 import { ErrorClassifier } from "./errors/classifier.ts";
 import { RetryHandler } from "./errors/retryHandler.ts";
 import { ErrorRecovery } from "./errors/recovery.ts";
-import { SubAgentManager } from "./subagent/subAgentManager.ts";
+import { SubAgentManager, provideEngineConstructor } from "./subagent/subAgentManager.ts";
 import { AutoFixLoop } from "./autoFixLoop.ts";
 import { GitContextInjector, type GitContextConfig } from "./gitContext.ts";
 import { saveSessionSnapshot, loadSessionSnapshotSync, clearSessionSnapshot, type SessionMessageSnapshot } from "./sessionRecovery.ts";
@@ -537,6 +538,12 @@ export class QueryEngine {
     if ('agentLoop' in updates) {
       this.messageLoop.setLoopLimits(updates.agentLoop as AgentLoopConfig | void)
     }
+    // 图片预算热更新：改完设置立即生效
+    if ('imageBudget' in updates) {
+      this.messageLoop.setImageBudget(
+        updates.imageBudget as ImageBudgetOptions | void,
+      )
+    }
     // 工具执行超时热更新
     if ('toolTimeoutMs' in updates) {
       const t = Number(updates.toolTimeoutMs)
@@ -661,3 +668,10 @@ export function getAutoModeManager() {
     shouldAutoContinue: () => false,
   }
 }
+
+// ──────────────────────────────────────────────────────────
+// 子代理引擎注入（延迟注入避免与 subAgentManager 运行时循环）
+// QueryEngine 类已定义，注册默认构造器，使 SubAgentManager 缺省
+// factory 能用 `new QueryEngine` 创建真正隔离的子引擎。
+// ──────────────────────────────────────────────────────────
+provideEngineConstructor(QueryEngine);

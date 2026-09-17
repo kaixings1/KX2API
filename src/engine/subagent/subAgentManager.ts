@@ -1,14 +1,42 @@
 /**
  * engine/subagent/subAgentManager.ts — 子代理管理器（文档 02 §10.2）
  *
- * 创建隔离的查询引擎实例、并发控制、聚合结果、终止代理。
+ * 创建**隔离**的查询引擎实例、并发控制、聚合结果、终止代理。
+ *
+ * 「隔离」的实现：每个子代理的引擎由 `engineFactory`（或缺省 `new QueryEngine`）
+ * 创建，拥有**独立的对话上下文**（不读写父会话）、自己的 model/systemPrompt/maxTokens，
+ * 并按 `allowedTools` 过滤工具集 —— 子代理运行不会污染主对话。
  */
 import { predefinedAgents, type SubAgentConfig } from "./config.ts";
+// 仅类型引用，避免与 index.ts 形成运行时循环（index.ts import 本模块）。
+import type { QueryEngine, EngineOptions } from "../index.ts";
+
+/** QueryEngine 构造器签名（由 index.ts 通过 provideEngineConstructor 注入默认实现） */
+export type QueryEngineConstructor = new (opts: EngineOptions) => QueryEngine;
+
+/** 全局默认引擎构造器；由 index.ts 装配时注入（延迟注入避免循环） */
+let defaultEngineCtor: QueryEngineConstructor | null = null;
+export function provideEngineConstructor(ctor: QueryEngineConstructor): void {
+  defaultEngineCtor = ctor;
+}
+
+export interface SubAgentEngine {
+  query: (input: string) => Promise<{ messages: { content?: string }[]; tokenUsage: unknown }>;
+  abort: () => Promise<void>;
+}
+
+export type IsolatedEngineFactory = (opts: {
+  model: string;
+  systemPrompt?: string;
+  maxOutputTokens?: number;
+  allowedTools?: string[];
+  parentModel?: string;
+}) => QueryEngine;
 
 export interface SubAgentInstance {
   id: string;
   agentName: string;
-  engine: { query: (input: string) => Promise<{ messages: { content?: string }[]; tokenUsage: unknown }>; abort: () => Promise<void> };
+  engine: SubAgentEngine;
   startTime: Date;
   status: "running" | "completed" | "failed" | "terminated";
 }
@@ -30,10 +58,24 @@ export class SubAgentManager {
   private instances = new Map<string, SubAgentInstance>();
   private maxConcurrentAgents = DEFAULT_MAX_CONCURRENT_AGENTS;
   private activeAgents = 0;
+  /** 隔离引擎工厂；缺省用 `new QueryEngine`（无 apiClient 时仅可构造） */
+  private engineFactory: IsolatedEngineFactory | null = null;
 
-  constructor(maxConcurrent?: number) {
+  constructor(maxConcurrent?: number, engineFactory?: IsolatedEngineFactory) {
     for (const [name, cfg] of Object.entries(predefinedAgents)) this.registry.set(name, cfg);
     this.setMaxConcurrentAgents(maxConcurrent);
+    if (engineFactory) this.engineFactory = engineFactory;
+  }
+
+  /**
+   * 注入隔离引擎工厂。
+   *
+   * 上层（拥有真实模型 apiClient 的地方）用它创建带 apiClient 的真隔离引擎；
+   * 缺省内部用 `new QueryEngine`（可用于纯构造/离线测试）。缺省生成 + 未注入
+   * apiClient 时，子引擎 query 不会真的跑模型 —— 调用方需保证注入后再 execute。
+   */
+  setEngineFactory(factory: IsolatedEngineFactory): void {
+    this.engineFactory = factory;
   }
 
   /**
@@ -96,15 +138,39 @@ export class SubAgentManager {
     }
   }
 
-  private createQueryEngine(config: SubAgentConfig, params: ExecuteSubAgentParams): SubAgentInstance["engine"] {
+  private createQueryEngine(
+    config: SubAgentConfig,
+    params: ExecuteSubAgentParams,
+  ): SubAgentInstance["engine"] {
+    const model = config.model ?? params.parentModel ?? "default-subagent-model";
     const maxTokens = params.maxTokens ?? config.maxTokens ?? 4000;
+    // 引擎工厂：缺省用注入的 QueryEngine 构造器（index.ts 装配时 provideEngineConstructor）；
+    // 上层也可 setEngineFactory 注入带真实 apiClient 的工厂。allowedTools 透传给工厂，
+    // 工具集过滤是隔离上下文的一部分，由工厂按它裁剪。
+    const factory =
+      this.engineFactory ??
+      ((o) => {
+        if (!defaultEngineCtor) {
+          throw new Error(
+            "SubAgentManager: 未注入 QueryEngine 构造器（需先 provideEngineConstructor 或 setEngineFactory）",
+          );
+        }
+        return new defaultEngineCtor({ model: o.model, systemPrompt: o.systemPrompt, maxOutputTokens: o.maxOutputTokens });
+      });
+    const engine = factory({
+      model,
+      systemPrompt: config.systemPrompt,
+      maxOutputTokens: maxTokens,
+      allowedTools: config.allowedTools,
+      parentModel: params.parentModel,
+    });
     return {
       async query(input: string) {
-        // 占位：隔离的子查询引擎执行（见 §2 MessageLoop）
-        return { messages: [{ content: `[${config.name}] 骨架占位，待执行: ${input}` }], tokenUsage: { maxTokens } };
+        const result = await engine.query(input);
+        return { messages: result.messages, tokenUsage: result.tokenUsage };
       },
       async abort() {
-        // 占位：中止子代理
+        try { await engine.abort(); } catch { /* 终止失败忽略 */ }
       },
     };
   }
