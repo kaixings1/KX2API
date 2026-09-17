@@ -1,0 +1,25 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/flow/factory.ts(24,9): error TS2322: Type 'PlanningFlow' is not assignable to type 'BaseFlow'.
+  Types of property 'execute' are incompatible.
+    Type '(input: string, executorFn: (step: PlanStep, agentKey?: string | undefined) => Promise<string>) => Promise<FlowResult>' is not assignable to type '(input: string) => Promise<FlowResult>'.
+      Target signature provides too few arguments. Expected 2 or more, but got 1.
+src/engine/flow/planning.ts(104,9): error TS2416: Property 'execute' in type 'PlanningFlow' is not assignable to the same property in base type 'BaseFlow'.
+  Type '(input: string, executorFn: (step: PlanStep, agentKey?: string | undefined) => Promise<string>) => Promise<FlowResult>' is not assignable to type '(input: string) => Promise<FlowResult>'.
+    Target signature provides too few arguments. Expected 2 or more, but got 1.
+src/engine/orchestrator/orchestrator.ts(40,30): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/engine/orchestrator/orchestrator.ts(56,31): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/engine/orchestrator/orchestrator.ts(223,13): error TS2322: Type '"discuss"' is not assignable to type 'WorkflowStage'.
+src/engine/orchestrator/orchestrator.ts(258,13): error TS2322: Type '"discuss"' is not assignable to type 'WorkflowStage'.
+src/engine/orchestrator/orchestrator.ts(269,13): error TS2322: Type '"discuss"' is not assignable to type 'WorkflowStage'.
+src/engine/orchestrator/pipeline.ts(55,44): error TS2345: Argument of type 'string' is not assignable to parameter of type 'AgentRole'.
+src/engine/orchestrator/pipeline.ts(55,56): error TS2345: Argument of type 'string' is not assignable to parameter of type 'WorkflowStage'.
+src/engine/orchestrator/pipeline.ts(56,41): error TS2345: Argument of type 'string' is not assignable to parameter of type 'WorkflowStage'.
+src/engine/orchestrator/pipeline.ts(58,46): error TS2345: Argument of type 'string' is not assignable to parameter of type 'WorkflowStage'.
+src/engine/orchestrator/pipeline.ts(65,30): error TS2345: Argument of type 'string' is not assignable to parameter of type 'WorkflowStage'.
+src/engine/orchestrator/pipeline.ts(72,53): error TS2345: Argument of type 'string' is not assignable to parameter of type 'WorkflowStage'.
+src/engine/orchestrator/pipeline.ts(76,34): error TS2345: Argument of type 'string' is not assignable to parameter of type 'WorkflowStage'.
+src/engine/orchestrator/pipeline.ts(86,30): error TS2345: Argument of type 'string' is not assignable to parameter of type 'WorkflowStage'.
+src/engine/orchestrator/pipeline.ts(266,40): error TS2339: Property 'totalDuration' does not exist on type 'PipelineExecutor'.

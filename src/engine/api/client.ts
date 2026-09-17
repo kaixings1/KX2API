@@ -59,6 +59,56 @@ export interface ToolCallResult {
 
 let requestCounter = 0
 
+/**
+ * 从 axios 错误里安全取出「响应正文预览」。
+ *
+ * 为什么不能直接 JSON.stringify：
+ * - `responseType: "stream"` 时 `err.response.data` 是活的 IncomingMessage，
+ *   它经 `Socket._httpMessage` ↔ `ClientRequest.socket` 形成循环引用，
+ *   `JSON.stringify` 会抛 TypeError，**把原始错误替换掉**，真实失败原因丢失。
+ *
+ * 为什么是 async：
+ * - 流对象上同步读 `_readableState.buffer` 取不到内容（读取端已被 axios 持有），
+ *   必须做一次异步读取。错误响应体通常只有几十字节，代价可忽略；
+ *   读不到就退化为提示文案，绝不让日志本身抛错。
+ */
+async function extractErrorBodyPreview(data: unknown): Promise<string> {
+  if (data === null || data === undefined) return '(空)'
+  if (typeof data === 'string') return data.slice(0, 500)
+
+  const maybeStream = data as {
+    on?: unknown
+    destroy?: () => void
+  }
+  if (typeof maybeStream.on === 'function') {
+    try {
+      const text = await new Promise<string>((resolve) => {
+        const chunks: Buffer[] = []
+        const timer = setTimeout(() => resolve(''), 1500)
+        const stream = data as NodeJS.EventEmitter & { on: (e: string, cb: (c?: unknown) => void) => void }
+        stream.on('data', (c) => { if (c) chunks.push(Buffer.from(c as Buffer)) })
+        stream.on('end', () => { clearTimeout(timer); resolve(Buffer.concat(chunks).toString('utf8')) })
+        stream.on('error', () => { clearTimeout(timer); resolve('') })
+      })
+      if (text) return text.slice(0, 500)
+    } catch {
+      // 读取失败不影响主流程：下面的兜底文案同样能表达「有错误、详情在流里」
+    }
+    return '[流式响应体：未能读取错误详情，请参考上游状态码]'
+  }
+
+  // 普通对象：仅当可安全序列化时才序列化
+  if (typeof data === 'object') {
+    try {
+      return JSON.stringify(data).slice(0, 500)
+    } catch {
+      return `[${(data as object).constructor?.name ?? '对象'}：无法序列化]`
+    }
+  }
+
+  return String(data).slice(0, 500)
+}
+
 export async function sendMessageStream(
   config: ApiConfig,
   messages: Message[],
@@ -595,7 +645,14 @@ export async function sendOpenAIStreamWithTools(
       ])) as import('axios').AxiosResponse
     } catch (postError) {
       const err = postError as Error & { response?: { status?: number; data?: unknown } }
-      console.error(`[API] POST FAILED after ${Date.now() - postStart}ms: status=${err.response?.status ?? 'n/a'} body=${JSON.stringify(err.response?.data).slice(0, 500)}`, err.message)
+      // 注意：responseType 为 stream 时，err.response.data 是**活的 IncomingMessage**，
+      // 经 Socket ↔ ClientRequest 循环引用，JSON.stringify 会抛
+      //   TypeError: Converting circular structure to JSON
+      // 而该异常会替换掉原始错误、把真实失败原因彻底掩盖（日志不能成为故障源）。
+      // 因此这里只做安全提取：字符串直接用；流对象做一次异步读取拿到错误正文。
+      const rawBody = err.response?.data
+      const bodyPreview = await extractErrorBodyPreview(rawBody)
+      console.error(`[API] POST FAILED after ${Date.now() - postStart}ms: status=${err.response?.status ?? 'n/a'} body=${bodyPreview}`, err.message)
       throw postError
     }
     console.log(`[API] POST SUCCEEDED after ${Date.now() - postStart}ms, status=${response.status}, headers=`, JSON.stringify(response.headers).slice(0, 300))
