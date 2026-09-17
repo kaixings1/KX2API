@@ -20,6 +20,7 @@ import { ErrorRecovery } from "./errors/recovery.ts";
 import { SubAgentManager } from "./subagent/subAgentManager.ts";
 import { AutoFixLoop } from "./autoFixLoop.ts";
 import { GitContextInjector, type GitContextConfig } from "./gitContext.ts";
+import { saveSessionSnapshot, loadSessionSnapshotSync, clearSessionSnapshot, type SessionMessageSnapshot } from "./sessionRecovery.ts";
 import { createSandboxedExecutor, type SandboxConfig, type SandboxPolicy, getDefaultSandboxPolicy, createDefaultSandboxConfig } from "./sandbox/index.ts";
 import { createSecurityEnhancer } from "./securityEnhancer.ts";
 import {
@@ -362,7 +363,10 @@ export class QueryEngine {
       })
     }
     if (handler) this.setLoopEventHandler(handler)
-    return this.messageLoop.run(userMessage);
+    const result = await this.messageLoop.run(userMessage);
+    // 会话恢复：每轮对话结束把最新消息快照落盘，崩溃/重启后可恢复。
+    void saveSessionSnapshot(this._conversation.messages as unknown as SessionMessageSnapshot[]);
+    return result;
   }
 
   async sendMessage(userMessage: string): Promise<QueryResult> {
@@ -370,7 +374,10 @@ export class QueryEngine {
       this.stateMachine.reset();
       this._conversation.messages = [];
     }
-    return this.messageLoop.run(userMessage);
+    const result = await this.messageLoop.run(userMessage);
+    // 会话恢复：与 query 一致，每轮对话结束把最新快照落盘。
+    void saveSessionSnapshot(this._conversation.messages as unknown as SessionMessageSnapshot[]);
+    return result;
   }
 
   async abort(): Promise<void> {
@@ -466,6 +473,13 @@ export class QueryEngine {
   }
 
   getHistory(): Array<{ role: string; content: string }> {
+    // 会话恢复：内存为空但快照存在 → 水合（崩溃/重启后入页即见旧对话）。
+    if (this._conversation.messages.length === 0) {
+      const snap = loadSessionSnapshotSync()
+      if (snap && Array.isArray(snap.messages) && snap.messages.length > 0) {
+        this._conversation.messages = snap.messages as unknown as InternalMessage[];
+      }
+    }
     return this._conversation.messages.map((m) => ({
       role: m.role,
       content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
@@ -487,6 +501,8 @@ export class QueryEngine {
     } catch {
       /* 同上 */
     }
+    // 会话快照一并删除：用户明确重新开始，不再在下次启动时恢复旧对话。
+    void clearSessionSnapshot();
   }
 
   getConfig(): Record<string, unknown> {

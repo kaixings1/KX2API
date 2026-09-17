@@ -34,8 +34,10 @@ export function buildToolCallingRuntimePlan(input: {
   const shouldInjectPrompt = mode === 'managed'
   const shouldParseResponse = mode === 'managed'
 
-  // 协议级 fallback 策略：managed_xml 禁用兜底提取，其余协议允许
-  const fallbackStrategy: FallbackStrategy = protocol === 'managed_xml' ? 'never' : 'always'
+  // 协议级 fallback 策略：默认为 always，让各协议解析失败时都走多格式兜底提取，
+  // 避免模型返回的未曾实现格式（如 <tool_call><toolName>…</toolName></tool_call>）
+  // 被当成普通正文输出、工具静默不执行。
+  const fallbackStrategy: FallbackStrategy = 'always'
 
   return {
     mode,

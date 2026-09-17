@@ -4,6 +4,7 @@ import {
   addParameter,
   buildToolCall,
   createParseResult,
+  decodeXml,
   detectMarkers,
   escapeXmlAttribute,
   normalizeToolName,
@@ -255,18 +256,17 @@ Use the result to continue your work, calling more tools as needed.`
       toolCalls,
     })
 
-    parseSurgeFormat(parseable, {
+    // Surge/Claude XML 子标签变体：<tool_call><toolName>X</toolName><arguments>...</arguments></tool_call>
+    // 必须放在 parseSurgeFormat 之前解析——parseSurgeFormat 会把 <toolName> 误当工具名
+    // 并过早 push 到 rawMatches，导致本分支的 isCovered 判重失效而漏提。
+    parseToolNameSubtagFormat(parseable, {
       rawMatches,
       invalidToolNames,
       allowedNames,
       toolCalls,
     })
 
-    // Surge/Claude XML 子标签变体：<tool_call><toolName>X</toolName><arguments>...</arguments></tool_call>
-    // 必须放在 parseSurgeFormat 之后解析——它会把 <toolName> 误当工具名（name='toolName'），
-    // 导致真实工具名丢失、参数也无法正确解析。本分支专门识别 <toolName> 子标签来提取工具名，
-    // 并把 <arguments> 内的 XML 子标签（<path>.</path>）或 JSON 串解析为参数对象。
-    parseToolNameSubtagFormat(parseable, {
+    parseSurgeFormat(parseable, {
       rawMatches,
       invalidToolNames,
       allowedNames,
@@ -965,6 +965,10 @@ function safeParseObj(value: string): Record<string, unknown> {
   }
 }
 
+// parseToolNameSubtagFormat 定义在本文件后部（先于 parseSurgeFormat 调用的注释处）。
+// 此前这里曾有一份重复实现，已移除 —— 保留后部那份（含 decodeXml 与白名单双匹配，
+// 比重复版本更完整）。
+
 function parseSurgeFormat(content: string, options: {
   rawMatches: string[]
   invalidToolNames: string[]
@@ -1381,5 +1385,119 @@ function parseAntmlFormat(content: string, options: {
         buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, argsJson, callMatch[0]),
       )
     }
+  }
+}
+
+/**
+ * Surge/Claude XML 子标签变体：
+ *   <tool_call>
+ *     <toolName>ls</toolName>
+ *     <arguments>
+ *       <path>.</path>
+ *       <showHidden>false</showHidden>
+ *     </arguments>
+ *   </tool_call>
+ *
+ * 参数还可为原生 JSON 字符串：
+ *   <tool_call>
+ *     <toolName>read_file</toolName>
+ *     <arguments>{"filePath":"D:\\a.ts"}</arguments>
+ *   </tool_call>
+ *
+ * 先于 parseSurgeFormat 调用：parseSurgeFormat 会把 <toolName> 当作工具名
+ * （normalizeToolName('toolName')='ToolName'，不在白名单 → 丢弃），导致真实工具
+ * 名丢失且参数写成纯文本，强行作为正文。本分支专门识别 <toolName> 子标签提取
+ * 工具名，并把 <arguments> 内的 XML 子标签（<path>.</path>）或 JSON 串解析为
+ * 参数对象 { path: '.', showHidden: false }。
+ */
+function parseToolNameSubtagFormat(content: string, options: {
+  rawMatches: string[]
+  invalidToolNames: string[]
+  allowedNames: Set<string>
+  toolCalls: ReturnType<typeof buildToolCall>[]
+}): void {
+  const blockPattern = /<tool_call>([\s\S]*?)<\/tool_call>/gi
+  let blockMatch: RegExpExecArray | null
+  while ((blockMatch = blockPattern.exec(content)) !== null) {
+    // const 声明行 / 注释行内的 <tool_call> 绝不可能是真实工具
+    if (isInConstDeclaration(content, blockMatch.index)) continue
+
+    const inner = blockMatch[1].trim()
+    // 仅处理含 <toolName> 子标签的结构；否则交给 parseSurgeFormat 兜底
+    const nameMatch = /<toolName\s*>([\s\S]*?)<\/toolName\s*>/i.exec(inner)
+    if (!nameMatch) continue
+
+    options.rawMatches.push(blockMatch[0])
+    const rawName = decodeXml(nameMatch[1].trim())
+    // 优先用原始工具名直接比对白名单（如 request.tools 里声明的 `ls`），
+    // 避免 normalizeToolName 将 `ls` 归一成 `ListFiles` 而与声明名失配；
+    // 归一化名仅在原始名未命中时作为兜底（兼容 GLM 等的别名输出）。
+    const normalizedName = normalizeToolName(rawName)
+    const matchedName = options.allowedNames.has(rawName)
+      ? rawName
+      : options.allowedNames.has(normalizedName)
+        ? normalizedName
+        : null
+    if (matchedName === null) {
+      options.invalidToolNames.push(rawName)
+      continue
+    }
+
+    // 解析 <arguments> 子标签：优先 JSON 字符串，否则把内层 XML 子标签解析为对象
+    const args: Record<string, unknown> = {}
+    const argsMatch = /<arguments\s*>([\s\S]*?)<\/arguments\s*>/i.exec(inner)
+    if (argsMatch) {
+      const argsInner = decodeXml(argsMatch[1].trim())
+      // 顶层是合法 JSON（对象/数组）→ 直接用作参数
+      const jsonStart = argsInner.indexOf('{') !== -1 ? argsInner.indexOf('{') : argsInner.indexOf('[')
+      if (jsonStart !== -1) {
+        const balanced = readBalancedJson(argsInner, jsonStart)
+        if (balanced) {
+          try {
+            const parsed = JSON.parse(balanced.json)
+            if (parsed && typeof parsed === 'object') {
+              Object.assign(args, parsed as Record<string, unknown>)
+            }
+          } catch {
+            /* 继续用子标签解析 */
+          }
+        }
+      }
+      // JSON 解析失败 or 为空 → XML 子标签 < tag>value</tag> 逐个提取
+      if (Object.keys(args).length === 0) {
+        const childRegex = /<([A-Za-z_][\w.-]*)>([\s\S]*?)<\/\1>/g
+        let childMatch: RegExpExecArray | null
+        while ((childMatch = childRegex.exec(argsInner)) !== null) {
+          let val: unknown = decodeXml(childMatch[2].trim())
+          try {
+            val = JSON.parse(String(val))
+          } catch {
+            // 子标签的值保留为原始字符串（含布尔/数字由 JSON.parse 已尝试）
+          }
+          addParameter(args, childMatch[1].trim(), val)
+        }
+      }
+    }
+
+    // 无 <arguments> 或子标签全空时，把整段非工具名的正文当 input
+    if (Object.keys(args).length === 0) {
+      const trimmed = inner
+        .replace(/<toolName\s*>[\s\S]*?<\/toolName\s*>/gi, '')
+        .replace(/<arguments\s*>[\s\S]*?<\/arguments\s*>/gi, '')
+        .trim()
+      if (trimmed) addParameter(args, 'input', trimmed)
+    }
+
+    const argsJson = JSON.stringify(args)
+    // 排除源码/讲解误提取（净：inner 像源码参数列表则跳过）
+    if (looksLikeSourceCode(inner)) continue
+    // 需要文件的工具（Read/Write/Edit）若未提取到具体文件路径，视为误提取
+    if (toolNeedsFile(matchedName) && !hasFilePathValue(args)) {
+      options.invalidToolNames.push(rawName)
+      continue
+    }
+    options.toolCalls.push(
+      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, matchedName, argsJson, blockMatch[0]),
+    )
   }
 }

@@ -1,4 +1,4 @@
-import type { ChatCompletionRequest, ChatMessage } from '../types.ts'
+import type { ChatCompletionRequest, ChatMessage, ChatCompletionTool } from '../types.ts'
 import type { Provider } from '../../store/types.ts'
 import {
   DEFAULT_TOOL_CALLING_CONFIG,
@@ -99,6 +99,23 @@ export class ToolCallingEngine {
     const { request, provider, actualModel, requestId } = input
     const adapter = getToolClientAdapter(this.config.clientAdapterId)
     const clientRequest = adapter.normalizeRequest(request)
+    // 工具白名单收窄：当配置了 allowedToolNames（非空）时，把客户端请求携带的
+    // request.tools 收窄到白名单内再派发，避免把整批工具（几百个）全部注入 prompt。
+    // 空数组/未配置 → 维持透传 request.tools 的原行为。
+    const allowList = this.config.advanced?.allowedToolNames
+    if (Array.isArray(allowList) && allowList.length > 0 && clientRequest.tools.length > 0) {
+      const keep = new Set(allowList)
+      const filtered = clientRequest.tools.filter(
+        (tool) => keep.has(tool.name) || keep.has((tool.parameters as { name?: string } | null)?.name as string),
+      )
+      if (filtered.length > 0 && filtered.length < clientRequest.tools.length) {
+        clientRequest.tools = filtered
+        console.log(
+          `[ToolCallingEngine] tools narrowed ${clientRequest.tools.length} -> ${filtered.length} ` +
+            `by allowedToolNames=${allowList.join(',')}`,
+        )
+      }
+    }
     const plan = buildToolCallingRuntimePlan({
       requestId,
       providerId: provider.id,

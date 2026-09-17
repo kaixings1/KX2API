@@ -19,6 +19,12 @@ export interface ToolCallingConfig {
   advanced: {
     customPromptTemplate?: string
     promptPreviewEnabled: boolean
+    /**
+     * 工具名白名单（默认空数组 = 不收窄，维持透传 request.tools 的原行为）。
+     * 当调用方（如 UI 只勾选某个工具/生效组）给出非空列表时，注入 prompt 前会将
+     * request.tools 收窄到白名单内，避免把客户端自带的整批工具（可能几百个）全部注入。
+     */
+    allowedToolNames?: string[]
   }
 }
 
@@ -133,6 +139,9 @@ export function normalizeToolCallingConfig(value: unknown): ToolCallingConfig {
       customPromptTemplate: typeof advanced.customPromptTemplate === 'string'
         ? advanced.customPromptTemplate
         : undefined,
+      allowedToolNames: Array.isArray(advanced.allowedToolNames)
+        ? advanced.allowedToolNames.filter((n): n is string => typeof n === 'string')
+        : [],
     },
   }
 }
