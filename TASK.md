@@ -297,14 +297,22 @@
   - `tests/engine/tool-result-store.test.ts`（23 例）— 阈值/预览行边界/幂等/路径穿越/失败降级/清理
   - `tests/engine/plaintext-whitelist.test.ts`（18 例）— **复现历史 bug（无白名单时正文被剥离）并证明修复有效**
 
-### 五、下一轮待办（按价值排序）
+### 五、下一轮待办（2026-09-18 复核：全部已完成）
 
-- [ ] **记忆写入闭环**：回合结束后台提取 + 互斥闸 + 不保存内容黑名单（源自 `services/extractMemories`）
-- [ ] **工具活跃集改为对话历史推导 + 落盘**，替换 `toolMetaTools` 的模块级 Map（结构性差距，收益最大）
-- [ ] `tool_search` 打分加词边界与 `searchHint`（当前 254 工具全量进检索池且中文整串 `includes`，检索基本失效）
-- [ ] `toolResultStorage` 的**单消息聚合预算**（200K 字符/消息，防 N 个并行工具各自 40K 一起挤爆）
-- [ ] 系统提示词静态/动态分段 + 缓存边界标记（`constants/systemPromptSections.ts` 仅 70 行，纯逻辑可照搬）
-- [ ] 把 `npm run typecheck` 纳入 CI（当前 708 处类型错误，需先定收敛计划）
+- [x] **记忆写入闭环**：回合结束后台提取 + 预筛 + 不保存内容黑名单
+  - `engine/memory/autoMemory.ts`（预筛 → 模型提炼 → `writeMemory`）
+  - 接入 `chat-handlers.runPostTurnTasks`；新增 `/remember` 命令；设置界面有开关
+- [x] **工具活跃集改为对话历史推导 + 落盘**
+  - `main/tools/toolSessionStore.ts`（落盘 + `deriveActiveToolsFromMessages` 历史反扫）
+  - `toolMetaTools.reconcileFromHistory` 已接入 `runPostTurnTasks`
+  - ⚠️ 注意 id 与 name 是两套标识符（见 `mergeActiveTools` 注释），已分别过滤并加测试
+- [x] `tool_search` 打分加词边界与 `searchHint`
+- [x] `toolResultStorage` 的**单消息聚合预算**（`enforceToolResultBudget`，接入 `requestBuilder`）
+- [x] 系统提示词静态/动态分段 + 缓存边界标记（`engine/promptSections.ts`，扩展了泛型缓存 `memoizeByKey`）
+- [x] 把 typecheck 纳入 CI
+  - ⚠️ **修正**：原 CI 的 typecheck job 指向 `project/tsconfig.json`（另一个项目），
+    主应用从来没有任何类型检查。已拆为 `typecheck-project` + `typecheck-app`
+    （后者盯 `tsconfig.check.json`，当前约 710 个存量错误，暂设 `continue-on-error` 并输出错误数到 Job Summary）
 
 ## 第三轮：按待办推进（2026-09-17 深夜）
 
@@ -690,14 +698,18 @@ blockingLimit          = effectiveContextWindow - 3_000   ← 高于自动压缩
 - `npm run build` ✅
 - `npm run test:all` ✅ 附加 546 / 单元 963（本轮 **+240**）/ **0 失败**
 
-### 八、仍待吸收（未做）
+### 八、仍待吸收（2026-09-18 复核后的实际状态）
 
-按价值排序：
-- [ ] **attachments 机制**（60+ 类型 + 扫描式去重 + 双层预算，上游 `utils/attachments.ts`）
-- [ ] **子代理上下文隔离**（`createSubagentContext` + CacheSafeParams 共享槽位）
-- [ ] **会话转录**（`sessionTranscript` 落盘压缩前原文，供事后追溯）
-- [ ] **对话恢复 / 会话恢复**（`conversationRecovery` + `sessionRestore` 的容错四层）
-- [ ] **会话级记忆 SessionMemory**（与 memdir 不同层次：单次对话内、只喂给 compact）
+| 项 | 状态 | 证据 |
+|---|---|---|
+| 会话转录 `sessionTranscript` | ✅ **已实现且已接入** | `engine/transcript.ts`；`messageLoop.ts:23` import、`:276` 压缩前调用并传 `sessionId` |
+| attachments 机制 | ❌ 未实现 | 全仓库无 attachment 相关文件；另一会话曾研究（`scripts/_extract_att.py`）但未落地 |
+| 子代理上下文隔离 | ❌ 未实现 | 无 `createSubagentContext` / `CacheSafeParams` |
+| 对话/会话恢复 | ❌ 未实现 | 无 `conversationRecovery` / `sessionRestore` |
+| 会话级记忆 SessionMemory | ❌ 未实现 | 无 sessionMemory 相关文件（与 memdir 不同层次：单次对话内、只喂给 compact） |
+
+**按价值排序的建议顺序**：会话恢复（用户可感知，崩溃/重启后对话不丢）→
+attachments（多模态能力）→ SessionMemory → 子代理上下文隔离。
 
 ## 第六轮后：memory_* 工具与记忆系统目录闭环（2026-09-18）
 
@@ -734,9 +746,40 @@ blockingLimit          = effectiveContextWindow - 3_000   ← 高于自动压缩
 - `npm run test:all` ✅ 四套全绿：management 74 / extras 546 / unit **1005**（新增 3）/ 0 失败
 - `npx vitest run src/__tests__/engine/memoryToolRecall.test.ts` → 3/3 通过
 
-## 第一轮遗留待办
+## 第六轮后：会话转录移植（2026-09-18，sessionTranscript）
 
-- [ ] 逐个排查剩余值位置的 `Cannot find name`（清单见 `scripts/_tscheck.py` 输出）
+### 解决的问题
+
+上下文压缩会把压缩前的消息摘要化，压缩后要复盘原始对话（排查一次工具调用为何异常、
+审计某轮交换）时原文已不可得。原项目**无任何 transcript 能力**（`D:\KX2API` 全仓库搜索
+`transcript` 零命中）；`D:\src\services\sessionTranscript\` 恰好是低依赖叶模块。
+
+### 改动
+
+| 文件 | 改动 |
+|---|---|
+| `src/engine/transcript.ts`（新） | 移植 `sessionTranscript.ts`：`writeSessionTranscriptSegment` / `flushOnDateChange` / `resolveTranscriptDir`；落盘到 `<home>/.doge/transcripts/<sessionId>-<YYYY-MM-DD>.jsonl`，一行一条消息 |
+| `src/engine/messageLoop.ts` | import `writeSessionTranscriptSegment`；`runIteration` 压缩分支里，`autoCompactor.compact` **之前**调转录落盘，并传 `deps.sessionId`；`MessageLoopDeps` 新增可选 `sessionId` |
+| `src/__tests__/engine/transcript.test.ts`（新） | 3 项：消息逐行 JSON 可解析 / 空消息不落盘 / flushOnDateChange 落指定日期带 `flushed` 标记 |
+
+### 设计取舍 / 差异
+
+- **依赖替换**：上游 `getSessionId()`（bootstrap 状态）→ 显式可选 `sessionId` 参数；`logForDebugging` → `console.warn`（避免与 engine index 循环依赖）。
+- **目录同构**：沿用 `<home>/.doge/transcripts/`，与记忆系统 `<home>/.doge/` 同级。
+- **fire-and-forget + 同步 appendFileSync**：错误吞掉不阻断压缩；一次压缩一条记录，短小同步写，不做异步队列。
+- 编译与运行时不受影响：本模块无第三方依赖（仅 node:fs/path/os）。
+
+### 验证
+
+- `npm run build` ✅
+- `npm run test:all` ✅ 四套全绿：management 74 / extras 546 / unit **1039**（新增 transcript 3）/ agent 47 / **0 失败**
+- `npx vitest run src/__tests__/engine/transcript.test.ts` → 3/3 通过
+
+## 第一轮遗留待办（2026-09-18 复核）
+
+- [x] 把 `npm run typecheck` 接入 CI — **已修正**：原 CI 指向 `project/tsconfig.json`（另一个项目），
+  主应用从未被检查。已拆为 `typecheck-project` + `typecheck-app`（后者盯 `tsconfig.check.json`，
+  暂 `continue-on-error` 并输出错误数到 Job Summary，待收敛后转阻断）
+- [ ] 逐个排查剩余值位置的 `Cannot find name`（`TS2304`，运行时崩溃候选）—— **进行中**
 - [ ] `preload` 的字面量 channel 统一收敛为 `IpcChannels` 常量
-- [ ] 评估移除通用 `on/send/invoke` 逃逸口
-- [ ] 把 `npm run typecheck` 接入 CI（当前 708 错误，需先制定收敛计划或设为 `continue-on-error`）
+- [ ] 评估移除通用 `on/send/invoke` 逃逸口（安全边界：渲染层可调任意 channel）
