@@ -529,6 +529,14 @@ export interface AppConfig {
   enabledPlugins: string[]
   /** 启用的工具分组列表，空数组表示使用所有工具 */
   enabledToolGroups: string[]
+  /**
+   * MCP 服务配置。
+   *
+   * `mcpService` 一直在读写 `config.mcp.servers`，但本接口**从未声明该字段**
+   * —— 旧实现靠 `as Record<string, unknown>` 强转绕过类型检查（假通过），
+   * 于是 MCP 配置**实际存不下来**，且 11 处报 TS2352/TS2339。
+   */
+  mcp?: McpConfig
 }
 
 /**
@@ -1276,3 +1284,26 @@ export const DEFAULT_CONFIG: AppConfig = {
  * Re-exported from providers/builtin/index.ts to avoid duplication
  */
 export { builtinProviders as BUILTIN_PROVIDERS } from '../providers/builtin/index.ts'
+
+/**
+ * MCP 服务配置。
+ *
+ * 项目里另有多处同名定义（main/ipc/handlers.ts、renderer/src/types/electron.d.ts、
+ * shared/types.ts），字段略有差异。此处是**持久化层**用的形状，取并集以避免丢配置。
+ */
+export interface McpServerConfig {
+  id: string
+  name: string
+  transport: 'stdio' | 'sse' | 'http'
+  enabled: boolean
+  url?: string
+  command?: string
+  args?: string[]
+  env?: Record<string, string>
+  headers?: Record<string, string>
+  tools?: Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> | null
+}
+
+export interface McpConfig {
+  servers: McpServerConfig[]
+}

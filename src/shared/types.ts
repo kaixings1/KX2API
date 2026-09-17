@@ -126,6 +126,14 @@ export interface AppConfig {
   proxyRuntime?: ProxyRuntimeConfig
   /** 日志与审计保留策略 */
   logRuntime?: LogRuntimeConfig
+  /**
+   * MCP 服务配置。
+   *
+   * `mcpService` 一直在读写 `config.mcp.servers`，但 `AppConfig` **从未声明该字段**
+   * —— 之前的实现靠 `as Record<string, unknown>` 强转绕过类型检查，
+   * 结果类型上是"假通过"、且拿不到任何字段保护。
+   */
+  mcp?: McpConfig
   apiKeys: ApiKey[]
   enableApiKey: boolean
   /** 当前生效的工具组 id（空数组 = 全局组，发送所有已启用的工具） */
@@ -298,6 +306,35 @@ export const DEFAULT_LOG_RUNTIME_CONFIG: Required<LogRuntimeConfig> = {
   auditBufferSize: 100,
   auditFlushIntervalMs: 10000,
   promptSectionCacheLimit: 200,
+}
+
+/**
+ * MCP 服务配置。
+ *
+ * 注意：项目中另有多处同名的 `McpServerConfig` 定义（`main/mcp/mcpService.ts`、
+ * `main/ipc/handlers.ts`、`renderer/src/types/electron.d.ts`）。
+ * 这里的是**持久化层**用的形状，字段取并集以避免丢失已有配置。
+ * 长期应统一为单一来源。
+ */
+export interface McpServerConfig {
+  id: string
+  name: string
+  transport: 'stdio' | 'sse' | 'http'
+  enabled: boolean
+  /** URL 传输时的服务地址 */
+  url?: string
+  /** stdio 传输：启动命令与参数 */
+  command?: string
+  args?: string[]
+  env?: Record<string, string>
+  /** http/sse 传输：请求头 */
+  headers?: Record<string, string>
+  /** 发现到的工具（由 mcpService 探查后写回） */
+  tools?: Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> | null
+}
+
+export interface McpConfig {
+  servers: McpServerConfig[]
 }
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'

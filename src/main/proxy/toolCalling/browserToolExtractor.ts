@@ -18,6 +18,17 @@ import type { ExtractedToolCall, ExtractionResult } from './toolCallExtractor.ts
 import { stableStringify, readBalancedJson } from './protocols/shared.ts'
 
 /** Basic JSON parse with JS object literal repair (quote unquoted keys) */
+/**
+ * 宽松的 JSON 记录类型。
+ *
+ * 这里解析的是**抓包得到的第三方响应**，形状由上游决定、无法穷举，
+ * 所以用「任意键 + unknown 值」而非 `object`：
+ * `object` 类型上**不能访问任何属性**（这正是下面那批 TS2339 的根因），
+ * 而 `Record<string, unknown>` 至少允许按键索引，读到的值是 unknown，
+ * 由调用方按需收窄。
+ */
+type JsonRecord = Record<string, unknown>
+
 function tryParseJSON(str: string): unknown | null {
   const trimmed = str.trim()
   try { return JSON.parse(trimmed) } catch {
@@ -71,6 +82,14 @@ export interface ApiCallRecord {
   requestBody?: unknown
   responseBody?: unknown
   timestamp?: number
+  /**
+   * 流式响应已接收的文本块序列。
+   *
+   * 抓包场景下 SSE 响应是分块到达的，很多工具调用只在**中间某一块**里出现，
+   * 只看拼好的 responseBody 会漏掉 —— 所以要保留原始分块。
+   * 该字段此前被误写在另一个接口里，导致本接口的 3 处访问报 TS2339。
+   */
+  streamChunks?: string[]
 }
 
 /**
@@ -329,24 +348,30 @@ export function extractFromStreamChunks(chunks: string[]): ExtractedToolCall[] {
 
       if (!trimmed.startsWith('{')) continue
 
-      const parsed = tryParseJSON(trimmed)
-      if (!parsed || typeof parsed !== 'object') continue
+      const parsedRaw = tryParseJSON(trimmed)
+      if (!parsedRaw || typeof parsedRaw !== 'object') continue
+      // 抓包得到的形状由上游决定，这里按需收窄
+      const parsed = parsedRaw as JsonRecord
 
       // OpenAI 流式 tool_calls delta
-      if (parsed.choices?.[0]?.delta?.tool_calls) {
-        for (const tc of parsed.choices[0].delta.tool_calls) {
-          if (tc.function?.name || tc.id) {
-            const name = tc.function?.name ?? tc.name ?? 'unknown'
-            const args = tc.function?.arguments ?? tc.arguments ?? tc.input ?? '{}'
+      const choices = parsed.choices as JsonRecord[] | void
+      const delta = choices?.[0]?.delta as JsonRecord | void
+      const toolCalls = delta?.tool_calls as JsonRecord[] | void
+      if (Array.isArray(toolCalls)) {
+        for (const tc of toolCalls) {
+          const fn = tc.function as JsonRecord | void
+          if (fn?.name || tc.id) {
+            const name = (fn?.name ?? tc.name ?? 'unknown') as string
+            const args = fn?.arguments ?? tc.arguments ?? tc.input ?? '{}'
             add(makeCall(name, typeof args === 'string' ? args : args, 'high'))
           }
         }
       }
 
       // Anthropic 流式 content_block_start
-      if (parsed.type === 'content_block_start' && parsed.content_block?.type === 'tool_use') {
-        const block = parsed.content_block
-        add(makeCall(block.name, block.input ?? {}, 'high'))
+      const contentBlock = parsed.content_block as JsonRecord | void
+      if (parsed.type === 'content_block_start' && contentBlock?.type === 'tool_use') {
+        add(makeCall(contentBlock.name as string, contentBlock.input ?? {}, 'high'))
       }
     }
 
@@ -471,8 +496,10 @@ export function extractFromDom(snapshot: DomSnapshot): ExtractedToolCall[] {
         for (const item of arr) {
           if (typeof item === 'object' && item !== null) {
             const obj = item as Record<string, unknown>
-            const name = obj.name ?? obj.function?.name ?? obj.tool_name
-            const args = obj.arguments ?? obj.args ?? obj.input ?? obj.function?.arguments ?? obj.parameters ?? {}
+            // obj.function 是 unknown，需先收窄才能访问其字段
+            const fn = obj.function as Record<string, unknown> | void
+            const name = obj.name ?? fn?.name ?? obj.tool_name
+            const args = obj.arguments ?? obj.args ?? obj.input ?? fn?.arguments ?? obj.parameters ?? {}
             if (name && typeof name === 'string') {
               add(makeCall(name, args, 'high', key))
             }

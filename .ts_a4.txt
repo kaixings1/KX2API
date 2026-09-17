@@ -142,21 +142,29 @@ src/main/ipc/handlers.ts(2414,11): error TS2339: Property 'isQuitting' does not 
 src/main/ipc/handlers.ts(2648,9): error TS2339: Property 'isQuitting' does not exist on type 'App'.
 src/main/ipc/handlers.ts(2656,24): error TS2554: Expected 0 arguments, but got 1.
 src/main/ipc/handlers.ts(2661,11): error TS2339: Property 'registerEngineHandlers' does not exist on type 'typeof import("D:/KX2API/src/main/engine-bridge")'.
-src/main/mcp/mcpService.ts(48,22): error TS2352: Conversion of type 'AppConfig' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Index signature for type 'string' is missing in type 'AppConfig'.
-src/main/mcp/mcpService.ts(49,27): error TS2339: Property 'servers' does not exist on type '{}'.
-src/main/mcp/mcpService.ts(59,20): error TS2352: Conversion of type 'AppConfig' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Index signature for type 'string' is missing in type 'AppConfig'.
-src/main/mcp/mcpService.ts(60,39): error TS2339: Property 'servers' does not exist on type '{}'.
-src/main/mcp/mcpService.ts(61,40): error TS2698: Spread types may only be created from object types.
-src/main/mcp/mcpService.ts(69,20): error TS2352: Conversion of type 'AppConfig' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Index signature for type 'string' is missing in type 'AppConfig'.
-src/main/mcp/mcpService.ts(70,34): error TS2339: Property 'servers' does not exist on type '{}'.
-src/main/mcp/mcpService.ts(71,40): error TS2698: Spread types may only be created from object types.
-src/main/mcp/mcpService.ts(78,20): error TS2352: Conversion of type 'AppConfig' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Index signature for type 'string' is missing in type 'AppConfig'.
-src/main/mcp/mcpService.ts(79,34): error TS2339: Property 'servers' does not exist on type '{}'.
-src/main/mcp/mcpService.ts(82,40): error TS2698: Spread types may only be created from object types.
+src/main/lsp/LSPClient.ts(117,21): error TS18048: 'process' is possibly 'undefined'.
+src/main/lsp/LSPClient.ts(117,29): error TS2339: Property 'env' does not exist on type 'ChildProcess'.
+src/main/lsp/LSPClient.ts(286,36): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(params: TParams) => TResult | Promise<TResult>' is not assignable to parameter of type 'GenericRequestHandler<TResult, unknown>'.
+      Type 'TResult | Promise<TResult>' is not assignable to type 'HandlerResult<TResult, unknown, TResult extends null ? void | TResult | undefined : TResult>'.
+        Type 'TResult' is not assignable to type 'HandlerResult<TResult, unknown, TResult extends null ? void | TResult | undefined : TResult>'.
+          Type 'TResult' is not assignable to type 'ResponseError<unknown>'.
+src/main/lsp/passiveFeedback.ts(55,18): error TS2322: Type '{ message: string | MarkupContent; severity: "Error" | "Warning" | "Info" | "Hint"; range: { start: { line: number; character: number; }; end: { line: number; character: number; }; }; source: string | undefined; code: string | undefined; }[]' is not assignable to type 'LSPDiagnostic[]'.
+  Type '{ message: string | MarkupContent; severity: "Error" | "Warning" | "Info" | "Hint"; range: { start: { line: number; character: number; }; end: { line: number; character: number; }; }; source: string | undefined; code: string | undefined; }' is not assignable to type 'LSPDiagnostic'.
+    Types of property 'message' are incompatible.
+      Type 'string | MarkupContent' is not assignable to type 'string'.
+        Type 'MarkupContent' is not assignable to type 'string'.
+src/main/mcp/mcpService.ts(49,21): error TS2339: Property 'mcp' does not exist on type 'AppConfig'.
+src/main/mcp/mcpService.ts(60,33): error TS2339: Property 'mcp' does not exist on type 'AppConfig'.
+src/main/mcp/mcpService.ts(61,33): error TS2353: Object literal may only specify known properties, and 'mcp' does not exist in type 'Partial<AppConfig>'.
+src/main/mcp/mcpService.ts(61,50): error TS2339: Property 'mcp' does not exist on type 'AppConfig'.
+src/main/mcp/mcpService.ts(70,29): error TS2339: Property 'mcp' does not exist on type 'AppConfig'.
+src/main/mcp/mcpService.ts(71,33): error TS2353: Object literal may only specify known properties, and 'mcp' does not exist in type 'Partial<AppConfig>'.
+src/main/mcp/mcpService.ts(71,50): error TS2339: Property 'mcp' does not exist on type 'AppConfig'.
+src/main/mcp/mcpService.ts(79,29): error TS2339: Property 'mcp' does not exist on type 'AppConfig'.
+src/main/mcp/mcpService.ts(82,33): error TS2353: Object literal may only specify known properties, and 'mcp' does not exist in type 'Partial<AppConfig>'.
+src/main/mcp/mcpService.ts(82,50): error TS2339: Property 'mcp' does not exist on type 'AppConfig'.
 src/main/oauth/adapters/base.ts(19,8): error TS2307: Cannot find module './types' or its corresponding type declarations.
 src/main/oauth/adapters/minimax.ts(283,29): error TS2339: Property 'id' does not exist on type '{}'.
 src/main/oauth/cookieSessionManager.ts(92,14): error TS2769: No overload matches this call.
@@ -345,16 +353,6 @@ src/main/proxy/routes/management/sessions.ts(11,3): error TS2305: Module '"../..
 src/main/proxy/stream.ts(176,14): error TS2339: Property 'push' does not exist on type 'StreamHandler'.
 src/main/proxy/stream.ts(357,15): error TS2532: Object is possibly 'undefined'.
 src/main/proxy/stream.ts(363,15): error TS2532: Object is possibly 'undefined'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(336,18): error TS2339: Property 'choices' does not exist on type 'object'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(337,33): error TS2339: Property 'choices' does not exist on type 'object'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(347,18): error TS2339: Property 'type' does not exist on type 'object'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(347,59): error TS2339: Property 'content_block' does not exist on type 'object'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(348,30): error TS2339: Property 'content_block' does not exist on type 'object'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(474,52): error TS2339: Property 'name' does not exist on type '{}'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(475,82): error TS2339: Property 'arguments' does not exist on type '{}'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(530,18): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(530,41): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(531,60): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
 src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(111,56): error TS2554: Expected 1 arguments, but got 2.
 src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(113,19): error TS2339: Property 'index' does not exist on type 'ExtractedToolCall'.
 src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(110,61): error TS2554: Expected 1 arguments, but got 2.

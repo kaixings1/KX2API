@@ -3365,4 +3365,35 @@ registerMetaTool('tool_unload', '从活跃集卸载工具，释放上下文', 't
 registerMetaTool('tool_active', '列出当前活跃（已加载）的工具', 'tool_active')
 registerMetaTool('tool_describe', '查看某个工具的详细文档、参数与使用时机', 'tool_describe <工具id>')
 
+/**
+ * LSP 代码智能命令（接入 D:\src 移植的 services/lsp 协议层）。
+ * 用法：
+ *   /lsp goToDefinition <file> <line> [character]
+ *   /lsp findReferences <file> <line> [character]
+ *   /lsp hover <file> <line> [character]
+ *   /lsp documentSymbol <file>
+ *   /lsp workspaceSymbol
+ *   /lsp listDiagnostics [file]
+ *   /lsp goToImplementation <file> <line> [character]
+ *   /lsp incomingCalls <file> <line> [character]
+ *   /lsp outgoingCalls <file> <line> [character]
+ * 动态 import main/lsp/tool，避免加载时引擎横向依赖主进程（桥接运行时可解析即可）。
+ */
+commandRegistry.register({
+  name: 'lsp',
+  description: 'LSP 代码智能（定义/引用/悬停/符号/调用层次/诊断），需先初始化 LSP 管理器',
+  group: 'default',
+  execute: async (args) => {
+    const { parseLspArgs, executeLsp } = await import('../../main/lsp/tool')
+    const parsed = parseLspArgs(args)
+    if (parsed.error) {
+      return { success: false, error: parsed.error }
+    }
+    const result = await executeLsp(parsed.op, parsed.filePath, parsed.line, parsed.character)
+    return result.success
+      ? { success: true, output: result.output }
+      : { success: false, error: result.error, output: result.error }
+  },
+})
+
 // Total AI agent commands: 210

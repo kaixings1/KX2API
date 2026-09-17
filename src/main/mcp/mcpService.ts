@@ -11,17 +11,15 @@ import type { ChatCompletionRequest } from '../proxy/types.ts'
 import type { NormalizedClientToolRequest, ToolClientAdapter } from '../proxy/toolCalling/clientAdapters/types.ts'
 import { getToolClientAdapter, listToolClientAdapters } from '../proxy/toolCalling/clientAdapters/index.ts'
 import { storeManager } from '../store/store.ts'
+import type { McpServerConfig } from '../store/types.ts'
 
-export interface McpServerConfig {
-  id: string
-  name: string
-  type: 'stdio' | 'sse' | 'websocket'
-  command?: string
-  args?: string[]
-  url?: string
-  headers?: Record<string, string>
-  enabled: boolean
-}
+// 复用持久化层的 McpServerConfig，不再本地重复定义。
+//
+// 本地版本原本用 `type: 'stdio' | 'sse' | 'websocket'`，
+// 而 store / renderer / 管理页面统一用 `transport: 'stdio' | 'sse' | 'http'` ——
+// 两套命名让"存进去的"与"读出来的"被视为不同类型（TS2322）。
+// 三方中两方用 transport，由此统一到 transport。
+export type { McpServerConfig } from '../store/types.ts'
 
 export interface McpServerWithTools extends McpServerConfig {
   tools: Array<{
@@ -45,8 +43,8 @@ export class McpService {
    */
   getServers(): McpServerConfig[] {
     try {
-      const config = storeManager.getConfig() as Record<string, unknown>
-      return (config.mcp?.servers || []) as McpServerConfig[]
+      const config = storeManager.getConfig()
+      return config.mcp?.servers ?? []
     } catch {
       return []
     }
@@ -56,9 +54,9 @@ export class McpService {
    * 添加 MCP server
    */
   addServer(server: McpServerConfig): McpServerConfig {
-    const config = storeManager.getConfig() as Record<string, unknown>
-    const servers = [...((config.mcp?.servers || []) as McpServerConfig[]), server]
-    storeManager.updateConfig({ mcp: { ...config.mcp, servers } } as Record<string, unknown>)
+    const config = storeManager.getConfig()
+    const servers = [...(config.mcp?.servers ?? []), server]
+    storeManager.updateConfig({ mcp: { ...config.mcp, servers } })
     return server
   }
 
@@ -66,20 +64,20 @@ export class McpService {
    * 移除 MCP server
    */
   removeServer(serverId: string): void {
-    const config = storeManager.getConfig() as Record<string, unknown>
+    const config = storeManager.getConfig()
     const servers = (config.mcp?.servers || []).filter((s: McpServerConfig) => s.id !== serverId)
-    storeManager.updateConfig({ mcp: { ...config.mcp, servers } } as Record<string, unknown>)
+    storeManager.updateConfig({ mcp: { ...config.mcp, servers } })
   }
 
   /**
    * 更新 MCP server
    */
   updateServer(serverId: string, updates: Partial<McpServerConfig>): McpServerConfig | null {
-    const config = storeManager.getConfig() as Record<string, unknown>
+    const config = storeManager.getConfig()
     const servers = (config.mcp?.servers || []).map((s: McpServerConfig) =>
       s.id === serverId ? { ...s, ...updates } : s
     )
-    storeManager.updateConfig({ mcp: { ...config.mcp, servers } } as Record<string, unknown>)
+    storeManager.updateConfig({ mcp: { ...config.mcp, servers } })
     return servers.find((s: McpServerConfig) => s.id === serverId) || null
   }
 
@@ -94,10 +92,10 @@ export class McpService {
       }
 
       // 基本配置校验
-      if (server.type === 'stdio' && !server.command) {
+      if (server.transport === 'stdio' && !server.command) {
         return { connected: false, tools: [], error: 'stdio 服务器缺少 command' }
       }
-      if ((server.type === 'sse' || server.type === 'websocket') && !server.url) {
+      if ((server.transport === 'sse' || server.transport === 'http') && !server.url) {
         return { connected: false, tools: [], error: 'Missing URL for remote server' }
       }
 
@@ -139,7 +137,7 @@ export class McpService {
         }
 
         // 复用 clientAdapter 进行工具标准化
-        const adapterId = server.type === 'stdio' ? 'standard-openai-tools' : 'standard-openai-tools'
+        const adapterId = 'standard-openai-tools'
         const adapter = getToolClientAdapter(adapterId)
         const normalized: NormalizedClientToolRequest = adapter.normalizeRequest(mockRequest)
 
