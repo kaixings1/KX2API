@@ -170,7 +170,7 @@ export class ToolCallingEngine {
     if (injectionResult.injected) {
       return {
         messages: injectionResult.messages,
-        tools: plan.mode === 'disabled' ? request.tools : void 0,
+        tools: plan.mode === 'disabled' ? request.tools : null,
         plan,
       }
     }
@@ -184,7 +184,7 @@ export class ToolCallingEngine {
     )
 
     let messagesToUse: ChatMessage[]
-    let toolsToUse: ChatCompletionTool[] | undefined
+    let toolsToUse: ChatCompletionTool[] | null
 
     if (clientAdapted.injected && clientAdapted.cleaned) {
       messagesToUse = clientAdapted.messages
@@ -197,7 +197,9 @@ export class ToolCallingEngine {
     }
 
     messagesToUse = injectPrompt(messagesToUse, renderPrompt(plan.protocol, plan.tools, this.config, cachedPaths))
-    toolsToUse = plan.mode === 'disabled' ? request.tools : void 0
+    // disabled 模式：沿用请求里带的 tools（缺失时统一为 null，
+    // 保持与 managed 模式同一套「显式无工具」语义）
+    toolsToUse = plan.mode === 'disabled' ? (request.tools ?? null) : null
 
     // Validate tool call history structure before returning
     if (plan.mode !== 'disabled') {

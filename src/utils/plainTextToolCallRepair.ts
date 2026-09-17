@@ -528,6 +528,38 @@ export function stripPlainTextToolCalls(
     return isAllowedToolName(name, allowedNames) ? '' : full
   })
 
+  // 剥离「外层标签即工具名」形态：`<list_dir><path>…</path></list_dir>`。
+  //
+  // ⚠️ 此形态与 collectOuterTagAsTool 识别集一致，但剥离必须比识别**更严**：
+  // 识别阶段放宽没问题（顶多多识别一个成功执行），剥离若宽就会把「举例正文」里
+  // 的 `<list_dir>…`（如“我推荐用 <list_dir> 思路”）整段误删，正文静默丢失。
+  // 因此这里额外要求：该调用块**独立成行/前后只有空白**才算工具调用，且块内
+  // 必须是纯参数子标签（无中英文正文骨架）。这样反代/直连模式下“整段纯工具
+  // 输出”会被清干净，而夹在句子里的 `<list_dir>` 举例文字原样保留。
+  const OUTER_STRIP_RE =
+    /^[ \t]*<([a-zA-Z_][\w:\-]*)\b[^>]*>([\s\S]*?)<\/\1\s*>[ \t]*$/gm
+  cleaned = cleaned.replace(OUTER_STRIP_RE, (full: string, _tag: string, inner: string) => {
+    if (!allowedNames || allowedNames.size === 0) return full
+    // 外层标签必须是合法命令名（含别名兜底）
+    const tag = _tag.trim()
+    if (!isAllowedToolName(tag, allowedNames)) return full
+    // 内层必须全是参数子标签：先剥出全部 key，再检查没有“可懂正文”残留
+    const CHILD_RE = /<\s*([a-zA-Z_][\w-]*)\b[^>]*>([\s\S]*?)<\s*\/\s*\1\s*>/gi
+    let c: RegExpExecArray | null
+    CHILD_RE.lastIndex = 0
+    let keys = 0
+    while ((c = CHILD_RE.exec(inner)) !== null) {
+      const k = c[1].trim()
+      if (/^(name|toolName|tool_name|tool|fn|function)$/i.test(k)) return full
+      keys++
+    }
+    if (keys === 0) return full
+    // 子标签之外的残留必须只是空白（不能有“我推荐用”这类正文骨架）
+    const leftover = inner.replace(CHILD_RE, '').trim()
+    if (leftover) return full
+    return ''
+  })
+
   // 剥离扁平 XML 工具调用（无外层包裹）：<toolName>..</toolName> 与紧随的 <arguments>..</arguments>
   // 标签集必须与 collectFlatXmlTools 保持一致（不含裸 name —— 裸 <name> 极易与正文/文档误判），
   // 否则会出现「识别集合」与「剥离集合」不一致：要么工具卡片残留、要么正文被误删。

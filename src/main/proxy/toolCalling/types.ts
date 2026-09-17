@@ -87,7 +87,18 @@ export interface ToolCallingPlan {
 
 export interface ToolCallingTransformResult {
   messages: ChatMessage[]
-  tools?: ChatCompletionTool[]
+  /**
+   * 随请求发送的工具定义。
+   *
+   * - 数组：正常发送（standard 模式）
+   * - `null`：**显式不发送**（managed 模式 —— 工具清单已注入提示词，
+   *   若再走 tools 字段，模型会同时收到两套协议）
+   * - 未设置：沿用既有行为
+   *
+   * `null` 与「未设置」语义不同，所以这里必须允许 null。
+   * 契约由 tests/tool-calling/tool-engine.test.ts 锁定。
+   */
+  tools?: ChatCompletionTool[] | null
   plan: ToolCallingPlan
 }
 
