@@ -4,6 +4,16 @@ export const DEFAULT_VARIANT: PromptVariant = {
   id: 'default',
   name: 'Default',
   description: 'Default prompt variant for generic models',
+  /**
+   * 唯一通配兜底变体。
+   *
+   * `selectPromptVariant` 会跳过 id 为 'default' 的项继续遍历，
+   * 因此这里既是「所有模型都能匹配」也是「最后才会用到」。
+   *
+   * 注意保持它是**唯一**带通配模式且非专用（priority 0）的变体 ——
+   * 若其它变体也用 `.*`，会因数组顺序抢在它前面，导致注入的协议
+   * 与实际解析器不一致（XML_VARIANT 曾有此问题，已改为不参与自动匹配）。
+   */
   modelPatterns: ['.*'],
   systemPrompt: 'You are a helpful AI assistant.',
   toolPromptTemplate: `## Available Tools

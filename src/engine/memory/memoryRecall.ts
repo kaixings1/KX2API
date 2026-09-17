@@ -20,18 +20,63 @@ import { homedir } from 'node:os'
 
 // ─────────────────────────────── 常量 ───────────────────────────────
 
-/** 单次注入最多带入的记忆文件数 */
-const MAX_MEMORIES_PER_TURN = 5
-/** 单个记忆文件最多读取的行数 */
-const MAX_LINES_PER_MEMORY = 200
-/** 单个记忆文件最多注入的字节数 */
-const MAX_BYTES_PER_MEMORY = 4096
-/** 扫描阶段每个文件只读前 N 行解析 frontmatter */
-const FRONTMATTER_SCAN_LINES = 30
-/** 参与打分的候选文件上限（避免超大记忆目录拖慢每轮请求） */
-const MAX_SCAN_FILES = 200
-/** 低于该分数视为不相关 */
-const MIN_RELEVANCE_SCORE = 1
+/**
+ * 记忆召回默认参数。
+ *
+ * 这些值决定「每轮把哪些记忆、多少内容注入给模型」，原先写死为常量。
+ * 直接改这些常量会影响所有调用方，配置化后由设置界面覆盖。
+ */
+export const DEFAULT_MAX_MEMORIES_PER_TURN = 5
+export const DEFAULT_MAX_LINES_PER_MEMORY = 200
+export const DEFAULT_MAX_BYTES_PER_MEMORY = 4096
+export const DEFAULT_FRONTMATTER_SCAN_LINES = 30
+export const DEFAULT_MAX_SCAN_FILES = 200
+export const DEFAULT_MIN_RELEVANCE_SCORE = 1
+
+/** 模块级生效值（可由 setMemoryRecallOptions 覆盖） */
+const recallLimits = {
+  maxMemoriesPerTurn: DEFAULT_MAX_MEMORIES_PER_TURN,
+  maxLinesPerMemory: DEFAULT_MAX_LINES_PER_MEMORY,
+  maxBytesPerMemory: DEFAULT_MAX_BYTES_PER_MEMORY,
+  frontmatterScanLines: DEFAULT_FRONTMATTER_SCAN_LINES,
+  maxScanFiles: DEFAULT_MAX_SCAN_FILES,
+  minRelevanceScore: DEFAULT_MIN_RELEVANCE_SCORE,
+}
+
+export interface MemoryRecallLimits {
+  /** 单次注入最多带入的记忆文件数；默认 5 */
+  maxMemoriesPerTurn?: number
+  /** 单个记忆文件最多读取的行数；默认 200 */
+  maxLinesPerMemory?: number
+  /** 单个记忆文件最多注入的字节数；默认 4096 */
+  maxBytesPerMemory?: number
+  /** 扫描阶段每个文件只读前 N 行解析 frontmatter；默认 30 */
+  frontmatterScanLines?: number
+  /** 参与打分的候选文件上限；默认 200 */
+  maxScanFiles?: number
+  /** 低于该分数视为不相关；默认 1 */
+  minRelevanceScore?: number
+}
+
+/** 读取当前生效的召回限制 */
+export function getMemoryRecallLimits(): Required<MemoryRecallLimits> {
+  return { ...recallLimits }
+}
+
+/** 更新召回限制（设置界面改完即时生效）；非法值忽略 */
+export function setMemoryRecallLimits(opts: MemoryRecallLimits): void {
+  const put = (key: keyof Required<MemoryRecallLimits>, v: number | void) => {
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) {
+      recallLimits[key] = Math.floor(v)
+    }
+  }
+  put('maxMemoriesPerTurn', opts.maxMemoriesPerTurn)
+  put('maxLinesPerMemory', opts.maxLinesPerMemory)
+  put('maxBytesPerMemory', opts.maxBytesPerMemory)
+  put('frontmatterScanLines', opts.frontmatterScanLines)
+  put('maxScanFiles', opts.maxScanFiles)
+  put('minRelevanceScore', opts.minRelevanceScore)
+}
 
 // ─────────────────────────────── 类型 ───────────────────────────────
 
@@ -130,7 +175,7 @@ async function readHead(absPath: string, lines: number): Promise<string> {
 
 /**
  * 扫描记忆目录，返回所有可召回的记忆条目（不含正文）。
- * 单遍 readdir + 每文件一次读数，按 mtime 降序截断到 MAX_SCAN_FILES。
+ * 单遍 readdir + 每文件一次读数，按 mtime 降序截断到 maxScanFiles。
  */
 export async function scanMemories(memoryDir: string): Promise<MemoryEntry[]> {
   let names: string[]
@@ -150,7 +195,7 @@ export async function scanMemories(memoryDir: string): Promise<MemoryEntry[]> {
     try {
       const stat = await fs.stat(absPath)
       if (!stat.isFile()) continue
-      const head = await readHead(absPath, FRONTMATTER_SCAN_LINES)
+      const head = await readHead(absPath, recallLimits.frontmatterScanLines)
       const fm = parseFrontmatter(head)
       entries.push({
         file,
@@ -167,7 +212,7 @@ export async function scanMemories(memoryDir: string): Promise<MemoryEntry[]> {
   }
 
   entries.sort((a, b) => b.mtimeMs - a.mtimeMs)
-  return entries.slice(0, MAX_SCAN_FILES)
+  return entries.slice(0, recallLimits.maxScanFiles)
 }
 
 function normalizeMemoryType(raw: string | undefined): MemoryType | undefined {
@@ -283,14 +328,14 @@ export async function recallMemories(
   opts: RecallOptions = {},
 ): Promise<RecalledMemory[]> {
   const memoryDir = opts.memoryDir ?? resolveMemoryDir()
-  const limit = opts.limit ?? MAX_MEMORIES_PER_TURN
+  const limit = opts.limit ?? recallLimits.maxMemoriesPerTurn
 
   const entries = await scanMemories(memoryDir)
   if (entries.length === 0) return []
 
   const scored = entries
     .map(entry => ({ entry, score: scoreMemory(entry, query) }))
-    .filter(x => x.score >= MIN_RELEVANCE_SCORE)
+    .filter(x => x.score >= recallLimits.minRelevanceScore)
     .sort((a, b) => b.score - a.score || b.entry.mtimeMs - a.entry.mtimeMs)
     .slice(0, limit)
 
@@ -301,8 +346,8 @@ export async function recallMemories(
     if (budget <= 0) break
     try {
       const raw = await fs.readFile(entry.absPath, 'utf8')
-      const allowBytes = Math.min(MAX_BYTES_PER_MEMORY, budget)
-      const body = truncateBody(raw, MAX_LINES_PER_MEMORY, allowBytes)
+      const allowBytes = Math.min(recallLimits.maxBytesPerMemory, budget)
+      const body = truncateBody(raw, recallLimits.maxLinesPerMemory, allowBytes)
       budget -= Buffer.byteLength(body, 'utf8')
       out.push({
         ...entry,

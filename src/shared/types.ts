@@ -112,6 +112,12 @@ export interface AppConfig {
   agentLoop?: AgentLoopConfig
   /** 账号熔断（负载均衡）参数 */
   loadBalancer?: LoadBalancerConfig
+  /** 工具运行参数（落盘策略、执行超时） */
+  toolRuntime?: ToolRuntimeConfig
+  /** 记忆召回限制 */
+  memory?: MemoryConfig
+  /** 子代理并发等 */
+  subagent?: SubagentConfig
   apiKeys: ApiKey[]
   enableApiKey: boolean
   /** 当前生效的工具组 id（空数组 = 全局组，发送所有已启用的工具） */
@@ -142,6 +148,60 @@ export interface LoadBalancerConfig {
 export const DEFAULT_LOAD_BALANCER_CONFIG: Required<LoadBalancerConfig> = {
   failThreshold: 3,
   recoveryTimeMs: 60000,
+}
+
+/** 工具运行参数（落盘策略与执行超时） */
+export interface ToolRuntimeConfig {
+  /** 单个工具输出超过多少字符触发落盘；默认 50000 */
+  maxResultSizeChars?: number
+  /** 落盘后给模型看的预览字节数；默认 2000 */
+  previewSizeBytes?: number
+  /** 单条消息内多个工具结果的聚合上限；默认 200000 */
+  maxResultsPerMessageChars?: number
+  /** 单个工具执行超时（毫秒）；默认 600000 */
+  toolTimeoutMs?: number
+}
+
+export const DEFAULT_TOOL_RUNTIME_CONFIG: Required<ToolRuntimeConfig> = {
+  maxResultSizeChars: 50000,
+  previewSizeBytes: 2000,
+  maxResultsPerMessageChars: 200000,
+  toolTimeoutMs: 600000,
+}
+
+/** 记忆召回限制：决定每轮把哪些记忆、多少内容注入给模型 */
+export interface MemoryConfig {
+  /** 单轮最多召回几条；默认 5 */
+  maxMemoriesPerTurn?: number
+  /** 单个记忆最多读取行数；默认 200 */
+  maxLinesPerMemory?: number
+  /** 单个记忆最多注入字节数；默认 4096 */
+  maxBytesPerMemory?: number
+  /** 参与打分的候选文件上限；默认 200 */
+  maxScanFiles?: number
+  /** 低于该分数视为不相关；默认 1 */
+  minRelevanceScore?: number
+}
+
+export const DEFAULT_MEMORY_CONFIG: Required<MemoryConfig> = {
+  maxMemoriesPerTurn: 5,
+  maxLinesPerMemory: 200,
+  maxBytesPerMemory: 4096,
+  maxScanFiles: 200,
+  minRelevanceScore: 1,
+}
+
+/** 子代理相关参数 */
+export interface SubagentConfig {
+  /** 最大并发子代理数；默认 5 */
+  maxConcurrentAgents?: number
+  /** 生成「离开摘要」时纳入的最近消息条数；默认 30 */
+  recentMessageWindow?: number
+}
+
+export const DEFAULT_SUBAGENT_CONFIG: Required<SubagentConfig> = {
+  maxConcurrentAgents: 5,
+  recentMessageWindow: 30,
 }
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
@@ -454,6 +514,9 @@ export interface ConfigUpdateRequest {
   requestTimeout?: number
   retryCount?: number
   loadBalancer?: LoadBalancerConfig
+  toolRuntime?: ToolRuntimeConfig
+  memory?: MemoryConfig
+  subagent?: SubagentConfig
   enableApiKey?: boolean
   enabledToolGroups?: string[]
   oauthProxyMode?: 'system' | 'none'

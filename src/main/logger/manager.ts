@@ -17,17 +17,29 @@ interface LogFilter {
   offset?: number
 }
 
+/** 内存中保留的日志条数上限（默认 10000） */
+export const DEFAULT_MAX_LOGS = 10000
+/** 日志文件保留天数（默认 7） */
+export const DEFAULT_RETENTION_DAYS = 7
+
+export interface LogManagerOptions {
+  /** 内存中保留的日志条数上限 */
+  maxLogs?: number
+  /** 日志文件保留天数 */
+  retentionDays?: number
+}
+
 export class LogManager {
   private logs: LogEntry[] = []
   private logFile: string
   private debugFileStream: fs.WriteStream | null = null
-  private maxLogs: number = 10000
-  private retentionDays: number = 7
+  private maxLogs: number = DEFAULT_MAX_LOGS
+  private retentionDays: number = DEFAULT_RETENTION_DAYS
   private initialized: boolean = false
   private mainWindow: BrowserWindow | null = null
   private categoryConfigs: Record<string, LogCategoryConfig>
 
-  constructor() {
+  constructor(options: LogManagerOptions = {}) {
     const userDataPath = app.getPath('userData')
     const logDir = path.join(userDataPath, 'logs')
 
@@ -37,6 +49,34 @@ export class LogManager {
 
     this.logFile = path.join(logDir, 'app.log')
     this.categoryConfigs = { ...DEFAULT_LOG_CATEGORIES }
+    this.setLimits(options)
+  }
+
+  /**
+   * 更新日志保留策略（设置界面改完即时生效）。
+   * maxLogs 决定内存占用上限；retentionDays 决定磁盘上日志文件保留多久。
+   */
+  setLimits(options: LogManagerOptions): void {
+    const { maxLogs, retentionDays } = options
+    if (typeof maxLogs === 'number' && Number.isFinite(maxLogs) && maxLogs > 0) {
+      this.maxLogs = Math.floor(maxLogs)
+    }
+    if (
+      typeof retentionDays === 'number' &&
+      Number.isFinite(retentionDays) &&
+      retentionDays > 0
+    ) {
+      this.retentionDays = Math.floor(retentionDays)
+    }
+    // 上限调小后立即裁剪，避免旧数据继续驻留
+    if (this.logs.length > this.maxLogs) {
+      this.logs = this.logs.slice(-this.maxLogs)
+    }
+  }
+
+  /** 当前保留策略（供 UI 回显） */
+  getLimits(): { maxLogs: number; retentionDays: number } {
+    return { maxLogs: this.maxLogs, retentionDays: this.retentionDays }
   }
 
   /**

@@ -9,7 +9,21 @@ export const XML_VARIANT: PromptVariant = {
   id: 'xml',
   name: 'XML Format',
   description: 'XML format tool calling',
-  modelPatterns: ['.*'],
+  /**
+   * ⚠️ 刻意**不参与按模型名的自动匹配**（空数组）。
+   *
+   * 原值为 `['.*']`，配合 priority 0 的排序，会抢在 DEFAULT_VARIANT 之前
+   * 匹配所有模型 —— 而 `DefaultPromptAdapter.transformRequest` 用
+   * `selectPromptVariant({model})` 注入协议、却用 bracket 解析器
+   * (`parseToolCalls` → `extractToolCallsFromText(content, 'default')`) 解析响应，
+   * 两者格式不一致 → 给模型注入 XML 协议但按 bracket 解析 → 工具调用永远解析不出来。
+   *
+   * XML 协议的正规入口是显式指定：
+   * - `getVariantByFormat('xml')`
+   * - `CherryStudioPromptAdapter`（已声明 `format = 'xml'`）
+   * 都不依赖这里的 modelPatterns。
+   */
+  modelPatterns: [],
   systemPrompt: 'You are a helpful AI assistant.',
   toolPromptTemplate: `## Available Tools
 You can invoke the following developer tools. Call a tool only when it is required and follow the JSON schema exactly when providing arguments.

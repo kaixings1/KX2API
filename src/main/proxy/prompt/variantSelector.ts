@@ -55,9 +55,18 @@ export function selectPromptVariant(options: PromptVariantSelectorOptions): Prom
   return BUILTIN_VARIANTS[0]
 }
 
+/**
+ * 批量注册变体。
+ *
+ * 注册后必须重排 —— `selectPromptVariant` 是**按数组顺序**返回首个匹配项，
+ * 所以数组顺序即匹配优先级。只 push 不排序会让后注册的高优先级变体排在末尾、
+ * 永远匹配不到（单个注册的 registerVariant 有排序，这里原先漏了，行为不一致）。
+ *
+ * 注：原实现在循环里写 `_sorted = false`，该变量从未声明 —— 在 ES module 的
+ * 严格模式下必然抛 ReferenceError，使批量注册完全不可用。
+ */
 export function registerVariants(variants: PromptVariant[]): void {
   for (const variant of variants) {
-    _sorted = false
     const existingIndex = BUILTIN_VARIANTS.findIndex(v => v.id === variant.id)
     if (existingIndex >= 0) {
       BUILTIN_VARIANTS[existingIndex] = variant
@@ -65,6 +74,7 @@ export function registerVariants(variants: PromptVariant[]): void {
       BUILTIN_VARIANTS.push(variant)
     }
   }
+  BUILTIN_VARIANTS.sort((a, b) => (b.priority || 0) - (a.priority || 0))
   console.log('[VariantSelector] Registered ' + variants.length + ' variants')
 }
 

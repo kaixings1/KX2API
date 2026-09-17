@@ -15,7 +15,25 @@ export interface AwaySummaryConfig {
   maxTokens?: number
 }
 
-const RECENT_MESSAGE_WINDOW = 30
+/** 生成「离开摘要」时纳入的最近消息条数（默认 30） */
+export const DEFAULT_RECENT_MESSAGE_WINDOW = 30
+
+let recentMessageWindow = DEFAULT_RECENT_MESSAGE_WINDOW
+
+/**
+ * 调整摘要窗口（设置界面改完即时生效）。
+ * 该值决定摘要能看到多少上下文：窗口越大摘要越准，但消耗的 token 越多。
+ */
+export function setRecentMessageWindow(n?: number | void): void {
+  if (typeof n === 'number' && Number.isFinite(n) && n > 0) {
+    recentMessageWindow = Math.floor(n)
+  }
+}
+
+/** 当前生效的摘要窗口 */
+export function getRecentMessageWindow(): number {
+  return recentMessageWindow
+}
 
 function buildAwaySummaryPrompt(memory: string | null): string {
   const memoryBlock = memory ? `会话记忆（更广泛的上下文）：\n${memory}\n\n` : ''
@@ -39,7 +57,7 @@ export async function generateAwaySummary(
   }
 
   try {
-    const recent = messages.slice(-RECENT_MESSAGE_WINDOW)
+    const recent = messages.slice(-recentMessageWindow)
     recent.push({
       role: 'user',
       content: buildAwaySummaryPrompt(null),

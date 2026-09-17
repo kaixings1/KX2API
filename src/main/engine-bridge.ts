@@ -147,22 +147,52 @@ export function getEngineApiSettings(): ApiSettings {
  */
 export function applyToolRuntimeConfig(): void {
   try {
-    const cfg = ConfigManager.get() as { toolRuntime?: Record<string, number> } | void
+    const cfg = ConfigManager.get() as {
+      toolRuntime?: Record<string, number>
+      memory?: Record<string, number>
+      subagent?: Record<string, number>
+    } | void
+
     const rt = cfg?.toolRuntime
-    if (!rt) return
-    void import('../engine/toolResultStore.ts').then(({ setToolResultStoreOptions }) => {
-      setToolResultStoreOptions({
-        maxResultSizeChars: rt.maxResultSizeChars,
-        previewSizeBytes: rt.previewSizeBytes,
-        maxResultsPerMessageChars: rt.maxResultsPerMessageChars,
+    if (rt) {
+      void import('../engine/toolResultStore.ts').then(({ setToolResultStoreOptions }) => {
+        setToolResultStoreOptions({
+          maxResultSizeChars: rt.maxResultSizeChars,
+          previewSizeBytes: rt.previewSizeBytes,
+          maxResultsPerMessageChars: rt.maxResultsPerMessageChars,
+        })
       })
-    })
-    const eng = getEngineInstance()
-    if (eng && typeof rt.toolTimeoutMs === 'number') {
-      eng.updateConfig({ toolTimeoutMs: rt.toolTimeoutMs })
+      const eng = getEngineInstance()
+      if (eng && typeof rt.toolTimeoutMs === 'number') {
+        eng.updateConfig({ toolTimeoutMs: rt.toolTimeoutMs })
+      }
+    }
+
+    const mem = cfg?.memory
+    if (mem) {
+      void import('../engine/memory/memoryRecall.ts').then(({ setMemoryRecallLimits }) => {
+        setMemoryRecallLimits({
+          maxMemoriesPerTurn: mem.maxMemoriesPerTurn,
+          maxLinesPerMemory: mem.maxLinesPerMemory,
+          maxBytesPerMemory: mem.maxBytesPerMemory,
+          maxScanFiles: mem.maxScanFiles,
+          minRelevanceScore: mem.minRelevanceScore,
+        })
+      })
+    }
+
+    const sub = cfg?.subagent
+    if (sub) {
+      void import('../engine/services/awaySummary.ts').then(({ setRecentMessageWindow }) => {
+        setRecentMessageWindow(sub.recentMessageWindow)
+      })
+      const eng = getEngineInstance()
+      if (eng && typeof sub.maxConcurrentAgents === 'number') {
+        eng.subAgentManager.setMaxConcurrentAgents(sub.maxConcurrentAgents)
+      }
     }
   } catch (e) {
-    console.warn('[EngineBridge] 应用工具运行参数失败，使用默认值:', (e as Error).message)
+    console.warn('[EngineBridge] 应用运行参数失败，使用默认值:', (e as Error).message)
   }
 }
 

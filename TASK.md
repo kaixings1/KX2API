@@ -306,6 +306,78 @@
 - [ ] 系统提示词静态/动态分段 + 缓存边界标记（`constants/systemPromptSections.ts` 仅 70 行，纯逻辑可照搬）
 - [ ] 把 `npm run typecheck` 纳入 CI（当前 708 处类型错误，需先定收敛计划）
 
+## 第三轮：按待办推进（2026-09-17 深夜）
+
+### 一、修复崩溃：`toolContext.ts` 引用未导入的 `lastUsedAt`
+
+`toolContext.ts:145` 的 LRU 淘汰排序调用 `lastUsedAt(sessionId, a.id)`，
+但导入列表只有 `getActiveTools, touchTool` —— **值位置的未定义标识符，必然 ReferenceError**。
+触发条件：分层模式下工具总 token 超出预算、进入淘汰分支时。
+
+修复：补上 `lastUsedAt` 导入。这是上一轮类型检查标记出但未逐个处理的 44 处之一，现补上。
+
+### 二、工具检索重写（`toolMetaTools`）
+
+原实现两个缺陷使 254 个工具下的检索基本失效：
+1. **无词边界**：`name.includes('search')` 会命中 `research_notes`，`git` 会命中 `digital`
+2. **中文整串匹配**：查询按空格切分，"读取文件"整体作为一个 token，匹配不到描述里的"读取某个文件的内容"
+
+新实现（参照 Claude Code `ToolSearchTool`）：
+- **分词**：拉丁按词切、中文切**二元组**（与 `memoryRecall` 同口径，避免同仓库两套标准）
+- **名称片段化**：先拆 camelCase/snake/kebab/点/冒号再比较。
+  片段相等 +6、**片段前缀** +3（用前缀而非子串，这是 `git` 不命中 `digital` 的关键）
+- **词边界正则** `(^|[^a-z0-9])term([^a-z0-9]|$)`，带 500 条上限缓存
+- **每 token 只取最高命中档**，不跨档累加 —— 防止长描述靠堆词刷分
+- **`searchHint` 字段**（`types.ts` 新增）：补上工具名与描述里都没有、但用户会这么问的词
+  （如 `read_file` 的 `jupyter`/`ipynb`）
+- **`+term` 必需词语法**：`+git commit` → 必须与 git 相关，在打分前预过滤缩小候选集
+
+### 三、工具结果单消息聚合预算（`toolResultStore`）
+
+单结果有 50K 阈值，但 **N 个并行工具各 40K 就能凑出 400K** —— 单个阈值拦不住聚合。
+新增 `enforceToolResultBudget`（默认 200K 字符/轮）：
+
+- 按 API 轮次分组，**按结果大小降序**替换（用最少次数压到预算内）
+- **决策冻结**是该设计的核心：某个 toolUseId 一旦被决策（替换或不替换），
+  后续轮次不得反悔 —— 否则替换集合每轮变化会让 prompt cache 全量失效
+- 已决策替换的**重放冻结字符串**（零 I/O，字节一致，必然命中缓存）
+- **净减少保护**：预览正文（含路径头部）本身有体积，替换后若反而更长则放弃
+- **超支是设计内行为**：当"全部替换后的预览总量"仍超预算（预算极小时），
+  接受超支交给上层压缩 —— 与上游 Claude Code 同口径
+- 落盘失败一律冻结为不替换，**绝不因预算控制而丢工具输出**
+- 接入 `RequestBuilder` 请求链路（配对修复之后，因为只改内容不改结构）
+
+### 四、记忆写入器（`memoryWriter`，补齐记忆系统的写入侧）
+
+此前只有读取侧（`memoryRecall`），写入侧完全缺失。上游把「什么不该记」写成硬规则，
+因为记忆写错会在后续每轮被召回、持续污染判断。
+
+- **不保存黑名单**（4 条规则）：代码结构/文件路径、git 历史、调试配方、临时任务进度 ——
+  判据是「这些能从代码库直接查到」，存进去只会过期
+- **密钥扫描**（7 类）：OpenAI/Anthropic/GitHub/AWS/JWT/私钥/Bearer，命中即拒收
+- **索引纪律**：`MEMORY.md` 每行 ≤150 字符的指针、≤200 行、≤25KB，超限从头截断并留说明
+- **原子写入**：tmp + rename，避免读到半截文件
+- **文件名安全**：`../../etc/passwd` → 中和为无路径字符的名字
+- **`looksWorthRemembering`**：回合结束后台提取的廉价预筛，明显不该记的直接跳过，
+  不必再花一次模型调用
+
+### 五、架构冲突记录（未改）
+
+- **`src/memory/memoryTool.ts` 与记忆系统目录不一致**：前者基于 `/memories` 路径的
+  通用文件操作（view/create/str_replace/insert/delete/rename），后者用
+  `.doge/projects/<编码项目>/memory/`。两套并存，调用方容易写错目录。
+  建议：`memoryTool` 改为委托 `memoryWriter`，或明确标注为「通用文件工具」与记忆系统解耦。
+- **回合结束后台提取尚未接线**：`looksWorthRemembering` + `writeMemory` 已就绪，
+  但还没有在主循环结束后触发提取的调用点（需要决定用规则提取还是模型提取）。
+
+### 六、验证结果
+
+- `npm run build` ✅
+- `npm run test:all` ✅ 附加 546 通过（本轮新增 81）/ 单元 560 通过 / **0 失败**
+- 新增测试：`tool-search-scoring.test.ts`(25) / `result-budget.test.ts`(17) / `memory-writer.test.ts`(39)
+  - 其中检索测试**复现原实现的两个误报**（`search` 命中 `research`、`git` 命中 `digital`）并证明修复有效
+  - 记忆写入器测试含**读写闭环验证**（写入 → 召回命中）
+
 ## 第一轮遗留待办
 
 - [ ] 逐个排查剩余值位置的 `Cannot find name`（清单见 `scripts/_tscheck.py` 输出）

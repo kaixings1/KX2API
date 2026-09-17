@@ -22,16 +22,62 @@ export interface AuditEntry {
   ipAddress?: string
 }
 
+/** 审计日志默认缓冲条数（达到即落盘，默认 100） */
+export const DEFAULT_AUDIT_BUFFER_SIZE = 100
+/** 审计日志默认落盘间隔（毫秒，默认 10000） */
+export const DEFAULT_AUDIT_FLUSH_INTERVAL_MS = 10_000
+
+export interface AuditLoggerOptions {
+  /** 缓冲达到多少条即落盘 */
+  maxBufferSize?: number
+  /** 定时落盘间隔（毫秒）；越短越不易丢日志，但 I/O 更频繁 */
+  flushIntervalMs?: number
+}
+
 export class AuditLogger {
   private logFile: string
   private entries: AuditEntry[] = []
-  private maxBufferSize: number = 100
-  private flushInterval: number = 10000
+  private maxBufferSize: number = DEFAULT_AUDIT_BUFFER_SIZE
+  private flushInterval: number = DEFAULT_AUDIT_FLUSH_INTERVAL_MS
   private flushTimer: ReturnType<typeof setInterval> | null = null
 
-  constructor(logFile: string) {
+  constructor(logFile: string, options: AuditLoggerOptions = {}) {
     this.logFile = logFile
+    this.setLimits(options)
     this.startFlushTimer()
+  }
+
+  /**
+   * 更新审计落盘策略（设置界面改完即时生效）。
+   * 缓冲越大写入越少但崩溃时可能丢失更多未落盘记录；
+   * 间隔越短越安全，但频繁 I/O。
+   */
+  setLimits(options: AuditLoggerOptions): void {
+    const { maxBufferSize, flushIntervalMs } = options
+    if (
+      typeof maxBufferSize === 'number' &&
+      Number.isFinite(maxBufferSize) &&
+      maxBufferSize > 0
+    ) {
+      this.maxBufferSize = Math.floor(maxBufferSize)
+    }
+    if (
+      typeof flushIntervalMs === 'number' &&
+      Number.isFinite(flushIntervalMs) &&
+      flushIntervalMs > 0
+    ) {
+      this.flushInterval = Math.floor(flushIntervalMs)
+      // 间隔变更需重建定时器才生效
+      if (this.flushTimer) {
+        clearInterval(this.flushTimer)
+        this.startFlushTimer()
+      }
+    }
+  }
+
+  /** 当前落盘策略（供 UI 回显） */
+  getLimits(): { maxBufferSize: number; flushIntervalMs: number } {
+    return { maxBufferSize: this.maxBufferSize, flushIntervalMs: this.flushInterval }
   }
 
   log(entry: Omit<AuditEntry, 'id' | 'timestamp'>): void {
@@ -204,11 +250,32 @@ export class AuditLogger {
     }, this.flushInterval)
   }
 
-  stop(): void {
+  /**
+   * 只停止定时器，不触发落盘。
+   *
+   * 与 stop() 的区别：stop() 会顺带 flush（有 I/O 副作用，且返回浮空 Promise）。
+   * 测试、临时实例、参数校验这类场景只需要释放定时器句柄
+   * （否则 setInterval 会让进程/vitest 无法退出），不应附带写入。
+   */
+  stopFlushTimer(): void {
     if (this.flushTimer) {
       clearInterval(this.flushTimer)
       this.flushTimer = null
     }
-    this.flush()
+  }
+
+  /**
+   * 停止定时器并落盘剩余缓冲。
+   *
+   * 注意：定时器不释放会让 Node 进程无法退出，因此即使 flush 失败也会
+   * 先清掉句柄（用 try/finally 保证）。
+   */
+  async stop(): Promise<void> {
+    this.stopFlushTimer()
+    try {
+      await this.flush()
+    } catch {
+      // flush 内部已处理异常（会回滚缓冲），此处不向上抛，避免退出流程被阻断
+    }
   }
 }

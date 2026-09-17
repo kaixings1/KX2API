@@ -22,14 +22,34 @@ export interface ExecuteSubAgentParams {
   parentModel?: string;
 }
 
+/** 子代理默认最大并发数 */
+export const DEFAULT_MAX_CONCURRENT_AGENTS = 5
+
 export class SubAgentManager {
   private registry = new Map<string, SubAgentConfig>();
   private instances = new Map<string, SubAgentInstance>();
-  private maxConcurrentAgents = 5;
+  private maxConcurrentAgents = DEFAULT_MAX_CONCURRENT_AGENTS;
   private activeAgents = 0;
 
-  constructor() {
+  constructor(maxConcurrent?: number) {
     for (const [name, cfg] of Object.entries(predefinedAgents)) this.registry.set(name, cfg);
+    this.setMaxConcurrentAgents(maxConcurrent);
+  }
+
+  /**
+   * 设置最大并发子代理数（设置界面改完即时生效）。
+   * 超过上限的请求会被直接拒绝并返回错误，因此该值直接决定
+   * 「并发任务能否启动」，属于影响走向的关键参数。
+   */
+  setMaxConcurrentAgents(n?: number | void): void {
+    if (typeof n === 'number' && Number.isFinite(n) && n > 0) {
+      this.maxConcurrentAgents = Math.floor(n);
+    }
+  }
+
+  /** 当前最大并发数与运行中数量（供 UI 展示与诊断） */
+  getConcurrencyInfo(): { max: number; active: number } {
+    return { max: this.maxConcurrentAgents, active: this.activeAgents };
   }
 
   register(config: SubAgentConfig): void {
