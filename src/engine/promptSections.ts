@@ -126,6 +126,68 @@ export function invalidateSectionsByPrefix(prefix: string): void {
 /** 清空全部分片缓存（会话清空、压缩后、配置变更时调用） */
 export function clearSectionCache(): void {
   cache.clear()
+  objectCache.clear()
+}
+
+// ─────────────────────────────── 泛型缓存 ───────────────────────────────
+
+/**
+ * 按 key 缓存**任意类型**的结果（分片缓存本身只支持字符串）。
+ *
+ * 用途：像「记忆召回」这类昂贵但只依赖 query 的计算，结果是列表而非文本。
+ * 缓存原始结果、每轮再做依赖历史的过滤，比缓存最终文本更灵活 ——
+ * 若把过滤后的文本一起缓存，历史一变就会读到过期结果。
+ */
+const objectCache = new Map<string, unknown>()
+
+/** 并发去重：同一个 key 的并发请求共享同一次计算 */
+const inflight = new Map<string, Promise<unknown>>()
+
+export async function memoizeByKey<T>(key: string, compute: () => Promise<T>): Promise<T> {
+  if (!isSectionCacheEnabled()) return compute()
+
+  if (objectCache.has(key)) {
+    const cached = objectCache.get(key) as T
+    return cached
+  }
+
+  // 并发同 key：等同一个 Promise，避免重复计算
+  const existing = inflight.get(key)
+  if (existing) return existing as Promise<T>
+
+  const p = (async () => {
+    try {
+      const value = await compute()
+      if (objectCache.size >= maxCacheEntries) {
+        const oldest = objectCache.keys().next()
+        if (!oldest.done) objectCache.delete(oldest.value)
+      }
+      objectCache.set(key, value)
+      return value
+    } finally {
+      inflight.delete(key)
+    }
+  })()
+
+  inflight.set(key, p)
+  return p
+}
+
+/** 使某个泛型缓存键失效 */
+export function invalidateMemoized(key: string): void {
+  objectCache.delete(key)
+}
+
+/** 按前缀作废泛型缓存 */
+export function invalidateMemoizedByPrefix(prefix: string): void {
+  for (const key of [...objectCache.keys()]) {
+    if (key.startsWith(prefix)) objectCache.delete(key)
+  }
+}
+
+/** 当前泛型缓存条目数（诊断/测试用） */
+export function getMemoizedCacheSize(): number {
+  return objectCache.size
 }
 
 function setCacheEntry(name: string, value: string | null): void {

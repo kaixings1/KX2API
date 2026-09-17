@@ -144,13 +144,16 @@ export function reconcileFromHistory(
   sessionId: string,
   messages: readonly unknown[],
   availableTools: ReadonlySet<string>,
+  /** 可用工具 id 集合；缺省时按「id === name」的现状复用 availableTools */
+  availableIds?: ReadonlySet<string>,
 ): string[] {
   const s = getState(sessionId)
+  const ids = availableIds ?? availableTools
   void (async () => {
     try {
       const { deriveActiveToolsFromMessages, mergeActiveTools } = await import('./toolSessionStore.ts')
       const derived = deriveActiveToolsFromMessages(messages, availableTools)
-      const merged = mergeActiveTools([...s.active], derived, availableTools)
+      const merged = mergeActiveTools([...s.active], derived, ids, availableTools)
       if (merged.length === s.active.size && merged.every(id => s.active.has(id))) return
       s.active = new Set(merged)
       persistState(sessionId, s)

@@ -42,7 +42,24 @@ async function runPostTurnTasks(
     console.warn('[Chat] Stop hook skipped:', (e as Error).message)
   }
 
-  // 2) 自动记忆：仅在用户开启时才跑
+  // 2) 工具活跃集历史重建。
+  //
+  // 活跃集此前只存在内存与落盘里，二者都可能与「历史事实」不一致：
+  // 落盘有 2s 防抖（最后几秒的 tool_load 可能没写）、重启后内存为空。
+  // 历史是事实来源 —— 用反扫补齐，避免「模型以为工具可用但调用失败」。
+  //
+  // 刻意放在回合结束后（历史刚写完），而不是启动时：
+  // 启动时历史可能还没加载，此时反扫等于扫了个空数组。
+  try {
+    const { reconcileFromHistory } = await import('../tools/toolMetaTools.ts')
+    const { toolManager } = await import('../tools/toolManager.ts')
+    const available = new Set(toolManager.getAllTools().map((t) => t.name))
+    reconcileFromHistory('default', messages, available)
+  } catch (e) {
+    console.warn('[Chat] tool active-set reconcile skipped:', (e as Error).message)
+  }
+
+  // 3) 自动记忆：仅在用户开启时才跑
   try {
     const cfg = storeManager.getConfig() as {
       autoMemory?: { enabled?: boolean; maxInputChars?: number }

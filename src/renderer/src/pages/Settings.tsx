@@ -15,6 +15,7 @@ import {
   SubagentSettings,
   ProxyRuntimeSettings,
   LogRuntimeSettings,
+  PermissionRulesSettings,
 } from '@/components/settings'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { Sun, Settings as SettingsIcon, Database, Shield, Key, SlidersHorizontal, Bot } from 'lucide-react'
@@ -94,8 +95,9 @@ export function Settings() {
           <DataManagement />
         </TabsContent>
 
-        <TabsContent value="security" className="mt-6">
+        <TabsContent value="security" className="mt-6 space-y-6">
           <SecuritySettings />
+          <PermissionRulesSettings />
         </TabsContent>
 
         <TabsContent value="managementApi" className="mt-6">

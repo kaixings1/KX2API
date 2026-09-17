@@ -211,21 +211,52 @@ describe('deriveActiveToolsFromMessages — 历史反扫', () => {
 })
 
 describe('mergeActiveTools', () => {
+  // 当前内置工具满足 id === name，故默认两集合可相同
   const available = new Set(['a', 'b', 'c'])
+  const same = (p: string[], d: string[]) => mergeActiveTools(p, d, available, available)
 
   it('两端取并集', () => {
-    expect(mergeActiveTools(['a'], ['b'], available).sort()).toEqual(['a', 'b'])
+    expect(same(['a'], ['b']).sort()).toEqual(['a', 'b'])
   })
 
   it('过滤不可用项', () => {
-    expect(mergeActiveTools(['a', 'gone'], ['b', 'nope'], available).sort()).toEqual(['a', 'b'])
+    expect(same(['a', 'gone'], ['b', 'nope']).sort()).toEqual(['a', 'b'])
   })
 
   it('去重', () => {
-    expect(mergeActiveTools(['a'], ['a'], available)).toEqual(['a'])
+    expect(same(['a'], ['a'])).toEqual(['a'])
   })
 
   it('空输入', () => {
-    expect(mergeActiveTools([], [], available)).toEqual([])
+    expect(same([], [])).toEqual([])
+  })
+
+  // 关键：id 与 name 是两套标识符。
+  // persisted 存 tool.id，derived 存 tool.name —— 用单一集合过滤会丢掉一侧。
+  describe('id 与 name 分离时不应静默丢数据', () => {
+    const ids = new Set(['tool-1', 'tool-2'])
+    const names = new Set(['read_file', 'write_file'])
+
+    it('persisted 按 id 过滤，不被 name 集合误杀', () => {
+      const r = mergeActiveTools(['tool-1'], [], ids, names)
+      expect(r).toEqual(['tool-1'])
+    })
+
+    it('derived 按 name 过滤，不被 id 集合误杀', () => {
+      const r = mergeActiveTools([], ['read_file'], ids, names)
+      expect(r).toEqual(['read_file'])
+    })
+
+    it('两侧同时存在时都保留', () => {
+      const r = mergeActiveTools(['tool-1'], ['read_file'], ids, names).sort()
+      expect(r).toEqual(['read_file', 'tool-1'])
+    })
+
+    it('若 id 恰好也在 id 集合中，按 id 归一（避免同一工具两种写法）', () => {
+      // derived 给的是名字，而该名字同时是合法 id 时，保留原值即可
+      const ids2 = new Set(['read_file'])
+      const r = mergeActiveTools([], ['read_file'], ids2, names)
+      expect(r).toEqual(['read_file'])
+    })
   })
 })

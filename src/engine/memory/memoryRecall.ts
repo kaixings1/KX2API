@@ -371,9 +371,13 @@ export function formatMemoriesForPrompt(memories: RecalledMemory[]): string | nu
   if (memories.length === 0) return null
 
   const blocks = memories.map(m => {
+    // 标题里带上**文件名**，有两个用途：
+    //   1. 模型知道这条记忆出自哪个文件，便于核对
+    //   2. 后续靠它做「已注入」去重（见 memorySurfaceBudget.ts）
+    //      —— 没有可追溯标识就无法判断某条记忆是否已经给过模型
     const header = m.ageDays > 1
-      ? `### ${m.name}（${ageLabel(m.ageDays)}保存 · 内容为时间点快照，其中的文件路径与行号可能已过时）`
-      : `### ${m.name}（${ageLabel(m.ageDays)}保存）`
+      ? `### ${m.name} · ${m.file}（${ageLabel(m.ageDays)}保存 · 内容为时间点快照，其中的文件路径与行号可能已过时）`
+      : `### ${m.name} · ${m.file}（${ageLabel(m.ageDays)}保存）`
     const meta = m.description ? `${m.description}\n` : ''
     return `${header}\n${meta}\n${m.body.trim()}`
   })

@@ -295,16 +295,32 @@ export function deriveActiveToolsFromMessages(
  *
  * 取并集：落盘代表了用户的显式意图（tool_load 进来的），
  * 历史代表实际发生过的事实（模型调用过的）。两者都不该丢。
- * 但都要过滤掉当前不再可用的工具。
+ *
+ * ⚠️ **两套标识符不对等**，必须分别过滤：
+ * - `persisted` 存的是 `tool.id`（见 toolMetaTools.loadTools：`state.active.add(tool.id)`）
+ * - `derived` 存的是 `tool.name`（历史里的 `tool_use.name`）
+ *
+ * 当前内置工具满足 `id === name`（toolManager 同步时 `id: cmd.name`），
+ * 所以两者恰好可以互换 —— 但这是**隐含约定，不是契约**。
+ * 若将来允许自定义 id，用单一集合过滤会让一侧被整体丢弃（静默失效）。
+ *
+ * @param availableIds   可用工具 id 集合，用于过滤 persisted
+ * @param availableNames 可用工具名集合，用于过滤 derived
  */
 export function mergeActiveTools(
   persisted: readonly string[],
   derived: readonly string[],
-  availableTools: ReadonlySet<string>,
+  availableIds: ReadonlySet<string>,
+  availableNames: ReadonlySet<string>,
 ): string[] {
   const out = new Set<string>()
-  for (const id of [...persisted, ...derived]) {
-    if (availableTools.has(id)) out.add(id)
+  for (const id of persisted) {
+    if (availableIds.has(id)) out.add(id)
+  }
+  for (const name of derived) {
+    // derived 是工具名；若同时存在于 id 集合则按 id 归一，避免同一工具出现两种写法
+    if (availableIds.has(name)) out.add(name)
+    else if (availableNames.has(name)) out.add(name)
   }
   return [...out]
 }

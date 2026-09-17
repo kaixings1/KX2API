@@ -20,6 +20,7 @@ import { GitContextInjector, type GitContextConfig } from "./gitContext.ts";
 import { resolveToolName } from "./toolNameResolver";
 import { resolveLoopConfig, type AgentLoopConfig } from "./loopConfig.ts";
 import { CompactCoordinator } from "./compactCoordinator.ts";
+import { writeSessionTranscriptSegment } from "./transcript.ts";
 
 export interface QueryResult {
   state: string;
@@ -87,6 +88,8 @@ export interface MessageLoopDeps {
   acceptanceGate?: { check: () => Promise<{ allRequiredPass: boolean }> };
   /** 循环控制参数（轮数上限、连续失败阈值等），缺省用默认值 */
   loopLimits?: AgentLoopConfig;
+  /** 会话标识：压缩前转录落盘的会话名；缺省用 'default' */
+  sessionId?: string;
 }
 
 export class MessageLoop {
@@ -268,6 +271,11 @@ export class MessageLoop {
       const coordinator = this.getCompactCoordinator();
       const result = await coordinator.runCompact(
         async () => {
+          // 压缩前把原文落盘转录，供压缩后/崩溃后追溯。
+          // fire-and-forget：transcript 内部已吞错，不影响压缩本身。
+          writeSessionTranscriptSegment(this.deps.conversation.messages, {
+            sessionId: this.deps.sessionId,
+          });
           this.deps.conversation.messages = await this.deps.autoCompactor!.compact(
             this.deps.conversation.messages,
           );
