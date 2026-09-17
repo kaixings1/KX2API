@@ -58,18 +58,18 @@ export class StepFunSessionManager extends EventEmitter {
       this.session = session.fromPartition(STEPFUN_SESSION_PARTITION)
 
       // Bypass SSL certificate verification
-      this.session.setCertificateVerifyProc((_request, callback) => {
+      this.session.setCertificateVerifyProc((_request: Electron.CertificateVerifyProcRequest, callback: (verificationResult: number) => void) => {
         callback(0)
       })
 
-      this.session.on('certificate-error', (_event, _webContents, _url, _error, _certificate, callback) => {
+      this.session.on('certificate-error', (_event: Electron.Event, _webContents: Electron.WebContents, _url: string, _error: string, _certificate: Electron.Certificate, callback: (isTrusted: boolean) => void) => {
         callback(0)
       })
 
       // Listen for cookie changes. Affinity cookies rotate on their own
       // schedule, so they must trigger a re-extract too — otherwise the adapter
       // keeps sending the cookie that was current when the token last changed.
-      this.session.cookies.on('changed', async (_event, cookie: Cookie) => {
+      this.session.cookies.on('changed', async (_event: Electron.Event, cookie: Cookie) => {
         if (WATCHED_COOKIES.has(cookie.name)) {
           // 防抖：同 cookie 名短时间内的重复变更只记首次，避免
           // INGRESSCOOKIE/WS-AFFINITY 等 affinity cookie 在多路径上轮换刷屏。
@@ -171,8 +171,8 @@ export class StepFunSessionManager extends EventEmitter {
 
       // Auth cookies live at path "/" so they are part of `ordered`, but read
       // them from the full set so a path mismatch can never hide the token.
-      const tokenCookie = all.find(c => c.name === OASIS_TOKEN_COOKIE)?.value || scalar[OASIS_TOKEN_COOKIE] || ''
-      const webIdCookie = all.find(c => c.name === OASIS_WEBID_COOKIE)?.value || scalar[OASIS_WEBID_COOKIE] || ''
+      const tokenCookie = all.find((c: Electron.Cookie) => c.name === OASIS_TOKEN_COOKIE)?.value || scalar[OASIS_TOKEN_COOKIE] || ''
+      const webIdCookie = all.find((c: Electron.Cookie) => c.name === OASIS_WEBID_COOKIE)?.value || scalar[OASIS_WEBID_COOKIE] || ''
 
       if (!tokenCookie) {
         console.warn('[StepFunSession] No Oasis-Token cookie in partition; user must log in')

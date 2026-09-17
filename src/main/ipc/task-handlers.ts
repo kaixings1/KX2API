@@ -35,7 +35,7 @@ export function registerTaskHandlers(main: BrowserWindow): void {
   })
 
   ipcMain.handle(IpcChannels.TASKS_UPDATE, async (_event, id: string, updates: Partial<TaskRecord>): Promise<TaskRecord | null> => {
-    return tasksStore.update(id, updates)
+    return tasksStore.update(id, updates) ?? null
   })
 
   ipcMain.handle(IpcChannels.TASKS_DELETE, async (_event, id: string): Promise<boolean> => {
@@ -43,7 +43,7 @@ export function registerTaskHandlers(main: BrowserWindow): void {
   })
 
   ipcMain.handle(IpcChannels.TASKS_SET_STATUS, async (_event, id: string, status: TaskRecord['status']): Promise<TaskRecord | null> => {
-    return tasksStore.setStatus(id, status)
+    return tasksStore.setStatus(id, status) ?? null
   })
 
   // ==================== Execute ====================

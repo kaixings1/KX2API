@@ -121,7 +121,7 @@ export class DefaultPromptAdapter extends BasePromptAdapter {
     }
   }
 
-  getPromptVariant(model: string, provider?: string): PromptVariant | null {
+  getPromptVariant(model: string, provider?: string): PromptVariant | undefined {
     const variant = selectPromptVariant({ model, provider })
     return variant
   }

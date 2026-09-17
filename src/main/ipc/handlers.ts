@@ -135,7 +135,7 @@ interface WorkflowRecord {
     type: 'command' | 'agent' | 'condition' | 'delay'
     config: Record<string, unknown>
   }>
-  status: 'draft' | 'active' | 'paused' | 'completed'
+  status: 'draft' | 'active' | 'paused' | 'completed' | 'running'
   createdAt: number
   updatedAt: number
 }
@@ -162,6 +162,7 @@ interface PluginRecord {
   enabled: boolean
   installed: boolean
   icon: string | null
+  updatedAt?: number
 }
 
 interface OtherConfig {

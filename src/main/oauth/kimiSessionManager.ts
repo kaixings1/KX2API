@@ -46,7 +46,7 @@ export class KimiSessionManager extends EventEmitter {
       this.session = session.fromPartition(KIMI_SESSION_PARTITION)
 
       // Set up cookie change listener
-      this.session.cookies.on('changed', async (_event, cookie) => {
+      this.session.cookies.on('changed', async (_event: Electron.Event, cookie: Electron.Cookie) => {
         if (cookie.name === KIMI_AUTH_COOKIE_NAME && !cookie.removed) {
           const len = cookie.value?.length || 0
           console.log('[KimiSession] Cookie refreshed:', KIMI_AUTH_COOKIE_NAME, 'value length:', len)
@@ -106,7 +106,7 @@ export class KimiSessionManager extends EventEmitter {
 
     try {
       const cookies = await this.session.cookies.get({})
-      const kimiAuthCookie = cookies.find(c => c.name === KIMI_AUTH_COOKIE_NAME)
+      const kimiAuthCookie = cookies.find((c: Electron.Cookie) => c.name === KIMI_AUTH_COOKIE_NAME)
 
       if (kimiAuthCookie?.value) {
         this.currentToken = kimiAuthCookie.value

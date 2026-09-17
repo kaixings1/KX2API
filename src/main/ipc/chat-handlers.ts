@@ -99,7 +99,7 @@ async function runPostTurnTasks(
 function getLang(): string {
   try {
     const config = storeManager.getConfig()
-    return (config as Record<string, string>)?.language || 'en-US'
+    return (config as unknown as Record<string, string>)?.language || 'en-US'
   } catch {
     return 'en-US'
   }

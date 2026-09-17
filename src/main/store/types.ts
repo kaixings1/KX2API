@@ -724,7 +724,7 @@ export interface RequestLogEntry {
   /** Timestamp */
   timestamp: number
   /** Request status */
-  status: 'success' | 'error'
+  status: 'success' | 'error' | 'pending'
   /** HTTP status code */
   statusCode: number
 

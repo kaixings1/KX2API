@@ -621,6 +621,7 @@ export class QueryEngine {
 }
 
 export { ErrorClassifier };
+export type { AgentEvent } from "./messageLoop.ts";
 export * from "./stateMachine.ts";
 export * from "./messageNormalizer.ts";
 export * from "./messages.ts";

@@ -64,7 +64,7 @@ export interface PromptAdapter {
   hasPromptInjected(messages: ChatMessage[]): boolean
   toolsToPrompt(tools: ChatCompletionTool[], variant?: PromptVariant): string
   parseToolCalls(content: string): ParseResult
-  getPromptVariant(model: string, provider?: string): PromptVariant | null
+  getPromptVariant(model: string, provider?: string): PromptVariant | undefined
   transformRequest(
     messages: ChatMessage[],
     tools: ChatCompletionTool[] | undefined,
@@ -115,7 +115,7 @@ export abstract class BasePromptAdapter implements PromptAdapter {
   /**
    * Get the best prompt variant for a given model
    */
-  getPromptVariant(model: string, provider?: string): PromptVariant | null {
+  getPromptVariant(model: string, provider?: string): PromptVariant | undefined {
     const lowerModel = model.toLowerCase()
 
     for (const variant of this.variants) {
@@ -126,7 +126,7 @@ export abstract class BasePromptAdapter implements PromptAdapter {
       }
     }
 
-    return null
+    return undefined
   }
 
   /**

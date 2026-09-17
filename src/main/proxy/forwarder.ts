@@ -664,8 +664,8 @@ export class RequestForwarder {
               ? msg.content
               : Array.isArray(msg.content)
                 ? msg.content
-                    .filter(part => part.type === 'text' && part.text)
-                    .map(part => part.text)
+                    .filter((part: { type?: string; text?: string }) => part.type === 'text' && part.text)
+                    .map((part: { type?: string; text?: string }) => part.text)
                     .join('\n')
                 : ''
             return `${role}: ${content}`

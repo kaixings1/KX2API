@@ -162,7 +162,7 @@ export class CherryStudioPromptAdapter extends BasePromptAdapter {
     return toolCalls
   }
 
-  getPromptVariant(_model: string, _provider?: string): PromptVariant | null {
+  getPromptVariant(_model: string, _provider?: string): PromptVariant | undefined {
     return CHERRY_STUDIO_VARIANT
   }
 

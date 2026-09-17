@@ -1,5 +1,12 @@
 import type { ChatMessage, ChatCompletionTool, ToolCall } from '../types.ts'
 
+// 这三个类型在本模块内部使用（见下方 ToolCallingPlan 等），
+// 下游 5 个 promptAdapter 也习惯从本模块导入它们。
+// 原实现只 import 不 re-export，导致下游 15 处 TS2459
+//（"declares X locally, but it is not exported"）。
+// 这里补上 re-export，让本模块成为 toolCalling 领域的统一类型出口。
+export type { ChatMessage, ChatCompletionTool, ToolCall }
+
 export type ToolCallingMode = 'managed' | 'disabled'
 export type ToolProtocolId =
   | 'openai_chat'

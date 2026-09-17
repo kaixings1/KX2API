@@ -103,7 +103,7 @@ export class InAppLoginManager extends EventEmitter {
     this.loginSession.setCertificateVerifyProc((_request, callback) => {
       callback(0)
     })
-    this.loginSession.on('certificate-error', (_event, _webContents, _url, _error, _certificate, callback) => {
+    this.loginSession.on('certificate-error', (_event: Electron.Event, _webContents: Electron.WebContents, _url: string, _error: string, _certificate: Electron.Certificate, callback: (isTrusted: boolean) => void) => {
       callback(0)
     })
 

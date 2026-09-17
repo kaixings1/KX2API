@@ -428,7 +428,7 @@ const logsAPI = {
 interface RequestLogEntry {
   id: string
   timestamp: number
-  status: 'success' | 'error'
+  status: 'success' | 'error' | 'pending'
   statusCode: number
   method: string
   url: string

@@ -89,7 +89,7 @@ export class CookieSessionManager extends EventEmitter {
       })
 
       // Also auto-approve certificate errors during page navigation
-      ses.on('certificate-error', (_event, _webContents, _url, _error, _certificate, callback) => {
+      ses.on('certificate-error', (_event: Electron.Event, _webContents: Electron.WebContents, _url: string, _error: string, _certificate: Electron.Certificate, callback: (isTrusted: boolean) => void) => {
         callback(0)
       })
 
@@ -233,7 +233,7 @@ export class CookieSessionManager extends EventEmitter {
     try {
       const cookies = await ses.cookies.get({})
       for (const source of config.tokenSources.filter(t => t.type === 'cookie')) {
-        const cookie = cookies.find(c => c.name === source.key)
+        const cookie = cookies.find((c: Electron.Cookie) => c.name === source.key)
         if (cookie?.value) {
           creds[source.alias || source.key] = cookie.value
         }
@@ -436,7 +436,7 @@ export class CookieSessionManager extends EventEmitter {
     })
 
     // Also auto-approve certificate errors during page navigation
-    ses.on('certificate-error', (_event, _webContents, _url, _error, _certificate, callback) => {
+    ses.on('certificate-error', (_event: Electron.Event, _webContents: Electron.WebContents, _url: string, _error: string, _certificate: Electron.Certificate, callback: (isTrusted: boolean) => void) => {
       callback(0)
     })
 

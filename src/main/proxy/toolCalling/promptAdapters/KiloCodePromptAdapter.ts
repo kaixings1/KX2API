@@ -117,7 +117,7 @@ export class KiloCodePromptAdapter extends BasePromptAdapter {
     }
   }
 
-  getPromptVariant(model: string, _provider?: string): PromptVariant | null {
+  getPromptVariant(model: string, _provider?: string): PromptVariant | undefined {
     return KILOCODE_VARIANT
   }
 
