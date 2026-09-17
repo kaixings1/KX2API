@@ -25,25 +25,15 @@ import { PerplexityStreamHandler } from './adapters/perplexity-stream'
 import { StepFunAdapter, StepFunStreamHandler } from './adapters/stepfun'
 import { StepFunStudioAdapter } from './adapters/stepfun-studio'
 import { OpenAIAdapter } from './adapters/openai'
-import { OpenAIStreamHandler } from './adapters/openai-stream'
 import { AnthropicAdapter } from './adapters/anthropic'
-import { AnthropicStreamHandler } from './adapters/anthropic-stream'
 import { GoogleAdapter, type GeminiRequest, type GeminiContent } from './adapters/google'
-import { GoogleStreamHandler } from './adapters/google-stream'
 import { OllamaAdapter } from './adapters/ollama'
-import { OllamaStreamHandler } from './adapters/ollama-stream'
 import { GroqAdapter } from './adapters/groq'
-import { GroqStreamHandler } from './adapters/groq-stream'
 import { TogetherAdapter } from './adapters/together'
-import { TogetherStreamHandler } from './adapters/together-stream'
 import { CozeAdapter } from './adapters/coze'
-import { CozeStreamHandler } from './adapters/coze-stream'
 import { MistralAdapter } from './adapters/mistral'
-import { MistralStreamHandler } from './adapters/mistral-stream'
 import { XAIAdapter } from './adapters/xai'
-import { XAIStreamHandler } from './adapters/xai-stream'
 import { SiliconCloudAdapter } from './adapters/siliconcloud'
-import { SiliconCloudStreamHandler } from './adapters/siliconcloud-stream'
 import { ToolCallingEngine } from './toolCalling/ToolCallingEngine'
 import type { ToolCallingTransformResult } from './toolCalling/types'
 import type { ToolCallingConfig } from '../../shared/toolCalling'
@@ -2203,9 +2193,18 @@ export class RequestForwarder {
   // ============================================================
   // OpenAI-compatible generic forwarder factory
   // ============================================================
+  /**
+   * OpenAI 兼容协议的通用转发器。
+   *
+   * 这些适配器（openai/groq/together/mistral/xai/siliconcloud）都只暴露
+   * chat() / chatStream()，没有 chatCompletion()。此前这里用 `any` 绕开类型检查
+   * 去调 chatCompletion，编译能过但运行时必然 TypeError。
+   */
   private createOpenAICompatibleForward(
-    adapterClass: new (provider: Provider, account: Account) => any,
-    streamHandlerClass: new (model: string, account: Account | null, plan?: any) => any,
+    adapterClass: new (provider: Provider, account: Account) => {
+      chat: (request: any) => Promise<any>
+      chatStream: (request: any) => AsyncGenerator<string, void, unknown>
+    },
     providerName: string
   ) {
     return async (
@@ -2224,7 +2223,7 @@ export class RequestForwarder {
         }
 
         const adapter = new adapterClass(provider, account)
-        const result = await adapter.chatCompletion({
+        const upstreamRequest = {
           model: actualModel,
           messages: transformedRequest.messages as any,
           stream: transformedRequest.stream,
@@ -2232,89 +2231,57 @@ export class RequestForwarder {
           max_tokens: transformedRequest.max_tokens,
           top_p: transformedRequest.top_p,
           frequency_penalty: transformedRequest.frequency_penalty,
-          stop: transformedRequest.stop,
+          presence_penalty: transformedRequest.presence_penalty,
+          stop: toStopArray(transformedRequest.stop),
           n: transformedRequest.n,
           tools: transformedRequest.tools,
           tool_choice: transformedRequest.tool_choice,
-        })
-
-        const latency = Date.now() - startTime
-
-        if (!result.success) {
-          return {
-            success: false,
-            status: result.status,
-            error: result.error || '请求失败',
-            latency,
-          }
         }
 
-        if (result.stream) {
-          const handler = new streamHandlerClass(actualModel, null, transformed.plan)
-          const transformedStream = await handler.handleStream(result.stream)
-
-          if (request.stream) {
-            return {
-              success: true,
-              status: result.status || 200,
-              headers: result.headers || {},
-              stream: transformedStream,
-              skipTransform: true,
-              latency,
+        if (transformedRequest.stream) {
+          const latency = Date.now() - startTime
+          const transformedStream = this.rawEventStreamToOpenAI(
+            adapter.chatStream(upstreamRequest),
+            actualModel,
+            (raw) => {
+              const parsed = JSON.parse(raw)
+              const delta = parsed?.choices?.[0]?.delta
+              return typeof delta?.content === 'string' ? delta.content : ''
             }
-          }
-
-          const chunks: Buffer[] = []
-          for await (const chunk of transformedStream) {
-            chunks.push(Buffer.from(chunk))
-          }
-          const bodyText = Buffer.concat(chunks).toString('utf-8')
-
-          let fullContent = ''
-          const lines = bodyText.split('\n')
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue
-            const data = line.slice(6).trim()
-            if (data === '[DONE]') continue
-            try {
-              const parsed = JSON.parse(data)
-              const delta = parsed.choices?.[0]?.delta
-              if (delta?.content) fullContent += delta.content
-            } catch {
-              // skip unparseable
-            }
-          }
-
-          const completionBody = {
-            id: actualModel,
-            model: actualModel,
-            object: 'chat.completion',
-            choices: [{
-              index: 0,
-              message: { role: 'assistant', content: fullContent },
-              finish_reason: 'stop',
-            }],
-            usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-          }
-
+          )
           return {
             success: true,
-            status: result.status || 200,
-            headers: result.headers || {},
-            body: completionBody,
+            status: 200,
+            headers: { 'Content-Type': 'text/event-stream' },
+            stream: transformedStream,
             skipTransform: true,
             latency,
           }
         }
 
-        const handler = new streamHandlerClass(actualModel, null, transformed.plan)
-        const body = await handler.handleNonStream(result.body)
+        const data = await adapter.chat(upstreamRequest)
+        const latency = Date.now() - startTime
+
+        const choice = data?.choices?.[0]
+        const body: Record<string, any> = {
+          id: data?.id ?? `chatcmpl-${Date.now()}`,
+          object: 'chat.completion',
+          created: data?.created ?? Math.floor(Date.now() / 1000),
+          model: actualModel,
+          choices: data?.choices ?? [
+            { index: 0, message: { role: 'assistant', content: '' }, finish_reason: 'stop' },
+          ],
+          usage: data?.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+        }
+        if (choice?.message?.tool_calls) {
+          body.choices[0].message.tool_calls = choice.message.tool_calls
+        }
         this.applyToolCallsToResponse(body, transformed)
 
         return {
           success: true,
-          status: result.status || 200,
-          headers: result.headers || {},
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
           body,
           skipTransform: true,
           latency,
@@ -2331,12 +2298,12 @@ export class RequestForwarder {
     }
   }
 
-  private forwardOpenAI = this.createOpenAICompatibleForward(OpenAIAdapter, OpenAIStreamHandler, 'OpenAI')
-  private forwardGroq = this.createOpenAICompatibleForward(GroqAdapter, GroqStreamHandler, 'Groq')
-  private forwardTogether = this.createOpenAICompatibleForward(TogetherAdapter, TogetherStreamHandler, 'Together')
-  private forwardMistral = this.createOpenAICompatibleForward(MistralAdapter, MistralStreamHandler, 'Mistral')
-  private forwardXAI = this.createOpenAICompatibleForward(XAIAdapter, XAIStreamHandler, 'XAI')
-  private forwardSiliconCloud = this.createOpenAICompatibleForward(SiliconCloudAdapter, SiliconCloudStreamHandler, 'SiliconCloud')
+  private forwardOpenAI = this.createOpenAICompatibleForward(OpenAIAdapter, 'OpenAI')
+  private forwardGroq = this.createOpenAICompatibleForward(GroqAdapter, 'Groq')
+  private forwardTogether = this.createOpenAICompatibleForward(TogetherAdapter, 'Together')
+  private forwardMistral = this.createOpenAICompatibleForward(MistralAdapter, 'Mistral')
+  private forwardXAI = this.createOpenAICompatibleForward(XAIAdapter, 'XAI')
+  private forwardSiliconCloud = this.createOpenAICompatibleForward(SiliconCloudAdapter, 'SiliconCloud')
 
   // ============================================================
   // Specialized forwarders for non-OpenAI-compatible providers

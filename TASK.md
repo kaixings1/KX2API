@@ -1096,6 +1096,38 @@ normalize 之前，与 `enforceToolResultBudget` 同一位置）：
 - `npm run test:all` ✅ agent 47 / management 74 / extras 555 / unit 1189，**0 失败**
 - `npm run typecheck` → 173 处存量错误（改动文件 0 新增）
 
+## 第十轮：typecheck 清零（173 → 0）
+
+全仓库类型错误**清零**。`npm run build` ✅ / `npm run test:all` ✅（47+74+555+1189，0 失败）。
+
+29 处错误全集中在 `src/main/proxy/forwarder.ts`，根因是**两代适配器接口共存**：
+
+| 代 | 方法 | 适配器 |
+|---|---|---|
+| chatCompletion 代 | 有 `chatCompletion()`，返回各自原生形状 | deepseek / glm / kimi / mimo / minimax / qwen / qwen-ai / stepfun / stepfun-studio / perplexity / zai |
+| chat 代 | 只有 `chat()` / `chatStream()` | anthropic / google / ollama / groq / together / mistral / xai / siliconcloud / coze |
+
+forwarder 一律调 `adapter.chatCompletion()` 并期望 `{success, stream, body}` ——
+**该契约在任何适配器上都不存在**。且所有 `*-stream.ts` 都是静态工具类，
+`new XHandler(model, null)` + `handleStream()` 从未可能工作。
+
+已修：按各家真实协议重写 `forwardAnthropic`/`forwardGoogle`/`forwardOllama`/`forwardCoze`，
+新增辅助 `toStopArray` / `toGeminiContents` / `buildOpenAICompletion` /
+`buildOpenAIStreamChunk` / `rawEventStreamToOpenAI` / `anthropicStreamToOpenAI` /
+`anthropicToOpenAICompletion`。
+
+**另修两处硬伤**：
+- `forwardStepFunStudio` **从未实现**，但分派表 `:207` 引用它 —— 命中即崩溃。已同构补齐。
+- MiniMax 传的 `originalModel` 不在其自用类型里、实现也从未使用 → 删。
+
+### ⚠️ 未修的雷（运行时，编译器不报）
+
+`createOpenAICompatibleForward` 工厂用 `any` 参数吞掉类型检查，
+**openai / groq / together / mistral / xai / siliconcloud** 这 6 个同属 chat 代，
+同样在调不存在的 `chatCompletion` —— 编译通过但运行时必然 `TypeError`。
+**下一步必须拆掉这个 `any` 工厂并同样改造。**（详见记忆
+`type-error-zero-and-adapter-split.md`）
+
 ### 遗留待办（需决策，均未动）
 
 - `src/` 425 个孤儿文件未清理（`main/security` 7/7 全孤儿、`security` 9 中 6 孤儿）。
@@ -1103,3 +1135,9 @@ normalize 之前，与 `enforceToolResultBudget` 同一位置）：
   按后缀删会误伤手写声明文件。建议按目录分批、每批先跑 build + test。
 - 上下文预算拦不住工具执行：`TokenBudgetManager.shouldReject` 与 `ToolScheduler` 之间
   无强制门禁，属架构决策。
+
+### 需要你确认
+
+本轮误删了被 git 跟踪的 `typecheck-out.txt` —— 它是我本轮创建的临时输出，
+但被某次提交信息为 "test commit" 的提交误纳入了仓库。
+**删除是对的，但如果你希望保留该文件请告知。** 仓库根目录不要放临时输出文件。
