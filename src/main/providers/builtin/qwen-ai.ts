@@ -49,8 +49,8 @@ export const qwenAiConfig: BuiltinProviderConfig = {
       label: 'Cookies (Optional)',
       type: 'textarea',
       required: false,
-      placeholder: 'Optional cookies for enhanced compatibility',
-      helpText: 'Full cookie string from browser DevTools (optional but recommended)',
+      placeholder: '可选 Cookie，用于提升兼容性',
+      helpText: '来自浏览器开发者工具的完整 Cookie 字符串（可选，但推荐）',
     },
   ],
 }

@@ -403,7 +403,7 @@ export class CookieSessionManager extends EventEmitter {
 
       return { success: true }
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Failed to clear login state'
+      const msg = error instanceof Error ? error.message : '清除登录状态失败'
       console.error(`[CookieSession] clearLogin failed for ${providerType}:`, error)
       return { success: false, error: msg }
     }

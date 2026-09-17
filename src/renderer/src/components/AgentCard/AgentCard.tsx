@@ -5,7 +5,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowRight } from 'lucide-react'
-import type { AgentRecord } from '../../../../main/agents/types'
 import { AgentCardHeader } from './AgentCardHeader'
 import { AgentCardBody } from './AgentCardBody'
 import { AgentCardActions } from './AgentCardActions'
@@ -45,10 +44,10 @@ export function AgentCard({
         <AgentCardActions
           isExecuting={isExecuting}
           showExecute={showExecute}
-          onToggleExecute={onToggleExecute}
+          onToggleExecute={() => onToggleExecute(agent.id)}
           onExecute={() => onExecute(agent.id, executeInput)}
           onAbort={() => onAbort(agent.id)}
-          onEdit={onEdit}
+          onEdit={() => onEdit(agent)}
           onDelete={() => onDelete(agent.id)}
         />
         <AgentExecutePanel

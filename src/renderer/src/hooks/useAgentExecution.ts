@@ -4,7 +4,6 @@
  */
 
 import { useState, useCallback } from 'react'
-import type { AgentRecord } from '../../../../main/agents/types'
 
 export function useAgentExecution() {
   const [executingId, setExecutingId] = useState<string | null>(null)

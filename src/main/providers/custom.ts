@@ -25,17 +25,17 @@ export class CustomProviderManager {
     const errors: string[] = []
     
     if (!name || name.trim().length === 0) {
-      errors.push('Provider name cannot be empty')
+      errors.push('供应商名称不能为空')
     }
     
     if (name.length > 50) {
-      errors.push('Provider name cannot exceed 50 characters')
+      errors.push('供应商名称不能超过 50 个字符')
     }
     
     const existing = storeManager.getProviders()
     const duplicate = existing.find(p => p.name.toLowerCase() === name.toLowerCase())
     if (duplicate && duplicate.id !== existingId) {
-      errors.push('Provider name already exists')
+      errors.push('供应商名称已存在')
     }
     
     return { valid: errors.length === 0, errors }
@@ -74,7 +74,7 @@ export class CustomProviderManager {
     ]
     
     if (!validAuthTypes.includes(authType)) {
-      return { valid: false, errors: ['Invalid authentication type'] }
+      return { valid: false, errors: ['认证类型不合法'] }
     }
     
     return { valid: true, errors: [] }
@@ -85,7 +85,7 @@ export class CustomProviderManager {
     
     for (const [key, value] of Object.entries(headers)) {
       if (!key || key.trim().length === 0) {
-        errors.push('Header name cannot be empty')
+        errors.push('请求头名称不能为空')
       }
       
       if (key.includes(':') || key.includes('\n')) {
@@ -107,7 +107,7 @@ export class CustomProviderManager {
     
     for (const field of fields) {
       if (!field.name || field.name.trim().length === 0) {
-        errors.push('Credential field name cannot be empty')
+        errors.push('凭证字段名不能为空')
       }
       
       if (names.has(field.name)) {
@@ -198,11 +198,11 @@ export class CustomProviderManager {
     const existing = storeManager.getProviderById(id)
     
     if (!existing) {
-      throw new Error(`Provider not found: ${id}`)
+      throw new Error(`供应商不存在：${id}`)
     }
     
     if (existing.type === 'builtin') {
-      throw new Error('Cannot modify built-in provider')
+      throw new Error('无法修改内置供应商')
     }
     
     if (updates.name && updates.name !== existing.name) {
@@ -239,7 +239,7 @@ export class CustomProviderManager {
     })
     
     if (updated) {
-      storeManager.addLog('info', `Updated custom provider: ${existing.name}`, {
+      storeManager.addLog('info', `已更新自定义供应商：${existing.name}`, {
         providerId: id,
       })
     }
@@ -274,7 +274,7 @@ export class CustomProviderManager {
     const existing = storeManager.getProviderById(id)
     
     if (!existing) {
-      throw new Error(`Provider not found: ${id}`)
+      throw new Error(`供应商不存在：${id}`)
     }
     
     const name = newName || `${existing.name} (Copy)`
@@ -294,7 +294,7 @@ export class CustomProviderManager {
     const provider = storeManager.getProviderById(id)
     
     if (!provider) {
-      throw new Error(`Provider not found: ${id}`)
+      throw new Error(`供应商不存在：${id}`)
     }
     
     const exportData = {

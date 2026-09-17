@@ -48,7 +48,7 @@ export function validateToolHistory(
       if (!toolCall.id) {
         errors.push({
           code: 'malformed_tool_call_id',
-          message: 'Tool call is missing a valid string id.',
+          message: '工具调用缺少合法的字符串 id。',
           severity: 'error',
           index: messageIndex,
         })
@@ -200,7 +200,7 @@ export function fixToolHistory(
 
         warnings.push({
           code: 'applied_reorder_adjacent_tool_result',
-          message: 'Reordered an adjacent tool result so it follows its matching assistant tool call.',
+          message: '已调整相邻工具结果的顺序，使其紧随对应的助手工具调用。',
           severity: 'warning',
           index,
           relatedIndex: index + 1,
@@ -220,7 +220,7 @@ export function fixToolHistory(
         fixedMessages.splice(index, 1)
         warnings.push({
           code: 'applied_dedupe_tool_result',
-          message: 'Removed an identical duplicate tool result message.',
+          message: '已移除重复的工具结果消息。',
           severity: 'warning',
           index,
           fixable: true,
@@ -241,7 +241,7 @@ export function fixToolHistory(
         fixedMessages.splice(index, 1)
         warnings.push({
           code: 'applied_remove_orphan_tool_result',
-          message: 'Removed an orphan tool result message with no matching tool call anywhere in history.',
+          message: '已移除孤立工具结果：历史中找不到与之匹配的工具调用。',
           severity: 'warning',
           index,
           fixable: true,

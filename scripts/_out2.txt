@@ -1,9 +1,0 @@
-npm notice run kx2code@1.0.0 test:extras
-npm notice run node tests/run-all.mjs ; python p = r'D:/KX2API/scripts/_out2.txt' lines = open(p, encoding='utf-8', errors='replace').read().splitlines() show = False for l in lines: if 'failing tests' in l: show = True if show: print(l[:140]); "
-测试文件：0 个（过滤：;）
-
-================================================================
-================================================================
-合计：0 通过, 0 失败, 0 个文件
-
-全部通过

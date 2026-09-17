@@ -84,7 +84,7 @@ export const DEFAULT_TOKEN_LIMIT_CONFIG: TokenLimitConfig = {
 export const DEFAULT_SUMMARY_CONFIG: SummaryConfig = {
   enabled: false,
   keepRecentMessages: 20,
-  summaryPrompt: 'Please summarize the following conversation concisely, keeping key information and context:',
+  summaryPrompt: '请简洁地总结以下对话，保留关键信息与上下文：',
 }
 
 export const DEFAULT_CONTEXT_MANAGEMENT_CONFIG: ContextManagementConfig = {

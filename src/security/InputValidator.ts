@@ -117,7 +117,7 @@ export class InputValidator {
 
     for (const { pattern, message } of dangerousPatterns) {
       if (pattern.test(command)) {
-        errors.push(`Dangerous command detected: ${message}`);
+        errors.push(`检测到危险命令：${message}`);
       }
     }
 
@@ -147,7 +147,7 @@ export class InputValidator {
       const fieldRule = rule as Record<string, unknown>;
 
       if (fieldRule.required && !(key in value)) {
-        errors.push(`Missing required field: ${key}`);
+        errors.push(`缺少必填字段：${key}`);
         continue;
       }
 

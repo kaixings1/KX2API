@@ -199,14 +199,8 @@ export function CommandManagement() {
   }
 
   const handleExport = () => {
-    const data = JSON.stringify(customCommands, null, 2)
-    const blob = new Blob([data], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `commands_${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    // 返回 JSON 字符串供 ImportExportDialog 统一下载
+    return JSON.stringify(customCommands, null, 2)
   }
 
   const handleImport = async (jsonData: string): Promise<{ success: boolean; error?: string }> => {

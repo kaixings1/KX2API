@@ -590,7 +590,7 @@ export class MiniMaxAdapter {
       
       const { msg_id, base_resp } = sendResponse.data
       if (base_resp?.status_code !== 0) {
-        throw new Error(`Send message failed: ${base_resp?.status_msg || 'Unknown error'}`)
+        throw new Error(`Send message failed: ${base_resp?.status_msg || '未知错误'}`)
       }
       msgId = msg_id
     } else {
@@ -607,7 +607,7 @@ export class MiniMaxAdapter {
       const base_resp = result.base_resp
       
       if (base_resp?.status_code !== 0) {
-        throw new Error(`Send message failed: ${base_resp?.status_msg || 'Unknown error'}`)
+        throw new Error(`Send message failed: ${base_resp?.status_msg || '未知错误'}`)
       }
       
       chatId = result.chat_id
@@ -888,7 +888,7 @@ export class MiniMaxAdapter {
           return true
         }
         
-        const errorMsg = response.data?.base_resp?.status_msg || 'Unknown error'
+        const errorMsg = response.data?.base_resp?.status_msg || '未知错误'
         
         if (errorMsg.includes('chat is running') && attempt < maxRetries) {
           console.log(`[MiniMax] Chat still running, waiting ${retryDelay}ms before retry...`)
@@ -956,7 +956,7 @@ export class MiniMaxAdapter {
       console.warn('[MiniMax] Failed to get membership info, token may be expired or invalid')
       return { totalCredits: 0, usedCredits: 0, remainingCredits: 0 }
     } catch (error) {
-      console.error('[MiniMax] Failed to get credits:', error instanceof Error ? error.message : 'Unknown error')
+      console.error('[MiniMax] Failed to get credits:', error instanceof Error ? error.message : '未知错误')
       return { totalCredits: 0, usedCredits: 0, remainingCredits: 0 }
     }
   }

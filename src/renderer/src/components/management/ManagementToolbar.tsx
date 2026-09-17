@@ -18,7 +18,7 @@ interface ManagementToolbarProps {
   title: string
   subtitle?: string
   onCreate?: () => void
-  createLabel?: string
+  createLabel?: React.ReactNode
   filters: ToolbarFilters
   onFiltersChange: (filters: ToolbarFilters) => void
   filterOptions?: { key: string; label: string; options: { value: string; label: string }[] }[]
@@ -147,13 +147,13 @@ export function ManagementToolbar({
         {hasSelection && (
           <div className="flex items-center gap-1 ml-auto">
             <Badge variant="secondary" className="text-xs">
-              已选 {selectedIds.length}
+              已选 {(selectedIds ?? []).length}
             </Badge>
             {onBatchToggle && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => { onBatchToggle(selectedIds, true); setShowBatchMenu(false) }}
+                onClick={() => { onBatchToggle(selectedIds ?? [], true); setShowBatchMenu(false) }}
                 className="h-8"
               >
                 <CheckSquare className="h-3.5 w-3.5 mr-1" />启用
@@ -163,7 +163,7 @@ export function ManagementToolbar({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => { if (confirm(`确定删除选中的 ${selectedIds.length} 项?`)) onBatchDelete(selectedIds); setShowBatchMenu(false) }}
+                onClick={() => { if (confirm(`确定删除选中的 ${(selectedIds ?? []).length} 项?`)) onBatchDelete(selectedIds ?? []); setShowBatchMenu(false) }}
                 className="h-8 text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5 mr-1" />删除

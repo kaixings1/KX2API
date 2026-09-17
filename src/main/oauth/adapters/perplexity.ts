@@ -54,7 +54,7 @@ export class PerplexityAdapter extends BaseOAuthAdapter {
       }
     }
 
-    this.emitProgress('success', 'Cookie validation successful')
+    this.emitProgress('success', 'Cookie 校验通过')
 
     return {
       success: true,

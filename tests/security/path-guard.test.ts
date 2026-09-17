@@ -176,7 +176,7 @@ test('InputValidator: validateJSON missing required field', () => {
   const v = new InputValidator()
   const r = v.validateJSON({}, { name: { type: 'string', required: true } })
   assert.strictEqual(r.valid, false)
-  assert.ok(r.errors[0]!.includes('Missing required'))
+  assert.ok(r.errors[0]!.includes('缺少必填字段'))
 })
 
 // ===========================================================================

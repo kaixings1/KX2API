@@ -13,13 +13,14 @@ interface RequestLogStats {
 }
 
 interface RequestLogStatsProps {
-  stats: RequestLogStats
+  stats?: RequestLogStats
 }
 
-export function RequestLogStats({ stats }: RequestLogStatsProps) {
+export function RequestLogStats({ stats: statsProp }: RequestLogStatsProps) {
   const { t } = useTranslation()
-  const successRate = stats.todayTotal > 0 
-    ? Math.round((stats.todaySuccess / stats.todayTotal) * 100) 
+  const stats: RequestLogStats = statsProp ?? { total: 0, success: 0, error: 0, todayTotal: 0, todaySuccess: 0, todayError: 0 }
+  const successRate = stats.todayTotal > 0
+    ? Math.round((stats.todaySuccess / stats.todayTotal) * 100)
     : 0
 
   const statCards = [

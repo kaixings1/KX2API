@@ -52,12 +52,11 @@ export function WorkflowDetailPage() {
     setLoading(true)
     try {
       const res = await workflowsApi.getById(id)
-      if (res.success && res.workflow) {
-        const wf = res.workflow as WorkflowDetail
-        setWorkflow(wf)
-        setEditName(wf.name)
-        setEditDescription(wf.description)
-        setEditStepsText(wf.steps.map(s => `${s.type}:${JSON.stringify(s.config)}`).join('\n'))
+      if (res) {
+        setWorkflow(res as WorkflowDetail)
+        setEditName(res.name)
+        setEditDescription(res.description)
+        setEditStepsText(res.steps.map(s => `${s.type}:${JSON.stringify(s.config)}`).join('\n'))
       }
     } catch (e) {
       console.error('[WorkflowDetail] Failed to load:', e)

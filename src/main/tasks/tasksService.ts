@@ -150,7 +150,7 @@ export class TasksService {
 
   async execute(taskId: string): Promise<{ success: boolean; error?: string }> {
     const task = tasksStore.get(taskId)
-    if (!task) return { success: false, error: `Task not found: ${taskId}` }
+    if (!task) return { success: false, error: `任务不存在：${taskId}` }
 
     runningTasks.add(taskId)
     this.setStatus(taskId, 'in_progress')

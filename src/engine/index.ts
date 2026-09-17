@@ -536,12 +536,12 @@ export class QueryEngine {
     }
     // 循环参数热更新：改完设置立即生效，无需重启应用
     if ('agentLoop' in updates) {
-      this.messageLoop.setLoopLimits(updates.agentLoop as AgentLoopConfig | void)
+      this.messageLoop.setLoopLimits(updates.agentLoop as AgentLoopConfig | undefined)
     }
     // 图片预算热更新：改完设置立即生效
     if ('imageBudget' in updates) {
       this.messageLoop.setImageBudget(
-        updates.imageBudget as ImageBudgetOptions | void,
+        updates.imageBudget as ImageBudgetOptions | undefined,
       )
     }
     // 工具执行超时热更新

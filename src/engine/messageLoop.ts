@@ -55,6 +55,8 @@ export type AgentEvent =
   | { type: 'needs_user'; prompt?: string }
   | { type: 'should_continue' }
   | { type: 'pre_tool_use'; toolUseId: string; toolName: string; input: Record<string, unknown> }
+  | { type: 'paused'; reason?: string }
+  | { type: 'resumed' }
 
 export interface AutoContinueConfig {
   enabled?: boolean;
@@ -76,7 +78,12 @@ export interface MessageLoopDeps {
   model: string;
   maxOutputTokens: number;
   toolDefinitions: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>;
-  provider: string;
+  /**
+   * 供应商标识。用 RequestParams 的联合类型而非宽泛的 string ——
+   * 后者传给 requestBuilder 时会报 TS2322（string 不可赋给联合类型），
+   * 而且放宽类型也失去了"写错 provider 名"的保护。
+   */
+  provider: import('./requestBuilder.ts').RequestParams['provider'];
   onEvent?: (event: AgentEvent) => void;
   autoCompactor?: AutoCompactor;
   preAnalysis?: Array<{ type: string; message: string; line?: number }>;
@@ -107,6 +114,15 @@ export class MessageLoop {
   /** 循环控制参数 —— 由 deps.loopLimits 注入，缺省回落到默认值 */
   private limits: Required<AgentLoopConfig>;
   /**
+   * 事件发射器（保证非空）。
+   *
+   * deps.onEvent 声明为可选（调用方可以不订阅），但本类到处直接调用它。
+   * 原实现在构造函数里做兜底赋值，然而 TS 不认"构造期赋值" ——
+   * 19 处调用全部报 TS2722（Cannot invoke an object which is possibly 'undefined'）。
+   * 改为存一份非空引用：可选性只体现在 deps 入参上，内部一律用本字段。
+   */
+  private readonly emit: (event: AgentEvent) => void;
+  /**
    * 会话级滚动记忆（单次对话内、只喂给压缩）。
    *
    * 与磁盘上的项目记忆不同层次：它随会话创建、随会话丢弃，不落盘。
@@ -120,9 +136,8 @@ export class MessageLoop {
 
   constructor(private deps: MessageLoopDeps) {
     this.limits = resolveLoopConfig(this.deps.loopLimits)
-    if (!this.deps.onEvent) {
-      this.deps.onEvent = () => {}
-    }
+    // 存一份非空引用：deps.onEvent 可选，但内部到处直接调用它
+    this.emit = this.deps.onEvent ?? (() => {})
     if (this.deps.autoFixLoop?.enabled) {
       this.autoFixLoop = new AutoFixLoop({
         ...this.deps.autoFixLoop,
@@ -153,6 +168,77 @@ export class MessageLoop {
   /** 当前会话记忆的要点数（诊断用） */
   getSessionMemorySize(): number {
     return this.sessionMemory.size
+  }
+
+  // ─────────────────── 暂停 / 恢复 ───────────────────
+  //
+  // `QueryEngine.pause()` / `resume()` / `isPaused()` 以及 IPC 的
+  // `chat:pause` / `chat:resume` / `chat:getState` 一直在调用这些方法，
+  // 但 MessageLoop **从未实现过它们** —— 一旦触发就是
+  // `this.messageLoop.pause is not a function`。
+  //
+  // 语义：暂停发生在**轮次边界**，不打断正在进行的 API 请求。
+  // 中断一个已经发出的请求会浪费 token 且可能留下不完整的 tool_use
+  // （破坏配对不变量），得不偿失。
+
+  /** 是否处于暂停状态 */
+  private paused = false
+  /** 暂停原因（供 UI 展示） */
+  private pauseReason: string | null = null
+  /** 暂停期间等待恢复的通知器 */
+  private resumeWaiters: Array<() => void> = []
+
+  /** 暂停循环（在下一个轮次边界生效） */
+  pause(reason?: string): void {
+    if (this.paused) return
+    this.paused = true
+    this.pauseReason = reason ?? null
+    engineLog('PAUSE', reason ? `已暂停：${reason}` : '已暂停')
+    this.emit({ type: 'paused', reason })
+  }
+
+  /**
+   * 恢复循环。
+   *
+   * @param input 可选：恢复时追加的一条用户消息（用于"暂停后补充指示再继续"）
+   */
+  resume(input?: string): void {
+    if (!this.paused) return
+    this.paused = false
+    this.pauseReason = null
+    if (input && input.trim()) {
+      this.deps.conversation.messages.push({
+        role: 'user',
+        content: input,
+      } as InternalMessage)
+    }
+    // 唤醒所有等待者，让主循环继续推进
+    const waiters = this.resumeWaiters
+    this.resumeWaiters = []
+    for (const w of waiters) w()
+    engineLog('PAUSE', input ? `已恢复并追加指令` : '已恢复')
+    this.emit({ type: 'resumed' })
+  }
+
+  isPaused(): boolean {
+    return this.paused
+  }
+
+  /** 暂停原因（未暂停时返回 null） */
+  getPauseReason(): string | null {
+    return this.pauseReason
+  }
+
+  /**
+   * 在轮次边界等待恢复。
+   *
+   * 只在 paused 为真时挂起；不设超时 —— 暂停是用户的明确意图，
+   * 超时自动恢复会让"暂停"变得不可预期。
+   */
+  private async waitIfPaused(): Promise<void> {
+    while (this.paused) {
+      await new Promise<void>(resolve => this.resumeWaiters.push(resolve))
+    }
   }
 
   /** 更新图片预算（设置界面改完即时生效）；传空值表示不启用裁剪 */
@@ -254,7 +340,7 @@ export class MessageLoop {
   async run(userMessage: string): Promise<QueryResult> {
     const requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     console.log(`[LOOP] run START requestId=${requestId} msgLen=${userMessage.length}`)
-    this.deps.onEvent({ type: 'iteration_start', iteration: 0 });
+    this.emit({ type: 'iteration_start', iteration: 0 });
     this.resetAutoFixLoop()
     this.resetGitContext()
     this.resetSessionMemory()
@@ -268,12 +354,16 @@ export class MessageLoop {
 
     const start = Date.now();
     while (this.deps.stateMachine.canContinue()) {
+      // 暂停检查点：在**轮次边界**等待，不打断已发出的请求
+      // （中断请求会浪费 token，且可能留下不完整的 tool_use 破坏配对）。
+      await this.waitIfPaused();
+
       this.currentIteration++;
       if (this.currentIteration > this.limits.maxIterations) {
         await this.deps.stateMachine.transition("crashed", { reason: "超过最大迭代次数" });
         break;
       }
-      this.deps.onEvent({ type: 'iteration_start', iteration: this.currentIteration });
+      this.emit({ type: 'iteration_start', iteration: this.currentIteration });
       try {
         const shouldContinue = await this.runIteration();
         const ts = new Date().toLocaleTimeString('zh-CN', { hour12: false })
@@ -282,8 +372,8 @@ export class MessageLoop {
           if (this.deps.acceptanceGate) {
             const gateResult = await this.deps.acceptanceGate.check()
             if (!gateResult.allRequiredPass) {
-              engineLog('ACCEPTANCE', 'Required acceptance criteria not met, continuing to fix')
-              this.deps.onEvent({ type: 'should_continue' })
+              engineLog('ACCEPTANCE', '验收标准未全部通过，继续修复')
+              this.emit({ type: 'should_continue' })
               await this.deps.stateMachine.transition("should_continue")
               continue
             }
@@ -302,7 +392,7 @@ export class MessageLoop {
         const ts2 = new Date().toLocaleTimeString('zh-CN', { hour12: false })
         console.error(`[${ts2}] [ENGINE] runIteration error: ${errMsg}`);
         console.error(`[${ts2}] [ENGINE] stack: ${errStack}`);
-        this.deps.onEvent({ type: 'error', error: errMsg, stack: errStack });
+        this.emit({ type: 'error', error: errMsg, stack: errStack });
         if (this.deps.stateMachine.isTerminal()) break;
         await this.deps.stateMachine.transition("crashed", { error: ErrorClassifier.classify(error) });
         break;
@@ -316,7 +406,7 @@ export class MessageLoop {
       tokenUsage: this.deps.tokenBudget.getUsage(),
       duration: Date.now() - start,
     };
-    this.deps.onEvent({ type: 'done', result });
+    this.emit({ type: 'done', result });
     return result;
   }
 
@@ -395,12 +485,12 @@ export class MessageLoop {
     );
     // 推理旁路透传：thinking 块不进 conversation/history，仅转发事件给上层
     this.deps.responseHandler.onReasoning = (text: string) => {
-      if (this.deps.onEvent) this.deps.onEvent({ type: 'reasoning', text });
+      if (this.deps.onEvent) this.emit({ type: 'reasoning', text });
     };
     // 流式正文实时透传：把增量文本作为 response_chunk 事件发给上层（前端逐字显示）
     this.deps.responseHandler.onChunk = (chunk: { type: string; text?: string }) => {
       if (chunk.type === 'text' && chunk.text && this.deps.onEvent) {
-        this.deps.onEvent({ type: 'response_chunk', content: chunk.text });
+        this.emit({ type: 'response_chunk', content: chunk.text });
       }
     };
     const processed = await this.deps.responseHandler.handle(stream as AsyncIterable<{ type: string; [k: string]: unknown }>);
@@ -421,8 +511,8 @@ export class MessageLoop {
     // 仅当本轮没有工具调用时才按 needs_user 收尾：模型可能在同一轮里既发起工具调用、
     // 正文又以问句结尾，此时必须先去执行工具，不能被判定提前截断。
     if (processed.needsUserInput && processed.toolCalls.length === 0) {
-      this.deps.onEvent({ type: 'needs_user', prompt: processed.content as string });
-      this.deps.onEvent({
+      this.emit({ type: 'needs_user', prompt: processed.content as string });
+      this.emit({
         type: 'iteration_end',
         iteration: this.currentIteration,
         hasToolCalls: processed.toolCalls.length > 0,
@@ -433,8 +523,8 @@ export class MessageLoop {
     if (!shouldContinue && this.deps.acceptanceGate) {
       const gateResult = await this.deps.acceptanceGate.check()
       if (!gateResult.allRequiredPass) {
-        engineLog('ACCEPTANCE', 'Required acceptance criteria not met, continuing to fix')
-        this.deps.onEvent({ type: 'should_continue' })
+        engineLog('ACCEPTANCE', '验收标准未全部通过，继续修复')
+        this.emit({ type: 'should_continue' })
         shouldContinue = true
       }
     }
@@ -484,7 +574,7 @@ export class MessageLoop {
           content: "Previous tool calls were invalid. Please answer directly without using tools.",
         } as InternalMessage);
         if (this.consecutiveToolFailures >= this.limits.maxInvalidToolCalls) {
-          engineLog('WARN', 'Too many consecutive invalid tool calls, stopping');
+          engineLog('WARN', '连续无效工具调用过多，停止');
           return false;
         }
         await this.deps.stateMachine.transition("should_continue");
@@ -508,15 +598,15 @@ export class MessageLoop {
           content: "你已在前一轮请求过完全相同的工具调用且结果已返回，请直接基于已有工具结果回答用户，不要再重复发起相同的工具调用。",
         } as InternalMessage);
         await this.deps.stateMachine.transition("done");
-        this.deps.onEvent({ type: 'iteration_end', iteration: this.currentIteration, hasToolCalls: true });
+        this.emit({ type: 'iteration_end', iteration: this.currentIteration, hasToolCalls: true });
         return false;
       }
 
       engineLog('TOOL_CALLS', JSON.stringify(validCalls, null, 2).slice(0, 10000));
-      this.deps.onEvent({ type: 'request_sent', model: this.deps.model });
+      this.emit({ type: 'request_sent', model: this.deps.model });
 
       for (const tc of validCalls) {
-        this.deps.onEvent({
+        this.emit({
           type: 'tool_call_start',
           toolUseId: tc.id,
           toolName: tc.name,
@@ -525,7 +615,7 @@ export class MessageLoop {
       }
 
       for (const tc of validCalls) {
-        this.deps.onEvent({
+        this.emit({
           type: 'pre_tool_use',
           toolUseId: tc.id,
           toolName: tc.name,
@@ -538,7 +628,7 @@ export class MessageLoop {
       engineLog('TOOL_RESULTS', JSON.stringify(results, null, 2).slice(0, 10000));
 
       for (const r of results) {
-        this.deps.onEvent({
+        this.emit({
           type: 'post_tool_use',
           toolUseId: r.toolUseId,
           toolName: validCalls.find(tc => tc.id === r.toolUseId)?.name ?? '',
@@ -557,7 +647,7 @@ export class MessageLoop {
       }
 
       if (this.consecutiveToolFailures >= this.limits.maxToolFailures) {
-        engineLog('WARN', 'Too many consecutive tool failures, stopping tool loop');
+        engineLog('WARN', '连续工具失败过多，停止工具循环');
         this.deps.conversation.messages.push({
           role: "system",
           content: "Tool calls are failing. Please answer directly without using tools.",
@@ -586,18 +676,18 @@ export class MessageLoop {
         }
       }
 
-      this.deps.onEvent({ type: 'iteration_end', iteration: this.currentIteration, hasToolCalls: true });
+      this.emit({ type: 'iteration_end', iteration: this.currentIteration, hasToolCalls: true });
       await this.deps.stateMachine.transition("should_continue");
       return true;
     }
 
-    this.deps.onEvent({ type: 'iteration_end', iteration: this.currentIteration, hasToolCalls: false });
+    this.emit({ type: 'iteration_end', iteration: this.currentIteration, hasToolCalls: false });
 
     const ts = new Date().toLocaleTimeString('zh-CN', { hour12: false })
     console.log(`[${ts}] [LOOP] no-tool round: stopReason=${processed.stopReason} needsUserInput=${processed.needsUserInput} contentLen=${typeof processed.content === 'string' ? processed.content.length : JSON.stringify(processed.content).length}`)
 
     if (processed.needsUserInput) {
-      this.deps.onEvent({ type: 'needs_user', prompt: processed.content as string });
+      this.emit({ type: 'needs_user', prompt: processed.content as string });
       return true;
     }
 
@@ -688,7 +778,7 @@ export class MessageLoop {
       return false;
     }
     if (processed.stopReason === 'max_tokens') {
-      this.deps.onEvent({ type: 'should_continue' });
+      this.emit({ type: 'should_continue' });
       return true;
     }
 

@@ -40,7 +40,7 @@ export const deepseekConfig: BuiltinProviderConfig = {
       type: 'password',
       required: true,
       placeholder: 'Enter DeepSeek user token',
-      helpText: 'Authentication token obtained from DeepSeek web version, found in browser DevTools Application -> Local Storage',
+      helpText: '从 DeepSeek 网页版获取的认证 Token，位于浏览器开发者工具 → Application → Local Storage',
     },
   ],
   tokenCheckEndpoint: '/v0/users/current',

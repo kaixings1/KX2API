@@ -23,7 +23,7 @@ export const ollamaConfig: BuiltinProviderConfig = {
       type: 'password',
       required: false,
       placeholder: 'Optional API key',
-      helpText: 'Ollama typically runs locally without auth',
+      helpText: 'Ollama 通常本地运行，无需认证',
     },
   ],
   tokenCheckEndpoint: '/api/tags',

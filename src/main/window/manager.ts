@@ -17,7 +17,7 @@ let mainWindow: BrowserWindow | null = null
  * 再退到构建输出相对路径。全部不存在时返回空值，
  * 让 Electron 用默认图标，而不是传一个坏路径。
  */
-function resolveAppIcon(): string | void {
+function resolveAppIcon(): string | undefined {
   const candidates = [
     // 打包后：extraResources 把 build/icon.png 拷到 resources 根（见 package.json）
     app.isPackaged && process.resourcesPath

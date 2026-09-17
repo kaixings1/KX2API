@@ -83,16 +83,16 @@ export class GLMAdapter extends BaseOAuthAdapter {
     
     try {
       await shell.openExternal(GLM_API_BASE)
-      this.emitProgress('pending', 'Please log in via browser and enter Token manually')
+      this.emitProgress('pending', '请通过浏览器登录后手动填入 Token')
       
       return {
         success: false,
         providerId: options.providerId,
         providerType: 'glm',
-        error: 'Please log in via browser, extract Token from Developer Tools and enter manually',
+        error: '请通过浏览器登录，从开发者工具中提取 Token 后手动填入',
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to open browser'
+      const errorMessage = error instanceof Error ? error.message : '打开浏览器失败'
       this.emitProgress('error', errorMessage)
       
       return {
@@ -118,7 +118,7 @@ export class GLMAdapter extends BaseOAuthAdapter {
           success: false,
           providerId,
           providerType: 'glm',
-          error: 'Refresh Token is invalid or expired',
+          error: 'Refresh Token 无效 or expired',
         }
       }
       
@@ -127,7 +127,7 @@ export class GLMAdapter extends BaseOAuthAdapter {
         accessToken: tokens.value,
       })
       
-      this.emitProgress('success', 'Token validation successful')
+      this.emitProgress('success', 'Token 校验通过')
       
       return {
         success: true,
@@ -140,8 +140,8 @@ export class GLMAdapter extends BaseOAuthAdapter {
         accountInfo: validation.accountInfo,
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      this.emitProgress('error', `Token validation failed: ${errorMessage}`)
+      const errorMessage = error instanceof Error ? error.message : '未知错误'
+      this.emitProgress('error', `Token 校验失败：${errorMessage}`)
       
       return {
         success: false,
@@ -199,14 +199,14 @@ export class GLMAdapter extends BaseOAuthAdapter {
       if (response.status !== 200) {
         return {
           valid: false,
-          error: `Refresh Token is invalid or expired (status: ${response.status})`,
+          error: `Refresh Token 无效 or expired (status: ${response.status})`,
         }
       }
       
       if (!response.data) {
         return {
           valid: false,
-          error: 'Refresh Token is invalid or expired (no response data)',
+          error: 'Refresh Token 无效 or expired (no response data)',
         }
       }
       
@@ -222,7 +222,7 @@ export class GLMAdapter extends BaseOAuthAdapter {
       if (result.is_guest === true) {
         return {
           valid: false,
-          error: 'Guest account not allowed, please login with a real account',
+          error: '不允许使用游客账户，请用真实账户登录',
         }
       }
       
@@ -238,28 +238,28 @@ export class GLMAdapter extends BaseOAuthAdapter {
         if (isGuest === true) {
           return {
             valid: false,
-            error: 'Guest account not allowed, please login with a real account',
+            error: '不允许使用游客账户，请用真实账户登录',
           }
         }
         
         if (nickname && nickname.includes('访客')) {
           return {
             valid: false,
-            error: 'Guest account not allowed, please login with a real account',
+            error: '不允许使用游客账户，请用真实账户登录',
           }
         }
         
         if (email && email.includes('@guest')) {
           return {
             valid: false,
-            error: 'Guest account not allowed, please login with a real account',
+            error: '不允许使用游客账户，请用真实账户登录',
           }
         }
         
         if (!phone && !email) {
           return {
             valid: false,
-            error: 'Guest account not allowed, please login with a real account',
+            error: '不允许使用游客账户，请用真实账户登录',
           }
         }
         
@@ -282,7 +282,7 @@ export class GLMAdapter extends BaseOAuthAdapter {
         },
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Validation request failed'
+      const errorMessage = error instanceof Error ? error.message : '校验请求失败'
       return {
         valid: false,
         error: errorMessage,

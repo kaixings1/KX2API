@@ -2343,7 +2343,7 @@ export class StepFunAdapter {
 
     // errorEvent: error occurred
     if (event.errorEvent) {
-      const errorMsg = event.errorEvent.message || 'Unknown error'
+      const errorMsg = event.errorEvent.message || '未知错误'
       console.error('[StepFun][CONNECT] errorEvent:', errorMsg)
       const errorChunk = {
         id: messageIdState.current || '',

@@ -37,17 +37,17 @@ export class StepFunOAuthAdapter extends BaseOAuthAdapter {
 
     try {
       await shell.openExternal(STEPFUN_PLATFORM)
-      this.emitProgress('pending', 'Please log in via browser, the token will be auto-extracted from localStorage')
+      this.emitProgress('pending', '请通过浏览器登录，Token 将自动从 localStorage 提取')
 
       return {
         success: false,
         providerId: options.providerId,
         providerType: 'stepfun',
-        error: 'Please log in via browser, token will be auto-extracted from localStorage',
+        error: '请通过浏览器登录，Token 将自动从 localStorage 提取',
       }
     } catch (error) {
       console.error('[StepFun] startLogin error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to open browser'
+      const errorMessage = error instanceof Error ? error.message : '打开浏览器失败'
       this.emitProgress('error', errorMessage)
 
       return {
@@ -84,10 +84,10 @@ export class StepFunOAuthAdapter extends BaseOAuthAdapter {
         credentials: { token },
       }
     } catch (error) {
-      this.emitProgress('error', error instanceof Error ? error.message : 'Unknown error')
+      this.emitProgress('error', error instanceof Error ? error.message : '未知错误')
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
       }
     }
   }
@@ -103,7 +103,7 @@ export class StepFunOAuthAdapter extends BaseOAuthAdapter {
     if (!token) {
       return {
         valid: false,
-        error: 'Token is required',
+        error: '缺少 Token',
       }
     }
 
@@ -152,7 +152,7 @@ export class StepFunOAuthAdapter extends BaseOAuthAdapter {
 
       return {
         valid: false,
-        error: `HTTP ${response.status}: ${response.data?.error?.message || response.data?.message || 'Unknown error'}`,
+        error: `HTTP ${response.status}: ${response.data?.error?.message || response.data?.message || '未知错误'}`,
       }
     } catch (error) {
       return {

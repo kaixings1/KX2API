@@ -20,16 +20,15 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
   error: { label: '错误', variant: 'destructive' },
 }
 
-interface AgentDetail {
-  id: string
-  name: string
-  role: string
-  systemPrompt: string
-  model: string
-  status: string
-  createdAt: number
-  updatedAt: number
-}
+// 直接用后端返回的 AgentRecord，不再本地重复定义。
+//
+// 原来的本地 AgentDetail 与 AgentRecord 字段几乎一致，但有细微差异
+// （后端 `model` 可为 null、后端多一个 `lastActiveAt`），
+// 两套定义并存会让「接口返回的对象」无法直接赋给「页面期望的类型」——
+// 这正是之前那处 TS2345 的根因。
+//
+// 注意：AgentRecord.model 是 `string | null`，用到时需空值兜底。
+type AgentDetail = AgentRecord
 
 export function AgentDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -53,12 +52,12 @@ export function AgentDetailPage() {
     setLoading(true)
     try {
       const res = await agentsApi.getById(id)
-      if (res.success && res.data) {
-        setAgent(res.data as AgentDetail)
-        setEditName(res.agent.name)
-        setEditRole(res.agent.role)
-        setEditPrompt(res.agent.systemPrompt || '')
-        setEditModel(res.agent.model || '')
+      if (res) {
+        setAgent(res)
+        setEditName(res.name)
+        setEditRole(res.role)
+        setEditPrompt(res.systemPrompt || '')
+        setEditModel(res.model || '')
       }
     } catch (e) {
       console.error('[AgentDetail] Failed to load:', e)
@@ -202,7 +201,7 @@ export function AgentDetailPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t('agents.updatedAt', '更新时间')}</span>
-              <span>{new Date(agent.updatedAt).toLocaleString()}</span>
+              <span>{agent.updatedAt ? new Date(agent.updatedAt).toLocaleString() : '—'}</span>
             </div>
           </CardContent>
         </Card>

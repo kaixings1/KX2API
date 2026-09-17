@@ -97,7 +97,7 @@ export class PathGuard {
       ) {
         return {
           allowed: false,
-          reason: `File extension not allowed: ${ext}`,
+          reason: `不允许的文件扩展名：${ext}`,
           normalizedPath,
         }
       }

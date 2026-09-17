@@ -121,7 +121,7 @@ function parseBracketFormat(
   let blockMatch: RegExpExecArray | null
   while ((blockMatch = blockRegex.exec(processed)) !== null) {
     const blockContent = blockMatch[1]
-    options.rawMatches.push(blockMatch[0])
+    options.rawMatches.push(blockMatch![0])
 
     const callRegex = /\[call\s*[:=]?\s*([a-zA-Z0-9_:-]+)\]([\s\S]*?)\[\/call\]/g
     let match: RegExpExecArray | null
@@ -230,7 +230,7 @@ Use the result to continue your work, calling more tools as needed.`
     const allowedNames = declaredNames.size > 0 ? declaredNames : DEFAULT_ALLOWED_NAMES
     const rawMatches: string[] = []
     const invalidToolNames: string[] = []
-    const toolCalls = []
+    const toolCalls: any[] = []
 
     extractFencedJsonToolCalls(commented, { rawMatches, invalidToolNames, allowedNames, toolCalls })
     // 兼容上游网页仍使用旧前缀 CHAT2API 的情况：统一替换为 KX2API 后解析
@@ -410,7 +410,7 @@ function parseBlocks(content: string, options: ParseBlockOptions): void {
   let blockMatch: RegExpExecArray | null
 
   while ((blockMatch = options.blockPattern.exec(content)) !== null) {
-    options.rawMatches.push(blockMatch[0])
+    options.rawMatches.push(blockMatch![0])
     let invokeMatch: RegExpExecArray | null
 
     while ((invokeMatch = options.invokePattern.exec(blockMatch[1])) !== null) {
@@ -488,17 +488,18 @@ function parseArrowFormat(content: string, options: {
   const arrowRegex = /<tool_call>\s*([A-Za-z_][\w.]*)\s*->\s*([A-Za-z_]\w*)\s*->\s*(\{[\s\S]*?\})(?:\s*\(\s*(\{[\s\S]*?\})\s*\))?\s*;?/gi
   let match: RegExpExecArray | null
   while ((match = arrowRegex.exec(content)) !== null) {
+    const m: RegExpExecArray = match
     const isCovered = options.rawMatches.some((existing) => {
-      const idx = existing.indexOf(match[0])
+      const idx = existing.indexOf(m[0])
       if (idx === -1) return false
-      return match.index >= idx && match.index < idx + existing.length
+      return m.index >= idx && m.index < idx + existing.length
     })
     if (isCovered) continue
 
-    options.rawMatches.push(match[0])
-    const rawName = match[1].trim()
+    options.rawMatches.push(m[0])
+    const rawName = m[1].trim()
     // 优先用别名（ALIAS，如 Bash/Read）做归一化，更贴近客户端工具名
-    const aliasName = match[2].trim()
+    const aliasName = m[2].trim()
     const tryName = aliasName || rawName
     const normalizedName = normalizeToolName(tryName)
     if (!options.allowedNames.has(normalizedName)) {
@@ -506,7 +507,7 @@ function parseArrowFormat(content: string, options: {
       const normalizedRaw = normalizeToolName(rawName)
       if (options.allowedNames.has(normalizedRaw)) {
         options.toolCalls.push(
-          buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedRaw, extractArrowArgs(match[3], match[4]), match[0]),
+          buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedRaw, JSON.stringify(extractArrowArgs(m[3], m[4])), m[0]),
         )
         continue
       }
@@ -515,7 +516,7 @@ function parseArrowFormat(content: string, options: {
     }
 
     options.toolCalls.push(
-      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, extractArrowArgs(match[3], match[4]), match[0]),
+      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, JSON.stringify(extractArrowArgs(m[3], m[4])), m[0]),
     )
   }
 }
@@ -614,7 +615,8 @@ function parseToolCallsArrayFormat(content: string, options: {
   const arrayRegex = /<tool_calls>\s*(\[[\s\S]*?\])\s*<\/tool_calls>/gi
   let match: RegExpExecArray | null
   while ((match = arrayRegex.exec(content)) !== null) {
-    const jsonText = match[1].trim()
+    const m: RegExpExecArray = match
+    const jsonText = m[1].trim()
     let parsed: any = null
     try {
       parsed = JSON.parse(jsonText)
@@ -627,17 +629,17 @@ function parseToolCallsArrayFormat(content: string, options: {
     if (!Array.isArray(parsed) || parsed.length === 0) continue
 
     const isCovered = options.rawMatches.some((existing) => {
-      const idx = existing.indexOf(match[0])
+      const idx = existing.indexOf(m[0])
       if (idx === -1) return false
-      return match.index >= idx && match.index < idx + existing.length
+      return m.index >= idx && m.index < idx + existing.length
     })
     if (isCovered) continue
 
     // const/let/var 声明行内的 <tool_calls>[...] 绝不可能是真实工具调用
     // （如源码/讲解里的 `const x = \`<tool_calls>[{...}]\``）。
-    if (isInConstDeclaration(content, match.index)) continue
+    if (isInConstDeclaration(content, m.index)) continue
 
-    options.rawMatches.push(match[0])
+    options.rawMatches.push(m[0])
     for (const call of parsed) {
       const fn = call?.function ?? call
       const rawName = fn?.name ?? call?.name
@@ -691,19 +693,20 @@ function parseHeredocJsonFormat(content: string, options: {
   const heredocRegex = /<tool_call>([\s\S]*?)<<\s*["']?(\w+)["']?\s*\n([\s\S]*?)\n\s*\2["']?/gi
   let match: RegExpExecArray | null
   while ((match = heredocRegex.exec(content)) !== null) {
+    const m: RegExpExecArray = match
     const isCovered = options.rawMatches.some((existing) => {
-      const idx = existing.indexOf(match[0])
+      const idx = existing.indexOf(m[0])
       if (idx === -1) return false
-      return match.index >= idx && match.index < idx + existing.length
+      return m.index >= idx && m.index < idx + existing.length
     })
     if (isCovered) continue
 
     // const/let/var 声明行内的 <tool_call><<HEREDOC 绝不可能是真实工具调用
     // （如源码/讲解里的 `const x = \`<tool_call>Bash<<TOOL_CALL...\``）。
-    if (isInConstDeclaration(content, match.index)) continue
+    if (isInConstDeclaration(content, m.index)) continue
 
-    options.rawMatches.push(match[0])
-    const jsonText = match[3].trim()
+    options.rawMatches.push(m[0])
+    const jsonText = m[3].trim()
 
     let parsed: any = null
     try {
@@ -855,7 +858,7 @@ function stripComments(text: string): string {
  * 判断一段 inner 文本是否"看起来像源码/讲解"（而非真实工具调用参数）。
  * 真实工具调用的参数要么是子标签（<command>...</command>）、要么是单个 JSON
  * 对象，绝对不会是"逗号分隔的多个标识符/字面量"这种源码参数列表
- * （如 `options.toolCalls.length, normalizedName, argsJson, glmMatch[0]`）。
+ * （如 `options.toolCalls.length, normalizedName, argsJson, glmMatch![0]`）。
  * 命中则返回 true，解析器应跳过提取。
  */
 function looksLikeSourceCode(text: string): boolean {
@@ -865,7 +868,7 @@ function looksLikeSourceCode(text: string): boolean {
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) return false
   // ── 精准字符串判定：源码/解析器特有的标识符，命中即判为源码（弱但极准）──
   const SOURCE_MARKERS = [
-    'toolCalls.length', 'glmMatch[0]', 'openMatch[0]', 'attrMatch[0]', 'dotMatch[0]',
+    'toolCalls.length', 'glmMatch![0]', 'openMatch![0]', 'attrMatch![0]', 'dotMatch![0]',
     'buildToolCall(', 'normalizedName', 'argsJson', 'rawMatches.push',
     'options.toolCalls', 'createParseResult', 'addParameter(', 'readBalancedJson',
     'detectMarkers', 'toolStreamParser', 'createBaseChunk', 'baseChunk',
@@ -1053,27 +1056,28 @@ function parseSurgeFormat(content: string, options: {
   const openPattern = /<tool_call>(\w+(?:\.\w+)*)\s*:\s*(\{[\s\S]*?\})/gi
   let openMatch: RegExpExecArray | null
   while ((openMatch = openPattern.exec(content)) !== null) {
+    const om: RegExpExecArray = openMatch
     const isCovered = options.rawMatches.some(existing => {
-      const idx = existing.indexOf(openMatch[0])
+      const idx = existing.indexOf(om[0])
       if (idx === -1) return false
-      return openMatch.index >= idx && openMatch.index < idx + existing.length
+      return om.index >= idx && om.index < idx + existing.length
     })
     if (isCovered) continue
     // const 声明行内的 <tool_call> 绝不可能是真实工具
-    if (isInConstDeclaration(content, openMatch.index)) continue
+    if (isInConstDeclaration(content, om.index)) continue
 
-    options.rawMatches.push(openMatch[0])
-    const rawName = openMatch[1].trim()
+    options.rawMatches.push(om[0])
+    const rawName = om[1].trim()
     const normalizedName = normalizeToolName(rawName)
     if (!options.allowedNames.has(normalizedName)) {
       options.invalidToolNames.push(rawName)
       continue
     }
     let args: unknown = {}
-    try { args = JSON.parse(openMatch[2]); } catch { args = openMatch[2]; }
+    try { args = JSON.parse(om[2]); } catch { args = om[2]; }
     const argsJson = typeof args === 'string' ? args : JSON.stringify(args ?? {})
     options.toolCalls.push(
-      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, argsJson, openMatch[0]),
+      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, argsJson, om[0]),
     )
   }
 
@@ -1081,17 +1085,18 @@ function parseSurgeFormat(content: string, options: {
   const attrPattern = /<tool_call>(\w+)((?:\s+\w+="[^"]*")*)\s*>\s*([\s\S]*?)<\/\1>/gi
   let attrMatch: RegExpExecArray | null
   while ((attrMatch = attrPattern.exec(content)) !== null) {
+    const atm: RegExpExecArray = attrMatch
     const isCovered = options.rawMatches.some(existing => {
-      const idx = existing.indexOf(attrMatch[0])
+      const idx = existing.indexOf(atm[0])
       if (idx === -1) return false
-      return attrMatch.index >= idx && attrMatch.index < idx + existing.length
+      return atm.index >= idx && atm.index < idx + existing.length
     })
     if (isCovered) continue
     // const 声明行内的 <tool_call> 绝不可能是真实工具
-    if (isInConstDeclaration(content, attrMatch.index)) continue
+    if (isInConstDeclaration(content, atm.index)) continue
 
-    options.rawMatches.push(attrMatch[0])
-    const rawName = attrMatch[1].trim()
+    options.rawMatches.push(atm[0])
+    const rawName = atm[1].trim()
     const normalizedName = normalizeToolName(rawName)
     if (!options.allowedNames.has(normalizedName)) {
       options.invalidToolNames.push(rawName)
@@ -1099,10 +1104,10 @@ function parseSurgeFormat(content: string, options: {
     }
 
     const attrs: Record<string, string> = {}
-    const attrStr = attrMatch[2].trim()
+    const attrStr = atm[2].trim()
     // 严格校验：属性提取只在合法工具标签内进行；若属性串/内容像源码
     // （如 const attrRegex = /(\w+)="..."/g 这类讲解），则不是真实工具
-    if (looksLikeSourceCode(attrStr) || looksLikeSourceCode(attrMatch[3] || '')) {
+    if (looksLikeSourceCode(attrStr) || looksLikeSourceCode(atm[3] || '')) {
       options.invalidToolNames.push(rawName)
       continue
     }
@@ -1112,7 +1117,7 @@ function parseSurgeFormat(content: string, options: {
       attrs[am[1]] = am[2]
     }
 
-    const innerContent = attrMatch[3].trim()
+    const innerContent = atm[3].trim()
     let args: unknown = {}
     if (Object.keys(attrs).length > 0) {
       args = attrs
@@ -1122,7 +1127,7 @@ function parseSurgeFormat(content: string, options: {
 
     const argsJson = typeof args === 'string' ? args : JSON.stringify(args ?? {})
     options.toolCalls.push(
-      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, argsJson, attrMatch[0]),
+      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, argsJson, atm[0]),
     )
   }
 
@@ -1132,18 +1137,18 @@ function parseSurgeFormat(content: string, options: {
   let dotMatch: RegExpExecArray | null
   while ((dotMatch = dotAttrPattern.exec(content)) !== null) {
     const isCovered = options.rawMatches.some(existing => {
-      const idx = existing.indexOf(dotMatch[0])
+      const idx = existing.indexOf(dotMatch![0])
       if (idx === -1) return false
-      return dotMatch.index >= idx && dotMatch.index < idx + existing.length
+      return dotMatch!.index >= idx && dotMatch!.index < idx + existing.length
     })
     if (isCovered) continue
     // const 声明行内的 <tool_call> 绝不可能是真实工具
-    if (isInConstDeclaration(content, dotMatch.index)) continue
+    if (isInConstDeclaration(content, dotMatch!.index)) continue
 
     // 守卫：排除从"文件内容/源码/讲解"里误提取。
     // 1) 前导边界：<tool_call> 前若是 = / ( | ` 字母数字汉字（赋值/正则/讲解语境）则跳过
-    const prevChar = dotMatch.index > 0 ? content[dotMatch.index - 1] : ''
-    if (dotMatch.index > 0 && /[=`|A-Za-z0-9一-鿿]/.test(prevChar)) continue
+    const prevChar = dotMatch!.index > 0 ? content[dotMatch!.index - 1] : ''
+    if (dotMatch!.index > 0 && /[=`|A-Za-z0-9一-鿿]/.test(prevChar)) continue
     // 2) inner 内容若是正则字面量/源码（含正则元字符 [\s\S] (?: \s* 或 /.../ 字面正则）则跳过。
     //    注意：不再用 looksLikeSourceCode(dotInner) 守卫——GLM 真实工具调用常是
     //    Python 风格参数列表 `Name(ByVal=None, ByRef=None, args={'command': '...'})`，
@@ -1158,7 +1163,7 @@ function parseSurgeFormat(content: string, options: {
     if (/\[\\?[\s\S]|(?::|\(\?:)|\\s\*/.test(dotInner)) continue
     if (/\/\s*[^\s]+\s*\/[a-z]*/i.test(dotInner)) continue
 
-    options.rawMatches.push(dotMatch[0])
+    options.rawMatches.push(dotMatch![0])
     const rawName = dotMatch[1].trim()
     const normalizedName = normalizeToolName(rawName)
     if (!options.allowedNames.has(normalizedName)) {
@@ -1191,7 +1196,7 @@ function parseSurgeFormat(content: string, options: {
 
     const argsJson = JSON.stringify(args)
     options.toolCalls.push(
-      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, argsJson, dotMatch[0]),
+      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, argsJson, dotMatch![0]),
     )
   }
 
@@ -1225,15 +1230,15 @@ function parseSurgeFormat(content: string, options: {
   let glmMatch: RegExpExecArray | null
   while ((glmMatch = glmPattern.exec(content)) !== null) {
     const isCovered = options.rawMatches.some((existing) => {
-      const idx = existing.indexOf(glmMatch[0])
+      const idx = existing.indexOf(glmMatch![0])
       if (idx === -1) return false
-      return glmMatch.index >= idx && glmMatch.index < idx + existing.length
+      return glmMatch!.index >= idx && glmMatch!.index < idx + existing.length
     })
     if (isCovered) continue
     // const 声明行内的 <tool_call> 绝不可能是真实工具
-    if (isInConstDeclaration(content, glmMatch.index)) continue
+    if (isInConstDeclaration(content, glmMatch!.index)) continue
 
-    options.rawMatches.push(glmMatch[0])
+    options.rawMatches.push(glmMatch![0])
     const rawName = glmMatch[1].trim()
     const normalizedName = normalizeToolName(rawName)
     if (!options.allowedNames.has(normalizedName)) {
@@ -1277,7 +1282,7 @@ function parseSurgeFormat(content: string, options: {
       continue
     }
     options.toolCalls.push(
-      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, argsJson, glmMatch[0]),
+      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, normalizedName, argsJson, glmMatch![0]),
     )
   }
 }
@@ -1328,14 +1333,14 @@ function parseAntmlFormat(content: string, options: {
   let blockMatch: RegExpExecArray | null
   while ((blockMatch = blockRegex.exec(filtered)) !== null) {
     const isCovered = options.rawMatches.some((existing) => {
-      const idx = existing.indexOf(blockMatch[0])
+      const idx = existing.indexOf(blockMatch![0])
       if (idx === -1) return false
-      return blockMatch.index >= idx && blockMatch.index < idx + existing.length
+      return blockMatch!.index >= idx && blockMatch!.index < idx + existing.length
     })
     if (isCovered) continue
-    if (isInConstDeclaration(filtered, blockMatch.index)) continue
+    if (isInConstDeclaration(filtered, blockMatch!.index)) continue
 
-    options.rawMatches.push(blockMatch[0])
+    options.rawMatches.push(blockMatch![0])
     const blockInner = blockMatch[1]
     const callRegex = new RegExp(`<${ns}tool_call\\s+name="([^"]+)"[^>]*>([\\s\\S]*?)<\\/${ns}tool_call>`, 'gi')
     let callMatch: RegExpExecArray | null
@@ -1433,14 +1438,14 @@ function parseToolNameSubtagFormat(content: string, options: {
   let blockMatch: RegExpExecArray | null
   while ((blockMatch = blockPattern.exec(content)) !== null) {
     // const 声明行 / 注释行内的 <tool_call> 绝不可能是真实工具
-    if (isInConstDeclaration(content, blockMatch.index)) continue
+    if (isInConstDeclaration(content, blockMatch!.index)) continue
 
     const inner = blockMatch[1].trim()
     // 仅处理含 <toolName> 子标签的结构；否则交给 parseSurgeFormat 兜底
     const nameMatch = /<toolName\s*>([\s\S]*?)<\/toolName\s*>/i.exec(inner)
     if (!nameMatch) continue
 
-    options.rawMatches.push(blockMatch[0])
+    options.rawMatches.push(blockMatch![0])
     const rawName = decodeXml(nameMatch[1].trim())
     // 优先用原始工具名直接比对白名单（如 request.tools 里声明的 `ls`），
     // 避免 normalizeToolName 将 `ls` 归一成 `ListFiles` 而与声明名失配；
@@ -1510,7 +1515,7 @@ function parseToolNameSubtagFormat(content: string, options: {
       continue
     }
     options.toolCalls.push(
-      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, matchedName, argsJson, blockMatch[0]),
+      buildToolCall(`call_${options.toolCalls.length}`, options.toolCalls.length, matchedName, argsJson, blockMatch![0]),
     )
   }
 }

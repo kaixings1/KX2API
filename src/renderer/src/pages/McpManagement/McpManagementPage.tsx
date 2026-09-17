@@ -88,7 +88,15 @@ export function McpManagement() {
       const args = argsText.split(' ').filter(Boolean)
       let env: Record<string, string> = {}
       try { env = JSON.parse(envText || '{}') } catch { env = {} }
-      const serverData: Record<string, unknown> = { name, url, transport, enabled: true }
+      // 直接构造正确类型，不要先用 Record<string, unknown> 再断言 ——
+      // 那样两边类型不重叠，TS2352 会报"可能是误用"，且断言会掩盖字段拼错。
+      const serverData: McpServerConfig & { enabled: boolean } = {
+        id: editingServer?.id ?? `mcp_${Date.now()}`,
+        name,
+        transport,
+        enabled: true,
+      }
+      if (url) serverData.url = url
       if (command) serverData.command = command
       if (args.length > 0) serverData.args = args
       if (Object.keys(env).length > 0) serverData.env = env
@@ -97,7 +105,7 @@ export function McpManagement() {
         await mcpApi.updateConfig({ servers: newServers })
         setServers(newServers)
       } else {
-        await mcpApi.addServer(serverData as McpServerConfig & { enabled: boolean })
+        await mcpApi.addServer(serverData)
       }
       setDialogOpen(false)
       loadData()
@@ -166,18 +174,15 @@ export function McpManagement() {
   const handleExport = async () => {
     try {
       const res = await window.electronAPI.mgmt.export('mcp-servers', filtered)
-      if (res.success) {
-        const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `mcp_servers_${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
+      if (!res.success) {
+        return ''
       }
+      // 返回 JSON 字符串供 ImportExportDialog 统一下载
     } catch (e) {
       console.error('Export failed:', e)
+      return ''
     }
+    return JSON.stringify(filtered, null, 2)
   }
 
   const handleImport = async (jsonData: string) => {
@@ -201,17 +206,13 @@ export function McpManagement() {
   const handleBackup = async () => {
     try {
       const res = await window.electronAPI.mgmt.backup()
-      if (res.success) {
-        const blob = new Blob([JSON.stringify({ 'mcp-servers': filtered }, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `mcp_servers_backup_${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
+      if (!res.success) return { success: false, error: res.error }
+      const blob = new Blob([JSON.stringify({ 'mcp-servers': filtered }, null, 2)], { type: 'application/json' })
+      const file = new File([blob], `mcp_servers_backup_${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' })
+      return { success: true, file }
     } catch (e) {
       console.error('Backup failed:', e)
+      return { success: false, error: (e as Error).message }
     }
   }
 

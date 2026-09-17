@@ -158,7 +158,7 @@ export class OAuthManager extends EventEmitter {
           success: false,
           providerId,
           providerType,
-          error: 'Mimo requires userId and phToken in addition to serviceToken',
+          error: 'Mimo 除 serviceToken 外还需要 userId 与 phToken',
         }
       }
       const validation = await adapter.validateToken({
@@ -172,7 +172,7 @@ export class OAuthManager extends EventEmitter {
           success: false,
           providerId,
           providerType,
-          error: validation.error || 'Token validation failed',
+          error: validation.error || 'Token 校验失败',
         }
       }
       
@@ -196,7 +196,7 @@ export class OAuthManager extends EventEmitter {
         success: false,
         providerId,
         providerType,
-        error: validation.error || 'Token validation failed',
+        error: validation.error || 'Token 校验失败',
       }
     }
     
@@ -282,7 +282,7 @@ export class OAuthManager extends EventEmitter {
     this.emit('statusChange', 'pending')
     this.sendProgressToRenderer({
       status: 'pending',
-      message: 'Opening login window...',
+      message: '正在打开登录窗口…',
     })
 
     return new Promise((resolve) => {
@@ -530,7 +530,7 @@ export class OAuthManager extends EventEmitter {
               console.log('[OAuthManager] Mimo: Missing required tokens, aborting validation')
               this.sendProgressToRenderer({
                 status: 'pending',
-                message: 'Missing required tokens, waiting for valid login...',
+                message: '缺少必需的 Token，等待有效登录…',
               })
               isValidating = false
               return
@@ -555,7 +555,7 @@ export class OAuthManager extends EventEmitter {
               console.log('[OAuthManager] StepFun: Missing Oasis-Token, waiting...')
               this.sendProgressToRenderer({
                 status: 'pending',
-                message: 'Waiting for session token...',
+                message: '正在等待会话 Token…',
               })
               isValidating = false
               return

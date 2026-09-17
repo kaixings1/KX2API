@@ -159,7 +159,7 @@ export class UpdaterManager extends EventEmitter {
 
   public async downloadUpdate(): Promise<void> {
     if (!this.status.available) {
-      const error = 'No update available to download'
+      const error = '没有可下载的更新'
       console.error('[Updater]', error)
       this.updateStatus({ error })
       this.sendToRenderer(IpcChannels.APP_UPDATE_ERROR, { message: error })
@@ -190,7 +190,7 @@ export class UpdaterManager extends EventEmitter {
 
   public quitAndInstall(): void {
     if (!this.status.downloaded) {
-      const error = 'No update downloaded to install'
+      const error = '没有已下载的更新可安装'
       console.error('[Updater]', error)
       this.updateStatus({ error })
       this.sendToRenderer(IpcChannels.APP_UPDATE_ERROR, { message: error })
@@ -233,22 +233,22 @@ export class UpdaterManager extends EventEmitter {
 
   private getErrorMessage(error: Error): string {
     if (error.message.includes('net::ERR_INTERNET_DISCONNECTED')) {
-      return 'No internet connection. Please check your network and try again.'
+      return '网络未连接，请检查网络后重试。'
     }
     if (error.message.includes('net::ERR_CONNECTION_TIMED_OUT')) {
-      return 'Connection timed out. Please check your network and try again.'
+      return '连接超时，请检查网络后重试。'
     }
     if (error.message.includes('net::ERR_CONNECTION_RESET')) {
-      return 'Connection was reset. Please try again.'
+      return '连接被重置，请重试。'
     }
     if (error.message.includes('ENOENT')) {
-      return 'Update file not found. The update may have been corrupted.'
+      return '未找到更新文件，更新包可能已损坏。'
     }
     if (error.message.includes('EACCES') || error.message.includes('EPERM')) {
       return 'Permission denied. Please run the application as administrator.'
     }
     if (error.message.includes('signature')) {
-      return 'Update signature verification failed. The update may be corrupted or tampered with.'
+      return '更新包签名校验失败，可能已损坏或被篡改。'
     }
 
     return error.message || 'An unexpected error occurred during the update process.'

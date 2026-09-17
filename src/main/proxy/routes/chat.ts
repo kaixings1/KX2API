@@ -571,7 +571,7 @@ router.post('/completions', async (ctx: Context) => {
     const latency = Date.now() - startTime
     proxyStatusManager.recordRequestFailure(latency)
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage = error instanceof Error ? error.message : '未知错误'
     const errorStack = error instanceof Error ? error.stack : undefined
 
     ctx.status = 500

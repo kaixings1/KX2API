@@ -24,7 +24,7 @@ interface SectionCardProps {
 
 export function SectionCard({
   title,
-  icon,
+  icon: Icon,
   children,
   className,
   headerClassName,
@@ -32,12 +32,12 @@ export function SectionCard({
 }: SectionCardProps) {
   return (
     <Card className={cn('border-[var(--glass-border)] bg-[var(--glass-bg)]', className)}>
-      {(title || icon) && (
+      {(title || Icon) && (
         <CardHeader className={cn('pb-3', headerClassName)}>
           <div className="flex items-center gap-2 text-sm font-medium">
-            {icon && (
+            {Icon && (
               <div className="h-7 w-7 rounded-lg bg-[var(--accent-primary)]/10 flex items-center justify-center flex-shrink-0">
-                <icon className="h-4 w-4 text-[var(--accent-primary)]" />
+                <Icon className="h-4 w-4 text-[var(--accent-primary)]" />
               </div>
             )}
             {title && <span>{title}</span>}

@@ -58,9 +58,10 @@ export function TaskManagement() {
   useEffect(() => {
     const unsubscribe = tasksApi.onStreamEvent((event: StreamEvent) => {
       if (!event.taskId) return
+      const taskId = event.taskId
 
       setLogMap(prev => {
-        const logs = [...(prev[event.taskId] || [])]
+        const logs = [...(prev[taskId] || [])]
         if (event.logEntry) {
           logs.push(event.logEntry)
         } else if (event.type === 'done' || event.type === 'error' || event.type === 'aborted') {
@@ -68,17 +69,17 @@ export function TaskManagement() {
         } else {
           logs.push({ time: Date.now(), event: event.type, detail: event.detail || '' })
         }
-        return { ...prev, [event.taskId]: logs }
+        return { ...prev, [taskId]: logs }
       })
 
       if (event.task) {
-        setTasks(prev => prev.map(t => t.id === event.taskId ? event.task : t))
+        setTasks(prev => prev.map(t => t.id === taskId ? event.task : t))
       }
 
       if (event.type === 'done' || event.type === 'error' || event.type === 'aborted') {
         setExecutingIds(prev => {
           const next = new Set(prev)
-          next.delete(event.taskId)
+          next.delete(taskId)
           return next
         })
         loadTasks()
@@ -151,18 +152,15 @@ export function TaskManagement() {
   const handleExport = async () => {
     try {
       const res = await window.electronAPI.mgmt.export('tasks', filtered)
-      if (res.success) {
-        const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `tasks_${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
+      if (!res.success) {
+        return ''
       }
+      // 返回 JSON 字符串供 ImportExportDialog 统一下载
     } catch (e) {
       console.error('Export failed:', e)
+      return ''
     }
+    return JSON.stringify(filtered, null, 2)
   }
 
   const handleImport = async (jsonData: string) => {
@@ -186,17 +184,13 @@ export function TaskManagement() {
   const handleBackup = async () => {
     try {
       const res = await window.electronAPI.mgmt.backup()
-      if (res.success) {
-        const blob = new Blob([JSON.stringify({ tasks: filtered }, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `tasks_backup_${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
+      if (!res.success) return { success: false, error: res.error }
+      const blob = new Blob([JSON.stringify({ tasks: filtered }, null, 2)], { type: 'application/json' })
+      const file = new File([blob], `tasks_backup_${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' })
+      return { success: true, file }
     } catch (e) {
       console.error('Backup failed:', e)
+      return { success: false, error: (e as Error).message }
     }
   }
 

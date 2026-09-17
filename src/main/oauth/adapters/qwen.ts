@@ -55,16 +55,16 @@ export class QwenAdapter extends BaseOAuthAdapter {
     
     try {
       await shell.openExternal(QWEN_WEB_BASE)
-      this.emitProgress('pending', 'Please log in via browser and enter Ticket manually')
+      this.emitProgress('pending', '请通过浏览器登录后手动填入 Ticket')
       
       return {
         success: false,
         providerId: options.providerId,
         providerType: 'qwen',
-        error: 'Please log in via browser, extract tongyi_sso_ticket from Developer Tools and enter manually',
+        error: '请通过浏览器登录，从开发者工具提取 tongyi_sso_ticket 后手动填入',
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to open browser'
+      const errorMessage = error instanceof Error ? error.message : '打开浏览器失败'
       this.emitProgress('error', errorMessage)
       
       return {
@@ -87,11 +87,11 @@ export class QwenAdapter extends BaseOAuthAdapter {
           success: false,
           providerId,
           providerType: 'qwen',
-          error: validation.error || 'Ticket validation failed',
+          error: validation.error || 'Ticket 校验失败',
         }
       }
       
-      this.emitProgress('success', 'Ticket validation successful')
+      this.emitProgress('success', 'Ticket 校验通过')
       
       return {
         success: true,
@@ -101,8 +101,8 @@ export class QwenAdapter extends BaseOAuthAdapter {
         accountInfo: validation.accountInfo,
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      this.emitProgress('error', `Ticket validation failed: ${errorMessage}`)
+      const errorMessage = error instanceof Error ? error.message : '未知错误'
+      this.emitProgress('error', `Ticket 校验失败: ${errorMessage}`)
       
       return {
         success: false,
@@ -122,7 +122,7 @@ export class QwenAdapter extends BaseOAuthAdapter {
     if (!ticket) {
       return {
         valid: false,
-        error: 'Ticket cannot be empty',
+        error: 'Ticket 不能为空',
       }
     }
     
@@ -153,7 +153,7 @@ export class QwenAdapter extends BaseOAuthAdapter {
       if (response.status !== 200) {
         return {
           valid: false,
-          error: 'Ticket is invalid or expired',
+          error: 'Ticket 无效或已过期',
         }
       }
       
@@ -172,7 +172,7 @@ export class QwenAdapter extends BaseOAuthAdapter {
         accountInfo: {},
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Validation request failed'
+      const errorMessage = error instanceof Error ? error.message : '校验请求失败'
       return {
         valid: false,
         error: errorMessage,
@@ -262,7 +262,7 @@ export class QwenAdapter extends BaseOAuthAdapter {
       console.log(`[Qwen] Session deleted successfully: ${sessionId}`)
       return true
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const errorMessage = error instanceof Error ? error.message : '未知错误'
       console.warn(`[Qwen] Failed to delete session ${sessionId}: ${errorMessage}`)
       return false
     }

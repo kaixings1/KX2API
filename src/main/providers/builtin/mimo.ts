@@ -43,7 +43,7 @@ export const mimoConfig: BuiltinProviderConfig = {
       type: 'password',
       required: true,
       placeholder: 'Enter serviceToken from Cookie',
-      helpText: 'Found in browser DevTools -> Application -> Cookies -> serviceToken',
+      helpText: '位于浏览器开发者工具 → Application → Cookies → serviceToken',
     },
     {
       name: 'user_id',
@@ -51,7 +51,7 @@ export const mimoConfig: BuiltinProviderConfig = {
       type: 'text',
       required: true,
       placeholder: 'Enter userId from Cookie',
-      helpText: 'Found in browser DevTools -> Application -> Cookies -> userId',
+      helpText: '位于浏览器开发者工具 → Application → Cookies → userId',
     },
     {
       name: 'ph_token',
@@ -59,7 +59,7 @@ export const mimoConfig: BuiltinProviderConfig = {
       type: 'password',
       required: true,
       placeholder: 'Enter xiaomichatbot_ph from Cookie',
-      helpText: 'Found in browser DevTools -> Application -> Cookies -> xiaomichatbot_ph',
+      helpText: '位于浏览器开发者工具 → Application → Cookies → xiaomichatbot_ph',
     },
   ],
 }

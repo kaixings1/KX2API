@@ -1192,7 +1192,7 @@ export class StepFunStudioAdapter {
     }
 
     if (event.errorEvent) {
-      const errorMsg = event.errorEvent.message || 'Unknown error'
+      const errorMsg = event.errorEvent.message || '未知错误'
       console.error('[StepFunStudio][CONNECT] errorEvent:', errorMsg)
       const errorChunk = {
         id: messageIdState.current || '',

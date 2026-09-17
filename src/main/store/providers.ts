@@ -140,7 +140,7 @@ export class ProviderManager {
     const existing = storeManager.getProviderById(id)
     
     if (!existing) {
-      throw new Error(`Provider not found: ${id}`)
+      throw new Error(`供应商不存在：${id}`)
     }
     
     if (existing.type === 'builtin') {
@@ -341,7 +341,7 @@ export class ProviderManager {
       }
     }
     
-    storeManager.addLog('info', `Batch update provider status: ${ids.length} providers`, {
+    storeManager.addLog('info', `批量更新供应商状态：${ids.length} 个`, {
       data: { ids, enabled },
     })
   }

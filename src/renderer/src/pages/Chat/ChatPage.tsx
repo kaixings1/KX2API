@@ -295,7 +295,7 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
   )
 }
 
-const mdComponents: Components = {
+const mdComponents: Partial<Components> & Record<string, any> = {
   code({ children, className }) {
     // 带语言标记（```js / ```ts）→ 块级代码块；否则是反引号行内 code（命令/动作短语），
     // 用橙色高亮，与「**标题**」的紫色区分。
@@ -317,7 +317,7 @@ const mdComponents: Components = {
     }
     return <CodeBlock className={className}>{children as string}</CodeBlock>
   },
-  heading({ children, level }) {
+  heading({ children, level }: { children?: React.ReactNode; level?: number }) {
     const depth = typeof level === 'number' ? level : 1
     const tag = `h${Math.min(depth, 6)}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
     const cls = depth <= 6 ? `md-heading md-h${depth}` : 'md-heading md-h7'
@@ -1334,7 +1334,7 @@ export function ChatPage() {
     // 这里按 toolUseId 维护一份权威列表，与正文解析出的工具调用在 done 阶段合并。
     const liveToolsRef = new Map<string, ParsedTool>()
     const syncStreamingTools = () => {
-      streamingToolsRef.current = Array.from(liveToolsRef.current.values())
+      streamingToolsRef.current = Array.from(liveToolsRef.values())
       setMessages(prev => prev.map(m =>
         m.id === assistantId ? { ...m, tool_calls: streamingToolsRef.current.slice() } : m
       ))

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SectionCard } from '@/components/ui/section-card'
 import { Loader2, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react'
-import type { ProviderVendor } from '../../shared/types'
+import type { ProviderVendor } from '@shared/types'
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
   ready: { label: '就绪', variant: 'default' },
@@ -96,7 +96,7 @@ export function CookieSessionPage() {
       await cookieSession.destroy()
       setStatusData(null)
       setLoginResults({})
-      setCredentialCache({})
+      setCredentialCache({} as Record<ProviderVendor, Record<string, string>>)
     } catch (e) {
       console.error('[CookieSession] destroy failed:', e)
     }

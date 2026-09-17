@@ -27,7 +27,7 @@ interface PlanStep {
   id: string
   description: string
   status: string
-  result?: string | null
+  result?: string
 }
 
 interface PlanDetail {

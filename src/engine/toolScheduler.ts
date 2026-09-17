@@ -181,7 +181,7 @@ export class ToolScheduler {
     return results.map((r, i) =>
       r.status === "fulfilled"
         ? r.value
-        : { success: false, error: r.reason?.message ?? "Unknown error", toolUseId: calls[i].id } as ToolResult,
+        : { success: false, error: r.reason?.message ?? '未知错误', toolUseId: calls[i].id } as ToolResult,
     );
   }
 

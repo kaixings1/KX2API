@@ -93,7 +93,7 @@ export class EditBlockCoder implements Coder {
           failed.push({ edit, reason: 'SEARCH block did not exactly match file content' });
         }
       } catch (error) {
-        failed.push({ edit, reason: error instanceof Error ? error.message : 'Unknown error' });
+        failed.push({ edit, reason: error instanceof Error ? error.message : '未知错误' });
       }
     }
 

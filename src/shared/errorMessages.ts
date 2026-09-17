@@ -38,21 +38,60 @@ export const API_ERROR_PATTERNS: ErrorMapping[] = [
   { match: /server\s*(error|overloaded)/i, i18nKey: 'error.serverError', fallback: 'Server error: {detail}' },
 ]
 
-/** 通用/系统错误模式 */
+/**
+ * 通用/系统错误模式。
+ *
+ * ⚠️ **两份模式表并存是刻意的**：英文模式匹配来自第三方 API 的原始错误，
+ * 中文模式匹配本项目主进程自己产生的错误消息。
+ *
+ * 为什么中文模式必须有：本函数是「匹配不上就返回原文」的语义
+ * （见 formatUserError / formatSystemError）。主进程的消息已按产品要求汉化，
+ * 若这里只有英文模式，那么**英文界面下会直接显示中文原文** ——
+ * 汉化本身反而让英文用户看到未翻译的内容。
+ *
+ * 顺序即优先级：**具体模式在前，笼统模式在后**。
+ * 例如「请求超时」必须排在「请求失败」之前，否则前者会被后者吞掉。
+ */
 export const SYSTEM_ERROR_PATTERNS: ErrorMapping[] = [
+  // ── 中文：具体语义（必须在前）──
+  { match: /上下文长度|token\s*超限|超出.{0,4}长度/i, i18nKey: 'error.contextLength', fallback: 'Context length exceeded' },
+  { match: /已过期|过期或无效|无效或已过期/i, i18nKey: 'error.invalidApiKey', fallback: 'Invalid API key or authentication failed' },
+  { match: /Token\s*(无效|不存在|不能为空|缺少)|缺少\s*Token|凭证|未配置.{0,6}(凭证|Token)/i, i18nKey: 'error.invalidApiKey', fallback: 'Invalid API key or authentication failed' },
+  { match: /限流|过于频繁|频率超限|请求过多/i, i18nKey: 'error.rateLimited', fallback: 'Rate limit exceeded' },
+  { match: /超时|timed?\s*out/i, i18nKey: 'error.requestTimeout', fallback: 'Request timed out' },
+  { match: /不存在|未找到/i, i18nKey: 'error.notFound', fallback: 'Not found' },
+  { match: /内存不足/i, i18nKey: 'error.outOfMemory', fallback: 'Out of memory' },
+  { match: /权限不足|拒绝访问|无权限/i, i18nKey: 'error.permissionDenied', fallback: 'Permission denied' },
+  { match: /已取消|已中止|中断/i, i18nKey: 'error.requestCancelled', fallback: 'Request cancelled' },
+  { match: /网络(错误|未连接|异常)/i, i18nKey: 'error.networkError', fallback: 'Network error: {detail}' },
+  { match: /连接(被拒绝|被重置|超时)/i, i18nKey: 'error.connectionFailed', fallback: 'Connection {detail}' },
+  { match: /SSL\s*握手失败/i, i18nKey: 'error.sslHandshakeFailed', fallback: 'SSL handshake failed' },
+  // ── 中文：泛化失败（兜底，放在最后）──
   { match: /发送失败/i, i18nKey: 'error.sendFailed', fallback: 'Send failed' },
   { match: /请求失败/i, i18nKey: 'error.requestFailed', fallback: 'Request failed' },
   { match: /命令执行失败/i, i18nKey: 'error.commandFailed', fallback: 'Command execution failed' },
   { match: /无法调用\s*LLM|无法调用\s*AI/i, i18nKey: 'error.llmUnavailable', fallback: 'LLM service unavailable' },
+  // ── 英文：第三方 API 原文 ──
   { match: /abort|cancelled|canceled/i, i18nKey: 'error.requestCancelled', fallback: 'Request cancelled' },
   { match: /permission\s+denied|EACCES/i, i18nKey: 'error.permissionDenied', fallback: 'Permission denied' },
   { match: /not\s+found|ENOENT/i, i18nKey: 'error.notFound', fallback: 'Not found' },
   { match: /out\s+of\s+memory|OOM/i, i18nKey: 'error.outOfMemory', fallback: 'Out of memory' },
 ]
 
+/**
+ * 完整模式表：先 API（第三方原文），再系统（本项目消息）。
+ *
+ * 顺序有意义 —— API 模式更具体（带状态码、SSL、DNS 等），
+ * 系统模式里有「请求失败」这类宽泛兜底，放前面会误吞具体错误。
+ */
+export const ALL_ERROR_PATTERNS: ErrorMapping[] = [
+  ...API_ERROR_PATTERNS,
+  ...SYSTEM_ERROR_PATTERNS,
+]
+
 export function matchErrorPattern(
   msg: string,
-  patterns: ErrorMapping[] = API_ERROR_PATTERNS
+  patterns: ErrorMapping[] = ALL_ERROR_PATTERNS
 ): { i18nKey: string; fallback: string; params?: Record<string, string> } | null {
   if (!msg) return null
   for (const entry of patterns) {

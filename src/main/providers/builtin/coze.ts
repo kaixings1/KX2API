@@ -11,7 +11,7 @@ export const cozeConfig: BuiltinProviderConfig = {
     'Content-Type': 'application/json',
   },
   enabled: true,
-  description: 'Coze bot platform by ByteDance',
+  description: '字节跳动出品的 Coze 机器人平台',
   supportedModels: [
     'gpt-4-0506', 'gpt-4o', 'claude-3-5-sonnet-20240620',
     'doubao-lite-32k', 'doubao-pro-32k', 'moonshot-v1-8k',

@@ -123,7 +123,7 @@ export class ConfigManager {
     
     this.update({ modelMappings: mappings })
     
-    storeManager.addLog('info', `Set model mapping: ${mapping.requestModel} -> ${mapping.actualModel}`)
+    storeManager.addLog('info', `设置模型映射：${mapping.requestModel} -> ${mapping.actualModel}`)
   }
 
   /**
@@ -141,7 +141,7 @@ export class ConfigManager {
     delete mappings[model]
     this.update({ modelMappings: mappings })
     
-    storeManager.addLog('info', `Delete model mapping: ${model}`)
+    storeManager.addLog('info', `删除模型映射：${model}`)
     
     return true
   }
@@ -159,7 +159,7 @@ export class ConfigManager {
     
     this.update({ modelMappings: mappingRecord })
     
-    storeManager.addLog('info', `Batch set model mappings: ${mappings.length} items`)
+    storeManager.addLog('info', `批量设置模型映射：${mappings.length} 条`)
   }
 
   /**

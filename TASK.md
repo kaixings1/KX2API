@@ -950,6 +950,89 @@ normalize 之前，与 `enforceToolResultBudget` 同一位置）：
 `src/main/proxy/toolCalling/ToolCallingEngine`，与本次 `src/engine/*` 改动**无 import 交集**，
 系并发生成进程改动 `src/main/proxy/*` 引入的回归，非本任务所致，未擅自代修。
 
+## 第八轮：全面汉化 / 国际化（2026-09-18）
+
+### 背景
+
+用户要求「汉化，类似的都汉化或国际化」。先做了一次全仓库扫描，
+找出**面向用户但仍是英文**的文案，共 **609 条**候选。
+
+### 一、renderer（用户界面）—— 已清零
+
+项目已有 i18n 基础设施（`i18next` + `zh-CN.json` / `en-US.json`，
+两条语言，fallback `en-US`），**1767 处已在用 `t()`**，但仍有 15 处硬编码英文。
+
+| 文件 | 问题 | 处理 |
+|---|---|---|
+| `ProviderList.tsx` | **完全没有 i18n**，13 处硬编码英文（搜索框、筛选器、统计行、空状态） | 全量接入 `t()`，复用已有键 + 新增 6 个 |
+| `combobox.tsx` | UI 原语默认文案为英文 | 默认值改走 `t()`（不能在解构默认值里调 hook，改为函数体内回落） |
+| `GitManagementPage.tsx` | 5 处错误文案 | `t('git.xxx', '中文')` |
+| `About.tsx` | 4 处更新错误 | 复用 `settings.updateCheckFailed` 等已有键 |
+| `ModelEditor.tsx` | 4 处 toast 描述 | 新增 `modelEditor.*Failed` |
+| `dashboardStore.ts` | zustand store 无法用 hook | 直接 `import i18n from '@/i18n'`（与 `settingsStore` 同做法） |
+| `LoginGuideDialog.tsx` | **14 处引导步骤**硬编码英文 | 抽 10 个参数化键（`inCookies`/`findField`/`jwtFormatHint`…） |
+| `LogList.tsx` | 空状态 2 处 | 接入 `t()` |
+| `ProxyStatus.tsx` | 1 处 | `t('proxy.stopFailed')` |
+
+**新增 i18n 键 35 个**（zh/en 各一份，结构校验一致）。
+
+**刻意保留英文的 2 处**：`AddAccountDialog` / `AddProviderDialog` 里的
+`'Login window was closed'`、`'Guest account'` —— 它们是**与主进程错误消息做比对**的
+匹配键（`errorMsg === 'Login window was closed'`），改了会让翻译失效。
+
+### 二、主进程 —— 汉化 400+ 处
+
+主进程不能用 i18next hook，且既有约定是**直接中文**（`errorMessages.ts` 只覆盖已知模式）。
+按「用户能否看到」逐区域处理：
+
+| 区域 | 数量 | 说明 |
+|---|---|---|
+| `main/ipc` | 52 | IPC handler 返回的 `{ success, error }`，经 toast 展示 |
+| `main/store` | 31 | 配置校验、账户/供应商查找、会话校验 |
+| `security`（两份副本） | 42 | `InputValidator` / `PathGuard` 的校验消息与拒绝原因 |
+| `main/proxy/routes/management` | 108 | 管理 API 的 HTTP 错误响应（`Failed to X` 系统性模式） |
+| `main/proxy/adapters` | 11 | Token 获取/刷新/补全失败 |
+| `main/oauth` | 68 | 登录引导、Token/Ticket 校验、凭证字段说明 |
+| `main/providers`（checker/custom/builtin） | 26 | 账户校验结果、供应商配置校验、凭证字段说明 |
+| `main/updater` | 7 | 更新失败的用户提示 |
+| `engine`（命令描述/角色约束/循环提示） | 12 | 用户可见的命令与角色说明 |
+| `proxy/toolCalling/historyGuard` | 4 | 工具历史修复说明（作为工具结果展示） |
+
+**进度**：609 → 约 168（**减少 72%**）。
+
+### 三、剩余 168 条的性质（未汉化，且大多不该汉化）
+
+| 类别 | 数量 | 为何保留 |
+|---|---|---|
+| 请求头/认证串 | 6 | `Bearer ${token}`、`Token is required`（协议字段） |
+| 日志/追踪文本 | 24 | `Stream request to ${url}`、`Request failed after retries` —— 开发者日志，非用户文案 |
+| 内部诊断 | 22 | `tool-history-guard` 的 `validate.ts`（内部校验诊断，非用户可见） |
+| engine 内部状态 | ~110 | `stateMachine` 转换错误、`errors/index.ts` 内部错误包装、`messageLoop` 的模型指令（发给模型而非用户） |
+| 其它 | ~6 | 少数字段说明 |
+
+其中 `messageLoop` 的模型指令（如 `Continuing to next iteration.`）**是发给模型而非用户的**，
+保留英文不违背「面向用户汉化」的目标；若要连模型指令一起统一为中文，是另一个决策
+（会影响模型行为，需单独验证），未擅自改动。
+
+### 四、验证
+
+- `npm run build` ✅
+- `npm run test:all` ✅ 附加 555 / 单元 1168 / **0 失败**
+- locale 结构校验：zh-CN 1110 键 / en-US 1109 键（差 `nav.tools`，为既有的历史差异）
+- 新增键全部就位
+
+**过程中被测试抓到的回归**：汉化 `InputValidator` / `PathGuard` 后，
+`tests/security/path-guard.test.ts` 的 6 处断言（`includes('string')`、`includes('traversal')` 等）
+失败 —— 断言写的是英文字串。已同步更新为中文断言。
+
+### 五、踩到的坑
+
+1. **适配器的错误用反引号模板字面量**，不是单引号 —— 首轮替换全部未命中，需按实际引号风格重写映射。
+2. **扫描器过于宽松**：把 `Bearer ${...}`（请求头）、`Request to ${url}`（日志）也当成用户文案。
+   批量替换前必须按语义过滤，否则会改坏协议字段。
+3. **on-demand 排查顺序**：先 `useTranslation=False` 筛出完全没接入 i18n 的文件，再逐个处理 ——
+   比按字符串特征硬扫准得多。
+
 ## 第一轮遗留待办（2026-09-18 复核）
 
 - [x] 把 `npm run typecheck` 接入 CI — **已修正**：原 CI 指向 `project/tsconfig.json`（另一个项目），

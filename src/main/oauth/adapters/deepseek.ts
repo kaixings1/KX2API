@@ -57,17 +57,17 @@ export class DeepSeekAdapter extends BaseOAuthAdapter {
     
     try {
       await shell.openExternal(DEEPSEEK_API_BASE)
-      this.emitProgress('pending', 'Please log in via browser and enter Token manually')
+      this.emitProgress('pending', '请通过浏览器登录后手动填入 Token')
       
       return {
         success: false,
         providerId: options.providerId,
         providerType: 'deepseek',
-        error: 'Please log in via browser, extract Token from Developer Tools and enter manually',
+        error: '请通过浏览器登录，从开发者工具中提取 Token 后手动填入',
       }
     } catch (error) {
       console.error('[DeepSeek] startLogin error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to open browser'
+      const errorMessage = error instanceof Error ? error.message : '打开浏览器失败'
       this.emitProgress('error', errorMessage)
       
       return {
@@ -93,11 +93,11 @@ export class DeepSeekAdapter extends BaseOAuthAdapter {
           success: false,
           providerId,
           providerType: 'deepseek',
-          error: validation.error || 'Token validation failed',
+          error: validation.error || 'Token 校验失败',
         }
       }
       
-      this.emitProgress('success', 'Token validation successful')
+      this.emitProgress('success', 'Token 校验通过')
       
       return {
         success: true,
@@ -107,8 +107,8 @@ export class DeepSeekAdapter extends BaseOAuthAdapter {
         accountInfo: validation.accountInfo,
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      this.emitProgress('error', `Token validation failed: ${errorMessage}`)
+      const errorMessage = error instanceof Error ? error.message : '未知错误'
+      this.emitProgress('error', `Token 校验失败：${errorMessage}`)
       
       return {
         success: false,
@@ -135,7 +135,7 @@ export class DeepSeekAdapter extends BaseOAuthAdapter {
     if (!token) {
       return {
         valid: false,
-        error: 'Token cannot be empty',
+        error: 'Token 不能为空',
       }
     }
     
@@ -154,7 +154,7 @@ export class DeepSeekAdapter extends BaseOAuthAdapter {
       if (response.status !== 200 || !response.data) {
         return {
           valid: false,
-          error: 'Token is invalid or expired',
+          error: 'Token 无效或已过期',
         }
       }
       
@@ -164,7 +164,7 @@ export class DeepSeekAdapter extends BaseOAuthAdapter {
       if (!bizData) {
         return {
           valid: false,
-          error: 'Token validation failed: Invalid response data',
+          error: 'Token 校验失败：响应数据不合法',
         }
       }
       
@@ -178,7 +178,7 @@ export class DeepSeekAdapter extends BaseOAuthAdapter {
         },
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Validation request failed'
+      const errorMessage = error instanceof Error ? error.message : '校验请求失败'
       return {
         valid: false,
         error: errorMessage,

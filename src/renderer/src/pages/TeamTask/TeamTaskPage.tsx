@@ -440,7 +440,7 @@ export function TeamTaskPage() {
               <span>{resultError}</span>
             </div>
           )}
-          {resultData && (
+          {Boolean(resultData) && (
             <pre className="text-xs bg-muted/50 rounded p-3 overflow-auto max-h-64 whitespace-pre-wrap">
               {JSON.stringify(resultData, null, 2)}
             </pre>

@@ -42,8 +42,8 @@ export function LogStats({ showTrend = true }: LogStatsProps) {
       label: 'Debug',
       value: stats.debug,
       icon: Bug,
-      color: 'text-gray-500',
-      bgColor: 'bg-gray-500/10',
+      color: 'text-gray-500 dark:text-gray-400',
+      bgColor: 'bg-gray-500/10 dark:bg-gray-500/20',
     },
   ]
 

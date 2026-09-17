@@ -64,7 +64,7 @@ export class AccountManager {
     const provider = storeManager.getProviderById(data.providerId)
     
     if (!provider) {
-      throw new Error(`Provider not found: ${data.providerId}`)
+      throw new Error(`供应商不存在：${data.providerId}`)
     }
     
     const now = Date.now()
@@ -107,7 +107,7 @@ export class AccountManager {
     const existing = storeManager.getAccountById(id)
     
     if (!existing) {
-      throw new Error(`Account not found: ${id}`)
+      throw new Error(`账户不存在：${id}`)
     }
     
     const updated = storeManager.updateAccount(id, updates)

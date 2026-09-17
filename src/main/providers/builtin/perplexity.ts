@@ -29,7 +29,7 @@ export const perplexityConfig: BuiltinProviderConfig = {
       type: 'password',
       required: true,
       placeholder: 'Enter Perplexity session token',
-      helpText: 'Session token obtained from Perplexity web version (__Secure-next-auth.session-token cookie)',
+      helpText: '从 Perplexity 网页版获取的会话 Token（__Secure-next-auth.session-token cookie）',
     },
   ],
 }

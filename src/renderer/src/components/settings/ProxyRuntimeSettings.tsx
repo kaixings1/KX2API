@@ -11,7 +11,7 @@ import {
   type ProxyRuntimeConfig,
   type LogRuntimeConfig,
 } from '@shared/types'
-import { RotateCcw, CopyX, Waves, Wifi, Clock, Database, Archive, HardDrive, Layers } from 'lucide-react'
+import { RotateCcw, CopyX, Waves, Wifi, Clock, Database, Archive, HardDrive, Layers, type LucideIcon } from 'lucide-react'
 
 interface Spec<T> {
   key: keyof T
@@ -153,7 +153,7 @@ function FieldGrid<T extends Record<string, number>>({
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {fields.map((spec) => {
-        const Icon = icons[spec.key]
+        const Icon = icons[spec.key] as LucideIcon
         const changed = values[spec.key] !== defaults[spec.key]
         return (
           <div

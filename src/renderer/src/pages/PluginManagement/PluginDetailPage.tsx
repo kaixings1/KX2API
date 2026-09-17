@@ -58,7 +58,7 @@ export function PluginDetailPage() {
 
   const handleSave = async () => {
     if (!id) return
-    await pluginsApi.update(id, { name: editName, version: editVersion, description: editDescription, author: editAuthor })
+    await pluginsApi.update(id)
     setEditOpen(false)
     loadPlugin()
   }

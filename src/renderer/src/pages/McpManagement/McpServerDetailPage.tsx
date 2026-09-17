@@ -53,7 +53,7 @@ export function McpServerDetailPage() {
     try {
       const res = await mcpApi.getServerById(id)
       if (res) {
-        setServer(res)
+        setServer(res as McpServerDetail)
         setEditName(res.name)
         setEditUrl(res.url || '')
         setEditCommand(res.command || '')
@@ -81,8 +81,8 @@ export function McpServerDetailPage() {
     if (Object.keys(env).length > 0) serverData.env = env
 
     const configRes = await mcpApi.getConfig()
-    const config = configRes?.config || { servers: [] }
-    const newServers = config.servers.map((s: McpServerDetail) => s.id === id ? { ...s, ...serverData } : s)
+    const config = { servers: configRes?.servers || [] }
+    const newServers = config.servers.map((s: McpServerConfig) => s.id === id ? { ...s, ...serverData } : s)
     await mcpApi.updateConfig({ servers: newServers })
     setEditOpen(false)
     loadServer()

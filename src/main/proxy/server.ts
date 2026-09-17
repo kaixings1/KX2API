@@ -369,7 +369,7 @@ export class ProxyServer {
           this.server = null
         })
       } catch (error) {
-        storeManager.addLog('error', `Failed to start server: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        storeManager.addLog('error', `Failed to start server: ${error instanceof Error ? error.message : '未知错误'}`)
         resolve(false)
       }
     })

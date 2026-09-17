@@ -55,11 +55,11 @@ export class QwenAiAdapter extends BaseOAuthAdapter {
           success: false,
           providerId,
           providerType: 'qwen-ai',
-          error: validation.error || 'Token validation failed',
+          error: validation.error || 'Token 校验失败',
         }
       }
       
-      this.emitProgress('success', 'Token validation successful')
+      this.emitProgress('success', 'Token 校验通过')
       
       return {
         success: true,
@@ -69,7 +69,7 @@ export class QwenAiAdapter extends BaseOAuthAdapter {
         accountInfo: validation.accountInfo,
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Validation request failed'
+      const errorMessage = error instanceof Error ? error.message : '校验请求失败'
       return {
         success: false,
         providerId,
@@ -89,7 +89,7 @@ export class QwenAiAdapter extends BaseOAuthAdapter {
     if (!token) {
       return {
         valid: false,
-        error: 'Token cannot be empty',
+        error: 'Token 不能为空',
       }
     }
     
@@ -101,7 +101,7 @@ export class QwenAiAdapter extends BaseOAuthAdapter {
         if (payload.email && payload.email.includes('@guest.com')) {
           return {
             valid: false,
-            error: 'Guest account not allowed, please login with a real account',
+            error: '不允许使用游客账户，请用真实账户登录',
           }
         }
         
@@ -115,7 +115,7 @@ export class QwenAiAdapter extends BaseOAuthAdapter {
             if (userInfo && userInfo.is_guest === true) {
               return {
                 valid: false,
-                error: 'Guest account not allowed, please login with a real account',
+                error: '不允许使用游客账户，请用真实账户登录',
               }
             }
             
@@ -151,7 +151,7 @@ export class QwenAiAdapter extends BaseOAuthAdapter {
     
     return {
       valid: false,
-      error: 'Token is invalid',
+      error: 'Token 无效',
     }
   }
 

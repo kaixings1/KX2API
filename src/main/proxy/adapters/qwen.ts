@@ -275,7 +275,7 @@ export class QwenAdapter {
 
     const { success, code, msg } = response.data || {}
     if (success === false || (typeof code === 'number' && code !== 0)) {
-      console.warn(`[Qwen] Failed to delete sessions: ${msg || 'Unknown error'}`)
+      console.warn(`[Qwen] Failed to delete sessions: ${msg || '未知错误'}`)
       return false
     }
 
@@ -445,7 +445,7 @@ export class QwenAdapter {
       }
       return success
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const errorMessage = error instanceof Error ? error.message : '未知错误'
       console.warn('[Qwen] Failed to delete session:', errorMessage)
       return false
     }
@@ -487,7 +487,7 @@ export class QwenAdapter {
       console.log('[Qwen] All sessions deleted successfully')
       return true
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const errorMessage = error instanceof Error ? error.message : '未知错误'
       console.warn('[Qwen] Failed to delete all sessions:', errorMessage)
       return false
     }

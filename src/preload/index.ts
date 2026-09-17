@@ -938,7 +938,12 @@ const electronAPI = {
     getById: (id: string): Promise<AgentRecord | null> =>
       ipcRenderer.invoke(IpcChannels.AGENTS_GET_BY_ID, id).then((r: any) => r.success ? (r.data as AgentRecord | null) : null),
 
-    create: (data: Omit<AgentRecord, 'id' | 'createdAt' | 'lastActiveAt'>): Promise<AgentRecord> =>
+    // 签名对齐后端 handler（registerHandlers.ts:99 用 Omit<..., 'updatedAt'>）：
+    // id / createdAt / updatedAt 都由后端生成，调用方不该传 updatedAt。
+    // 此前写成 Omit<..., 'lastActiveAt'>，导致前端被迫传一个后端会覆盖的字段。
+    create: (
+      data: Omit<AgentRecord, 'id' | 'createdAt' | 'updatedAt'>,
+    ): Promise<AgentRecord> =>
       ipcRenderer.invoke(IpcChannels.AGENTS_CREATE, data).then((r: any) => r.data as AgentRecord),
 
     update: (id: string, updates: Partial<AgentRecord>): Promise<AgentRecord | null> =>
@@ -1079,8 +1084,18 @@ const electronAPI = {
     removeServer: (id: string): Promise<{ success: boolean }> =>
       ipcRenderer.invoke(IpcChannels.MCP_REMOVE_SERVER, id).then((r: any) => ({ success: r.success })),
 
-    testConnection: (server: McpServerConfig): Promise<{ success: boolean; connected: boolean; tools: any[] }> =>
-      ipcRenderer.invoke(IpcChannels.MCP_TEST_CONNECTION, server).then((r: any) => ({ success: r.success, connected: r.connected, tools: r.tools })),
+    // 必须保留 error：页面在 connected=false 时用 `res.error` 显示失败原因
+    // （toast 的 title），原实现只挑 success/connected/tools 三个字段，
+    // 把 error 丢掉了 —— 用户只看得到"连接失败"，看不到为什么失败。
+    testConnection: (
+      server: McpServerConfig,
+    ): Promise<{ success: boolean; connected: boolean; tools: any[]; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.MCP_TEST_CONNECTION, server).then((r: any) => ({
+        success: r.success,
+        connected: r.connected,
+        tools: r.tools,
+        error: r.error,
+      })),
 
     getTools: (serverId: string): Promise<Array<{ name: string; description: string; inputSchema: Record<string, unknown> }>> =>
       ipcRenderer.invoke(IpcChannels.MCP_GET_TOOLS, serverId).then((r: any) => r.data as Array<{ name: string; description: string; inputSchema: Record<string, unknown> }>),

@@ -87,7 +87,7 @@ export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message
   }
-  return 'Unknown error'
+  return '未知错误'
 }
 
 export function getErrorCode(error: unknown): ErrorCode {
@@ -128,5 +128,5 @@ export function createErrorFromAxiosError(error: any, providerId?: string): AppE
     return new NetworkError(`Network error: ${error.message}`, error)
   }
 
-  return new AppError(ErrorCode.UNKNOWN, error.message || 'Unknown error', error)
+  return new AppError(ErrorCode.UNKNOWN, error.message || '未知错误', error)
 }

@@ -653,9 +653,9 @@ export class RequestForwarder {
   ): SummaryGenerator {
     return async (messages: ContextChatMessage[], prompt?: string): Promise<string> => {
       try {
-        console.log('[SummaryGenerator] Generating summary for', messages.length, 'messages')
+        proxyDebugLog('[SummaryGenerator] Generating summary for', messages.length, 'messages')
 
-        const summaryPrompt = prompt || 'Please summarize the following conversation concisely, keeping key information and context:'
+        const summaryPrompt = prompt || '请简洁地总结以下对话，保留关键信息与上下文：'
 
         const conversationText = messages
           .map(msg => {
@@ -698,15 +698,15 @@ export class RequestForwarder {
 
         if (result.success && result.body) {
           const summaryContent = result.body.choices?.[0]?.message?.content || ''
-          console.log('[SummaryGenerator] Summary generated successfully, length:', summaryContent.length)
+          proxyDebugLog('[SummaryGenerator] Summary generated successfully, length:', summaryContent.length)
           return summaryContent
         }
 
         console.warn('[SummaryGenerator] Failed to generate summary:', result.error)
-        return 'Failed to generate conversation summary.'
+        return '生成对话摘要失败。'
       } catch (error) {
         console.error('[SummaryGenerator] Error generating summary:', error)
-        return 'Failed to generate conversation summary due to an error.'
+        return '因错误导致生成对话摘要失败。'
       }
     }
   }
@@ -722,7 +722,7 @@ export class RequestForwarder {
     context: ProxyContext
   ): Promise<ForwardResult> {
     const startTime = Date.now()
-    console.log('[FWD] STEP-4 forwardChatCompletion ENTRY provider=', provider.id, 'model=', actualModel, 'stream=', request.stream, 'msgCount=', request.messages?.length, 'accountId=', account.id)
+    proxyDebugLog('[FWD] STEP-4 forwardChatCompletion ENTRY provider=', provider.id, 'model=', actualModel, 'stream=', request.stream, 'msgCount=', request.messages?.length, 'accountId=', account.id)
     const config = storeManager.getConfig()
     const maxRetries = config.retryCount
 
@@ -751,7 +751,7 @@ export class RequestForwarder {
           ...request,
           messages: [lastUserMessage]
         }
-        console.log('[Forwarder] New session detected, sending only last user message')
+        proxyDebugLog('[Forwarder] New session detected, sending only last user message')
       }
 
       // Save user message to session for multi-turn context (first attempt only to avoid duplicates on retry)
@@ -821,9 +821,9 @@ export class RequestForwarder {
       }
 
       try {
-        console.log('[FWD] STEP-13 calling doForward sessionNew=', sessionContext.isNew)
+        proxyDebugLog('[FWD] STEP-13 calling doForward sessionNew=', sessionContext.isNew)
         const result = await this.doForward(modifiedRequest, account, provider, actualModel, context)
-        console.log('[FWD] STEP-14 doForward RETURNED success=', result.success, 'status=', result.status, 'stream=', !!result.stream, 'body=', !!result.body, 'error=', (result.error || 'none').slice(0, 200))
+        proxyDebugLog('[FWD] STEP-14 doForward RETURNED success=', result.success, 'status=', result.status, 'stream=', !!result.stream, 'body=', !!result.body, 'error=', (result.error || 'none').slice(0, 200))
 
         if (result.success) {
           if (result.providerSessionId) {
@@ -847,14 +847,14 @@ export class RequestForwarder {
           break
         }
       } catch (error) {
-        lastError = error instanceof Error ? error.message : 'Unknown error'
+        lastError = error instanceof Error ? error.message : '未知错误'
         console.error('[StepFun][DIAG-FWD] doForward threw exception:', lastError, error instanceof Error ? error.stack?.slice(0, 300) : '')
       }
     }
 
     return {
       success: false,
-      error: lastError || 'Request failed after retries',
+      error: lastError || '重试后仍然请求失败',
       latency: Date.now() - startTime,
     }
   }
@@ -870,19 +870,19 @@ export class RequestForwarder {
     context: ProxyContext
   ): Promise<ForwardResult> {
     const startTime = Date.now()
-    console.log('[FWD] STEP-5 doForward ENTRY provider=', provider.id, 'model=', actualModel)
+    proxyDebugLog('[FWD] STEP-5 doForward ENTRY provider=', provider.id, 'model=', actualModel)
 
     // Inject cookie session credentials if available (web-based auth)
     const mergedAccount = await this.maybeMergeCookieCredentials(account, provider)
-    console.log('[FWD] STEP-6 cookie merged, accountId=', mergedAccount.id, 'hasCredentials=', !!mergedAccount.credentials?.token, 'tokenPrefix=', mergedAccount.credentials?.token ? mergedAccount.credentials.token.slice(0, 30) : 'null')
+    proxyDebugLog('[FWD] STEP-6 cookie merged, accountId=', mergedAccount.id, 'hasCredentials=', !!mergedAccount.credentials?.token, 'tokenPrefix=', mergedAccount.credentials?.token ? mergedAccount.credentials.token.slice(0, 30) : 'null')
 
     const dedicatedForwarder = this.providerForwarders.find(forwarder => forwarder.matches(provider))
-    console.log('[FWD] STEP-7 matched forwarder=', dedicatedForwarder?.name || 'none', 'provider.id=', provider.id, 'apiEndpoint=', provider.apiEndpoint, 'provider.name=', provider.name)
+    proxyDebugLog('[FWD] STEP-7 matched forwarder=', dedicatedForwarder?.name || 'none', 'provider.id=', provider.id, 'apiEndpoint=', provider.apiEndpoint, 'provider.name=', provider.name)
     if (dedicatedForwarder) {
       const logConfig = storeManager.getConfig().requestLogConfig
-      console.log('[FWD] STEP-8 calling forwardStepFun provider=', provider.id, 'forwarder=', dedicatedForwarder.name)
+      proxyDebugLog('[FWD] STEP-8 calling forwardStepFun provider=', provider.id, 'forwarder=', dedicatedForwarder.name)
       const result = await dedicatedForwarder.forward(request, mergedAccount, provider, actualModel, startTime)
-      console.log('[FWD] STEP-9 forwarder RETURNED success=', result.success, 'status=', result.status, 'hasStream=', !!result.stream, 'hasBody=', !!result.body, 'error=', (result.error || 'none').slice(0, 200))
+      proxyDebugLog('[FWD] STEP-9 forwarder RETURNED success=', result.success, 'status=', result.status, 'hasStream=', !!result.stream, 'hasBody=', !!result.body, 'error=', (result.error || 'none').slice(0, 200))
       if (logConfig.logToConsole) {
         const resBody = result.stream ? '(stream)' : (result.body ? JSON.stringify(result.body).slice(0, 500) : '(no body)')
         console.log(`[API-RES] ${provider.name} | forwarder=${dedicatedForwarder.name} | success=${result.success} | status=${result.status || 'n/a'} | latency=${result.latency}ms | error=${result.error || 'none'} | body=${resBody}`)
@@ -970,7 +970,7 @@ export class RequestForwarder {
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -1087,7 +1087,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -1115,7 +1115,7 @@ export class RequestForwarder {
         tools: transformed.tools,
       }
 
-      console.log(`[Forwarder] GLM request tools=${JSON.stringify(transformedRequest.tools)?.slice(0, 500)}, tool_choice=${JSON.stringify(request.tool_choice)}, messages=${JSON.stringify(transformedRequest.messages)?.slice(0, 500)}`)
+      proxyDebugLog(`[Forwarder] GLM request tools=${JSON.stringify(transformedRequest.tools)?.slice(0, 500)}, tool_choice=${JSON.stringify(request.tool_choice)}, messages=${JSON.stringify(transformedRequest.messages)?.slice(0, 500)}`)
 
       const adapter = new GLMAdapter(provider, account)
       const { response, conversationId } = await adapter.chatCompletion({
@@ -1205,7 +1205,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -1301,7 +1301,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -1399,7 +1399,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -1491,7 +1491,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -1511,8 +1511,8 @@ export class RequestForwarder {
     if (logConfig.logToConsole) {
       console.log(`[API-REQ] ${provider.name} | forwarder=zai | model=${actualModel} | stream=${request.stream} | body=${JSON.stringify(request).slice(0, 500)}`)
     }
-    console.log('[forwardZai] actualModel:', actualModel)
-    console.log('[forwardZai] provider.modelMappings:', provider.modelMappings)
+    proxyDebugLog('[forwardZai] actualModel:', actualModel)
+    proxyDebugLog('[forwardZai] provider.modelMappings:', provider.modelMappings)
     try {
       const transformed = this.transformRequestForPromptToolUse(request, provider)
       
@@ -1586,7 +1586,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -1606,8 +1606,8 @@ export class RequestForwarder {
     if (logConfig.logToConsole) {
       console.log(`[API-REQ] ${provider.name} | forwarder=minimax | model=${actualModel} | stream=${request.stream} | body=${JSON.stringify(request).slice(0, 500)}`)
     }
-    console.log('[forwardMiniMax] actualModel:', actualModel)
-    console.log('[forwardMiniMax] provider.modelMappings:', provider.modelMappings)
+    proxyDebugLog('[forwardMiniMax] actualModel:', actualModel)
+    proxyDebugLog('[forwardMiniMax] provider.modelMappings:', provider.modelMappings)
     try {
       const transformed = this.transformRequestForPromptToolUse(request, provider)
       
@@ -1643,7 +1643,7 @@ export class RequestForwarder {
         : undefined
 
       if (request.stream === true && stream) {
-        console.log('[forwardMiniMax] Using polling stream')
+        proxyDebugLog('[forwardMiniMax] Using polling stream')
         
         if (deleteChatCallback) {
           const originalStream = stream.stream as unknown as PassThrough
@@ -1686,14 +1686,14 @@ export class RequestForwarder {
 
       return {
         success: false,
-        error: 'No response or stream received',
+        error: '未收到响应或流数据',
         latency,
       }
     } catch (error) {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -1816,7 +1816,7 @@ export class RequestForwarder {
       console.error('[Mimo] Forward error:', error)
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -1837,7 +1837,7 @@ export class RequestForwarder {
     if (logConfig.logToConsole) {
       console.log(`[API-REQ] ${provider.name} | forwarder=perplexity | model=${actualModel} | stream=${request.stream} | body=${JSON.stringify(request).slice(0, 500)}`)
     }
-    console.log('[forwardPerplexity] actualModel:', actualModel)
+    proxyDebugLog('[forwardPerplexity] actualModel:', actualModel)
     try {
       const transformed = this.transformRequestForPromptToolUse(request, provider)
       
@@ -1898,7 +1898,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -1915,7 +1915,7 @@ export class RequestForwarder {
     actualModel: string,
     startTime: number
   ): Promise<ForwardResult> {
-    console.log('[StepFun][DIAG-FWD] forwardStepFun ENTRY, stream=', request.stream, 'model=', actualModel, 'provider.id=', provider.id, 'provider.apiEndpoint=', provider.apiEndpoint)
+    proxyDebugLog('[StepFun][DIAG-FWD] forwardStepFun ENTRY, stream=', request.stream, 'model=', actualModel, 'provider.id=', provider.id, 'provider.apiEndpoint=', provider.apiEndpoint)
     try {
       const transformed = this.transformRequestForPromptToolUse(request, provider)
       const transformedRequest = {
@@ -1923,11 +1923,11 @@ export class RequestForwarder {
         messages: transformed.messages,
         tools: transformed.tools,
       }
-      console.log('[StepFun][DIAG-FWD] toolCalling transformed, messageCount=', transformedRequest.messages?.length, 'toolCount=', transformedRequest.tools?.length)
+      proxyDebugLog('[StepFun][DIAG-FWD] toolCalling transformed, messageCount=', transformedRequest.messages?.length, 'toolCount=', transformedRequest.tools?.length)
 
       const decryptedAccount = storeManager.getAccountById(account.id, true) || account
       const adapter = new StepFunAdapter(provider, decryptedAccount)
-      console.log('[StepFun][DIAG-FWD] calling adapter.chatCompletion...')
+      proxyDebugLog('[StepFun][DIAG-FWD] calling adapter.chatCompletion...')
       const result = await adapter.chatCompletion({
         model: actualModel,
         messages: transformedRequest.messages as any,
@@ -1942,27 +1942,27 @@ export class RequestForwarder {
         tools: transformedRequest.tools,
         tool_choice: transformedRequest.tool_choice,
       })
-      console.log('[StepFun][DIAG-FWD] adapter returned! result.success=', result.success, 'status=', result.status, 'hasStream=', !!result.stream, 'hasBody=', !!result.body, 'error=', (result.error || '').slice(0, 200))
+      proxyDebugLog('[StepFun][DIAG-FWD] adapter returned! result.success=', result.success, 'status=', result.status, 'hasStream=', !!result.stream, 'hasBody=', !!result.body, 'error=', (result.error || '').slice(0, 200))
 
       const latency = Date.now() - startTime
-      console.log('[StepFun][DIAG-FWD] request.stream=', request.stream, 'result.stream type=', result.stream?.constructor?.name)
+      proxyDebugLog('[StepFun][DIAG-FWD] request.stream=', request.stream, 'result.stream type=', result.stream?.constructor?.name)
 
       if (!result.success) {
         return {
           success: false,
           status: result.status,
-          error: result.error || 'Request failed',
+          error: result.error || '请求失败',
           latency,
         }
       }
 
       if (result.stream) {
-        console.log('[StepFun][DIAG-FWD] adapter returned stream, consuming via handleStream, request.stream=', request.stream)
+        proxyDebugLog('[StepFun][DIAG-FWD] adapter returned stream, consuming via handleStream, request.stream=', request.stream)
         const handler = new StepFunStreamHandler(actualModel, null, transformed.plan)
         const transformedStream = await handler.handleStream(result.stream)
 
         if (request.stream) {
-          console.log('[StepFun][DIAG-FWD] stream mode, returning transformedStream')
+          proxyDebugLog('[StepFun][DIAG-FWD] stream mode, returning transformedStream')
           return {
             success: true,
             status: result.status || 200,
@@ -1975,7 +1975,7 @@ export class RequestForwarder {
 
         // Non-stream request but adapter always returns gRPC-Web stream.
         // Consume the transformed SSE stream into a single response body.
-        console.log('[StepFun][DIAG-FWD] non-stream request, consuming transformedStream into body')
+        proxyDebugLog('[StepFun][DIAG-FWD] non-stream request, consuming transformedStream into body')
         const chunks: Buffer[] = []
         for await (const chunk of transformedStream) {
           chunks.push(Buffer.from(chunk))
@@ -2019,9 +2019,9 @@ export class RequestForwarder {
         }
       }
 
-      console.log('[StepFun][DIAG-FWD] no stream from adapter, falling through to non-stream path')
+      proxyDebugLog('[StepFun][DIAG-FWD] no stream from adapter, falling through to non-stream path')
       const handler = new StepFunStreamHandler(actualModel, null, transformed.plan)
-      console.log('[StepFun][DIAG-FWD] non-stream: calling handleNonStream with body=', !!result.body)
+      proxyDebugLog('[StepFun][DIAG-FWD] non-stream: calling handleNonStream with body=', !!result.body)
       const body = await handler.handleNonStream(result.body)
       this.applyToolCallsToResponse(body, transformed)
 
@@ -2038,7 +2038,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -2088,7 +2088,7 @@ export class RequestForwarder {
           return {
             success: false,
             status: result.status,
-            error: result.error || 'Request failed',
+            error: result.error || '请求失败',
             latency,
           }
         }
@@ -2168,7 +2168,7 @@ export class RequestForwarder {
         const latency = Date.now() - startTime
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: error instanceof Error ? error.message : '未知错误',
           latency,
         }
       }
@@ -2210,7 +2210,7 @@ export class RequestForwarder {
         return {
           success: false,
           status: result.status,
-          error: result.error || 'Request failed',
+          error: result.error || '请求失败',
           latency,
         }
       }
@@ -2289,7 +2289,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -2320,7 +2320,7 @@ export class RequestForwarder {
         return {
           success: false,
           status: result.status,
-          error: result.error || 'Request failed',
+          error: result.error || '请求失败',
           latency,
         }
       }
@@ -2399,7 +2399,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -2430,7 +2430,7 @@ export class RequestForwarder {
         return {
           success: false,
           status: result.status,
-          error: result.error || 'Request failed',
+          error: result.error || '请求失败',
           latency,
         }
       }
@@ -2509,7 +2509,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -2550,7 +2550,7 @@ export class RequestForwarder {
         return {
           success: false,
           status: result.status,
-          error: result.error || 'Request failed',
+          error: result.error || '请求失败',
           latency,
         }
       }
@@ -2630,7 +2630,7 @@ export class RequestForwarder {
       const latency = Date.now() - startTime
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -2787,7 +2787,7 @@ export class RequestForwarder {
       try {
         return JSON.stringify(response.data)
       } catch {
-        return 'Unknown error'
+        return '未知错误'
       }
     }
 
@@ -2858,7 +2858,7 @@ export class RequestForwarder {
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
         latency,
       }
     }
@@ -2879,7 +2879,7 @@ export class RequestForwarder {
       const creds = await cookieSessionManager.getCredentials(providerType)
       if (!creds || Object.keys(creds).length === 0) return account
 
-      console.log(`[Forwarder][DIAG] cookie session creds for ${providerType}: keys=${Object.keys(creds).join(',')}, tokenLen=${creds.token?.length || creds['Oasis-Token']?.length || 0}`)
+      proxyDebugLog(`[Forwarder][DIAG] cookie session creds for ${providerType}: keys=${Object.keys(creds).join(',')}, tokenLen=${creds.token?.length || creds['Oasis-Token']?.length || 0}`)
 
       // Cookie session credentials are the source of truth for session-based auth.
       // Always use the latest values from the live session (cookies may be refreshed).
@@ -2906,7 +2906,7 @@ export class RequestForwarder {
       }
 
       if (changed) {
-        console.log(`[Forwarder] Updated cookie session credentials for ${providerType}:`, Object.keys(mergedCredentials).join(', '))
+        proxyDebugLog(`[Forwarder] Updated cookie session credentials for ${providerType}:`, Object.keys(mergedCredentials).join(', '))
       }
 
       return { ...account, credentials: mergedCredentials }

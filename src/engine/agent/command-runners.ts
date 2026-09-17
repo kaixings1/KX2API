@@ -606,7 +606,11 @@ const backfillSessionsImpl: CommandRunner = {
   type: 'local',
   description: '扫描并恢复历史会话数据',
   execute: async (args, cwd) => {
-    const { existsSync, readdir } = await import('node:fs')
+    // readdir 必须从 `node:fs/promises` 取：`node:fs` 里的是**回调式**版本，
+    // 不返回 Promise。await 它拿不到数组，随后 .length / .slice 全部崩溃
+    // （靠类型检查才发现 —— 运行时只在「目录存在且被扫描到」时才触发）。
+    const { existsSync } = await import('node:fs')
+    const { readdir } = await import('node:fs/promises')
     const { join } = await import('node:path')
 
     const dirs = ['.sessions', 'sessions', '.history', join(cwd, '.kx2code', 'sessions')]

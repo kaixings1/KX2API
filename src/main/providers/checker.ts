@@ -54,7 +54,7 @@ export class ProviderChecker {
         providerId: provider.id,
         status: 'offline',
         latency: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : '未知错误',
       }
     }
   }
@@ -229,7 +229,7 @@ export class ProviderChecker {
           return { valid: false, error: 'Invalid API key' }
         }
 
-        return { valid: false, error: `HTTP ${response.status}: ${response.data?.error?.message || response.data?.message || 'Unknown error'}` }
+        return { valid: false, error: `HTTP ${response.status}: ${response.data?.error?.message || response.data?.message || '未知错误'}` }
       } catch (error) {
         return {
           valid: false,
@@ -631,7 +631,7 @@ export class ProviderChecker {
         return { valid: false, error: 'Token 已过期或无效' }
       }
       
-      return { valid: false, error: `Validation failed: ${response.data?.statusInfo?.message || 'Unknown error'}` }
+      return { valid: false, error: `Validation failed: ${response.data?.statusInfo?.message || '未知错误'}` }
     } catch (error) {
       console.error('[MiniMax] Validation error:', error)
       return {
@@ -681,7 +681,7 @@ export class ProviderChecker {
         return { valid: false, error: 'SSO ticket expired or invalid' }
       }
       
-      return { valid: false, error: `Validation failed: ${response.data?.errorMsg || 'Unknown error'}` }
+      return { valid: false, error: `Validation failed: ${response.data?.errorMsg || '未知错误'}` }
     } catch (error) {
       return {
         valid: false,

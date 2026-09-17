@@ -447,21 +447,21 @@ commandRegistry.register({
             id: 'lead',
             name: 'Team Leader',
             profile: 'Team Leader',
-            goal: 'Coordinate team members and delegate tasks effectively',
-            constraints: ['Always assign tasks to appropriate team members', 'Ensure task completion'],
+            goal: '协调团队成员并有效分配任务',
+            constraints: ['始终把任务分配给合适的成员', '确保任务完成'],
           },
           {
             id: 'engineer',
             name: 'Engineer',
             profile: 'Software Engineer',
-            goal: 'Implement solutions based on requirements',
-            constraints: ['Write clean, maintainable code', 'Follow best practices'],
+            goal: '依据需求实现解决方案',
+            constraints: ['Write clean, maintainable code', '遵循最佳实践'],
           },
         ],
         leadRole: 'lead',
         maxRounds: 3,
       })
-      const result = await team.process(args.join(' ') || 'No task specified')
+      const result = await team.process(args.join(' ') || '未指定任务')
       return { success: true, output: result }
     } catch (e) {
       return { success: false, error: (e as Error).message }

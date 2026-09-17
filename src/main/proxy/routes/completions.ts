@@ -200,7 +200,7 @@ router.post('/completions', async (ctx: Context) => {
     ctx.status = 500
     ctx.body = {
       error: {
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: error instanceof Error ? error.message : '未知错误',
         type: 'internal_error',
       },
     }

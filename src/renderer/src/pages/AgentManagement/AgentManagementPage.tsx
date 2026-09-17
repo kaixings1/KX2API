@@ -14,7 +14,9 @@ import { SectionCard } from '@/components/ui/section-card'
 import { useAgents } from '@/hooks/useAgents'
 import { useAgentExecution } from '@/hooks/useAgentExecution'
 import { AgentCard } from '@/components/AgentCard/AgentCard'
-import type { AgentRecord } from '../../../../main/agents/types'
+// 不要 import `main/agents/types` 的 AgentRecord：渲染进程另有一份全局声明
+// （electron.d.ts），而 useAgents 返回的是后者。
+// 两套同名类型并存会让「hook 返回的值」赋不进「页面声明的类型」（TS2345）。
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
   idle: { label: '空闲', variant: 'secondary' },
@@ -98,18 +100,15 @@ export function AgentManagement() {
   const handleExport = async () => {
     try {
       const res = await window.electronAPI.mgmt.export('agents', filtered)
-      if (res.success) {
-        const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `agents_${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
+      if (!res.success) {
+        return ''
       }
+      // 返回 JSON 字符串供 ImportExportDialog 统一下载
     } catch (e) {
       console.error('Export failed:', e)
+      return ''
     }
+    return JSON.stringify(filtered, null, 2)
   }
 
   const handleImport = async (jsonData: string) => {
@@ -132,17 +131,13 @@ export function AgentManagement() {
   const handleBackup = async () => {
     try {
       const res = await window.electronAPI.mgmt.backup()
-      if (res.success) {
-        const blob = new Blob([JSON.stringify({ agents: filtered }, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `agents_backup_${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
+      if (!res.success) return { success: false, error: res.error }
+      const blob = new Blob([JSON.stringify({ agents: filtered }, null, 2)], { type: 'application/json' })
+      const file = new File([blob], `agents_backup_${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' })
+      return { success: true, file }
     } catch (e) {
       console.error('Backup failed:', e)
+      return { success: false, error: (e as Error).message }
     }
   }
 
@@ -150,8 +145,9 @@ export function AgentManagement() {
     try {
       const text = await file.text()
       const data = JSON.parse(text)
-      if (!Array.isArray(data)) return { success: false, error: '数据格式错误' }
-      for (const item of data) {
+      const items = Array.isArray(data) ? data : (data.agents || [])
+      if (!Array.isArray(items)) return { success: false, error: '数据格式错误' }
+      for (const item of items) {
         if (item?.id) {
           await create({ name: item.name, role: item.role, systemPrompt: item.systemPrompt, model: item.model || '', status: 'idle' })
         }

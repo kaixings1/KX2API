@@ -53,12 +53,12 @@ export function LogRow({ entry, onClick }: LogRowProps) {
           </span>
           <span className={cn(
             'text-xs font-medium px-1.5 py-0.5 rounded',
-            isSuccess ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-red-600'
+            isSuccess ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400'
           )}>
             {entry.statusCode}
           </span>
           {entry.isStream && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600">
+            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">
               stream
             </span>
           )}

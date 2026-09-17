@@ -139,13 +139,9 @@ export class RequestDeduplicator {
     this.entries.clear()
   }
 
-  setWindowMs(ms: number): void {
-    this.windowMs = ms
-  }
-
-  getWindowMs(): number {
-    return this.windowMs
-  }
+  // 注：setWindowMs / getWindowMs 定义在上面（含参数校验的版本）。
+  // 此处曾有一份重复定义（无校验），两处同名成员会导致 esbuild 报
+  // "Duplicate member in class body" 并让 dev 启动失败。
 
   getActiveCount(): number {
     return this.entries.size

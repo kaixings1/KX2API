@@ -61,7 +61,7 @@ export class InAppLoginManager extends EventEmitter {
     if (!this.config) {
       return {
         success: false,
-        error: `No token extraction config found for provider: ${options.providerType}`,
+        error: `未找到供应商 ${options.providerType} 的 Token 提取配置`,
       }
     }
 
@@ -81,7 +81,7 @@ export class InAppLoginManager extends EventEmitter {
         })
       }, options.timeout || DEFAULT_TIMEOUT)
 
-      this.emit('status', { status: 'starting', message: 'Opening login window...' })
+      this.emit('status', { status: 'starting', message: '正在打开登录窗口…' })
 
       this.createLoginWindow()
       this.setupTokenInterception()
@@ -130,14 +130,14 @@ export class InAppLoginManager extends EventEmitter {
 
     this.loginWindow.once('ready-to-show', () => {
       this.loginWindow?.show()
-      this.emit('status', { status: 'ready', message: 'Login window ready - please log in' })
+      this.emit('status', { status: 'ready', message: '登录窗口已就绪，请登录' })
     })
 
     this.loginWindow.on('closed', () => {
       if (!this.isCompleted) {
         this.complete({
           success: false,
-          error: 'Login window was closed',
+          error: '登录窗口已关闭',
         })
       }
     })
@@ -145,7 +145,7 @@ export class InAppLoginManager extends EventEmitter {
     this.loginWindow.loadURL(this.config.loginUrl).catch((error) => {
       this.complete({
         success: false,
-        error: `Failed to load login page: ${error.message}`,
+        error: `加载登录页失败：${error.message}`,
       })
     })
   }
@@ -594,7 +594,7 @@ export class InAppLoginManager extends EventEmitter {
     if (!this.isCompleted) {
       this.complete({
         success: false,
-        error: 'Login cancelled by user',
+        error: '用户已取消登录',
       })
     }
   }

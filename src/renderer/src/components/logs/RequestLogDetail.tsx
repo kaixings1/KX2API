@@ -154,10 +154,10 @@ export function RequestLogDetail({ log, onClose }: RequestLogDetailProps) {
 
   const getStatusColor = (status: 'success' | 'error' | 'pending') => {
     return status === 'success'
-      ? 'bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20'
+      ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 hover:bg-green-500/20'
       : status === 'pending'
-        ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20 hover:bg-yellow-500/20'
-        : 'bg-red-500/10 text-red-600 border-red-500/20 hover:bg-red-500/20'
+        ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 hover:bg-yellow-500/20'
+        : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-500/20'
   }
 
   const renderJsonViewer = (jsonString: string | undefined) => {
@@ -423,7 +423,7 @@ export function RequestLogDetail({ log, onClose }: RequestLogDetailProps) {
                       copyText={log.errorMessage}
                     />
                     <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
-                      <pre className="text-sm text-red-600 font-medium whitespace-pre-wrap break-all font-sans leading-relaxed">
+                      <pre className="text-sm text-red-600 dark:text-red-400 font-medium whitespace-pre-wrap break-all font-sans leading-relaxed">
                         {log.errorMessage}
                       </pre>
                     </div>

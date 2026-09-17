@@ -325,7 +325,7 @@ export function AddAccountDialog({
         return
       }
       setCredentials({})
-      setValidationResult(null)
+      setValidationResult({})
       await handleOpenOAuthBrowser()
     } catch (error) {
       const message = error instanceof Error ? error.message : t('providers.clearLoginFailed')

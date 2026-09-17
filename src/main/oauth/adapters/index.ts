@@ -56,7 +56,7 @@ export function createAdapter(
     case 'zai':
       return new ZaiAdapter(config)
     default:
-      throw new Error(`Unsupported provider type: ${providerType}`)
+      throw new Error(`不支持的供应商类型：${providerType}`)
   }
 }
 

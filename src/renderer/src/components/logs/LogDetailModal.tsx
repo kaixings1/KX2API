@@ -156,7 +156,7 @@ export function LogDetailModal({ log, open, onClose }: LogDetailModalProps) {
               <div>
                 <label className="text-sm text-red-500">{t('logs.error')}</label>
                 <div className="mt-1 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                  <pre className="text-sm text-red-600 whitespace-pre-wrap break-all font-sans">
+                  <pre className="text-sm text-red-600 dark:text-red-400 whitespace-pre-wrap break-all font-sans">
                     {log.error}
                   </pre>
                 </div>

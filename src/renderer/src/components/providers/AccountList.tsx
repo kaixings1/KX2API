@@ -74,26 +74,26 @@ export function AccountList({
   }> = {
     active: {
       labelKey: 'providers.active',
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-500/15',
       icon: Check,
     },
     inactive: {
       labelKey: 'providers.inactive',
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-100',
+      color: 'text-gray-600 dark:text-gray-300',
+      bgColor: 'bg-gray-100 dark:bg-gray-500/15',
       icon: Clock,
     },
     expired: {
       labelKey: 'providers.expired',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
+      color: 'text-orange-600 dark:text-orange-400',
+      bgColor: 'bg-orange-100 dark:bg-orange-500/15',
       icon: AlertCircle,
     },
     error: {
       labelKey: 'common.error',
-      color: 'text-red-600',
-      bgColor: 'bg-red-100',
+      color: 'text-red-600 dark:text-red-400',
+      bgColor: 'bg-red-100 dark:bg-red-500/15',
       icon: X,
     },
   }

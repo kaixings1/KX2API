@@ -35,18 +35,15 @@ export function PluginManagement() {
   const handleExport = async () => {
     try {
       const res = await window.electronAPI.mgmt.export('plugins', plugins)
-      if (res.success) {
-        const blob = new Blob([JSON.stringify(plugins, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `plugins_${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
+      if (!res.success) {
+        return ''
       }
+      // 返回 JSON 字符串供 ImportExportDialog 统一下载
     } catch (e) {
       console.error('Export failed:', e)
+      return ''
     }
+    return JSON.stringify(plugins, null, 2)
   }
 
   const handleImport = async (jsonData: string) => {
@@ -70,17 +67,13 @@ export function PluginManagement() {
   const handleBackup = async () => {
     try {
       const res = await window.electronAPI.mgmt.backup()
-      if (res.success) {
-        const blob = new Blob([JSON.stringify({ plugins: plugins }, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `plugins_backup_${new Date().toISOString().slice(0, 10)}.json`
-        a.click()
-        URL.revokeObjectURL(url)
-      }
+      if (!res.success) return { success: false, error: res.error }
+      const blob = new Blob([JSON.stringify({ plugins: plugins }, null, 2)], { type: 'application/json' })
+      const file = new File([blob], `plugins_backup_${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' })
+      return { success: true, file }
     } catch (e) {
       console.error('Backup failed:', e)
+      return { success: false, error: (e as Error).message }
     }
   }
 

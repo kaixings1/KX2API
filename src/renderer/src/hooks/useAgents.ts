@@ -3,7 +3,6 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
-import type { AgentRecord } from '../../../../main/agents/types'
 
 export function useAgents() {
   const [agents, setAgents] = useState<AgentRecord[]>([])
@@ -25,7 +24,7 @@ export function useAgents() {
 
   useEffect(() => { load() }, [load])
 
-  const create = useCallback(async (data: Omit<AgentRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const create = useCallback(async (data: Omit<AgentRecord, 'id' | 'createdAt' | 'lastActiveAt'>) => {
     const result = await window.electronAPI.agents.create(data)
     await load()
     return result

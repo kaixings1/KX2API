@@ -5,7 +5,8 @@
 import { CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowRight } from 'lucide-react'
-import type { AgentRecord } from '../../../../main/agents/types'
+
+// AgentRecord 用渲染进程的全局声明（electron.d.ts），理由同 AgentCardBody。
 
 interface AgentCardHeaderProps {
   agent: AgentRecord

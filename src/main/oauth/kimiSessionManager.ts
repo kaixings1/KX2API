@@ -88,7 +88,7 @@ export class KimiSessionManager extends EventEmitter {
       this.window.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
         console.error('[KimiSession] Failed to load page:', errorCode, errorDescription)
         logManager.error('[KimiSession] Failed to load page', { errorCode, errorDescription: String(errorDescription) })
-        this.emit('session-error', new Error(`Failed to load Kimi page: ${errorDescription}`))
+        this.emit('session-error', new Error(`加载 Kimi 页面失败：${errorDescription}`))
       })
 
       console.log('[KimiSession] Initialized with partition:', KIMI_SESSION_PARTITION)

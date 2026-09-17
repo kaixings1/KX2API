@@ -55,7 +55,7 @@ class OpenAIValidator implements Validator {
       
       return {
         valid: false,
-        error: `Validation failed: HTTP ${response.status}`,
+        error: `校验失败：HTTP ${response.status}`,
         validatedAt: Date.now(),
       }
     } catch (error) {
@@ -86,7 +86,7 @@ class OpenAIValidator implements Validator {
       const message = axiosError.response?.data?.error?.message || axiosError.message
       return {
         valid: false,
-        error: `Validation failed: ${message}`,
+        error: `校验失败：${message}`,
         validatedAt: Date.now(),
       }
     }
@@ -150,7 +150,7 @@ class ClaudeValidator implements Validator {
       
       return {
         valid: false,
-        error: `Validation failed: HTTP ${response.status}`,
+        error: `校验失败：HTTP ${response.status}`,
         validatedAt: Date.now(),
       }
     } catch (error) {
@@ -190,7 +190,7 @@ class ClaudeValidator implements Validator {
       const message = errorData?.message || axiosError.message
       return {
         valid: false,
-        error: `Validation failed: ${message}`,
+        error: `校验失败：${message}`,
         validatedAt: Date.now(),
       }
     }
@@ -254,7 +254,7 @@ class ChatGPTWebValidator implements Validator {
       
       return {
         valid: false,
-        error: `Validation failed: HTTP ${response.status}`,
+        error: `校验失败：HTTP ${response.status}`,
         validatedAt: Date.now(),
       }
     } catch (error) {
@@ -284,7 +284,7 @@ class ChatGPTWebValidator implements Validator {
       
       return {
         valid: false,
-        error: `Validation failed: ${axiosError.message}`,
+        error: `校验失败：${axiosError.message}`,
         validatedAt: Date.now(),
       }
     }
@@ -341,7 +341,7 @@ class GenericTokenValidator implements Validator {
       
       return {
         valid: false,
-        error: `Validation failed: HTTP ${response.status}`,
+        error: `校验失败：HTTP ${response.status}`,
         validatedAt: Date.now(),
       }
     } catch (error) {
@@ -358,7 +358,7 @@ class GenericTokenValidator implements Validator {
         
         return {
           valid: false,
-          error: `Validation failed: ${axiosError.message}`,
+          error: `校验失败：${axiosError.message}`,
           validatedAt: Date.now(),
         }
       }

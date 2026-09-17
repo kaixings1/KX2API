@@ -2621,7 +2621,7 @@ function registerErrorRecoveryHandlers(mainWindow: BrowserWindow | null): void {
       }
       return {
         success: false,
-        error: storeManager.getInitializationError()?.message || 'Unknown error'
+        error: storeManager.getInitializationError()?.message || '未知错误'
       }
     } catch (error) {
       return {

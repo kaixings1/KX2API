@@ -361,21 +361,24 @@ export function readAuditConfig(): {
  *
  * 未配置时返回空值，引擎侧不启用图片裁剪 —— 与改造前行为一致。
  */
-export function readImageBudgetConfig(): ImageBudgetConfig | void {
+export function readImageBudgetConfig(): ImageBudgetConfig | undefined {
   try {
-    const cfg = ConfigManager.get() as { imageBudget?: ImageBudgetConfig } | void
+    const cfg = ConfigManager.get() as { imageBudget?: ImageBudgetConfig } | undefined
     return cfg?.imageBudget
   } catch {
     return void 0
   }
 }
 
-export function readAgentLoopConfig(): AgentLoopConfig | void {
+/**
+ * 从配置读取 Agent 循环控制参数（未配置时返回 undefined，由引擎回落默认值）。
+ */
+export function readAgentLoopConfig(): AgentLoopConfig | undefined {
   try {
-    const cfg = ConfigManager.get() as { agentLoop?: AgentLoopConfig } | void
+    const cfg = ConfigManager.get() as { agentLoop?: AgentLoopConfig } | undefined
     return cfg?.agentLoop
   } catch {
-    return void 0
+    return undefined
   }
 }
 
