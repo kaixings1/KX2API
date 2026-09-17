@@ -2,7 +2,17 @@ import { app } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 
-export class ModuleDataStore<T extends Record<string, unknown>> {
+/**
+ * 通用模块数据存储。
+ *
+ * 泛型约束从 `Record<string, unknown>` 放宽为 `{ id: string }`：
+ * 前者要求类型带**索引签名**，而业务接口（PlanRecord / TaskRecord /
+ * McpServerConfig 等）都是具名字段的普通接口，不带索引签名 ——
+ * 于是 `new ModuleDataStore<PlanRecord>(...)` 全部报 TS2344/TS2345（共 12 处）。
+ *
+ * 本类实际只需要「有 id 可用于索引」这一件事，约束应如实表达该需求。
+ */
+export class ModuleDataStore<T extends { id: string }> {
   private readonly dir: string
   private readonly filePath: string
   private cache = new Map<string, T>()

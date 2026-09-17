@@ -39,7 +39,6 @@ import { ZaiAdapter } from '../proxy/adapters/zai'
 import type { Provider, Account, ProxyStatus, ProviderCheckResult, OAuthResult, AuthType, CredentialField, LogLevel, LogEntry, ProviderVendor, AppConfig, AccountStatus } from '../../shared/types'
 import type { SystemPrompt, SessionConfig, SessionRecord, ManagementApiConfig } from '../store/types'
 import type { ProviderType } from '../oauth/types'
-import { logger } from '../logger/manager'
 import { allLegacyToolPlugins } from '../../engine/plugin/legacyToolPlugins'
 
 // 引擎引用（通过 engine-bridge 设置，避免直接导入 engine 模块）
@@ -83,6 +82,7 @@ interface PlanRecord {
   steps: Array<{ id: string; description: string; status: string; result?: string | null }>
   createdAt: number
   updatedAt?: number
+  completedAt?: number
 }
 
 interface TaskRecord {
@@ -120,6 +120,7 @@ interface CommandRecord {
   name: string
   description: string
   command: string
+  args?: string[]
   type: 'builtin' | 'custom'
   enabled: boolean
   createdAt: number
@@ -144,6 +145,11 @@ interface McpServerConfig {
   name: string
   transport: 'stdio' | 'sse' | 'http'
   enabled: boolean
+  url?: string
+  command?: string
+  args?: string[]
+  env?: Record<string, string>
+  headers?: Record<string, string>
   tools: Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> | null
 }
 
@@ -391,14 +397,16 @@ const DEFAULT_MCP_SERVERS: McpServerConfig[] = [
   },
 ]
 
-function seedStoreIfEmpty<T extends Record<string, unknown>>(
+// 约束与 ModuleDataStore 保持一致（{ id: string }），
+// 不能再用 Record<string, unknown> —— 业务接口不带索引签名。
+function seedStoreIfEmpty<T extends { id: string }>(
   store: ModuleDataStore<T>,
   defaults: T[],
   storeName: string
 ): void {
   if (store.size === 0) {
     for (const item of defaults) {
-      store.set(item.id as string, item as T)
+      store.set(item.id, item)
     }
     console.log(`[IPC] Seeded ${defaults.length} default ${storeName}`)
   }
