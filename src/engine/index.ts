@@ -10,6 +10,7 @@ import { MessageNormalizer, type InternalMessage } from "./messageNormalizer.ts"
 import { RequestBuilder, type ToolDefinition } from "./requestBuilder.ts";
 import { ResponseHandler } from "./responseHandler.ts";
 import { ToolScheduler, type PermissionManager, type ToolExecutor, type Tool, type ToolHooks } from "./toolScheduler.ts";
+import type { PermissionRule } from "./permissions/permissionRules.ts";
 import { TokenBudgetManager } from "./tokenBudgetManager.ts";
 import type { AgentLoopConfig } from "./loopConfig.ts";
 import { AutoCompactor } from "./autoCompactor.ts";
@@ -437,6 +438,21 @@ export class QueryEngine {
    */
   setToolHooks(hooks: ToolHooks): void {
     this.toolSchedulerInstance?.setHooks(hooks)
+  }
+
+  /**
+   * 注入参数级权限规则（主进程启动时调用，配置热更新时重调）。
+   *
+   * 规则来自用户配置文件（userData/permissions.json），同样由桥接层负责读取 ——
+   * engine 层不依赖 fs 路径与 Electron。
+   */
+  setPermissionRules(rules: PermissionRule[]): void {
+    this.toolSchedulerInstance?.setPermissionRules(rules)
+  }
+
+  /** 当前生效的权限规则（供 UI 回显） */
+  getPermissionRules(): PermissionRule[] {
+    return this.toolSchedulerInstance?.getPermissionRules() ?? []
   }
 
   /** 更新引擎的工具定义列表（由 toolManager/toolRuntime 驱动，使配置切换立即生效） */

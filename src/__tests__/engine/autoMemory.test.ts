@@ -1,5 +1,24 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterAll } from 'vitest'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { extractMemoryFromTurn, parseExtraction } from '../../engine/memory/autoMemory'
+
+/**
+ * 隔离用临时记忆目录。
+ *
+ * 必须显式指定：extractMemoryFromTurn 默认写用户真实记忆目录，
+ * 不提目录会让测试把内容写进 `<homedir>/.doge/projects/.../memory/`
+ * —— 那是用户的真实数据，被污染后很难察觉。
+ */
+const testDir = mkdtempSync(join(tmpdir(), 'kx2-automem-'))
+afterAll(() => {
+  try {
+    rmSync(testDir, { recursive: true, force: true })
+  } catch {
+    /* 清理失败不影响断言 */
+  }
+})
 
 /**
  * 记忆写入侧此前零调用 —— 记忆目录永远是空的，读取侧每轮召回到「没有记忆」。
@@ -45,13 +64,14 @@ describe('extractMemoryFromTurn 入口判定', () => {
     const r = await extractMemoryFromTurn('记住：以后都用 pnpm', {
       enabled: false,
       api,
+      memoryDir: testDir,
     })
     expect(r.written).toBe(false)
     expect(r.skipped).toBe('未启用')
   })
 
   it('空对话跳过', async () => {
-    const r = await extractMemoryFromTurn('', { enabled: true, api })
+    const r = await extractMemoryFromTurn('', { enabled: true, api, memoryDir: testDir })
     expect(r.written).toBe(false)
     expect(r.skipped).toBe('对话为空')
   })
@@ -60,6 +80,7 @@ describe('extractMemoryFromTurn 入口判定', () => {
     const r = await extractMemoryFromTurn('帮我看一下这个函数为什么报错', {
       enabled: true,
       api,
+      memoryDir: testDir,
     })
     expect(r.written).toBe(false)
     expect(r.skipped).toContain('信号词')
@@ -67,7 +88,7 @@ describe('extractMemoryFromTurn 入口判定', () => {
 
   it('过短的文本被预筛拦下（避免碎片入库）', async () => {
     // 预筛要求 trim 后 >= 40 字符
-    const r = await extractMemoryFromTurn('记住：用 pnpm', { enabled: true, api })
+    const r = await extractMemoryFromTurn('记住：用 pnpm', { enabled: true, api, memoryDir: testDir })
     expect(r.written).toBe(false)
     expect(r.skipped).toContain('信号词')
   })
@@ -77,7 +98,7 @@ describe('extractMemoryFromTurn 入口判定', () => {
       '记住：这个项目以后统一使用 pnpm 管理依赖，不要再出现 npm install 的用法，' +
       '这是我们团队约定的规范，避免锁文件格式混乱。'
     // 不传 api → 走「原文存档」降级路径，会真的尝试写文件
-    const r = await extractMemoryFromTurn(longEnough, { enabled: true })
+    const r = await extractMemoryFromTurn(longEnough, { enabled: true, memoryDir: testDir })
     // 关键：不能再停在预筛阶段
     expect(r.skipped || '').not.toContain('信号词')
   })

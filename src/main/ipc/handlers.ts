@@ -1483,6 +1483,67 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     }
   })
 
+  // ==================== 参数级权限规则 ====================
+  // 规则形如 "Bash(git status)"，可做 allow/deny/ask 三态。
+  // 配置存 userData/permissions.json（不接受项目目录定义，见 permissionConfig 说明）。
+
+  ipcMain.handle(IpcChannels.PERMISSIONS_GET_RULES, async () => {
+    try {
+      const { rulesToEntries, loadPermissionRules } = await import('../permissions/permissionConfig')
+      const rules = await loadPermissionRules()
+      return { success: true, data: rulesToEntries(rules) }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.PERMISSIONS_SET_RULES, async (_, entries: unknown) => {
+    try {
+      const { writePermissionRules } = await import('../permissions/permissionConfig')
+      const { reloadToolPermissions } = await import('../engine-bridge')
+      if (!Array.isArray(entries)) return { success: false, error: '规则必须是数组' }
+      await writePermissionRules(entries as never)
+      // 写盘后立即热更新到引擎，避免"改了配置要重启"
+      const count = await reloadToolPermissions()
+      return { success: true, count }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.PERMISSIONS_RELOAD, async () => {
+    try {
+      const { reloadToolPermissions } = await import('../engine-bridge')
+      const count = await reloadToolPermissions()
+      return { success: true, count }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle(IpcChannels.PERMISSIONS_GET_PATH, async () => {
+    try {
+      const { getPermissionConfigPath } = await import('../permissions/permissionConfig')
+      return { success: true, data: getPermissionConfigPath() }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // 预览解析结果：让 UI 能在用户输入规则字符串时立刻显示"解析成什么"，
+  // 而不是等保存完才发现写错了工具名。
+  ipcMain.handle(IpcChannels.PERMISSIONS_PARSE, async (_, rule: string) => {
+    try {
+      const { parsePermissionEntries } = await import('../permissions/permissionConfig')
+      const parsed = parsePermissionEntries([
+        { behavior: 'allow', rule: String(rule ?? '') },
+      ])
+      return { success: true, data: parsed.length > 0 ? parsed[0].value : null }
+    } catch (e) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
   ipcMain.handle(IpcChannels.TOOLS_CONTEXT_STATUS, async () => {
     try {
       const { useLayeredContext, computeToolBudget } = await import('../tools/toolContext')

@@ -244,6 +244,53 @@ async function wireToolHooks(engine: QueryEngine): Promise<void> {
 }
 
 /**
+ * 把用户配置的参数级权限规则注入引擎。
+ *
+ * 与钩子同构：配置固定在 userData 下（不接受项目目录里的定义 ——
+ * 克隆一个仓库不该改变你的权限策略）。
+ *
+ * 读不到配置时注入空规则集，`evaluatePermission` 会返回 passthrough，
+ * 工具执行完全走既有权限逻辑 —— **不配置就等于行为不变**。
+ */
+async function wireToolPermissions(engine: QueryEngine): Promise<void> {
+  try {
+    const { setPermissionConfigPath, loadPermissionRules, ensureSamplePermissionConfig } =
+      await import('./permissions/permissionConfig.ts')
+
+    const file = join(app.getPath('userData'), 'permissions.json')
+    setPermissionConfigPath(file)
+    // 首次启动写一份示例（不覆盖已有配置），方便用户知道格式
+    await ensureSamplePermissionConfig()
+    const rules = await loadPermissionRules(true)
+    engine.setPermissionRules(rules)
+    console.log(`[EngineBridge] Tool permissions wired: ${rules.length} 条规则，来源 ${file}`)
+  } catch (e) {
+    console.warn('[EngineBridge] wireToolPermissions failed:', (e as Error).message)
+  }
+}
+
+/**
+ * 权限规则热更新：用户在设置界面改完立即生效，无需重启。
+ * 返回当前规则条数（读失败返回 0）。
+ */
+export async function reloadToolPermissions(): Promise<number> {
+  const eng = getEngineInstance()
+  if (!eng) return 0
+  try {
+    const { loadPermissionRules, clearPermissionConfigCache } = await import(
+      './permissions/permissionConfig.ts'
+    )
+    clearPermissionConfigCache()
+    const rules = await loadPermissionRules(true)
+    eng.setPermissionRules(rules)
+    return rules.length
+  } catch (e) {
+    console.warn('[EngineBridge] reloadToolPermissions failed:', (e as Error).message)
+    return 0
+  }
+}
+
+/**
  * 审计配置：日志落在 userData/audit 下，随应用数据统一管理。
  * 取不到 userData 时（非 Electron 环境）由安全层自行降级为不审计。
  */
@@ -757,6 +804,10 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
 
     // 注入用户钩子：工具调用前可拦截、调用后可注入上下文
     if (engine) await wireToolHooks(engine)
+
+    // 注入参数级权限规则：`Bash(git status)` 这类细粒度 allow/deny/ask。
+    // 未配置时注入空集，判定走 passthrough → 完全沿用既有权限逻辑。
+    if (engine) await wireToolPermissions(engine)
 
     // 同步命令到 ToolCollection，确保工具系统与注册表一致
     await toolCollection.syncFromRegistry()

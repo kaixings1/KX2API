@@ -31,6 +31,11 @@ export interface AutoMemoryConfig {
   }
   /** 单次提取的最大输入字符数（控制成本） */
   maxInputChars?: number
+  /**
+   * 记忆目录覆盖。缺省写入用户真实记忆目录；
+   * 测试必须显式指定，否则会污染用户的记忆。
+   */
+  memoryDir?: string
 }
 
 export interface AutoMemoryResult {
@@ -99,12 +104,15 @@ export async function extractMemoryFromTurn(
   const parsed = parseExtraction(raw)
   if (!parsed) return { written: false, skipped: '模型判定无值得保留的内容' }
 
-  const result = await writeMemory({
-    name: parsed.title,
-    description: parsed.desc,
-    type: 'project' as MemoryType,
-    body: parsed.body.slice(0, MAX_MEMORY_BODY_CHARS),
-  })
+  const result = await writeMemory(
+    {
+      name: parsed.title,
+      description: parsed.desc,
+      type: 'project' as MemoryType,
+      body: parsed.body.slice(0, MAX_MEMORY_BODY_CHARS),
+    },
+    config.memoryDir ? { memoryDir: config.memoryDir } : {},
+  )
 
   return result.ok
     ? { written: true, file: result.file }

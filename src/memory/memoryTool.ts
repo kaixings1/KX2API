@@ -1,10 +1,17 @@
 /**
  * 记忆工具处理器 - TypeScript 实现
  * 来源: anthropics/claude-cookbooks/tool_use/memory_tool.py
+ *
+ * 目录统一：默认落盘到记忆系统目录（resolveMemoryDir()，即
+ * `<homedir>/.doge/projects/<编码项目根>/memory`），与
+ * `src/engine/memory/memoryRecall.ts` / `memoryWriter.ts` 同一目录，
+ * 使 `memory_*` 工具写入的记忆能被召回系统读到。`/memories` 仍作为
+ * 模型的虚拟根契约保留，仅决定真实落盘位置的根被迁移。
  */
 
 import * as fs from "fs";
 import * as path from "path";
+import { resolveMemoryDir } from "../engine/memory/memoryRecall.ts";
 
 export type MemoryResult = { success: string } | { error: string };
 
@@ -25,10 +32,26 @@ export class MemoryToolHandler {
   private basePath: string;
   private memoryRoot: string;
 
-  constructor(basePath: string = "./memory_storage") {
-    this.basePath = path.resolve(basePath);
-    this.memoryRoot = path.join(this.basePath, "memories");
-    fs.mkdirSync(this.memoryRoot, { recursive: true });
+  /**
+   * @param basePath 显式提供时作为传统 `<basePath>/memories` 根（测试用），
+   *                 缺省时统一到记忆系统目录 `resolveMemoryDir()`。
+   */
+  constructor(basePath?: string) {
+    const directory = basePath ? path.resolve(basePath) : null;
+    this.basePath = directory ?? path.dirname(resolveMemoryDir());
+    this.memoryRoot = directory
+      ? path.join(directory, "memories")
+      : resolveMemoryDir();
+    try {
+      fs.mkdirSync(this.memoryRoot, { recursive: true });
+    } catch {
+      /* 目录创建失败不阻塞构造；后续读写会带出真实错误 */
+    }
+  }
+
+  /** 当前记忆落盘的绝对根目录（默认等于记忆系统的 resolveMemoryDir()） */
+  get root(): string {
+    return this.memoryRoot;
   }
 
   private validatePath(inputPath: string): string {

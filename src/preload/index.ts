@@ -1496,6 +1496,36 @@ const electronAPI = {
       ipcRenderer.invoke('tools:contextStatus'),
   },
 
+  /**
+   * 参数级权限规则（`Bash(git status)` 这类细粒度 allow/deny/ask）。
+   * 规则存 userData/permissions.json，改完立即热更新到引擎。
+   */
+  permissions: {
+    /** 读取当前生效的规则（已转回可编辑的字符串形式） */
+    getRules: (): Promise<{ success: boolean; data?: any[]; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.PERMISSIONS_GET_RULES),
+
+    /** 覆盖式写入规则并热更新 */
+    setRules: (
+      entries: Array<{ behavior: 'allow' | 'deny' | 'ask'; rule: string; source?: string }>,
+    ): Promise<{ success: boolean; count?: number; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.PERMISSIONS_SET_RULES, entries),
+
+    /** 从磁盘重新加载（外部编辑文件后调用） */
+    reload: (): Promise<{ success: boolean; count?: number; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.PERMISSIONS_RELOAD),
+
+    /** 配置文件路径（供 UI 展示或用系统默认程序打开） */
+    getPath: (): Promise<{ success: boolean; data?: string | null; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.PERMISSIONS_GET_PATH),
+
+    /** 预览规则字符串的解析结果（UI 即时校验） */
+    parse: (
+      rule: string,
+    ): Promise<{ success: boolean; data?: { toolName: string; ruleContent?: string } | null; error?: string }> =>
+      ipcRenderer.invoke(IpcChannels.PERMISSIONS_PARSE, rule),
+  },
+
   on: (channel: string, callback: (...args: unknown[]) => void) => {
     const subscription = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => callback(...args)
     ipcRenderer.on(channel, subscription)

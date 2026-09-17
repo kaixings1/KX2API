@@ -3,18 +3,21 @@
  *
  * 来源: src/memory/memoryTool.ts (Claude Cookbooks memory_tool.py)
  * 集成方式: 注册到 toolPluginRegistry，默认启用
+ *
+ * 目录约定：缺省走 MemoryToolHandler 的默认根 `resolveMemoryDir()`，
+ * 与记忆召回/写入系统（src/engine/memory/）落在同一目录，使工具写入
+ * 的记忆能被召回系统读到。不再使用写死的相对路径 `./memory_storage`
+ * （Electron 打包后工作目录不固定，相对路径定位不稳）。
  */
 
 import type { Tool, ToolPlugin } from '../../engine/plugin/toolPluginRegistry.ts'
 import { MemoryToolHandler } from '../../memory/memoryTool.ts'
 
-const MEMORY_ROOT = './memory_storage'
-
 /** 单例处理器 */
 let handler: MemoryToolHandler | null = null
 function getHandler(): MemoryToolHandler {
   if (!handler) {
-    handler = new MemoryToolHandler(MEMORY_ROOT)
+    handler = new MemoryToolHandler()
   }
   return handler
 }

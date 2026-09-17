@@ -318,6 +318,18 @@ export const IpcChannels = {
   /** 清空度量数据 */
   TOOLS_METRICS_RESET: 'tools:metricsReset',
 
+  // ==================== Tool Permissions（参数级权限规则） ====================
+  /** 读取当前生效的权限规则 */
+  PERMISSIONS_GET_RULES: 'permissions:getRules',
+  /** 写入权限规则（覆盖式） */
+  PERMISSIONS_SET_RULES: 'permissions:setRules',
+  /** 从磁盘重新加载并热更新到引擎 */
+  PERMISSIONS_RELOAD: 'permissions:reload',
+  /** 权限配置文件路径（供 UI 展示/打开） */
+  PERMISSIONS_GET_PATH: 'permissions:getPath',
+  /** 规则字符串 → 结构化（UI 预览解析结果） */
+  PERMISSIONS_PARSE: 'permissions:parse',
+
   // Generic management import/export
   MGMT_EXPORT: 'mgmt:export',
   MGMT_IMPORT: 'mgmt:import',
