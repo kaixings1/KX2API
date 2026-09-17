@@ -17,7 +17,7 @@ import { ErrorClassifier } from "./errors/classifier.ts";
 import { AutoCompactor } from "./autoCompactor.ts";
 import { AutoFixLoop, type AutoFixLoopConfig } from "./autoFixLoop.ts";
 import { GitContextInjector, type GitContextConfig } from "./gitContext.ts";
-import { resolveToolName } from "./toolNameResolver";
+import { resolveToolName, TOOL_ALIASES } from "./toolNameResolver";
 import { resolveLoopConfig, type AgentLoopConfig } from "./loopConfig.ts";
 import { CompactCoordinator } from "./compactCoordinator.ts";
 import { writeSessionTranscriptSegment } from "./transcript.ts";
@@ -57,6 +57,7 @@ export type AgentEvent =
   | { type: 'pre_tool_use'; toolUseId: string; toolName: string; input: Record<string, unknown> }
   | { type: 'paused'; reason?: string }
   | { type: 'resumed' }
+  | { type: 'permission_request'; id: string; toolName: string; input: Record<string, unknown>; description?: string }
 
 export interface AutoContinueConfig {
   enabled?: boolean;
@@ -99,6 +100,11 @@ export interface MessageLoopDeps {
   loopLimits?: AgentLoopConfig;
   /** 会话标识：压缩前转录落盘的会话名；缺省用 'default' */
   sessionId?: string;
+  /**
+   * 自动继续配置：检测到「是否继续」类结尾关键词时自动追加"继续"，
+   * 由配置决定场景。引擎内部经 MessageLoopDeps 注入（见第 734 行按需读取）。
+   */
+  autoContinue?: AutoContinueConfig;
 }
 
 export class MessageLoop {
@@ -480,9 +486,13 @@ export class MessageLoop {
     const stream = await this.deps.apiClient.sendMessage(request);
     // 把本轮生效的工具名交给响应处理器：纯文本工具调用修复必须以真实工具集为准，
     // 否则接口文档/示例代码里的 <name>xxx</name> 会被当成工具调用、把正文整块剥离。
-    this.deps.responseHandler.allowedToolNames = new Set(
-      this.deps.toolDefinitions.map(t => t.name),
-    );
+    // 白名单除注册命令名外，并拢 TOOL_ALIASES 里的全部自造别名键（list_dir 等），
+    // 让模型常见的按其记忆输出变体名（list_directory / read_file / current_directory）
+    // 也能在入口直接命中，不依赖后续别名的「事后归一化」，双保险。
+    this.deps.responseHandler.allowedToolNames = new Set([
+      ...this.deps.toolDefinitions.map(t => t.name),
+      ...Object.keys(TOOL_ALIASES),
+    ]);
     // 推理旁路透传：thinking 块不进 conversation/history，仅转发事件给上层
     this.deps.responseHandler.onReasoning = (text: string) => {
       if (this.deps.onEvent) this.emit({ type: 'reasoning', text });

@@ -8,6 +8,7 @@ export interface ToolResult {
   success: boolean
   output?: string
   error?: string
+  needsAgent?: boolean
 }
 
 export interface Command {
@@ -15,7 +16,7 @@ export interface Command {
   description: string
   /** 工具分组，留空则属于 "default" 组 */
   group?: string
-  execute: (args: string[]) => Promise<{ success: boolean; output?: string; error?: string }>
+  execute: (args: string[]) => Promise<{ success: boolean; output?: string; error?: string; needsAgent?: boolean }>
 }
 
 export class ToolCollection {

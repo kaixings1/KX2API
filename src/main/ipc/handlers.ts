@@ -38,6 +38,12 @@ import { QwenAiAdapter } from '../proxy/adapters/qwen-ai'
 import { ZaiAdapter } from '../proxy/adapters/zai'
 import type { Provider, Account, ProxyStatus, ProviderCheckResult, OAuthResult, AuthType, CredentialField, LogLevel, LogEntry, ProviderVendor, AppConfig, AccountStatus } from '../../shared/types'
 import type { SystemPrompt, SessionConfig, SessionRecord, ManagementApiConfig } from '../store/types'
+// store 层另有一份 AppConfig（字段更全），是 storeManager / ConfigManager 实际接受的类型。
+// 本文件调用的正是这两个 API，所以用别名导入 store 那份。
+// （两份同名类型并存是历史遗留，长期应统一为单一来源。）
+import type { AppConfig as StoreAppConfig } from '../store/types'
+// 同理，store 层也有一份自己的 LogEntry（storeManager.getLogs 返回的是它）。
+import type { LogEntry as StoreLogEntry } from '../store/types'
 import type { ProviderType } from '../oauth/types'
 import { allLegacyToolPlugins } from '../../engine/plugin/legacyToolPlugins'
 
@@ -867,7 +873,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
 
   ipcMain.handle(IpcChannels.MCP_UPDATE_CONFIG, async (_, config: any) => {
     try {
-      storeManager.updateConfig({ mcp: config } as Partial<AppConfig>)
+      storeManager.updateConfig({ mcp: config } as Partial<StoreAppConfig>)
       return { success: true, data: null }
     } catch (e) {
       return { success: false, error: (e as Error).message }
@@ -921,7 +927,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
 
   ipcMain.handle(IpcChannels.MCP_GET_SERVER_BY_ID, async (_, id: string) => {
     try {
-      const configRes = await mcpService.getConfig()
+      const configRes = { servers: mcpService.getServers() }
       const server = (configRes as any)?.servers?.find((s: any) => s.id === id)
       if (server) return { success: true, data: server }
       return { success: false, error: '服务器不存在' }
@@ -1148,7 +1154,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.OTHER_CONFIG_UPDATE, async (_, config: Partial<OtherConfig>) => {
     try {
       const current = ConfigManager.get() || {}
-      ConfigManager.update({ ...current, ...config } as Partial<AppConfig>)
+      ConfigManager.update({ ...current, ...config } as Partial<StoreAppConfig>)
       return { success: true }
     } catch (e) { return { success: false, error: (e as Error).message } }
   })
@@ -1163,7 +1169,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.OTHER_CONFIG_UPDATE_ADVANCED, async (_, data: Record<string, unknown>) => {
     try {
       const config = ConfigManager.get() || {}
-      ConfigManager.update({ advanced: { ...(config as any).advanced, ...data } } as Partial<AppConfig>)
+      ConfigManager.update({ advanced: { ...(config as any).advanced, ...data } } as Partial<StoreAppConfig>)
       return { success: true }
     } catch (e) { return { success: false, error: (e as Error).message } }
   })
@@ -1171,7 +1177,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
   ipcMain.handle(IpcChannels.OTHER_CONFIG_RESET, async () => {
     try {
       const config = ConfigManager.get() || {}
-      ConfigManager.update({ advanced: {}, experimental: {}, developer: {} } as Partial<AppConfig>)
+      ConfigManager.update({ advanced: {}, experimental: {}, developer: {} } as Partial<StoreAppConfig>)
       return { success: true }
     } catch (e) { return { success: false, error: (e as Error).message } }
   })
@@ -1717,7 +1723,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     return storeManager.getConfig()
   })
 
-  ipcMain.handle(IpcChannels.CONFIG_UPDATE, async (_, updates: Partial<AppConfig>) => {
+  ipcMain.handle(IpcChannels.CONFIG_UPDATE, async (_, updates: Partial<StoreAppConfig>) => {
     const newConfig = storeManager.updateConfig(updates)
 
     // 切换工具组时立即同步环境变量（KX2_TOOL_DEF_*），
@@ -2300,7 +2306,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     endTime?: number
     limit?: number
     offset?: number
-  }): Promise<LogEntry[]> => {
+  }): Promise<StoreLogEntry[]> => {
     return storeManager.getLogs(filter)
   })
 
@@ -2324,7 +2330,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     return storeManager.exportLogs(format)
   })
 
-  ipcMain.handle(IpcChannels.LOGS_GET_BY_ID, async (_, id: string): Promise<LogEntry | undefined> => {
+  ipcMain.handle(IpcChannels.LOGS_GET_BY_ID, async (_, id: string): Promise<StoreLogEntry | undefined> => {
     return storeManager.getLogById(id)
   })
 
@@ -2411,7 +2417,7 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
     if (config.minimizeToTray) {
       mainWindow?.hide()
     } else {
-      app.isQuitting = true
+      await import("../index").then(m => m.markAppQuitting())
       mainWindow?.close()
     }
   })
@@ -2645,19 +2651,20 @@ function registerErrorRecoveryHandlers(mainWindow: BrowserWindow | null): void {
   })
 
   ipcMain.handle(IpcChannels.APP_CLOSE, async (): Promise<void> => {
-    app.isQuitting = true
+    await import("../index").then(m => m.markAppQuitting())
     mainWindow?.close()
   })
 }
 
-export async function setupChatHandlers(mainWindow: BrowserWindow | null): Promise<void> {
-  // Chat handlers are in chat-handlers.ts
+export async function setupChatHandlers(_mainWindow: BrowserWindow | null): Promise<void> {
+  // Chat handlers 在 chat-handlers.ts。其注册函数不接收参数 ——
+  // 它通过 ipcMain.handle 自行注册，不需要窗口引用。
   const { registerChatHandlers } = await import('./chat-handlers')
-  registerChatHandlers(mainWindow)
+  registerChatHandlers()
 }
 
-export async function setupEngineHandlers(mainWindow: BrowserWindow | null): Promise<void> {
-  // Engine handlers are in engine-bridge.ts
-  const { registerEngineHandlers } = await import('../engine-bridge')
-  registerEngineHandlers(mainWindow)
+export async function setupEngineHandlers(_mainWindow: BrowserWindow | null): Promise<void> {
+  // engine 的 IPC handler 由 `initEngineBridge` 在初始化时自行注册，
+  // engine-bridge **不导出** registerEngineHandlers（原调用是笔误）。
+  // 保留空实现以兼容既有调用点，不做任何事。
 }

@@ -113,7 +113,7 @@ async function ripGrep(args: string[], cwdOrFile: string, _signal?: AbortSignal)
   return ripGrepContent(args, cwdOrFile);
 }
 
-const fs = { existsSync: () => true };
+const fs = { existsSync: (_p?: string): boolean => true };
 const expandPath = (p: string) => p;
 const getFsImplementation = () => fs;
 

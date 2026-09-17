@@ -3,7 +3,7 @@
  * Defines core data structures for accounts, providers, and configuration
  */
 
-import type { ProviderStatus } from '../../shared/types'
+import type { ProviderStatus, ProviderVendor } from '../../shared/types'
 import type { LegacyToolPromptConfig, ToolCallingConfig } from '../../shared/toolCalling.ts'
 import { DEFAULT_TOOL_CALLING_CONFIG } from '../../shared/toolCalling.ts'
 
@@ -226,6 +226,15 @@ export interface Provider {
   name: string
   /** Provider type */
   type: ProviderType
+  /**
+   * 供应厂商。
+   *
+   * 某些子系统（如 cookieSessionManager 的 OAuth 会话）需要的是**厂商名**
+   * （'deepseek' | 'glm' | ...），而 `type` 只区分 'builtin' | 'custom' ——
+   * 两者语义完全不同。此前调用点误用 `p.type`，把 'builtin' 当成厂商名传下去，
+   * 会创建出无意义的会话。
+   */
+  vendor?: ProviderVendor
   /** Authentication type */
   authType: AuthType
   /** API endpoint address */

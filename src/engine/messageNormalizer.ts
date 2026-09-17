@@ -4,7 +4,7 @@
  * 将内部消息格式转换为 Anthropic / OpenAI 所需格式，合并连续相同角色消息。
  */
 export type InternalRole = "system" | "user" | "assistant" | "tool";
-export type InternalContent = string | Array<Record<string, unknown>>;
+export type InternalContent = string | Array<string | Record<string, unknown>>;
 
 export interface InternalMessage {
   role: InternalRole;

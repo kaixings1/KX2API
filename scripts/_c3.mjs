@@ -15,7 +15,7 @@ for (const raw of readFileSync('.ts_a.txt', 'utf-8').split('\n')) {
   byFile.get(file).push({ line: Number(line), code, msg: msg.trim() })
 }
 console.log(`错误总数: ${total}，文件: ${byFile.size}\n`)
-for (const [file, errs] of [...byFile.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 16)) {
+for (const [file, errs] of [...byFile.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 20)) {
   const codes = new Map()
   for (const e of errs) codes.set(e.code, (codes.get(e.code) ?? 0) + 1)
   const cs = [...codes.entries()].sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c}×${n}`).join(' ')

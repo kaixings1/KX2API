@@ -50,7 +50,7 @@ export interface MessageUpdate {
  * 执行单个本地工具命令（通过 commandRegistry + AgentDispatcher）
  */
 export async function executeLocalTool(name: string, args: string[]): Promise<ToolExecuteResult> {
-  const { commandRegistry } = await import('../../engine/commands/registry.ts')
+  const { commandRegistry } = await import('../../../engine/commands/registry.ts')
   const cmd = commandRegistry.get(name)
   if (!cmd) {
     return { tool_use_id: '', output: `错误: 未知命令 /${name}` }
@@ -60,7 +60,7 @@ export async function executeLocalTool(name: string, args: string[]): Promise<To
 
   if (result.needsAgent && !result.error) {
     try {
-      const { AgentDispatcher } = await import('../../engine/agent/dispatcher.ts')
+      const { AgentDispatcher } = await import('../../../engine/agent/dispatcher.ts')
       const dispatcher = new AgentDispatcher({
         provider: 'openai',
         apiKey: '',

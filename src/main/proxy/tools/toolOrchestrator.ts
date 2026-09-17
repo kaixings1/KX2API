@@ -7,7 +7,7 @@
  */
 
 import { pMap } from '../utils/pMap.ts'
-import type { ContentBlock, ToolDefinition } from '../../engine/api/client.ts'
+import type { ContentBlock, ToolDefinition } from '../../../engine/api/client.ts'
 
 export interface ToolExecuteContext {
   toolDefinitions: ToolDefinition[]

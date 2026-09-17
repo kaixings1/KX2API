@@ -107,7 +107,7 @@ export class TaskDecomposer {
       case "single":
       default:
         plan.subtasks = this.decomposeStatic(request)
-        if (plan.subtasks.length === 1) plan.mergeStrategy = "single"
+        if (plan.subtasks.length === 1) plan.mergeStrategy = "merge"
         break
     }
 

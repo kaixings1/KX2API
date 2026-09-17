@@ -37,19 +37,11 @@ src/engine/commands/registry.ts(392,52): error TS2352: Conversion of type '{ def
   Property 'default' is incompatible with index signature.
     Type '{ name: string; version: string; private: boolean; description: string; author: string; repository: { type: string; url: string; }; type: string; main: string; scripts: { dev: string; build: string; preview: string; ... 12 more ...; "check:repo": string; }; dependencies: { ...; }; devDependencies: { ...; }; build: {...' is not comparable to type 'string'.
 src/engine/core.ts(187,30): error TS2339: Property 'needsAgent' does not exist on type '{ success: boolean; output?: string | undefined; error?: string | undefined; }'.
-src/engine/index.ts(80,52): error TS2694: Namespace '"D:/KX2API/src/engine/stateMachine"' has no exported member 'AcceptanceCriterion'.
-src/engine/index.ts(82,24): error TS2307: Cannot find module './hooks/hookManager.js' or its corresponding type declarations.
-src/engine/index.ts(166,13): error TS2322: Type '"permission_request"' is not assignable to type '"tool_result" | "done" | "needs_user" | "should_continue" | "error" | "reasoning" | "iteration_start" | "request_sent" | "response_chunk" | "tool_call_start" | "post_tool_use" | ... 4 more ... | "resumed"'.
-src/engine/index.ts(173,18): error TS2339: Property 'pendingRequests' does not exist on type 'PermissionManager'.
-src/engine/index.ts(240,32): error TS2345: Argument of type '{ name: string; description: string; parameters: Record<string, unknown>; }' is not assignable to parameter of type 'ToolDefinition'.
+src/engine/index.ts(251,32): error TS2345: Argument of type '{ name: string; description: string; parameters: Record<string, unknown>; }' is not assignable to parameter of type 'ToolDefinition'.
   Property 'input_schema' is missing in type '{ name: string; description: string; parameters: Record<string, unknown>; }' but required in type 'ToolDefinition'.
-src/engine/index.ts(251,5): error TS2322: Type '{ type: string; message: string; line?: number | undefined; }[] | undefined' is not assignable to type '{ type: string; message: string; line?: number | undefined; }[]'.
+src/engine/index.ts(262,5): error TS2322: Type '{ type: string; message: string; line?: number | undefined; }[] | undefined' is not assignable to type '{ type: string; message: string; line?: number | undefined; }[]'.
   Type 'undefined' is not assignable to type '{ type: string; message: string; line?: number | undefined; }[]'.
-src/engine/index.ts(295,7): error TS2353: Object literal may only specify known properties, and 'hookManager' does not exist in type 'MessageLoopDeps'.
-src/engine/index.ts(352,45): error TS2554: Expected 0 arguments, but got 1.
-src/engine/index.ts(355,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'QueryResult'.
-src/engine/index.ts(357,23): error TS2339: Property 'reason' does not exist on type '{ shouldEnd: boolean; shouldWarn: boolean; }'.
-src/engine/index.ts(615,28): error TS2339: Property 'needsAgent' does not exist on type '{ success: boolean; output?: string | undefined; error?: string | undefined; }'.
+src/engine/index.ts(633,28): error TS2339: Property 'needsAgent' does not exist on type '{ success: boolean; output?: string | undefined; error?: string | undefined; }'.
 src/engine/messages.ts(176,20): error TS2322: Type '(string | Record<string, unknown>)[]' is not assignable to type 'InternalContent'.
   Type '(string | Record<string, unknown>)[]' is not assignable to type 'Record<string, unknown>[]'.
     Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
@@ -155,21 +147,14 @@ src/main/lsp/passiveFeedback.ts(55,18): error TS2322: Type '{ message: string | 
     Types of property 'message' are incompatible.
       Type 'string | MarkupContent' is not assignable to type 'string'.
         Type 'MarkupContent' is not assignable to type 'string'.
-src/main/mcp/mcpService.ts(48,22): error TS2352: Conversion of type 'AppConfig' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Index signature for type 'string' is missing in type 'AppConfig'.
-src/main/mcp/mcpService.ts(49,27): error TS2339: Property 'servers' does not exist on type '{}'.
-src/main/mcp/mcpService.ts(59,20): error TS2352: Conversion of type 'AppConfig' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Index signature for type 'string' is missing in type 'AppConfig'.
-src/main/mcp/mcpService.ts(60,39): error TS2339: Property 'servers' does not exist on type '{}'.
-src/main/mcp/mcpService.ts(61,40): error TS2698: Spread types may only be created from object types.
-src/main/mcp/mcpService.ts(69,20): error TS2352: Conversion of type 'AppConfig' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Index signature for type 'string' is missing in type 'AppConfig'.
-src/main/mcp/mcpService.ts(70,34): error TS2339: Property 'servers' does not exist on type '{}'.
-src/main/mcp/mcpService.ts(71,40): error TS2698: Spread types may only be created from object types.
-src/main/mcp/mcpService.ts(78,20): error TS2352: Conversion of type 'AppConfig' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-  Index signature for type 'string' is missing in type 'AppConfig'.
-src/main/mcp/mcpService.ts(79,34): error TS2339: Property 'servers' does not exist on type '{}'.
-src/main/mcp/mcpService.ts(82,40): error TS2698: Spread types may only be created from object types.
+src/main/lsp/tool.ts(94,5): error TS2741: Property 'output' is missing in type '{ success: false; error: string; }' but required in type '{ success: boolean; output: string; error?: string | undefined; }'.
+src/main/lsp/tool.ts(98,5): error TS2741: Property 'output' is missing in type '{ success: false; error: string; }' but required in type '{ success: boolean; output: string; error?: string | undefined; }'.
+src/main/lsp/tool.ts(112,7): error TS2741: Property 'output' is missing in type '{ success: false; error: string; }' but required in type '{ success: boolean; output: string; error?: string | undefined; }'.
+src/main/lsp/tool.ts(137,28): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/main/lsp/tool.ts(150,30): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/main/lsp/tool.ts(159,5): error TS2741: Property 'output' is missing in type '{ success: false; error: string; }' but required in type '{ success: boolean; output: string; error?: string | undefined; }'.
 src/main/oauth/adapters/base.ts(19,8): error TS2307: Cannot find module './types' or its corresponding type declarations.
 src/main/oauth/adapters/minimax.ts(283,29): error TS2339: Property 'id' does not exist on type '{}'.
 src/main/oauth/cookieSessionManager.ts(92,14): error TS2769: No overload matches this call.
@@ -358,16 +343,6 @@ src/main/proxy/routes/management/sessions.ts(11,3): error TS2305: Module '"../..
 src/main/proxy/stream.ts(176,14): error TS2339: Property 'push' does not exist on type 'StreamHandler'.
 src/main/proxy/stream.ts(357,15): error TS2532: Object is possibly 'undefined'.
 src/main/proxy/stream.ts(363,15): error TS2532: Object is possibly 'undefined'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(336,18): error TS2339: Property 'choices' does not exist on type 'object'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(337,33): error TS2339: Property 'choices' does not exist on type 'object'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(347,18): error TS2339: Property 'type' does not exist on type 'object'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(347,59): error TS2339: Property 'content_block' does not exist on type 'object'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(348,30): error TS2339: Property 'content_block' does not exist on type 'object'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(474,52): error TS2339: Property 'name' does not exist on type '{}'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(475,82): error TS2339: Property 'arguments' does not exist on type '{}'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(530,18): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(530,41): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
-src/main/proxy/toolCalling/browserToolExtractor.ts(531,60): error TS2339: Property 'streamChunks' does not exist on type 'ApiCallRecord'.
 src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(111,56): error TS2554: Expected 1 arguments, but got 2.
 src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.ts(113,19): error TS2339: Property 'index' does not exist on type 'ExtractedToolCall'.
 src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts(110,61): error TS2554: Expected 1 arguments, but got 2.
@@ -442,7 +417,7 @@ src/main/tasks/taskExecutor.ts(39,5): error TS2322: Type '((event: AgentEvent & 
     Types of parameters 'event' and 'event' are incompatible.
       Type '((event: AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }) => void) | undefined' is not assignable to type 'AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }'.
         Type 'undefined' is not assignable to type 'AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }'.
-src/main/tasks/taskExecutor.ts(83,36): error TS2345: Argument of type '{ logEntry: { time: number; event: string; detail?: string | undefined; }; type: "iteration_start"; iteration: number; } | { logEntry: { time: number; event: string; detail?: string | undefined; }; type: "request_sent"; model: string; } | ... 13 more ... | { ...; }' is not assignable to parameter of type '((event: AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }) => void) | undefined'.
+src/main/tasks/taskExecutor.ts(83,36): error TS2345: Argument of type '{ logEntry: { time: number; event: string; detail?: string | undefined; }; type: "iteration_start"; iteration: number; } | { logEntry: { time: number; event: string; detail?: string | undefined; }; type: "request_sent"; model: string; } | ... 14 more ... | { ...; }' is not assignable to parameter of type '((event: AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }) => void) | undefined'.
   Object literal may only specify known properties, and 'logEntry' does not exist in type '(event: AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }) => void'.
 src/main/tasks/tasksStore.ts(66,7): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
   Type 'null' is not assignable to type 'string | undefined'.

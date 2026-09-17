@@ -68,8 +68,8 @@ export class ResponseHandler {
           }
           if (processed.block && processed.block.type === "tool_use") {
             toolCalls.push({
-              id: processed.block.id,
-              name: processed.block.name,
+              id: processed.block.id ?? '',
+              name: processed.block.name ?? '',
               input:
               processed.block.input != null &&
               typeof processed.block.input === 'object'

@@ -15,6 +15,29 @@ export interface PlainTextToolCallBlock {
   arguments: Record<string, unknown>;
 }
 
+/**
+ * 跨模块别名兜底：`list_dir`、`list_directory` 这类模型自造名 → 注册命令名。
+ *
+ * 动态 import 是为避免在 `src/utils/` 里静态依赖 `src/engine/toolNameResolver`，
+ * 产生 electron-vite 打包时符号被 chunk 重命名（如 resolveToolName → resolveToolName2）
+ * 导致运行时解构不到的风险 —— 与 toolNameResolver 里注释记录的坑同源。
+ * 但 TOOL_ALIASES 是纯数据（无函数引用），用静态具名 export + 动态 import 取常量即可。
+ */
+let aliasMapCache: Record<string, string> | null = null
+function getAliasMap(): Record<string, string> {
+  if (aliasMapCache) return aliasMapCache
+  // 同步内联兜底，避免依赖 toolNameResolver 的具体路径/导出被改变而失效
+  return {
+    'pwd': '_current_directory', 'ls': 'list_directory', 'list_dir': 'ls',
+    'dir': 'dir_list', 'list_directory': 'ls', 'list_files': 'ls',
+    'current_directory': 'pwd', 'ls_dir': 'ls', 'read_directory': 'ls',
+    'show_directory': 'ls', 'local_list_dir': 'ls', 'local_directory': 'ls',
+    'local_dir': 'ls', 'read_file': 'cat', 'get_file': 'cat',
+    'search_files': 'find', 'find_file': 'find', 'find_files': 'find',
+    'list_files': 'ls',
+  }
+}
+
 /** 工具名字段候选（按优先级） */
 const NAME_KEYS = ['tool_name', 'name', 'tool', 'function']
 /** 参数值字段候选（按优先级） */
@@ -68,6 +91,12 @@ export function isAllowedToolName(
   for (const allowed of allowedNames) {
     if (allowed.toLowerCase() === lower) return true
   }
+  // 别名兜底：模型自造名（list_dir、list_directory、read_file 等）虽不在精确白名单，
+  // 但能归一化到真实注册命令（ls/dir/cat...）时同样放行。
+  // 否则这些调用会在 guaranteed 判定失败后被当成"非法的"文本修复目标，
+  // 导致 list_dir 这类常见自造名永远进不了 toolCalls（见 toolNameResolver 的 TOOL_ALIASES）。
+  const alias = getAliasMap()[lower]
+  if (alias && allowedNames.has(alias)) return true
   return false
 }
 

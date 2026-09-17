@@ -1,6 +1,19 @@
 /**
  * engine/codeVectorStore.ts — 代码库向量存储与语义搜索（SQLite FTS5）
  *
+ * ⚠️ **当前不可用（未完成移植）**
+ *
+ * 本模块导入 `../utils/ripgrep.js` / `../utils/fsOperations.js` / `../utils/path.js`
+ * 三个**本项目中不存在**的模块。`repoMap.ts` 内部只提供了残缺的本地桩
+ * （`const fs = { existsSync: () => true }`），而本模块需要的
+ * `fs.readFile` / `fs.stat` 都没有 —— 一旦调用 `index()` 就会崩。
+ *
+ * 它目前**零引用**（无任何生产代码或测试使用）。
+ *
+ * 要真正启用它，需要先实现那三个工具模块（或改用 `node:fs/promises` 直接实现），
+ * 属**新功能开发**而非类型修复，故此处仅标注状态、不改逻辑。
+ *
+ * ─────────────────────────────────────────────────────────────
  * 功能：使用 SQLite FTS5 提供代码库全文搜索 + BM25 排序
  * 设计对齐 Goose DuckDB 向量存储思路，但使用 bun:sqlite（零原生依赖）：
  *   - 文件内容索引：FTS5 全文搜索 + BM25 相关性排序
@@ -14,10 +27,7 @@
  *   - 正则：符号提取（复用 repoMap 的 SYMBOL_REGEX）
  */
 
-import { ripGrep } from '../utils/ripgrep.js'
-import { getFsImplementation } from '../utils/fsOperations.js'
-import { expandPath } from '../utils/path.js'
-import { SYMBOL_REGEX, type SymbolKind, type SymbolEntry } from './repoMap.js'
+import { SYMBOL_REGEX, type SymbolKind, type SymbolEntry, ripGrep, getFsImplementation, expandPath } from './repoMap.js'
 
 // ============================================================================
 // Types

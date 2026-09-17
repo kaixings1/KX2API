@@ -54,11 +54,17 @@ if (process.getuid && process.getuid() === 0) {
   console.log('Detected running as root user, sandbox settings have been automatically handled')
 }
 
-declare module 'electron' {
-  interface App {
-    isQuitting?: boolean
-  }
-}
+/**
+ * 「应用正在退出」标志。
+ *
+ * 原实现用 `declare module 'electron' { interface App { isQuitting } }` 扩展
+ * Electron 的 App 类型 —— 但模块增强必须写在**不含顶层 import 的声明文件**里，
+ * 写在本文件里会与 `import { app } from 'electron'` 冲突（TS2300 Duplicate identifier）。
+ *
+ * 改用本地变量：语义完全一样（本来就是本进程内的一个标志），
+ * 且不污染第三方库的类型。
+ */
+let isQuitting = false
 
 const gotTheLock = app.requestSingleInstanceLock()
 
@@ -83,7 +89,9 @@ let trayManager: TrayManager | null = null
 let appInitialized = false
 
 // Parse --debug-file <filename> from command line
-function getDebugFilePath(): string | null {
+// 返回可选形式而非 string | null：logManager.initialize 的入参是
+// debugFilePath?: string，null 不在其取值范围（strictNullChecks 下报 TS2345）。
+function getDebugFilePath(): string | undefined {
   const args = process.argv
   const idx = args.indexOf('--debug-file')
   if (idx >= 0 && idx + 1 < args.length) {
@@ -93,7 +101,7 @@ function getDebugFilePath(): string | null {
   if (eqArg) {
     return eqArg.split('=')[1]
   }
-  return null
+  return void 0
 }
 const debugFilePath = getDebugFilePath()
 if (debugFilePath) {
@@ -121,7 +129,7 @@ async function initializeApp(): Promise<void> {
   })
 
   app.on('before-quit', () => {
-    app.isQuitting = true
+    isQuitting = true
     trayManager?.destroy()
     logManager.destroy()
   })
@@ -219,7 +227,15 @@ async function setupApp(): Promise<void> {
 
   // 初始化通用 Cookie 会话管理器（网页版 Cookie 持续注入）
   try {
-    const providers = ProviderManager.getEnabled().map(p => p.type)
+    // 传厂商名而非 type —— cookieSessionManager 需要 'deepseek'/'glm' 这类标识，
+    // 而 p.type 只区分 'builtin' | 'custom'（语义完全不同）。
+    // 没有 vendor 的 provider 跳过：它没有对应的 cookie 会话实现。
+    // vendor 是 ProviderVendor，而 cookieSessionManager 的参数类型 ProviderType
+    // 定义为 `Exclude<ProviderVendor, 'custom'>` —— 结构兼容但 TS 视为不同类型，
+    // 需显式收窄（filter 已排除空值）。
+    const providers = ProviderManager.getEnabled()
+      .map(p => p.vendor)
+      .filter((v): v is Exclude<NonNullable<typeof v>, 'custom'> => Boolean(v) && v !== 'custom')
     await cookieSessionManager.initialize(providers)
     console.log('[App] Cookie session manager initialized for', providers.length, 'providers')
     logManager.info('[App] Cookie session manager initialized', { providers: providers.length })
@@ -280,7 +296,18 @@ export function getAppVersion(): string {
 }
 
 export function isAppQuitting(): boolean {
-  return app.isQuitting ?? false
+  return isQuitting
+}
+
+/**
+ * 标记应用进入退出流程。
+ *
+ * 原先 handlers.ts 直接写 `app.isQuitting = true` —— 但 Electron 的 App 类型
+ * 没有该属性（旧代码靠模块增强绕过，又与 import 冲突）。改为走这个 setter：
+ * 「正在退出」本就是主进程自己的状态，不该挂在第三方库对象上。
+ */
+export function markAppQuitting(): void {
+  isQuitting = true
 }
 
 export { getMainWindow }

@@ -76,10 +76,18 @@ export interface EngineOptions {
   harness?: HarnessConfig;
   /** 沙箱执行配置（吸收自 open-interpreter sandboxing）：工具执行安全策略 */
   sandbox?: Partial<SandboxConfig>;
-  /** 验收标准门控（吸收自 intent-driven-development）：进入 done 前检查 */
-  acceptanceCriteria?: import("./stateMachine.ts").AcceptanceCriterion[];
-  /** Hook 管理器（吸收自 ECC hooks）：注册 PreToolUse/PostToolUse 拦截器 */
-  hookManager?: import("./hooks/hookManager.js").HookManager;
+  /**
+   * 验收标准门控（吸收自 intent-driven-development）：进入 done 前检查。
+   * 原引用 ./stateMachine.ts 的 AcceptanceCriterion，但该类型并未实现，
+   * 且本字段在引擎内无消费点；保留字段、类型泛化为 unknown 以免悬空引用。
+   */
+  acceptanceCriteria?: unknown[];
+  /**
+   * Hook 管理器（吸收自 ECC hooks）：注册 PreToolUse/PostToolUse 拦截器。
+   * 原引用 ./hooks/hookManager.js，但工程内并无该模块（钩子实现在 main 层
+   * 经 ToolHooks 注入）。本字段虽无消费点，但作为配置项保留，类型泛化为 unknown。
+   */
+  hookManager?: unknown;
   /** 自动继续配置：由配置决定是否在特定场景自动注入「继续」。默认关闭 */
   autoContinue?: AutoContinueConfig;
   /** 循环控制参数（轮数上限、连续失败阈值等）；缺省用默认值 */
@@ -146,6 +154,9 @@ export class QueryEngine {
   };
 
   constructor(private opts: EngineOptions) {
+    // 捕获实例级 pendingRequests：permissionManager 是对象字面量而非箭头函数，
+    // 内部 this 不指向 QueryEngine，直接引用 this.pendingRequests 会丢失授权登记。
+    const pendingRequests = this.pendingRequests;
     const permissionManager: PermissionManager = {
       async check() {
         return true;
@@ -170,7 +181,7 @@ export class QueryEngine {
             description: tool.description,
           });
           return new Promise<boolean>((resolve) => {
-            this.pendingRequests.set(requestId, { resolve });
+            pendingRequests.set(requestId, { resolve });
           });
         }
         return false;
@@ -235,9 +246,14 @@ export class QueryEngine {
 
     // 注册旧版工具插件（同步注册定义，异步加载实现）
     toolPluginRegistry.registerAll(allLegacyToolPlugins)
-    // 将插件工具定义注入到工具列表（用于构建 system prompt）
+    // 将插件工具定义注入到工具列表（用于构建 system prompt）。
+    // pluginDefs 用 parameters 字段，而 ToolDefinition 需 input_schema —— 这里做字段映射。
     const pluginDefs = toolPluginRegistry.getToolDefinitions()
-    this._toolDefinitions.push(...pluginDefs)
+    this._toolDefinitions.push(...pluginDefs.map((p) => ({
+      name: p.name,
+      description: p.description,
+      input_schema: p.parameters,
+    })))
 
     // 创建 ErrorRecovery
     this.recovery = new ErrorRecovery(this.stateMachine, this.retryHandler, this.autoCompactor);
@@ -248,7 +264,7 @@ export class QueryEngine {
     this.toolSchedulerInstance = toolScheduler;
 
     this.conversation = this._conversation;
-    this._preAnalysis = opts.preAnalysis;
+    this._preAnalysis = opts.preAnalysis ?? [];
     const autoFixLoopConfig = opts.autoFixLoop;
 
     // 将内部工具注册表转换为请求构建器所需的 ToolDefinition 格式
@@ -292,7 +308,6 @@ export class QueryEngine {
       },
       gitContext: opts.gitContext,
       harness: opts.harness,
-      hookManager: opts.hookManager,
       autoContinue: opts.autoContinue,
       loopLimits: opts.agentLoop,
     };
@@ -351,10 +366,18 @@ export class QueryEngine {
     const endConvManager = getEndConversationManager()
     const check = endConvManager.checkInput(userMessage)
     if (check.shouldEnd) {
+      // 结束会话：构造符合 QueryResult 契机的结束快照。QueryResult 无 type/reason 字段，
+      // 结束原因通过 messages 中的 assistant 提示一带而过（占位实现恒不拦截，此分支不可达）。
+      const endMsg = check.reason || endConvManager.getEndMessage()
       return {
-        type: 'ended' as const,
-        output: endConvManager.getEndMessage(),
-        reason: check.reason,
+        state: 'ended' as string,
+        messages: [
+          { role: 'user' as const, content: userMessage },
+          { role: 'assistant' as const, content: endMsg },
+        ],
+        iterations: 0,
+        tokenUsage: null as unknown,
+        duration: 0,
       }
     }
     if (check.shouldWarn) {
@@ -650,7 +673,8 @@ export function engineLog(tag: string, msg: string): void {
 /** 会话结束管理器占位实现（允许所有输入，不做拦截） */
 export function getEndConversationManager() {
   return {
-    checkInput: () => ({ shouldEnd: false, shouldWarn: false }),
+    checkInput: (userMessage: string): { shouldEnd: boolean; shouldWarn: boolean; reason?: string } =>
+      ({ shouldEnd: false, shouldWarn: false, reason: '' }),
     getEndMessage: () => '会话已结束',
     getWarningMessage: () => '',
   }

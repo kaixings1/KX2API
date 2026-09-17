@@ -9,6 +9,8 @@
 
 import { QueryEngine, type EngineOptions } from './index.ts'
 import { commandRegistry, type CommandResult } from './commands/registry.ts'
+// CLI（cli.ts）需要直接访问命令注册表，作为 core 的扩展导出透出。
+export { commandRegistry } from './commands/registry.ts'
 import { toolCollection } from '../main/proxy/tools/toolCollection.ts'
 import { Team } from '../main/agent/team/team.ts'
 import { execaCommand } from './utils/exec.ts'

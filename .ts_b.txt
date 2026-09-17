@@ -13,9 +13,6 @@ src/engine/api/client.ts(599,83): error TS18046: 'response' is of type 'unknown'
 src/engine/api/client.ts(599,127): error TS18046: 'response' is of type 'unknown'.
 src/engine/api/client.ts(601,24): error TS18046: 'response' is of type 'unknown'.
 src/engine/api/client.ts(688,31): error TS7006: Parameter 'err' implicitly has an 'any' type.
-src/engine/cli.ts(14,35): error TS2459: Module '"./core"' declares 'commandRegistry' locally, but it is not exported.
-src/engine/cli.ts(85,31): error TS2339: Property 'content' does not exist on type 'QueryResult'.
-src/engine/cli.ts(85,49): error TS2339: Property 'toolOutput' does not exist on type 'QueryResult'.
 src/engine/coders/editBlockCoder.ts(170,45): error TS2769: No overload matches this call.
   Overload 1 of 3, '(path: PathLike | FileHandle, options?: ({ encoding?: null | undefined; flag?: OpenMode | undefined; } & Abortable) | null | undefined): Promise<...>', gave the following error.
     Argument of type 'Promise<string | null>' is not assignable to parameter of type 'PathLike | FileHandle'.
@@ -28,46 +25,122 @@ src/engine/coders/editBlockCoder.ts(170,45): error TS2769: No overload matches t
       Type 'Promise<string | null>' is missing the following properties from type 'Buffer<ArrayBufferLike>': slice, subarray, write, toJSON, and 101 more.
 src/engine/coders/editBlockCoder.ts(173,32): error TS2345: Argument of type 'Promise<string | null>' is not assignable to parameter of type 'PathLike | FileHandle'.
   Type 'Promise<string | null>' is missing the following properties from type 'Buffer<ArrayBufferLike>': slice, subarray, write, toJSON, and 101 more.
-src/engine/codeVectorStore.ts(17,25): error TS2307: Cannot find module '../utils/ripgrep.js' or its corresponding type declarations.
-src/engine/codeVectorStore.ts(18,37): error TS2307: Cannot find module '../utils/fsOperations.js' or its corresponding type declarations.
-src/engine/codeVectorStore.ts(19,28): error TS2307: Cannot find module '../utils/path.js' or its corresponding type declarations.
+src/engine/codeVectorStore.ts(142,16): error TS2349: This expression is not callable.
+  Type '{ existsSync: () => boolean; }' has no call signatures.
+src/engine/codeVectorStore.ts(206,16): error TS2349: This expression is not callable.
+  Type '{ existsSync: () => boolean; }' has no call signatures.
+src/engine/codeVectorStore.ts(363,46): error TS2344: Type '{ existsSync: () => boolean; }' does not satisfy the constraint '(...args: any) => any'.
+  Type '{ existsSync: () => boolean; }' provides no match for the signature '(...args: any): any'.
+src/engine/codeVectorStore.ts(368,31): error TS2554: Expected 2-3 arguments, but got 1.
 src/engine/commands/registry.ts(309,22): error TS2503: Cannot find namespace 'fs'.
 src/engine/commands/registry.ts(323,27): error TS2488: Type 'Promise<string[]>' must have a '[Symbol.iterator]()' method that returns an iterator.
 src/engine/commands/registry.ts(392,52): error TS2352: Conversion of type '{ default: { name: string; version: string; private: boolean; description: string; author: string; repository: { type: string; url: string; }; type: string; main: string; scripts: { dev: string; build: string; ... 13 more ...; "check:repo": string; }; dependencies: { ...; }; devDependencies: { ...; }; build: { ...; ...' to type 'Record<string, string>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
   Property 'default' is incompatible with index signature.
     Type '{ name: string; version: string; private: boolean; description: string; author: string; repository: { type: string; url: string; }; type: string; main: string; scripts: { dev: string; build: string; preview: string; ... 12 more ...; "check:repo": string; }; dependencies: { ...; }; devDependencies: { ...; }; build: {...' is not comparable to type 'string'.
-src/engine/core.ts(187,30): error TS2339: Property 'needsAgent' does not exist on type '{ success: boolean; output?: string | undefined; error?: string | undefined; }'.
-src/engine/index.ts(80,52): error TS2694: Namespace '"D:/KX2API/src/engine/stateMachine"' has no exported member 'AcceptanceCriterion'.
-src/engine/index.ts(82,24): error TS2307: Cannot find module './hooks/hookManager.js' or its corresponding type declarations.
-src/engine/index.ts(166,13): error TS2322: Type '"permission_request"' is not assignable to type '"tool_result" | "done" | "needs_user" | "should_continue" | "error" | "reasoning" | "iteration_start" | "request_sent" | "response_chunk" | "tool_call_start" | "post_tool_use" | ... 4 more ... | "resumed"'.
-src/engine/index.ts(173,18): error TS2339: Property 'pendingRequests' does not exist on type 'PermissionManager'.
-src/engine/index.ts(240,32): error TS2345: Argument of type '{ name: string; description: string; parameters: Record<string, unknown>; }' is not assignable to parameter of type 'ToolDefinition'.
-  Property 'input_schema' is missing in type '{ name: string; description: string; parameters: Record<string, unknown>; }' but required in type 'ToolDefinition'.
-src/engine/index.ts(251,5): error TS2322: Type '{ type: string; message: string; line?: number | undefined; }[] | undefined' is not assignable to type '{ type: string; message: string; line?: number | undefined; }[]'.
-  Type 'undefined' is not assignable to type '{ type: string; message: string; line?: number | undefined; }[]'.
-src/engine/index.ts(295,7): error TS2353: Object literal may only specify known properties, and 'hookManager' does not exist in type 'MessageLoopDeps'.
-src/engine/index.ts(352,45): error TS2554: Expected 0 arguments, but got 1.
-src/engine/index.ts(355,9): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'QueryResult'.
-src/engine/index.ts(357,23): error TS2339: Property 'reason' does not exist on type '{ shouldEnd: boolean; shouldWarn: boolean; }'.
-src/engine/index.ts(615,28): error TS2339: Property 'needsAgent' does not exist on type '{ success: boolean; output?: string | undefined; error?: string | undefined; }'.
-src/engine/messages.ts(176,20): error TS2322: Type '(string | Record<string, unknown>)[]' is not assignable to type 'InternalContent'.
-  Type '(string | Record<string, unknown>)[]' is not assignable to type 'Record<string, unknown>[]'.
+src/engine/messages.ts(272,22): error TS2345: Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, array: (string | Record<string, unknown>)[]) => unknown'.
+  Types of parameters 'b' and 'value' are incompatible.
     Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
       Type 'string' is not assignable to type 'Record<string, unknown>'.
-src/engine/messages.ts(180,20): error TS2322: Type '(string | Record<string, unknown>)[]' is not assignable to type 'InternalContent'.
-  Type '(string | Record<string, unknown>)[]' is not assignable to type 'Record<string, unknown>[]'.
+src/engine/messages.ts(279,22): error TS2345: Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, array: (string | Record<string, unknown>)[]) => unknown'.
+  Types of parameters 'b' and 'value' are incompatible.
     Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
       Type 'string' is not assignable to type 'Record<string, unknown>'.
-src/engine/messages.ts(220,3): error TS2322: Type '(string | Record<string, unknown>)[]' is not assignable to type 'InternalContent'.
-  Type '(string | Record<string, unknown>)[]' is not assignable to type 'Record<string, unknown>[]'.
+src/engine/messages.ts(285,22): error TS2345: Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, array: (string | Record<string, unknown>)[]) => unknown'.
+  Types of parameters 'b' and 'value' are incompatible.
+    Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+      Type 'string' is not assignable to type 'Record<string, unknown>'.
+src/engine/messages.ts(301,22): error TS2345: Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, array: (string | Record<string, unknown>)[]) => unknown'.
+  Types of parameters 'b' and 'value' are incompatible.
+    Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+      Type 'string' is not assignable to type 'Record<string, unknown>'.
+src/engine/messages.ts(326,26): error TS2345: Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, array: (string | Record<string, unknown>)[]) => unknown'.
+  Types of parameters 'b' and 'value' are incompatible.
+    Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+      Type 'string' is not assignable to type 'Record<string, unknown>'.
+src/engine/messages.ts(348,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, array: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>, thisArg?: any): (string | Record<...>)[]', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, array: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+  Overload 2 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, array: (string | Record<string, unknown>)[]) => unknown, thisArg?: any): (string | Record<string, unknown>)[]', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, array: (string | Record<string, unknown>)[]) => unknown'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+src/engine/messages.ts(375,40): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>, thisArg?: any): string | ... 1 more ... | undefined', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+  Overload 2 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => unknown, thisArg?: any): string | Record<string, unknown> | undefined', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => unknown'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+src/engine/messages.ts(376,47): error TS2339: Property 'id' does not exist on type 'string | Record<string, unknown>'.
+  Property 'id' does not exist on type 'string'.
+src/engine/messages.ts(377,33): error TS2339: Property 'id' does not exist on type 'string | Record<string, unknown>'.
+  Property 'id' does not exist on type 'string'.
+src/engine/messages.ts(388,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>, thisArg?: any): string | ... 1 more ... | undefined', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+  Overload 2 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => unknown, thisArg?: any): string | Record<string, unknown> | undefined', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => unknown'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+src/engine/messages.ts(410,40): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>, thisArg?: any): string | ... 1 more ... | undefined', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+  Overload 2 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => unknown, thisArg?: any): string | Record<string, unknown> | undefined', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => unknown'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+src/engine/messages.ts(411,47): error TS2339: Property 'id' does not exist on type 'string | Record<string, unknown>'.
+  Property 'id' does not exist on type 'string'.
+src/engine/messages.ts(412,33): error TS2339: Property 'id' does not exist on type 'string | Record<string, unknown>'.
+  Property 'id' does not exist on type 'string'.
+src/engine/messages.ts(441,40): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>, thisArg?: any): string | ... 1 more ... | undefined', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+  Overload 2 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => unknown, thisArg?: any): string | Record<string, unknown> | undefined', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => unknown'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+src/engine/messages.ts(442,47): error TS2339: Property 'id' does not exist on type 'string | Record<string, unknown>'.
+  Property 'id' does not exist on type 'string'.
+src/engine/messages.ts(443,33): error TS2339: Property 'id' does not exist on type 'string | Record<string, unknown>'.
+  Property 'id' does not exist on type 'string'.
+src/engine/messages.ts(449,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>, thisArg?: any): string | ... 1 more ... | undefined', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => value is string | Record<string, unknown>'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+  Overload 2 of 2, '(predicate: (value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => unknown, thisArg?: any): string | Record<string, unknown> | undefined', gave the following error.
+    Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, obj: (string | Record<string, unknown>)[]) => unknown'.
+      Types of parameters 'b' and 'value' are incompatible.
+        Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
+          Type 'string' is not assignable to type 'Record<string, unknown>'.
+src/engine/messages.ts(524,42): error TS2345: Argument of type '(b: Record<string, unknown>) => boolean' is not assignable to parameter of type '(value: string | Record<string, unknown>, index: number, array: (string | Record<string, unknown>)[]) => unknown'.
+  Types of parameters 'b' and 'value' are incompatible.
     Type 'string | Record<string, unknown>' is not assignable to type 'Record<string, unknown>'.
       Type 'string' is not assignable to type 'Record<string, unknown>'.
 src/engine/plugin/memoryToolPlugin.ts(13,15): error TS2459: Module '"../../engine/plugin/toolPluginRegistry.ts"' declares 'Tool' locally, but it is not exported.
 src/engine/repoMap.ts(207,24): error TS2554: Expected 0 arguments, but got 1.
-src/engine/responseHandler.ts(71,15): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
-  Type 'undefined' is not assignable to type 'string'.
-src/engine/responseHandler.ts(72,15): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
-  Type 'undefined' is not assignable to type 'string'.
 src/engine/streaming/streamProcessor.ts(265,45): error TS2322: Type 'null' is not assignable to type '{ type: string; text?: string | undefined; id?: string | undefined; name?: string | undefined; inputDelta?: string | undefined; index?: number | undefined; } | undefined'.
 src/engine/streaming/streamProcessor.ts(271,70): error TS18048: 'delta.text' is possibly 'undefined'.
 src/engine/streaming/streamProcessor.ts(271,97): error TS18048: 'delta.text' is possibly 'undefined'.
@@ -81,7 +154,7 @@ src/engine/subagent/subAgentManager.ts(168,13): error TS2322: Type '(input: stri
           Type 'InternalMessage' is not assignable to type '{ content?: string | undefined; }'.
             Types of property 'content' are incompatible.
               Type 'InternalContent' is not assignable to type 'string | undefined'.
-                Type 'Record<string, unknown>[]' is not assignable to type 'string'.
+                Type '(string | Record<string, unknown>)[]' is not assignable to type 'string'.
 src/main/agents/AgentExecutor.ts(18,13): error TS2322: Type '"start"' is not assignable to type '"done" | "error" | "chunk"'.
 src/main/agents/AgentExecutor.ts(24,32): error TS2353: Object literal may only specify known properties, and 'agentId' does not exist in type 'AgentExecutionEvent'.
 src/main/agents/AgentExecutor.ts(27,29): error TS2353: Object literal may only specify known properties, and 'agentId' does not exist in type 'AgentExecutionEvent'.
@@ -103,14 +176,10 @@ src/main/engine-bridge.ts(710,48): error TS2345: Argument of type '{ [x: string]
 src/main/engine-bridge.ts(823,9): error TS2322: Type '"anthropic" | "openai" | "custom"' is not assignable to type '"anthropic" | "openai" | undefined'.
   Type '"custom"' is not assignable to type '"anthropic" | "openai" | undefined'.
 src/main/engine-bridge.ts(863,9): error TS2353: Object literal may only specify known properties, and 'imageBudget' does not exist in type 'EngineOptions'.
-src/main/index.ts(58,13): error TS2300: Duplicate identifier 'App'.
-src/main/index.ts(124,9): error TS2339: Property 'isQuitting' does not exist on type 'App'.
-src/main/index.ts(147,31): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
-  Type 'null' is not assignable to type 'string | undefined'.
-src/main/index.ts(223,43): error TS2345: Argument of type 'import("D:/KX2API/src/main/store/types").ProviderType[]' is not assignable to parameter of type 'import("D:/KX2API/src/main/oauth/types").ProviderType[]'.
-  Type 'import("D:/KX2API/src/main/store/types").ProviderType' is not assignable to type 'import("D:/KX2API/src/main/oauth/types").ProviderType'.
+src/main/index.ts(104,3): error TS2322: Type 'null' is not assignable to type 'string | undefined'.
+src/main/index.ts(236,43): error TS2345: Argument of type 'NonNullable<ProviderVendor | undefined>[]' is not assignable to parameter of type 'ProviderType[]'.
+  Type 'NonNullable<ProviderVendor | undefined>' is not assignable to type 'ProviderType'.
     Type '"custom"' is not assignable to type 'ProviderType'.
-src/main/index.ts(283,14): error TS2339: Property 'isQuitting' does not exist on type 'App'.
 src/main/ipc/chat-handlers.ts(152,34): error TS2345: Argument of type '{ timestamp: number; status: "pending"; statusCode: number; method: string; url: string; model: string; isStream: true; responseStatus: number; chatUserInput: string; chatEngineInput: string; chatEngineUrl: string; chatEngineProvider: string; chatEngineModel: string; chatUpstreamUrl: string; chatNotes: string; }' is not assignable to parameter of type 'Omit<RequestLogEntry, "id">'.
   Property 'latency' is missing in type '{ timestamp: number; status: "pending"; statusCode: number; method: string; url: string; model: string; isStream: true; responseStatus: number; chatUserInput: string; chatEngineInput: string; chatEngineUrl: string; chatEngineProvider: string; chatEngineModel: string; chatUpstreamUrl: string; chatNotes: string; }' but required in type 'Omit<RequestLogEntry, "id">'.
 src/main/ipc/chat-handlers.ts(170,34): error TS2345: Argument of type '{ timestamp: number; status: "error"; statusCode: number; method: string; url: string; model: string; isStream: false; responseStatus: number; chatUserInput: string; chatEngineInput: string; chatNotes: string; errorMessage: string; }' is not assignable to parameter of type 'Omit<RequestLogEntry, "id">'.
@@ -155,10 +224,14 @@ src/main/lsp/passiveFeedback.ts(55,18): error TS2322: Type '{ message: string | 
     Types of property 'message' are incompatible.
       Type 'string | MarkupContent' is not assignable to type 'string'.
         Type 'MarkupContent' is not assignable to type 'string'.
-src/main/mcp/mcpService.ts(95,18): error TS2339: Property 'type' does not exist on type 'McpServerConfig'.
-src/main/mcp/mcpService.ts(98,19): error TS2339: Property 'type' does not exist on type 'McpServerConfig'.
-src/main/mcp/mcpService.ts(98,44): error TS2339: Property 'type' does not exist on type 'McpServerConfig'.
-src/main/mcp/mcpService.ts(140,34): error TS2339: Property 'type' does not exist on type 'McpServerConfig'.
+src/main/lsp/tool.ts(94,5): error TS2741: Property 'output' is missing in type '{ success: false; error: string; }' but required in type '{ success: boolean; output: string; error?: string | undefined; }'.
+src/main/lsp/tool.ts(98,5): error TS2741: Property 'output' is missing in type '{ success: false; error: string; }' but required in type '{ success: boolean; output: string; error?: string | undefined; }'.
+src/main/lsp/tool.ts(112,7): error TS2741: Property 'output' is missing in type '{ success: false; error: string; }' but required in type '{ success: boolean; output: string; error?: string | undefined; }'.
+src/main/lsp/tool.ts(137,28): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/main/lsp/tool.ts(150,30): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/main/lsp/tool.ts(159,5): error TS2741: Property 'output' is missing in type '{ success: false; error: string; }' but required in type '{ success: boolean; output: string; error?: string | undefined; }'.
 src/main/oauth/adapters/base.ts(19,8): error TS2307: Cannot find module './types' or its corresponding type declarations.
 src/main/oauth/adapters/minimax.ts(283,29): error TS2339: Property 'id' does not exist on type '{}'.
 src/main/oauth/cookieSessionManager.ts(92,14): error TS2769: No overload matches this call.
@@ -389,11 +462,10 @@ src/main/proxy/toolCalling/ToolCallingEngine.ts(223,34): error TS2339: Property 
 src/main/proxy/toolCalling/ToolCallingEngine.ts(223,64): error TS2339: Property 'arguments' does not exist on type 'ToolCall'.
 src/main/proxy/toolCalling/ToolCallingEngine.ts(223,96): error TS2339: Property 'arguments' does not exist on type 'ToolCall'.
 src/main/proxy/toolCalling/ToolCallingEngine.ts(249,64): error TS2554: Expected 1 arguments, but got 2.
-src/main/proxy/tools/streamingToolExecutor.ts(53,44): error TS2307: Cannot find module '../../engine/commands/registry.ts' or its corresponding type declarations.
-src/main/proxy/tools/streamingToolExecutor.ts(63,48): error TS2307: Cannot find module '../../engine/agent/dispatcher.ts' or its corresponding type declarations.
 src/main/proxy/tools/toolCallCache.ts(8,26): error TS2307: Cannot find module '../performance/LRUCache.js' or its corresponding type declarations.
 src/main/proxy/tools/toolOrchestrator.ts(9,22): error TS2307: Cannot find module '../utils/pMap.ts' or its corresponding type declarations.
-src/main/proxy/tools/toolOrchestrator.ts(10,51): error TS2307: Cannot find module '../../engine/api/client.ts' or its corresponding type declarations.
+src/main/proxy/tools/toolOrchestrator.ts(55,65): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
 src/main/proxy/tools/toolOrchestrator.ts(113,12): error TS7006: Parameter 'block' implicitly has an 'any' type.
 src/main/proxy/utils/accountUtils.ts(80,5): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
   Type 'undefined' is not assignable to type 'string'.
@@ -421,7 +493,7 @@ src/main/tasks/taskExecutor.ts(39,5): error TS2322: Type '((event: AgentEvent & 
     Types of parameters 'event' and 'event' are incompatible.
       Type '((event: AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }) => void) | undefined' is not assignable to type 'AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }'.
         Type 'undefined' is not assignable to type 'AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }'.
-src/main/tasks/taskExecutor.ts(83,36): error TS2345: Argument of type '{ logEntry: { time: number; event: string; detail?: string | undefined; }; type: "iteration_start"; iteration: number; } | { logEntry: { time: number; event: string; detail?: string | undefined; }; type: "request_sent"; model: string; } | ... 13 more ... | { ...; }' is not assignable to parameter of type '((event: AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }) => void) | undefined'.
+src/main/tasks/taskExecutor.ts(83,36): error TS2345: Argument of type '{ logEntry: { time: number; event: string; detail?: string | undefined; }; type: "iteration_start"; iteration: number; } | { logEntry: { time: number; event: string; detail?: string | undefined; }; type: "request_sent"; model: string; } | ... 14 more ... | { ...; }' is not assignable to parameter of type '((event: AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }) => void) | undefined'.
   Object literal may only specify known properties, and 'logEntry' does not exist in type '(event: AgentEvent & { logEntry: { time: number; event: string; detail?: string | undefined; }; }) => void'.
 src/main/tasks/tasksStore.ts(66,7): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
   Type 'null' is not assignable to type 'string | undefined'.

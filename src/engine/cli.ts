@@ -82,7 +82,11 @@ async function init() {
     try {
       process.stdout.write('… ')
       const result = await engine.query(text)
-      console.log(`\n${result.content || result.toolOutput || '(empty)'}\n`)
+      const assistantMsg = [...result.messages].reverse().find((m) => m.role === 'assistant') as { content?: unknown } | null
+      const outText = assistantMsg
+        ? (typeof assistantMsg.content === 'string' ? assistantMsg.content : JSON.stringify(assistantMsg.content ?? ''))
+        : ''
+      console.log(`\n${outText || '(empty)'}\n`)
     } catch (e) {
       console.log(`\n⚠ ${(e as Error).message}\n`)
     }
