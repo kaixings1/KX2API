@@ -1,8 +1,0 @@
-npm notice run kx2code@1.0.0 npx
-npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
-src/engine/agent/command-runners.ts(882,1): error TS1137: Expression or comma expected.
-src/engine/agent/command-runners.ts(912,4): error TS1181: Array element destructuring pattern expected.
-src/engine/agent/command-runners.ts(912,24): error TS1005: ';' expected.
-src/engine/agent/command-runners.ts(912,25): error TS1128: Declaration or statement expected.
-src/engine/agent/command-runners.ts(923,1): error TS1109: Expression expected.
-src/engine/agent/command-runners.ts(923,2): error TS1128: Declaration or statement expected.

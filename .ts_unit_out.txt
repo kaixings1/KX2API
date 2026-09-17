@@ -1,0 +1,6 @@
+npm warn ".ts_unit_out.txt" is being parsed as a normal command line argument.
+npm error code EUNKNOWNCONFIG
+npm error Unknown cli flag:
+npm error   - --20
+npm error Run `npm help config` for supported options.
+npm error A complete log of this run can be found in: C:\Users\Administrator\AppData\Local\npm-cache\_logs\2026-09-17T11_02_29_895Z-debug-0.log
