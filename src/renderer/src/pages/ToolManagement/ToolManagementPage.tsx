@@ -121,11 +121,14 @@ export function ToolManagementPage() {
         .split(',')
         .map(s => s.trim())
         .filter(Boolean)
+      // 合并已有 toolCallingConfig 而非覆盖：透传完整对象以保留 enabled/mode/clientAdapterId 等字段
       const ok = await window.electronAPI.config.update({
         toolCallingConfig: {
+          ...(toolCallingCfg || {}),
           advanced: {
+            ...(toolCallingCfg?.advanced || {}),
             allowedToolNames: list,
-            promptPreviewEnabled: false,
+            promptPreviewEnabled: toolCallingCfg?.advanced?.promptPreviewEnabled ?? false,
           },
         },
       })

@@ -14,10 +14,10 @@ interface ImportExportDialogProps {
   title: string
   description: string
   data?: any
-  onExport: () => string
-  onImport: (json: string) => { success: boolean; error?: string }
-  onBackup?: () => { success: boolean; file?: File; error?: string }
-  onRestore?: (file: File) => { success: boolean; error?: string }
+  onExport: () => string | Promise<string>
+  onImport: (json: string) => { success: boolean; error?: string } | Promise<{ success: boolean; error?: string }>
+  onBackup?: () => { success: boolean; file?: File; error?: string } | Promise<{ success: boolean; file?: File; error?: string }>
+  onRestore?: (file: File) => { success: boolean; error?: string } | Promise<{ success: boolean; error?: string }>
 }
 
 export function ImportExportDialog({
@@ -36,9 +36,9 @@ export function ImportExportDialog({
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      const json = onExport()
+      const json = await onExport()
       const blob = new Blob([json], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -52,9 +52,9 @@ export function ImportExportDialog({
     }
   }
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!importText.trim()) return
-    const res = onImport(importText)
+    const res = await onImport(importText)
     if (res.success) {
       setResult({ success: true, message: '导入成功' })
       setTimeout(() => { onOpenChange(false); setImportText(''); setResult(null) }, 1000)
@@ -75,9 +75,9 @@ export function ImportExportDialog({
     }
   }
 
-  const handleBackup = () => {
+  const handleBackup = async () => {
     if (onBackup) {
-      const res = onBackup()
+      const res = await onBackup()
       setResult({ success: res.success, message: res.success ? '备份成功' : (res.error || '备份失败') })
       if (res.success && res.file) {
         const url = URL.createObjectURL(res.file)
@@ -90,9 +90,9 @@ export function ImportExportDialog({
     }
   }
 
-  const handleRestore = () => {
+  const handleRestore = async () => {
     if (onRestore && fileRef.current?.files?.[0]) {
-      const res = onRestore(fileRef.current.files[0])
+      const res = await onRestore(fileRef.current.files[0])
       setResult({ success: res.success, message: res.success ? '恢复成功' : (res.error || '恢复失败') })
       if (res.success) {
         setTimeout(() => { onOpenChange(false); setResult(null) }, 1000)

@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { validateToolHistory } from "..";
-import type { Message } from "..";
+import { validateToolHistory } from "../../src/engine/tool-history-guard/index.ts";
+import type { Message } from "../../src/engine/tool-history-guard/index.ts";
 
 test("validateToolHistory accepts a valid tool call/result sequence", () => {
   const messages: Message[] = [

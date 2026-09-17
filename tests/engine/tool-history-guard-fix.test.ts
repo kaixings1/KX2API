@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { fixToolHistory } from "..";
-import type { Message } from "..";
+import { fixToolHistory } from "../../src/engine/tool-history-guard/index.ts";
+import type { Message } from "../../src/engine/tool-history-guard/index.ts";
 
 test("fixToolHistory reorders an adjacent misplaced tool result", () => {
   const messages: Message[] = [
