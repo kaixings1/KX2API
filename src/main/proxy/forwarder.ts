@@ -28,7 +28,7 @@ import { OpenAIAdapter } from './adapters/openai'
 import { OpenAIStreamHandler } from './adapters/openai-stream'
 import { AnthropicAdapter } from './adapters/anthropic'
 import { AnthropicStreamHandler } from './adapters/anthropic-stream'
-import { GoogleAdapter } from './adapters/google'
+import { GoogleAdapter, type GeminiRequest, type GeminiContent } from './adapters/google'
 import { GoogleStreamHandler } from './adapters/google-stream'
 import { OllamaAdapter } from './adapters/ollama'
 import { OllamaStreamHandler } from './adapters/ollama-stream'
@@ -53,8 +53,8 @@ import { cookieSessionManager } from '../oauth/cookieSessionManager'
 import {
   createContextManagementService,
   SummaryGenerator,
-  type ChatMessage as ContextChatMessage,
 } from './services/contextManagementService'
+import type { ChatMessage as ContextChatMessage } from './types'
 
 /**
  * 代理中间调试日志开关。
@@ -73,6 +73,48 @@ function proxyDebugLog(...args: unknown[]): void {
 
 function shouldDeleteSession(): boolean {
   return sessionManager.shouldDeleteAfterChat()
+}
+
+/** OpenAI 的 stop 允许 string | string[]，各家协议只收 string[] */
+function toStopArray(stop: string | string[] | null | void): string[] {
+  if (stop == null) return []
+  return Array.isArray(stop) ? stop : [stop]
+}
+
+/** 把 OpenAI messages 转成 Gemini contents（role user/model + parts） */
+function toGeminiContents(messages: unknown[]): GeminiContent[] {
+  return (messages ?? []).map((m: any) => ({
+    role: (m.role === 'assistant' ? 'model' : 'user') as 'user' | 'model',
+    parts: [{ text: typeof m.content === 'string' ? m.content : String(m.content ?? '') }],
+  }))
+}
+
+/** 构造一个最小的 OpenAI chat.completion 响应体 */
+function buildOpenAICompletion(content: string, model: string): Record<string, unknown> {
+  return {
+    id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model,
+    choices: [
+      { index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' },
+    ],
+    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+  }
+}
+
+/** 构造一个 OpenAI 流式 SSE chunk */
+function buildOpenAIStreamChunk(delta: string, model: string, done: boolean): string {
+  const payload = {
+    id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion.chunk',
+    created: Math.floor(Date.now() / 1000),
+    model,
+    choices: [
+      { index: 0, delta: done ? {} : { content: delta }, finish_reason: done ? 'stop' : null },
+    ],
+  }
+  return `data: ${JSON.stringify(payload)}\n\n`
 }
 
 type ProviderForwarder = {
@@ -602,7 +644,11 @@ export class RequestForwarder {
       const inputPattern = /<input[^>]+name\s*=\s*["']([^"']+)["'][^>]*>/gi
       const inputMatches = formContent.matchAll(inputPattern)
 
-      const parameters: Record<string, unknown> = {
+      const parameters: {
+        type: string
+        properties: Record<string, { type: string; description: string }>
+        required?: string[]
+      } = {
         type: 'object',
         properties: {},
       }
@@ -619,7 +665,7 @@ export class RequestForwarder {
           parameters.required = []
         }
         if (requiredMatch) {
-          (parameters.required as string[]).push(paramName)
+          parameters.required.push(paramName)
         }
       }
 
@@ -1614,7 +1660,6 @@ export class RequestForwarder {
       const adapter = new MiniMaxAdapter(provider, account)
       const { response, stream, chatId } = await adapter.chatCompletion({
         model: actualModel,
-        originalModel: request.model,
         messages: transformed.messages as any,
         stream: request.stream,
         temperature: request.temperature,
@@ -1937,9 +1982,9 @@ export class RequestForwarder {
         max_tokens: transformedRequest.max_tokens,
         top_p: transformedRequest.top_p,
         frequency_penalty: transformedRequest.frequency_penalty,
-        stop: transformedRequest.stop,
+        stop: toStopArray(transformedRequest.stop),
         n: transformedRequest.n,
-        tools: transformedRequest.tools,
+        tools: transformedRequest.tools ?? [],
         tool_choice: transformedRequest.tool_choice,
       })
       proxyDebugLog('[StepFun][DIAG-FWD] adapter returned! result.success=', result.success, 'status=', result.status, 'hasStream=', !!result.stream, 'hasBody=', !!result.body, 'error=', (result.error || '').slice(0, 200))
@@ -2035,6 +2080,117 @@ export class RequestForwarder {
       }
     } catch (error) {
       console.error('[StepFun][DIAG-FWD] CATCH ERROR:', error)
+      const latency = Date.now() - startTime
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误',
+        latency,
+      }
+    }
+  }
+
+  private async forwardStepFunStudio(
+    request: ChatCompletionRequest,
+    account: Account,
+    provider: Provider,
+    actualModel: string,
+    startTime: number
+  ): Promise<ForwardResult> {
+    proxyDebugLog('[StepFunStudio][DIAG-FWD] ENTRY, stream=', request.stream, 'model=', actualModel)
+    try {
+      const transformed = this.transformRequestForPromptToolUse(request, provider)
+      const transformedRequest = {
+        ...request,
+        messages: transformed.messages,
+        tools: transformed.tools,
+      }
+
+      const decryptedAccount = storeManager.getAccountById(account.id, true) || account
+      const adapter = new StepFunStudioAdapter(provider, decryptedAccount)
+      const result = await adapter.chatCompletion({
+        model: actualModel,
+        messages: transformedRequest.messages as any,
+        stream: transformedRequest.stream,
+        temperature: transformedRequest.temperature,
+        reasoning_effort: transformedRequest.reasoning_effort,
+        max_tokens: transformedRequest.max_tokens,
+        top_p: transformedRequest.top_p,
+        frequency_penalty: transformedRequest.frequency_penalty,
+        stop: toStopArray(transformedRequest.stop),
+        n: transformedRequest.n,
+        tools: transformedRequest.tools ?? [],
+        tool_choice: transformedRequest.tool_choice,
+      })
+
+      const latency = Date.now() - startTime
+
+      if (!result.success) {
+        return {
+          success: false,
+          status: result.status,
+          error: result.error || '请求失败',
+          latency,
+        }
+      }
+
+      if (result.stream) {
+        const handler = new StepFunStreamHandler(actualModel, null, transformed.plan)
+        const transformedStream = await handler.handleStream(result.stream)
+
+        if (request.stream) {
+          return {
+            success: true,
+            status: result.status || 200,
+            headers: result.headers || {},
+            stream: transformedStream,
+            skipTransform: true,
+            latency,
+          }
+        }
+
+        const chunks: Buffer[] = []
+        for await (const chunk of transformedStream) {
+          chunks.push(Buffer.from(chunk))
+        }
+        const bodyText = Buffer.concat(chunks).toString('utf-8')
+
+        let fullContent = ''
+        for (const line of bodyText.split('\n')) {
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6).trim()
+          if (data === '[DONE]') continue
+          try {
+            const delta = JSON.parse(data).choices?.[0]?.delta
+            if (delta?.content) fullContent += delta.content
+          } catch {
+            // skip unparseable
+          }
+        }
+
+        return {
+          success: true,
+          status: result.status || 200,
+          headers: result.headers || {},
+          body: buildOpenAICompletion(fullContent, actualModel),
+          skipTransform: true,
+          latency,
+        }
+      }
+
+      const handler = new StepFunStreamHandler(actualModel, null, transformed.plan)
+      const body = await handler.handleNonStream(result.body)
+      this.applyToolCallsToResponse(body, transformed)
+
+      return {
+        success: true,
+        status: result.status || 200,
+        headers: result.headers || {},
+        body,
+        skipTransform: true,
+        latency,
+      }
+    } catch (error) {
+      console.error('[StepFunStudio][DIAG-FWD] CATCH ERROR:', error)
       const latency = Date.now() - startTime
       return {
         success: false,
@@ -2185,6 +2341,67 @@ export class RequestForwarder {
   // ============================================================
   // Specialized forwarders for non-OpenAI-compatible providers
   // ============================================================
+
+  /**
+   * 各家 chatStream 产出的都是「已剥离 data: 前缀的裸事件串」，这里统一转成 OpenAI SSE。
+   * extractText 由各家协议自己决定怎么取文本。
+   */
+  private rawEventStreamToOpenAI(
+    source: AsyncGenerator<string, void, unknown>,
+    model: string,
+    extractText: (raw: string) => string
+  ): PassThrough {
+    const output = new PassThrough()
+    void (async () => {
+      try {
+        for await (const raw of source) {
+          let text = ''
+          try {
+            text = extractText(raw)
+          } catch {
+            text = ''
+          }
+          if (text) output.write(buildOpenAIStreamChunk(text, model, false))
+        }
+        output.write(buildOpenAIStreamChunk('', model, true))
+        output.write('data: [DONE]\n\n')
+        output.end()
+      } catch (error) {
+        output.destroy(error instanceof Error ? error : new Error(String(error)))
+      }
+    })()
+    return output
+  }
+
+  /** Anthropic SSE 事件 → 文本 */
+  private anthropicStreamToOpenAI(
+    source: AsyncGenerator<string, void, unknown>,
+    model: string
+  ): PassThrough {
+    return this.rawEventStreamToOpenAI(source, model, (raw) => {
+      const parsed = JSON.parse(raw)
+      if (parsed?.type === 'content_block_delta') {
+        return typeof parsed?.delta?.text === 'string' ? parsed.delta.text : ''
+      }
+      return ''
+    })
+  }
+
+  /** Anthropic Messages 响应 → OpenAI completion */
+  private anthropicToOpenAICompletion(data: any, model: string): Record<string, unknown> {
+    const blocks = data?.content ?? []
+    const content = Array.isArray(blocks)
+      ? blocks.map((b: any) => (b?.type === 'text' ? String(b.text ?? '') : '')).join('')
+      : ''
+    const body = buildOpenAICompletion(content, model)
+    body.usage = {
+      prompt_tokens: data?.usage?.input_tokens ?? 0,
+      completion_tokens: data?.usage?.output_tokens ?? 0,
+      total_tokens: (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0),
+    }
+    return body
+  }
+
   private async forwardAnthropic(
     request: ChatCompletionRequest,
     account: Account,
@@ -2194,93 +2411,39 @@ export class RequestForwarder {
   ): Promise<ForwardResult> {
     try {
       const adapter = new AnthropicAdapter(provider, account)
-      const result = await adapter.chatCompletion({
+      const anthropicRequest = {
         model: actualModel,
+        max_tokens: request.max_tokens ?? 4096,
         messages: request.messages as any,
         stream: request.stream,
         temperature: request.temperature,
-        max_tokens: request.max_tokens,
         top_p: request.top_p,
-        stop: request.stop,
-      })
-
-      const latency = Date.now() - startTime
-
-      if (!result.success) {
-        return {
-          success: false,
-          status: result.status,
-          error: result.error || '请求失败',
-          latency,
-        }
+        stop_sequences: toStopArray(request.stop),
       }
 
-      if (result.stream) {
-        const handler = new AnthropicStreamHandler(actualModel, null)
-        const transformedStream = await handler.handleStream(result.stream)
+      const latency0 = Date.now() - startTime
 
-        if (request.stream) {
-          return {
-            success: true,
-            status: result.status || 200,
-            headers: result.headers || {},
-            stream: transformedStream,
-            skipTransform: true,
-            latency,
-          }
-        }
-
-        const chunks: Buffer[] = []
-        for await (const chunk of transformedStream) {
-          chunks.push(Buffer.from(chunk))
-        }
-        const bodyText = Buffer.concat(chunks).toString('utf-8')
-
-        let fullContent = ''
-        const lines = bodyText.split('\n')
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const data = line.slice(6).trim()
-          if (data === '[DONE]') continue
-          try {
-            const parsed = JSON.parse(data)
-            const delta = parsed.choices?.[0]?.delta
-            if (delta?.content) fullContent += delta.content
-          } catch {
-            // skip unparseable
-          }
-        }
-
-        const completionBody = {
-          id: actualModel,
-          model: actualModel,
-          object: 'chat.completion',
-          choices: [{
-            index: 0,
-            message: { role: 'assistant', content: fullContent },
-            finish_reason: 'stop',
-          }],
-          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-        }
-
+      if (request.stream) {
+        const stream = adapter.chatStream(anthropicRequest)
+        const transformedStream = this.anthropicStreamToOpenAI(stream, actualModel)
         return {
           success: true,
-          status: result.status || 200,
-          headers: result.headers || {},
-          body: completionBody,
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+          stream: transformedStream,
           skipTransform: true,
-          latency,
+          latency: latency0,
         }
       }
 
-      const handler = new AnthropicStreamHandler(actualModel, null)
-      const body = await handler.handleNonStream(result.body)
+      const data = await adapter.chat(anthropicRequest)
+      const latency = Date.now() - startTime
 
       return {
         success: true,
-        status: result.status || 200,
-        headers: result.headers || {},
-        body,
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: this.anthropicToOpenAICompletion(data, actualModel),
         skipTransform: true,
         latency,
       }
@@ -2295,6 +2458,7 @@ export class RequestForwarder {
     }
   }
 
+
   private async forwardGoogle(
     request: ChatCompletionRequest,
     account: Account,
@@ -2304,93 +2468,44 @@ export class RequestForwarder {
   ): Promise<ForwardResult> {
     try {
       const adapter = new GoogleAdapter(provider, account)
-      const result = await adapter.chatCompletion({
-        model: actualModel,
-        messages: request.messages as any,
-        stream: request.stream,
-        temperature: request.temperature,
-        max_tokens: request.max_tokens,
-        top_p: request.top_p,
-        stop: request.stop,
-      })
-
-      const latency = Date.now() - startTime
-
-      if (!result.success) {
-        return {
-          success: false,
-          status: result.status,
-          error: result.error || '请求失败',
-          latency,
-        }
+      const geminiRequest: GeminiRequest = {
+        contents: toGeminiContents(request.messages),
+        generationConfig: {
+          temperature: request.temperature,
+          topP: request.top_p,
+          maxOutputTokens: request.max_tokens,
+          stopSequences: toStopArray(request.stop),
+        },
       }
 
-      if (result.stream) {
-        const handler = new GoogleStreamHandler(actualModel, null)
-        const transformedStream = await handler.handleStream(result.stream)
+      const latency0 = Date.now() - startTime
 
-        if (request.stream) {
-          return {
-            success: true,
-            status: result.status || 200,
-            headers: result.headers || {},
-            stream: transformedStream,
-            skipTransform: true,
-            latency,
-          }
-        }
-
-        const chunks: Buffer[] = []
-        for await (const chunk of transformedStream) {
-          chunks.push(Buffer.from(chunk))
-        }
-        const bodyText = Buffer.concat(chunks).toString('utf-8')
-
-        let fullContent = ''
-        const lines = bodyText.split('\n')
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const data = line.slice(6).trim()
-          if (data === '[DONE]') continue
-          try {
-            const parsed = JSON.parse(data)
-            const delta = parsed.choices?.[0]?.delta
-            if (delta?.content) fullContent += delta.content
-          } catch {
-            // skip unparseable
-          }
-        }
-
-        const completionBody = {
-          id: actualModel,
-          model: actualModel,
-          object: 'chat.completion',
-          choices: [{
-            index: 0,
-            message: { role: 'assistant', content: fullContent },
-            finish_reason: 'stop',
-          }],
-          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-        }
-
+      if (request.stream) {
+        const stream = adapter.chatStream(geminiRequest, actualModel)
+        const transformedStream = this.rawEventStreamToOpenAI(stream, actualModel, (raw) => {
+          const parsed = JSON.parse(raw)
+          const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text
+          return typeof text === 'string' ? text : ''
+        })
         return {
           success: true,
-          status: result.status || 200,
-          headers: result.headers || {},
-          body: completionBody,
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+          stream: transformedStream,
           skipTransform: true,
-          latency,
+          latency: latency0,
         }
       }
 
-      const handler = new GoogleStreamHandler(actualModel, null)
-      const body = await handler.handleNonStream(result.body)
+      const data = await adapter.chat(geminiRequest, actualModel)
+      const latency = Date.now() - startTime
+      const content = data?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? ''
 
       return {
         success: true,
-        status: result.status || 200,
-        headers: result.headers || {},
-        body,
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: buildOpenAICompletion(content, actualModel),
         skipTransform: true,
         latency,
       }
@@ -2405,6 +2520,7 @@ export class RequestForwarder {
     }
   }
 
+
   private async forwardOllama(
     request: ChatCompletionRequest,
     account: Account,
@@ -2414,93 +2530,45 @@ export class RequestForwarder {
   ): Promise<ForwardResult> {
     try {
       const adapter = new OllamaAdapter(provider, account)
-      const result = await adapter.chatCompletion({
+      const ollamaRequest = {
         model: actualModel,
         messages: request.messages as any,
         stream: request.stream,
-        temperature: request.temperature,
-        max_tokens: request.max_tokens,
-        top_p: request.top_p,
-        stop: request.stop,
-      })
-
-      const latency = Date.now() - startTime
-
-      if (!result.success) {
-        return {
-          success: false,
-          status: result.status,
-          error: result.error || '请求失败',
-          latency,
-        }
+        options: {
+          temperature: request.temperature,
+          top_p: request.top_p,
+          num_ctx: request.max_tokens,
+          stop: toStopArray(request.stop),
+        },
       }
 
-      if (result.stream) {
-        const handler = new OllamaStreamHandler(actualModel, null)
-        const transformedStream = await handler.handleStream(result.stream)
+      const latency0 = Date.now() - startTime
 
-        if (request.stream) {
-          return {
-            success: true,
-            status: result.status || 200,
-            headers: result.headers || {},
-            stream: transformedStream,
-            skipTransform: true,
-            latency,
-          }
-        }
-
-        const chunks: Buffer[] = []
-        for await (const chunk of transformedStream) {
-          chunks.push(Buffer.from(chunk))
-        }
-        const bodyText = Buffer.concat(chunks).toString('utf-8')
-
-        let fullContent = ''
-        const lines = bodyText.split('\n')
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const data = line.slice(6).trim()
-          if (data === '[DONE]') continue
-          try {
-            const parsed = JSON.parse(data)
-            const delta = parsed.choices?.[0]?.delta
-            if (delta?.content) fullContent += delta.content
-          } catch {
-            // skip unparseable
-          }
-        }
-
-        const completionBody = {
-          id: actualModel,
-          model: actualModel,
-          object: 'chat.completion',
-          choices: [{
-            index: 0,
-            message: { role: 'assistant', content: fullContent },
-            finish_reason: 'stop',
-          }],
-          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-        }
-
+      if (request.stream) {
+        const stream = adapter.chatStream(ollamaRequest)
+        const transformedStream = this.rawEventStreamToOpenAI(stream, actualModel, (raw) => {
+          const parsed = JSON.parse(raw)
+          const text = parsed?.message?.content
+          return typeof text === 'string' ? text : ''
+        })
         return {
           success: true,
-          status: result.status || 200,
-          headers: result.headers || {},
-          body: completionBody,
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+          stream: transformedStream,
           skipTransform: true,
-          latency,
+          latency: latency0,
         }
       }
 
-      const handler = new OllamaStreamHandler(actualModel, null)
-      const body = await handler.handleNonStream(result.body)
+      const data = await adapter.chat(ollamaRequest)
+      const latency = Date.now() - startTime
 
       return {
         success: true,
-        status: result.status || 200,
-        headers: result.headers || {},
-        body,
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: buildOpenAICompletion(data?.message?.content ?? '', actualModel),
         skipTransform: true,
         latency,
       }
@@ -2514,6 +2582,7 @@ export class RequestForwarder {
       }
     }
   }
+
 
   private async forwardCoze(
     request: ChatCompletionRequest,
@@ -2531,96 +2600,52 @@ export class RequestForwarder {
       }
 
       const adapter = new CozeAdapter(provider, account)
-      const result = await adapter.chatCompletion({
-        model: actualModel,
-        messages: transformedRequest.messages as any,
+      const cozeRequest = {
+        bot_id: actualModel,
+        user_id: account.id || 'default',
         stream: transformedRequest.stream,
-        temperature: transformedRequest.temperature,
-        max_tokens: transformedRequest.max_tokens,
-        top_p: transformedRequest.top_p,
-        stop: transformedRequest.stop,
-        n: transformedRequest.n,
-        tools: transformedRequest.tools,
-        tool_choice: transformedRequest.tool_choice,
-      })
-
-      const latency = Date.now() - startTime
-
-      if (!result.success) {
-        return {
-          success: false,
-          status: result.status,
-          error: result.error || '请求失败',
-          latency,
-        }
+        auto_save_history: true,
+        additional_messages: transformedRequest.messages as any,
       }
 
-      if (result.stream) {
-        const handler = new CozeStreamHandler(actualModel, null, transformed.plan)
-        const transformedStream = await handler.handleStream(result.stream)
+      const latency0 = Date.now() - startTime
 
-        if (request.stream) {
-          return {
-            success: true,
-            status: result.status || 200,
-            headers: result.headers || {},
-            stream: transformedStream,
-            skipTransform: true,
-            latency,
-          }
-        }
-
-        const chunks: Buffer[] = []
-        for await (const chunk of transformedStream) {
-          chunks.push(Buffer.from(chunk))
-        }
-        const bodyText = Buffer.concat(chunks).toString('utf-8')
-
-        let fullContent = ''
-        const lines = bodyText.split('\n')
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const data = line.slice(6).trim()
-          if (data === '[DONE]') continue
-          try {
-            const parsed = JSON.parse(data)
-            const delta = parsed.choices?.[0]?.delta
-            if (delta?.content) fullContent += delta.content
-          } catch {
-            // skip unparseable
-          }
-        }
-
-        const completionBody = {
-          id: actualModel,
-          model: actualModel,
-          object: 'chat.completion',
-          choices: [{
-            index: 0,
-            message: { role: 'assistant', content: fullContent },
-            finish_reason: 'stop',
-          }],
-          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-        }
-
+      if (transformedRequest.stream) {
+        const stream = adapter.chatStream(cozeRequest)
+        const transformedStream = this.rawEventStreamToOpenAI(stream, actualModel, (raw) => {
+          const parsed = JSON.parse(raw)
+          if (parsed?.event !== 'conversation.message.delta') return ''
+          return typeof parsed?.data?.content === 'string' ? parsed.data.content : ''
+        })
         return {
           success: true,
-          status: result.status || 200,
-          headers: result.headers || {},
-          body: completionBody,
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+          stream: transformedStream,
           skipTransform: true,
+          latency: latency0,
+        }
+      }
+
+      const data = await adapter.chat(cozeRequest)
+      const latency = Date.now() - startTime
+
+      if (data?.code != null && data.code !== 0) {
+        return {
+          success: false,
+          status: 502,
+          error: data.msg || 'Coze 请求失败',
           latency,
         }
       }
 
-      const handler = new CozeStreamHandler(actualModel, null, transformed.plan)
-      const body = await handler.handleNonStream(result.body)
+      const body = buildOpenAICompletion(data?.data?.content ?? '', actualModel)
       this.applyToolCallsToResponse(body, transformed)
 
       return {
         success: true,
-        status: result.status || 200,
-        headers: result.headers || {},
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
         body,
         skipTransform: true,
         latency,
@@ -2872,8 +2897,10 @@ export class RequestForwarder {
     account: Account,
     provider: Provider
   ): Promise<Account> {
+    // provider.id 对自定义 provider 是 'custom'，ProviderType 联合里没有它，
+    // 所以先按 string 判断跳过，再收窄成 ProviderType 去查 cookie 凭证。
+    if (!provider.id || provider.id === 'custom') return account
     const providerType = provider.id as ProviderType
-    if (!providerType || providerType === 'custom') return account
 
     try {
       const creds = await cookieSessionManager.getCredentials(providerType)

@@ -115,11 +115,11 @@ export function isAllowedToolName(
  * 明确的工具调用标签：只认这些标签，避免把 <toolResponse> 等正文标签误判为工具。
  * 同时兼容驼峰风格（toolName / toolCallId / functionCall）标签。
  */
-const TOOL_TAG_NAMES = 'tool_use|tool_call|toolcall|function_call|functioncall|invoke|tool_normal'
+const TOOL_TAG_NAMES = 'tool_use|tool_call|tool_calls|toolcall|function_call|functioncall|invoke|tool_normal'
 const TOOL_TAG_RE = new RegExp(`<(${TOOL_TAG_NAMES})\\b[^>]*>([\\s\\S]*?)<\\/\\1>`, 'gi')
 // 名字子标签：支持 tool_name / toolName / name / tool / function / fn
 const TOOL_NAME_SUBTAG_RE = /<(?:tool_name|toolName|toolname|name|tool|fn)>\s*([\s\S]*?)\s*<\/(?:tool_name|toolName|toolname|name|tool|fn)>/i
-const TOOL_ARGS_SUBTAG_RE = /<(?:arguments|input|args|params|parameters)>\s*([\s\S]*?)\s*<\/(?:arguments|input|args|params|parameters)>/i
+const TOOL_ARGS_SUBTAG_RE = /<(?:arguments|input|args|params|parameters|parameter)\b[^>]*>([\s\S]*?)<\/\s*(?:arguments|input|args|params|parameters|parameter)\s*>/i
 
 /** 代码围栏：```json ... ``` 或 ``` ... ```（允许语言标识后紧跟内容，不强制换行） */
 const FENCED_RE = /```[ \t]*(?:json|jsonc|javascript|js)?[ \t]*\r?\n?([\s\S]*?)```/gi

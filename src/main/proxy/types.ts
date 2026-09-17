@@ -12,6 +12,8 @@ export interface ChatMessage {
   name?: string
   tool_call_id?: string
   tool_calls?: ChatCompletionMessageToolCall[]
+  /** 上游返回的原始消息 ID（部分协议如 StepFun 会话续接会用到） */
+  providerMessageId?: string
 }
 
 /**

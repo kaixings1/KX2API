@@ -318,6 +318,7 @@ const TOOL_ALIASES: Record<string, string> = {
   'read_file': 'cat',
   'readfile': 'cat',
   'get_file': 'cat',
+  'read_folder': 'ls',
   'write_file': 'echo',
   'edit_file': 'echo',
   'search_files': 'grep',
