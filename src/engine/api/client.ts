@@ -594,7 +594,8 @@ export async function sendOpenAIStreamWithTools(
         new Promise((_, reject) => setTimeout(() => reject(new Error('POST timeout after 120s')), 120000)),
       ])) as import('axios').AxiosResponse
     } catch (postError) {
-      console.error(`[API] POST FAILED after ${Date.now() - postStart}ms:`, postError instanceof Error ? postError.message : String(postError))
+      const err = postError as Error & { response?: { status?: number; data?: unknown } }
+      console.error(`[API] POST FAILED after ${Date.now() - postStart}ms: status=${err.response?.status ?? 'n/a'} body=${JSON.stringify(err.response?.data).slice(0, 500)}`, err.message)
       throw postError
     }
     console.log(`[API] POST SUCCEEDED after ${Date.now() - postStart}ms, status=${response.status}, headers=`, JSON.stringify(response.headers).slice(0, 300))

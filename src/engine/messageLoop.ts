@@ -145,6 +145,14 @@ export class MessageLoop {
   private compactRound = 0;
   /** 压缩阈值与熔断状态；惰性创建（需要先拿到预算器的窗口配置） */
   private compactCoordinatorInstance: CompactCoordinator | null = null;
+  /**
+   * 本次 query 是否已触发过死循环熔断。
+   *
+   * LOOP_GUARD 直接 done 会让会话最后一条消息变成给模型的内部提示，
+   * 用户看不到任何答复（界面「一直不显示」）。因此第一次触发时只切断工具执行、
+   * 再给模型一轮机会基于已有工具结果作答；若它仍然重复，才真正终止。
+   */
+  private loopGuardTripped = false;
 
   constructor(private deps: MessageLoopDeps) {
     this.limits = resolveLoopConfig(this.deps.loopLimits)
@@ -357,6 +365,7 @@ export class MessageLoop {
     this.lastToolCalls = []
     this.autoContinueCount = 0
     this.toolSignatureHistory = []
+    this.loopGuardTripped = false
     this.deps.conversation.messages.push({ role: "user", content: userMessage } as InternalMessage);
     await this.deps.stateMachine.transition("responding", { message: userMessage });
     this.consecutiveToolFailures = 0;
@@ -614,14 +623,24 @@ export class MessageLoop {
       // 说明模型无视结果陷入重复请求。此时不再执行/回喂，把循环信息作为系统消息反馈并终止本轮，
       // 避免无限重复同一工具调用（用户观察到的「死循环」）。
       if (prevSig && prevSig === sigNow && this.toolSignatureHistory.length >= this.limits.toolLoopThreshold) {
-        engineLog('LOOP_GUARD', `模型重复请求完全相同工具调用（${sigNow}），切断工具循环`);
+        // 首次触发：只切断工具执行，再给模型一轮机会基于已有工具结果答复用户。
+        // 直接 done 会让最后一条消息变成下面这条内部提示，用户看到的是空回复。
+        const shouldStopNow = this.loopGuardTripped
+        this.loopGuardTripped = true
+        engineLog('LOOP_GUARD', `模型重复请求完全相同工具调用（${sigNow}），${shouldStopNow ? '终止循环' : '切断工具执行并转为直接作答'}`);
         this.deps.conversation.messages.push({
           role: "system",
           content: "你已在前一轮请求过完全相同的工具调用且结果已返回，请直接基于已有工具结果回答用户，不要再重复发起相同的工具调用。",
         } as InternalMessage);
-        await this.deps.stateMachine.transition("done");
-        this.emit({ type: 'iteration_end', iteration: this.currentIteration, hasToolCalls: true });
-        return false;
+        if (shouldStopNow) {
+          await this.deps.stateMachine.transition("done");
+          this.emit({ type: 'iteration_end', iteration: this.currentIteration, hasToolCalls: true });
+          return false;
+        }
+        // 清掉签名历史，避免下一轮的「不再重复」指示被自己的历史再次触发熔断
+        this.toolSignatureHistory = []
+        await this.deps.stateMachine.transition("should_continue");
+        return true;
       }
 
       engineLog('TOOL_CALLS', JSON.stringify(validCalls, null, 2).slice(0, 10000));

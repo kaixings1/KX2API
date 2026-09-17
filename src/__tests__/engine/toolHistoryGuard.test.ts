@@ -120,8 +120,13 @@ describe('项目内部方言（toolUseId）必须用自定义 adapter', () => {
 
 describe('与 messageIntegrity 的分工', () => {
   /**
-   * 关键差异：messageIntegrity 修「配对缺失」（剥离孤立 / 补占位），
-   * 但**不处理顺序**。本组用例锁定该分工，防止未来有人误以为它能修顺序。
+   * messageIntegrity 负责**配对与顺序**（剥离孤立 / 补占位 / 按 tool_use 顺序收拢结果）。
+   *
+   * 注：早期实现只做「剥离 + 补占位」、不重排，靠"把错位结果当孤立项剥离再补占位"
+   * 绕开顺序问题。但那只在"结果缺失"时成立；当同一 assistant 有多个 tool_use 且结果
+   * 乱序、或结果之间夹了 system 消息时，配对虽在、顺序仍错，上游会直接报
+   *   400: tool calls and tool results do not match
+   * 故现已改为按 tool_use 声明顺序重建结果序列。
    */
   it('messageIntegrity 修复后，缺失的 result 会被补上占位', () => {
     const fixed = ensureToolResultPairing([
@@ -141,10 +146,32 @@ describe('与 messageIntegrity 的分工', () => {
     ).toBe(true)
   })
 
-  it('顺序错乱会被 messageIntegrity 顺带修好（剥离前置 result + 补占位）', () => {
+  it(
+      '结果与 tool_use 之间夹了 system 消息时，结果会被收拢到 assistant 之后',
+      () => {
+        // 回归用例：messageLoop 曾在 assistant(含 tool_use) 与 tool 结果之间插入
+        // `Continuing to next iteration.`，把配对隔开，上游报 400。
+        // messageIntegrity 必须能把结果收拢回 assistant 紧邻位置。
+        const interleaved = [
+          { role: 'user', content: 'go' },
+          call('c1'),
+          { role: 'system', content: 'Continuing to next iteration.' },
+          result('c1'),
+        ] as never
+        const fixed = ensureToolResultPairing(interleaved)
+        const callIdx = fixed.findIndex(m => (m as { role: string }).role === 'assistant')
+        const resultIdx = fixed.findIndex(
+          m => (m as { role: string; toolUseId?: string }).role === 'tool' && (m as { toolUseId?: string }).toolUseId === 'c1',
+        )
+        expect(callIdx).toBeGreaterThanOrEqual(0)
+        // 结果必须紧跟在 assistant 之后（中间不能夹 system）
+        expect(resultIdx).toBe(callIdx + 1)
+      },
+    )
+
+  it('顺序错乱会被 messageIntegrity 修好（剥离前置 result + 补占位）', () => {
     // 「result 在 call 之前」时，该 result 找不到已声明的 call → 被当作孤立项剥离，
-    // 随后 call 因缺结果被补上占位。结果是**有效**的。
-    // 所以顺序错乱并不是 messageIntegrity 的盲区 —— 它靠"剥离+补"绕开了重排。
+    // 随后 call 因缺结果被补上占位（见 Pass 2/3 的重建逻辑）。
     const wrongOrder = [result('c1'), call('c1')] as never
     const fixed = ensureToolResultPairing(wrongOrder)
     expect(
