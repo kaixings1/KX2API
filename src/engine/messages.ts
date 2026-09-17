@@ -378,7 +378,7 @@ export function reorderMessagesInUI(
     if (isToolUseRequestMessage(msg)) {
       const blocks = Array.isArray(msg.content) ? msg.content : [];
       const toolUseBlock = blocks.find((b) => isContentBlock(b) && b.type === 'tool_use');
-      if (isContentBlock(toolUseBlock) && typeof toolUseBlock.id === 'string') {
+      if (toolUseBlock && isContentBlock(toolUseBlock) && typeof toolUseBlock.id === 'string') {
         const id = toolUseBlock.id as string;
         if (!pendingToolBlocks.has(id)) {
           pendingToolBlocks.set(id, { toolUse: null, preHooks: [], toolResult: null, postHooks: [] });
@@ -413,7 +413,7 @@ export function reorderMessagesInUI(
     if (isToolUseRequestMessage(msg)) {
       const blocks = Array.isArray(msg.content) ? msg.content : [];
       const toolUseBlock = blocks.find((b) => isContentBlock(b) && b.type === 'tool_use');
-      if (isContentBlock(toolUseBlock) && typeof toolUseBlock.id === 'string') {
+      if (toolUseBlock && isContentBlock(toolUseBlock) && typeof toolUseBlock.id === 'string') {
         const id = toolUseBlock.id as string;
         if (!processed.has(id)) {
           processed.add(id);
@@ -444,7 +444,7 @@ export function ensureToolResultPairing(
     if (isToolUseRequestMessage(msg)) {
       const blocks = Array.isArray(msg.content) ? msg.content : [];
       const toolUseBlock = blocks.find((b) => isContentBlock(b) && b.type === 'tool_use');
-      if (isContentBlock(toolUseBlock) && typeof toolUseBlock.id === 'string') {
+      if (toolUseBlock && isContentBlock(toolUseBlock) && typeof toolUseBlock.id === 'string') {
         const id = toolUseBlock.id as string;
         pendingToolUses.set(id, msg);
       }

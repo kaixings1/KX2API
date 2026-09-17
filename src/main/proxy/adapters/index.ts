@@ -9,7 +9,9 @@ export { GLMAdapter, GLMStreamHandler, glmAdapter } from './glm'
 export { KimiAdapter, KimiStreamHandler, kimiAdapter } from './kimi'
 export { MimoAdapter, MimoStreamHandler, mimoAdapter } from './mimo'
 export { MiniMaxAdapter, MiniMaxStreamHandler, minimaxAdapter } from './minimax'
-export { PerplexityAdapter, PerplexityStreamHandler, perplexityAdapter } from './perplexity'
+// 注：perplexity.ts 只导出 PerplexityAdapter / perplexityAdapter，
+// 没有 PerplexityStreamHandler（原导出指向不存在的成员，TS2305）。
+export { PerplexityAdapter, perplexityAdapter } from './perplexity'
 export { QwenAdapter, QwenStreamHandler, qwenAdapter } from './qwen'
 export { QwenAiAdapter, QwenAiStreamHandler, qwenAiAdapter } from './qwen-ai'
 export { ZaiAdapter, ZaiStreamHandler, zaiAdapter } from './zai'
@@ -35,6 +37,9 @@ export { XAIAdapter, xaiAdapter } from './xai'
 export { XAIStreamHandler } from './xai-stream'
 export { SiliconCloudAdapter, siliconCloudAdapter } from './siliconcloud'
 export { SiliconCloudStreamHandler } from './siliconcloud-stream'
-export { OpenAITransformer } from './transformers/openai'
-export { AnthropicTransformer } from './transformers/anthropic'
-export { GeminiTransformer } from './transformers/gemini'
+// 注：transformers/* 导出的是**函数集合**（toOpenAIMessage / fromAnthropicResponse 等），
+// 没有名为 XxxTransformer 的类 —— 原先这三行指向不存在的成员（TS2305）。
+// 需要转换函数请直接从对应模块导入。
+export * from './transformers/openai'
+export * from './transformers/anthropic'
+export * from './transformers/gemini'

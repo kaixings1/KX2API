@@ -1,5 +1,5 @@
 npm notice run kx2code@1.0.0 npx
-npm notice run tsc -p tsconfig.check.json --noEmit
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
 src/engine/agent/coordinator/orchestrator.ts(233,44): error TS2345: Argument of type '{ taskId: string; description: string; success: boolean; output: string; error?: string | undefined; durationMs: number; }' is not assignable to parameter of type 'TaskNodeResult'.
   Property 'executedAt' is missing in type '{ taskId: string; description: string; success: boolean; output: string; error?: string | undefined; durationMs: number; }' but required in type 'TaskNodeResult'.
 src/engine/agent/coordinator/orchestrator.ts(326,7): error TS2561: Object literal may only specify known properties, but 'discussionRounds' does not exist in type 'ExecutionReport'. Did you mean to write 'discussions'?
@@ -31,23 +31,15 @@ src/engine/codeVectorStore.ts(219,16): error TS2349: This expression is not call
 src/engine/codeVectorStore.ts(376,46): error TS2344: Type '{ existsSync: (_p?: string) => boolean; }' does not satisfy the constraint '(...args: any) => any'.
   Type '{ existsSync: (_p?: string | undefined) => boolean; }' provides no match for the signature '(...args: any): any'.
 src/engine/codeVectorStore.ts(381,31): error TS2554: Expected 2-3 arguments, but got 1.
-src/engine/commands/registry.ts(309,22): error TS2503: Cannot find namespace 'fs'.
-src/engine/commands/registry.ts(323,27): error TS2488: Type 'Promise<string[]>' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/engine/commands/registry.ts(311,11): error TS2322: Type 'Dirent<string>[]' is not assignable to type 'Dirent<NonSharedBuffer>[]'.
+  Type 'Dirent<string>' is not assignable to type 'Dirent<NonSharedBuffer>'.
+    Type 'string' is not assignable to type 'NonSharedBuffer'.
+src/engine/commands/registry.ts(323,27): error TS1308: 'await' expressions are only allowed within async functions and at the top levels of modules.
+src/engine/commands/registry.ts(323,58): error TS2345: Argument of type 'NonSharedBuffer' is not assignable to parameter of type 'string'.
 src/engine/commands/registry.ts(392,52): error TS2352: Conversion of type '{ default: { name: string; version: string; private: boolean; description: string; author: string; repository: { type: string; url: string; }; type: string; main: string; scripts: { dev: string; build: string; ... 13 more ...; "check:repo": string; }; dependencies: { ...; }; devDependencies: { ...; }; build: { ...; ...' to type 'Record<string, string>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
   Property 'default' is incompatible with index signature.
     Type '{ name: string; version: string; private: boolean; description: string; author: string; repository: { type: string; url: string; }; type: string; main: string; scripts: { dev: string; build: string; preview: string; ... 12 more ...; "check:repo": string; }; dependencies: { ...; }; devDependencies: { ...; }; build: {...' is not comparable to type 'string'.
-src/engine/messages.ts(381,26): error TS2345: Argument of type 'string | Record<string, unknown> | undefined' is not assignable to parameter of type 'string | Record<string, unknown>'.
-  Type 'undefined' is not assignable to type 'string | Record<string, unknown>'.
-src/engine/messages.ts(416,26): error TS2345: Argument of type 'string | Record<string, unknown> | undefined' is not assignable to parameter of type 'string | Record<string, unknown>'.
-  Type 'undefined' is not assignable to type 'string | Record<string, unknown>'.
-src/engine/messages.ts(447,26): error TS2345: Argument of type 'string | Record<string, unknown> | undefined' is not assignable to parameter of type 'string | Record<string, unknown>'.
-  Type 'undefined' is not assignable to type 'string | Record<string, unknown>'.
 src/engine/plugin/memoryToolPlugin.ts(13,15): error TS2459: Module '"../../engine/plugin/toolPluginRegistry.ts"' declares 'Tool' locally, but it is not exported.
-src/engine/streaming/streamProcessor.ts(265,45): error TS2322: Type 'null' is not assignable to type '{ type: string; text?: string | undefined; id?: string | undefined; name?: string | undefined; inputDelta?: string | undefined; index?: number | undefined; } | undefined'.
-src/engine/streaming/streamProcessor.ts(271,70): error TS18048: 'delta.text' is possibly 'undefined'.
-src/engine/streaming/streamProcessor.ts(271,97): error TS18048: 'delta.text' is possibly 'undefined'.
-src/engine/streaming/streamProcessor.ts(285,43): error TS2322: Type 'null' is not assignable to type '{ type: string; text?: string | undefined; id?: string | undefined; name?: string | undefined; inputDelta?: string | undefined; index?: number | undefined; } | undefined'.
-src/engine/streaming/streamProcessor.ts(289,66): error TS2322: Type 'null' is not assignable to type '{ type: string; id?: string | undefined; name?: string | undefined; input?: Record<string, unknown> | undefined; text?: string | undefined; } | undefined'.
 src/engine/subagent/subAgentManager.ts(168,13): error TS2322: Type '(input: string) => Promise<{ messages: InternalMessage[]; tokenUsage: unknown; }>' is not assignable to type '(input: string) => Promise<{ messages: { content?: string | undefined; }[]; tokenUsage: unknown; }>'.
   Type 'Promise<{ messages: InternalMessage[]; tokenUsage: unknown; }>' is not assignable to type 'Promise<{ messages: { content?: string | undefined; }[]; tokenUsage: unknown; }>'.
     Type '{ messages: InternalMessage[]; tokenUsage: unknown; }' is not assignable to type '{ messages: { content?: string | undefined; }[]; tokenUsage: unknown; }'.
@@ -125,21 +117,12 @@ src/main/plans/plansService.ts(119,5): error TS2322: Type 'number | null' is not
   Type 'null' is not assignable to type 'number | undefined'.
 src/main/plugins/pluginsService.ts(111,14): error TS2339: Property 'lastActiveAt' does not exist on type 'PluginRecord'.
 src/main/providers/custom.ts(185,7): error TS2353: Object literal may only specify known properties, and 'credentialFields' does not exist in type 'Provider'.
-src/main/proxy/adapters/deepseek.ts(98,108): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,228): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,282): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,307): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,332): error TS2554: Expected 0 arguments, but got 1.
 src/main/proxy/adapters/glm.ts(781,5): error TS2322: Type 'ToolStreamParser | null' is not assignable to type 'ToolStreamParser | undefined'.
   Type 'null' is not assignable to type 'ToolStreamParser | undefined'.
 src/main/proxy/adapters/glm.ts(1196,23): error TS2448: Block-scoped variable 'flushChunks' used before its declaration.
 src/main/proxy/adapters/glm.ts(1196,23): error TS2454: Variable 'flushChunks' is used before being assigned.
 src/main/proxy/adapters/google-stream.ts(40,5): error TS2322: Type 'string | boolean | undefined' is not assignable to type 'boolean'.
   Type 'undefined' is not assignable to type 'boolean'.
-src/main/proxy/adapters/index.ts(12,29): error TS2305: Module '"./perplexity"' has no exported member 'PerplexityStreamHandler'.
-src/main/proxy/adapters/index.ts(38,10): error TS2305: Module '"./transformers/openai"' has no exported member 'OpenAITransformer'.
-src/main/proxy/adapters/index.ts(39,10): error TS2305: Module '"./transformers/anthropic"' has no exported member 'AnthropicTransformer'.
-src/main/proxy/adapters/index.ts(40,10): error TS2305: Module '"./transformers/gemini"' has no exported member 'GeminiTransformer'.
 src/main/proxy/adapters/kimi.ts(354,39): error TS2339: Property 'originalModel' does not exist on type 'ChatCompletionRequest'.
 src/main/proxy/adapters/kimi.ts(727,73): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer<ArrayBuffer>'.
   Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
@@ -288,18 +271,6 @@ src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(102,5): error
 src/main/proxy/toolCalling/protocols/codexResponses.ts(32,11): error TS7034: Variable 'toolCalls' implicitly has type 'any[]' in some locations where its type cannot be determined.
 src/main/proxy/toolCalling/protocols/codexResponses.ts(40,9): error TS7005: Variable 'toolCalls' implicitly has an 'any[]' type.
 src/main/proxy/toolCalling/protocols/codexResponses.ts(59,13): error TS7022: 'id' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
-src/main/proxy/toolCalling/toolCallExtractor.ts(457,20): error TS2322: Type '{}' is not assignable to type 'string'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(470,18): error TS2322: Type '{}' is not assignable to type 'string'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(553,91): error TS2571: Object is of type 'unknown'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(559,85): error TS2571: Object is of type 'unknown'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(607,18): error TS2322: Type '{}' is not assignable to type 'string'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(667,22): error TS18004: No value exists in scope for the shorthand property 'args'. Either declare one or provide an initializer.
-src/main/proxy/toolCalling/toolCallExtractor.ts(696,11): error TS2322: Type '{}' is not assignable to type 'string'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(930,32): error TS2345: Argument of type '{}' is not assignable to parameter of type 'Record<string, unknown>'.
-  Index signature for type 'string' is missing in type '{}'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(946,32): error TS2345: Argument of type 'string | Record<string, string>' is not assignable to parameter of type 'Record<string, unknown>'.
-  Type 'string' is not assignable to type 'Record<string, unknown>'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(1150,11): error TS2322: Type '{}' is not assignable to type 'string'.
 src/main/proxy/tools/toolCallCache.ts(8,26): error TS2307: Cannot find module '../performance/LRUCache.js' or its corresponding type declarations.
 src/main/proxy/tools/toolOrchestrator.ts(9,22): error TS2307: Cannot find module '../utils/pMap.ts' or its corresponding type declarations.
 src/main/proxy/tools/toolOrchestrator.ts(55,65): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.

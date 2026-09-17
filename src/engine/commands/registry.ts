@@ -306,23 +306,30 @@ commandRegistry.register({
 
       async function buildTree(dir: string, prefix: string, depth: number): Promise<string[]> {
         if (depth > 2) return []
-        let entries: fs.Dirent[]
+        let entries: Array<{ name: string; isDirectory: () => boolean }> = []
         try {
-          entries = await fs.promises.readdir(dir, { withFileTypes: true })
+          entries = (await fs.promises.readdir(dir, { withFileTypes: true })) as Array<{ name: string; isDirectory: () => boolean }>
         } catch {
           return []
         }
         const lines: string[] = []
-        entries.forEach((entry, i) => {
+        // 必须用 for 循环而非 forEach：forEach 的回调不是 async 函数，
+        // 在其中 await 会直接编译失败（esbuild 报
+        // "await" can only be used inside an "async" function）——
+        // 原实现即因此导致整个构建中断。
+        for (let i = 0; i < entries.length; i++) {
+          const entry = entries[i]!
           const isLast = i === entries.length - 1
           const connector = isLast ? '└── ' : '├── '
           const name = entry.isDirectory() ? `${entry.name}/` : entry.name
           lines.push(`${prefix}${connector}${name}`)
           if (entry.isDirectory() && depth < 2) {
             const nextPrefix = `${prefix}${isLast ? '    ' : '│   '}`
-            lines.push(...buildTree(path.join(dir, entry.name), nextPrefix, depth + 1))
+            lines.push(
+              ...(await buildTree(path.join(dir, entry.name), nextPrefix, depth + 1)),
+            )
           }
-        })
+        }
         return lines
       }
 
@@ -389,7 +396,8 @@ commandRegistry.register({
   execute: async () => {
     try {
       const pkg = await import('../../../package.json', { assert: { type: 'json' } })
-      return { success: true, output: `KX2Code v${(pkg as Record<string, string>).version}` }
+      const version = (pkg as unknown as { default?: { version?: string } }).default?.version ?? (pkg as unknown as { version?: string }).version
+      return { success: true, output: `KX2Code v${version ?? '1.0.0'}` }
     } catch {
       return { success: true, output: 'KX2Code v1.0.0' }
     }

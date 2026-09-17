@@ -186,8 +186,16 @@ export interface APIEvent {
 
 export interface ProcessedEvent {
   type: string;
-  chunk?: { type: string; text?: string; id?: string; name?: string; inputDelta?: string; index?: number };
-  block?: { type: string; id?: string; name?: string; input?: Record<string, unknown>; text?: string };
+  /**
+   * 本次事件携带的内容块。
+   *
+   * `null` 与「未设置」语义不同：**null 表示"本事件确实没有 chunk"**
+   * （如 currentBlock 为空、或遇到未知 delta 类型时），
+   * 调用方据此可区分"空块"与"字段未提供"。故类型需允许 null。
+   */
+  chunk?: { type: string; text?: string; id?: string; name?: string; inputDelta?: string; index?: number } | null;
+  /** 同 chunk：null 表示"本事件确实没有 block" */
+  block?: { type: string; id?: string; name?: string; input?: Record<string, unknown>; text?: string } | null;
   stopReason?: string;
   usage?: { inputTokens: number; outputTokens: number };
   model?: string;
@@ -266,9 +274,12 @@ export class StreamProcessor {
     }
     const delta = event.delta
     if (delta.type === "text_delta") {
-      const chunk = { type: "text", text: delta.text, index: event.index }
+      // text 可能缺省（部分网关会发空 delta），统一兜底为空串，
+      // 避免下面的 .length / .slice 抛错。
+      const text = delta.text ?? ''
+      const chunk = { type: "text", text, index: event.index }
       this.buffer.push(chunk)
-      console.log(`[STREAM-PROC] text_delta idx=${event.index} len=${delta.text.length} text="${delta.text.slice(0, 50)}"`)
+      console.log(`[STREAM-PROC] text_delta idx=${event.index} len=${text.length} text="${text.slice(0, 50)}"`)
       return { type: "content_block_delta", chunk }
     }
     if (delta.type === "thinking_delta" || delta.type === "reasoning_delta") {
