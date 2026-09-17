@@ -42,7 +42,9 @@ export function ManagementApiSettings() {
 
   const loadConfig = async () => {
     try {
-      const result = await window.electronAPI.invoke('managementApi:getConfig') as ManagementApiConfig
+      // 用专用 API 而非通用逃逸口（electronAPI.invoke）：
+      // 后者可调用任意 IPC channel，绕过白名单，属安全边界问题。
+      const result = await window.electronAPI.managementApi.getConfig()
       if (result) {
         setConfig(result)
       }
@@ -60,7 +62,7 @@ export function ManagementApiSettings() {
   const handleToggle = async (enabled: boolean) => {
     setIsSaving(true)
     try {
-      await window.electronAPI.invoke('managementApi:updateConfig', {
+      await window.electronAPI.managementApi.updateConfig({
         enableManagementApi: enabled,
       })
       setConfig(prev => ({ ...prev, enableManagementApi: enabled }))
@@ -85,7 +87,7 @@ export function ManagementApiSettings() {
   const handleGenerateNew = async () => {
     setIsGenerating(true)
     try {
-      const newSecret = await window.electronAPI.invoke('managementApi:generateSecret') as string
+      const newSecret = await window.electronAPI.managementApi.generateSecret()
       if (newSecret) {
         setConfig(prev => ({ ...prev, managementApiSecret: newSecret }))
       }

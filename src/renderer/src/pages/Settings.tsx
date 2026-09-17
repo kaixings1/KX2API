@@ -11,6 +11,7 @@ import {
   AgentLoopSettings,
   LoadBalancerSettings,
   ToolRuntimeSettings,
+  ImageBudgetSettings,
   MemorySettings,
   SubagentSettings,
   ProxyRuntimeSettings,
@@ -107,6 +108,7 @@ export function Settings() {
         <TabsContent value="agent" className="mt-6 space-y-6">
           <AgentLoopSettings />
           <ToolRuntimeSettings />
+          <ImageBudgetSettings />
           <MemorySettings />
           <SubagentSettings />
           <LoadBalancerSettings />

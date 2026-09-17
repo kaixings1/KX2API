@@ -981,6 +981,10 @@ function parseSurgeFormat(content: string, options: {
   while ((match = pattern.exec(content)) !== null) {
     // const 声明行内的 <tool_call> 绝不可能是真实工具
     if (isInConstDeclaration(content, match.index)) continue
+    // 含 <toolName> 子标签的块已由 parseToolNameSubtagFormat 先处理：此处直接跳过，
+    // 避免本函数把 <toolName> 当作工具名记入 invalidToolNames —— 否则流式场景下
+    // ToolStreamParser 见 invalidToolNames 非空会 reset() 丢弃已提取的合法工具调用。
+    if (/<toolName\b/i.test(match[1])) continue
     options.rawMatches.push(match[0])
     const inner = match[1].trim()
 
@@ -1416,6 +1420,15 @@ function parseToolNameSubtagFormat(content: string, options: {
   allowedNames: Set<string>
   toolCalls: ReturnType<typeof buildToolCall>[]
 }): void {
+  // stripDocExampleNoise 会把裸 `<tool_call>`/`<toolName>`/`<arguments>` 转义成
+  // `&lt;…`（假设是讲解/示例）。对"整块独立成多行、且含 <toolName> 子标签"的真实
+  // 工具调用必须把这些转义还原，否则下面的正则永远匹配不到、工具静默不当正文。
+  content = content
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
   const blockPattern = /<tool_call>([\s\S]*?)<\/tool_call>/gi
   let blockMatch: RegExpExecArray | null
   while ((blockMatch = blockPattern.exec(content)) !== null) {

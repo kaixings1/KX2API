@@ -19,6 +19,16 @@ export interface CompactOptions {
   preserveRecentCount: number;
   preserveSystemMessages: boolean;
   preserveToolResults?: boolean;
+  /**
+   * 本会话此前的要点（由 `SessionMemory.formatForCompact()` 生成）。
+   *
+   * 长对话会被多次压缩，每次摘要都是对"上一次摘要"的二次加工，
+   * 早期关键信息逐轮衰减。把它一并交给摘要器，让它看到的是**累加的要点列表**，
+   * 而不是只能从当前消息里重新推断。
+   *
+   * 为空/未传时行为与改动前完全一致。
+   */
+  priorNotes?: string;
 }
 
 export interface CompactStrategy {
@@ -54,9 +64,11 @@ export class SummaryStrategy implements CompactStrategy {
     const { kept: recent, dropped: old } = splitAtSafeBoundary(nonSys, options.preserveRecentCount);
     if (old.length === 0) return ensureToolResultPairing([...system, ...recent]);
 
-    // 有 LLM client 时生成真实摘要，否则回退到占位摘要
+    // 有 LLM client 时生成真实摘要，否则回退到占位摘要。
+    // priorNotes（本会话此前的要点）只在走 LLM 摘要时有意义 —— 占位摘要
+    // 只是截断拼接，注入要点反而会让它更乱。
     const summary = this._llmClient
-      ? await this.generateSummaryWithLLM(old)
+      ? await this.generateSummaryWithLLM(old, options.priorNotes)
       : await this.generateSummaryFallback(old);
 
     return ensureToolResultPairing([
@@ -72,14 +84,24 @@ export class SummaryStrategy implements CompactStrategy {
    * 通过 LLM 生成摘要（对齐 OpenCode Summarize prompt）。
    * 将旧消息 + 摘要 prompt 发给模型，提取摘要内容。
    */
-  private async generateSummaryWithLLM(messages: InternalMessage[]): Promise<string> {
+  private async generateSummaryWithLLM(
+    messages: InternalMessage[],
+    priorNotes?: string,
+  ): Promise<string> {
     if (!this._llmClient) return this.generateSummaryFallback(messages);
 
     // 用 9 段式结构化提示词（engine/compactPrompt.ts）。
     // 原实现是一句话的英文提示（"Provide a detailed but concise summary..."），
     // 自由格式的摘要会随机漏掉「用户纠正过什么」「踩过哪些坑」这类
     // 最该保留的信息，导致压缩后模型在原地再错一次。
-    const summarizePrompt = buildCompactPrompt(this.customInstructions);
+    const basePrompt = buildCompactPrompt(this.customInstructions);
+    // 会话记忆（此前几轮压缩沉淀的要点）拼在提示词**前面**：
+    // 让摘要器先看到"已确认的事实"，再读本轮消息 —— 它的任务是
+    // 「在既有要点基础上补充/修正」，而不是从零推断。
+    const summarizePrompt =
+      priorNotes && priorNotes.trim()
+        ? `${priorNotes.trim()}\n\n${basePrompt}`
+        : basePrompt;
 
     const contextMsgs: InternalMessage[] = [
       ...messages,

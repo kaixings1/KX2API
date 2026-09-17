@@ -105,14 +105,19 @@ export class ProxyServer {
           if (isStream) {
             const bodyStream = ctx.body as any
             console.log(`[Proxy→CLI${genTag}] ${upTimeStr} ${ctx.status} ${ctx.path} [STREAM 开始]`)
+            // 逐行输出，避免 SSE 块自带的 \n\n 空行刷屏：
+            // chunk.toString() 是 `data: {...}\n\n`，trim 掉首尾空白后再打，
+            // 保证每个流块占一行、不产生空行。
             bodyStream.on('data', (chunk: Buffer) => {
-              process.stdout.write(`[Proxy→CLI${genTag}-STREAM] ${chunk.toString()}`)
+              const text = chunk.toString().trim()
+              if (!text) return
+              console.log(`[Proxy→CLI${genTag}-STREAM] ${text}`)
             })
             bodyStream.on('end', () => {
-              console.log(`\n[Proxy→CLI${genTag}-STREAM] <<END>> ${durationMs}ms total`)
+              console.log(`[Proxy→CLI${genTag}-STREAM] <<END>> ${durationMs}ms total`)
             })
             bodyStream.on('error', (err: Error) => {
-              console.error(`\n[Proxy→CLI${genTag}-STREAM] <<ERROR>> ${err.message}`)
+              console.error(`[Proxy→CLI${genTag}-STREAM] <<ERROR>> ${err.message}`)
             })
           } else {
             const rb = JSON.stringify(ctx.body ?? {})

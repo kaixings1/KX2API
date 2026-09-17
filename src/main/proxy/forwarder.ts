@@ -46,6 +46,7 @@ import { SiliconCloudAdapter } from './adapters/siliconcloud'
 import { SiliconCloudStreamHandler } from './adapters/siliconcloud-stream'
 import { ToolCallingEngine } from './toolCalling/ToolCallingEngine'
 import type { ToolCallingTransformResult } from './toolCalling/types'
+import type { ToolCallingConfig } from '../shared/toolCalling'
 import { ToolCallExtractor, toOpenAIToolCall } from './toolCalling/toolCallExtractor'
 import { sessionManager } from './sessionManager'
 import { cookieSessionManager } from '../oauth/cookieSessionManager'
@@ -210,6 +211,52 @@ export class RequestForwarder {
     },
   ]
 
+  /** 生效工具白名单缓存（避免每请求都重新解析 toolManager） */
+  private _toolCache: { at: number; names: string[] } | null = null
+  private readonly TOOL_ALLOWLIST_TTL_MS = 15_000
+
+  /**
+   * 预热「当前生效工具名白名单」缓存。
+   *
+   * 数据源：工具管理（toolManager）+ 配置 `config.enabledToolGroups` 解析出的
+   * 生效工具（`toolRuntime.resolveActiveTools`）。这是用户在「工具管理」里
+   * 选中/启用工具的权威来源。仅当用户明确选择了非全局组、且解析出的工具数确实
+   * 少于全部工具时才缓存名单；否则返回空数组 = 不收窄（维持透传 request.tools，
+   * 避免误杀第三方客户端自定义工具）。用动态 import 保持与 client.ts 一致的分块加载。
+   */
+  private async warmToolAllowListCache(): Promise<string[]> {
+    const now = Date.now()
+    if (this._toolCache && now - this._toolCache.at < this.TOOL_ALLOWLIST_TTL_MS) {
+      return this._toolCache.names
+    }
+    let names: string[] = []
+    try {
+      const { resolveActiveTools } = await import('../tools/toolRuntime')
+      const { toolManager } = await import('../tools/toolManager')
+      const all = toolManager.getAllTools()
+      const groups = toolManager.getAllGroups()
+      const cfg: any = storeManager.getConfig()
+      const groupIds: string[] = cfg?.enabledToolGroups || []
+      if (groupIds.length > 0) {
+        const resolved = resolveActiveTools({ groupIds, tools: all, groups })
+        if (resolved.tools.length > 0 && resolved.tools.length < all.length) {
+          names = resolved.names
+        }
+      }
+    } catch (e) {
+      console.warn('[Forwarder] 工具白名单解析失败，不收窄:', (e as Error).message)
+    }
+    this._toolCache = { at: now, names }
+    return names
+  }
+
+  /** 同步读取已预热的工具白名单缓存；空 = 不收窄 */
+  private getEffectiveToolAllowList(): string[] {
+    if (!this._toolCache) return []
+    if (Date.now() - this._toolCache.at > this.TOOL_ALLOWLIST_TTL_MS) return []
+    return this._toolCache.names
+  }
+
   /**
    * Transform request for prompt-based tool calling
    * For models that don't support native function calling
@@ -219,7 +266,22 @@ export class RequestForwarder {
     request: ChatCompletionRequest,
     provider?: Provider
   ): ToolCallingTransformResult {
-    const config = storeManager.getConfig().toolCallingConfig
+    const cfg = storeManager.getConfig().toolCallingConfig
+    let config: ToolCallingConfig = cfg as ToolCallingConfig
+
+    // 用户显式配置了白名单 → 以其为准；否则用「工具管理」当前生效工具名自动填充，
+    // 使 KX2 里勾选/启用的工具真正约束到代理转发的工具注入。
+    const explicit = config?.advanced?.allowedToolNames
+    if (!(Array.isArray(explicit) && explicit.length > 0)) {
+      const effectiveNames = this.getEffectiveToolAllowList()
+      if (effectiveNames.length > 0) {
+        config = {
+          ...config,
+          advanced: { ...config.advanced, allowedToolNames: effectiveNames },
+        }
+      }
+    }
+
     const engine = new ToolCallingEngine(config)
 
     return engine.transformRequest({
@@ -648,6 +710,9 @@ export class RequestForwarder {
     console.log('[FWD] STEP-4 forwardChatCompletion ENTRY provider=', provider.id, 'model=', actualModel, 'stream=', request.stream, 'msgCount=', request.messages?.length, 'accountId=', account.id)
     const config = storeManager.getConfig()
     const maxRetries = config.retryCount
+
+    // 在真正转发前，先解析「工具管理」里用户选中的生效工具名（供 ToolCallingEngine 收窄工具注入）
+    await this.warmToolAllowListCache()
 
     const sessionContext = sessionManager.getOrCreateSession({
       providerId: provider.id,

@@ -40,6 +40,11 @@ export class StepFunSessionManager extends EventEmitter {
   private isReady: boolean = false
   private refreshTimer: NodeJS.Timeout | null = null
   private checkTimer: NodeJS.Timeout | null = null
+  /** Cookie changed 日志防抖缓存（同 cookie 名 N ms 内只记首次，避免 affinity 轮换刷屏） */
+  private lastCookieLogAt: Record<string, number> = {}
+  /** Credentials updated 日志防抖（affinity 高频轮换时避免日志刷屏，状态更新不受影响） */
+  private lastCredsLogAt: number = 0
+  private static readonly COOKIE_LOG_DEBOUNCE_MS = 1000
 
   constructor() {
     super()
@@ -66,7 +71,13 @@ export class StepFunSessionManager extends EventEmitter {
       // keeps sending the cookie that was current when the token last changed.
       this.session.cookies.on('changed', async (_event, cookie: Cookie) => {
         if (WATCHED_COOKIES.has(cookie.name)) {
-          console.log(`[StepFunSession] Cookie changed: ${cookie.name} path=${cookie.path} (length: ${cookie.value?.length || 0})`)
+          // 防抖：同 cookie 名短时间内的重复变更只记首次，避免
+          // INGRESSCOOKIE/WS-AFFINITY 等 affinity cookie 在多路径上轮换刷屏。
+          const now = Date.now()
+          if (now - (this.lastCookieLogAt[cookie.name] ?? 0) >= StepFunSessionManager.COOKIE_LOG_DEBOUNCE_MS) {
+            this.lastCookieLogAt[cookie.name] = now
+            console.log(`[StepFunSession] Cookie changed: ${cookie.name} path=${cookie.path} (length: ${cookie.value?.length || 0})`)
+          }
           await this.extractCredentials()
         }
       })
@@ -178,7 +189,13 @@ export class StepFunSessionManager extends EventEmitter {
         this.currentWebId = webId
         this.currentCookies = scalar
         this.currentCookieHeader = cookieHeader
-        console.log(`[StepFunSession] Credentials updated: token=${token.length > 0} webId=${webId.length > 0} cookies=${ordered.length} affinityChanged=${affinityChanged} names=[${ordered.map(c => c.name).join(',')}]`)
+        // 状态照常更新（token-updated 必须每次都发），但 console 日志做防抖，
+        // 避免 affinity cookie 高频轮换时同一条「Credentials updated」疯狂刷屏。
+        const now = Date.now()
+        if (now - (this.lastCredsLogAt ?? 0) >= StepFunSessionManager.COOKIE_LOG_DEBOUNCE_MS) {
+          this.lastCredsLogAt = now
+          console.log(`[StepFunSession] Credentials updated: token=${token.length > 0} webId=${webId.length > 0} cookies=${ordered.length} affinityChanged=${affinityChanged} names=[${ordered.map(c => c.name).join(',')}]`)
+        }
         this.emit('token-updated', token, webId, { Cookie: cookieHeader })
       }
     } catch (error) {

@@ -707,9 +707,9 @@ blockingLimit          = effectiveContextWindow - 3_000   ← 高于自动压缩
 | 子代理上下文隔离 | ✅ **已实现且已接线** | `SubAgentManager.setEngineFactory` + `engine-bridge.wireSubAgentFactory()`；每个子代理独立引擎与 apiClient |
 | 对话/会话恢复 | ✅ **已实现且已接入** | `engine/sessionRecovery.ts`（快照 load/save/clear）；`engine/index.ts` `getHistory` 同步水合 / `query`+`sendMessage` 每轮落盘 / `clearHistory` 删快照（见下方小节） |
 | 会话级记忆 SessionMemory | ✅ **已实现且已接线** | `engine/memory/sessionMemory.ts`；`messageLoop` 压缩前注入要点、压缩后抽取新要点 |
-| attachments 机制 | ❌ 未实现 | 全仓库无 attachment 相关文件（另一会话曾研究但未落地） |
+| attachments 机制 | 🔶 **核心子集已实现** | 图片上下文预算（`engine/imageBudget.ts`，20 测试）；60+ 类型中的 IDE 选择/诊断/预算提示等本项目暂无场景，继续不做 |
 
-**剩余建议顺序**：attachments 机制（多模态能力，唯一未做的大件）
+**结论**：TASK.md 列出的可吸收项已全部落地。剩余的都是「本项目无对应场景」的类型。
 
 ## 第六轮后：memory_* 工具与记忆系统目录闭环（2026-09-18）
 
@@ -852,7 +852,29 @@ blockingLimit          = effectiveContextWindow - 3_000   ← 高于自动压缩
   apiClient，query 不会真的跑模型）；已在 `engine-bridge.wireSubAgentFactory()` 注入
 - [x] **对话恢复 / 会话恢复** — 已移植 `src/engine/sessionRecovery.ts`（轻量快照方案，见「会话恢复」小节）
 - [x] **会话级记忆 SessionMemory** — 已实现 `src/engine/memory/sessionMemory.ts`（见下方小节）
+- [x] **attachments 核心子集：图片上下文预算** — 已实现 `src/engine/imageBudget.ts`
 - [ ] attachments 的其余类型（IDE 选择、诊断、预算提示等 —— 本项目暂无对应场景）
+
+### 图片上下文预算（2026-09-18）
+
+`MessageLoopDeps.imageBudget`（`historyBase64TokenThreshold` / `maxImageTokensPerMessage`）
+此前**只在类型里声明、零使用** —— 图片占用完全不受控。
+
+新增 `src/engine/imageBudget.ts`，接入 `RequestBuilder.build()`（配对修复之后、
+normalize 之前，与 `enforceToolResultBudget` 同一位置）：
+
+- **为什么需要**：base64 图片**永久驻留对话历史**，且不像文本那样能被摘要压缩
+  （摘要是把消息换成文字描述；图片一旦进历史只能保留或整条丢弃）。
+  一张 1MB 截图编码后约 1.37MB 文本 ≈ 1000-1600 token，几张图就能堆出几十万 token
+- **最近消息受保护**（关键行为）：`keepRecentMessages` 内的图片永不替换 ——
+  用户刚发的图正在被讨论，替换掉等于答非所问
+- **从最旧开始替换**：历史超阈值时先丢最早的；单条超限时保留最后的
+- **幂等**：已替换的占位块不会被重复计数或再次替换
+- **未配置时零行为变化**：两个预算都为 0 时直接原样返回
+- 纯函数不改入参；不认识的内容块原样保留（宁可多占 token，不要误删内容）
+- 配置 `imageBudget`（`shared/types.ts`，默认 20000/8000/2）+ 设置界面
+  「图片上下文预算」卡片 + 热更新（`updateConfig` → `setImageBudget`）
+- 测试：`src/__tests__/engine/imageBudget.test.ts`（20 例）
 
 ### 子代理隔离接线（2026-09-18）
 

@@ -4,6 +4,7 @@ import type {
   Provider,
   Account,
   ProxyStatus,
+  ProxyStatistics,
   ProviderCheckResult,
   OAuthResult,
   AuthType,
@@ -131,6 +132,9 @@ const proxyAPI = {
 
   getStatus: (): Promise<ProxyStatus> =>
     ipcRenderer.invoke(IpcChannels.PROXY_GET_STATUS),
+
+  getStatistics: (): Promise<ProxyStatistics | null> =>
+    ipcRenderer.invoke(IpcChannels.PROXY_GET_STATISTICS),
 
   onStatusChanged: (callback: (status: ProxyStatus) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, status: ProxyStatus) => callback(status)
@@ -794,13 +798,13 @@ const toolCallingAPI = {
 
 const trayAPI = {
   openDashboard: (): void =>
-    ipcRenderer.send('tray:open-dashboard'),
+    ipcRenderer.send(IpcChannels.TRAY_OPEN_DASHBOARD),
 
   setHeight: (height: number): void =>
-    ipcRenderer.send('tray:set-height', height),
+    ipcRenderer.send(IpcChannels.TRAY_SET_HEIGHT, height),
 
   quitApp: (): void =>
-    ipcRenderer.send('tray:quit-app'),
+    ipcRenderer.send(IpcChannels.TRAY_QUIT_APP),
 }
 
 const electronAPI = {
@@ -1178,7 +1182,7 @@ const electronAPI = {
   // Chat API — AI 对话功能
   chat: {
     sendMessage: (text: string): Promise<{ success: boolean; requestId?: string; error?: string }> =>
-      ipcRenderer.invoke('chat:sendMessage', text),
+      ipcRenderer.invoke(IpcChannels.CHAT_SEND_MESSAGE, text),
 
     onStreamChunk: (callback: (data: { requestId: string; chunk: string }) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, data: { requestId: string; chunk: string }) => callback(data)
@@ -1263,32 +1267,32 @@ const electronAPI = {
     },
 
     getHistory: (): Promise<{ messages: Array<{ role: string; content: string }> }> =>
-      ipcRenderer.invoke('chat:getHistory'),
+      ipcRenderer.invoke(IpcChannels.CHAT_GET_HISTORY),
 
     clearHistory: (): Promise<boolean> =>
-      ipcRenderer.invoke('chat:clearHistory'),
+      ipcRenderer.invoke(IpcChannels.CHAT_CLEAR_HISTORY),
 
     getConfig: (): Promise<Record<string, unknown>> =>
-      ipcRenderer.invoke('chat:getConfig'),
+      ipcRenderer.invoke(IpcChannels.CHAT_GET_CONFIG),
 
     setConfig: (updates: Record<string, unknown>): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('chat:setConfig', updates),
+      ipcRenderer.invoke(IpcChannels.CHAT_SET_CONFIG, updates),
 
     executeCommand: (name: string, args: string[]): Promise<{ success: boolean; output?: string; error?: string }> =>
-      ipcRenderer.invoke('chat:executeCommand', name, args),
+      ipcRenderer.invoke(IpcChannels.CHAT_EXECUTE_COMMAND, name, args),
   },
 
   // Profiles API — 配置组管理
   profiles: {
     getAll: (): Promise<{ success: boolean; profiles?: Profile[]; activeProfile?: string | null }> =>
-      ipcRenderer.invoke('profiles:getAll'),
+      ipcRenderer.invoke(IpcChannels.PROFILES_GET_ALL),
 
     getActive: (): Promise<{ success: boolean; profile?: Profile | null }> =>
-      ipcRenderer.invoke('profiles:getActive'),
+      ipcRenderer.invoke(IpcChannels.PROFILES_GET_ACTIVE),
 
     setActive: (name: string): Promise<{ success: boolean; profile?: Profile; error?: string }> => {
       console.log('[Preload] profiles.setActive invoked:', name)
-      return ipcRenderer.invoke('profiles:setActive', name).then(r => {
+      return ipcRenderer.invoke(IpcChannels.PROFILES_SET_ACTIVE, name).then(r => {
         console.log('[Preload] profiles.setActive result:', r)
         return r
       }).catch(e => {
@@ -1298,203 +1302,203 @@ const electronAPI = {
     },
 
     upsert: (profile: Profile): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('profiles:upsert', profile),
+      ipcRenderer.invoke(IpcChannels.PROFILES_UPSERT, profile),
 
     remove: (name: string): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('profiles:remove', name),
+      ipcRenderer.invoke(IpcChannels.PROFILES_REMOVE, name),
   },
 
   // .doge config file management
   dogeConfig: {
     listFiles: (): Promise<{ success: boolean; files?: Array<{ name: string; path: string; size: number; modified: number }> }> =>
-      ipcRenderer.invoke('doge:listConfigFiles'),
+      ipcRenderer.invoke(IpcChannels.DOGE_LIST_CONFIG_FILES),
 
     readFile: (name: string): Promise<{ success: boolean; content?: string; error?: string }> =>
-      ipcRenderer.invoke('doge:readConfigFile', name),
+      ipcRenderer.invoke(IpcChannels.DOGE_READ_CONFIG_FILE, name),
 
     deleteFile: (name: string): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('doge:deleteConfigFile', name),
+      ipcRenderer.invoke(IpcChannels.DOGE_DELETE_CONFIG_FILE, name),
   },
 
   // Config Groups — API 配置组管理
   configGroups: {
     list: (): Promise<{ success: boolean; groups?: ConfigGroup[]; activeGroup?: string | null }> =>
-      ipcRenderer.invoke('configGroups:list'),
+      ipcRenderer.invoke(IpcChannels.CONFIG_GROUPS_LIST),
 
     get: (id: string): Promise<{ success: boolean; group?: ConfigGroup; data?: ConfigGroupData; error?: string }> =>
-      ipcRenderer.invoke('configGroups:get', id),
+      ipcRenderer.invoke(IpcChannels.CONFIG_GROUPS_GET, id),
 
     getById: (id: string): Promise<{ success: boolean; group?: ConfigGroup; data?: ConfigGroupData; error?: string }> =>
-      ipcRenderer.invoke('configGroups:getById', id),
+      ipcRenderer.invoke(IpcChannels.CONFIG_GROUPS_GET_BY_ID, id),
 
     create: (id: string, data?: Partial<ConfigGroupData>): Promise<{ success: boolean; group?: ConfigGroup; error?: string }> =>
-      ipcRenderer.invoke('configGroups:create', id, data),
+      ipcRenderer.invoke(IpcChannels.CONFIG_GROUPS_CREATE, id, data),
 
     update: (id: string, data: ConfigGroupData): Promise<{ success: boolean; group?: ConfigGroup; error?: string }> =>
-      ipcRenderer.invoke('configGroups:update', id, data),
+      ipcRenderer.invoke(IpcChannels.CONFIG_GROUPS_UPDATE, id, data),
 
     delete: (id: string): Promise<{ success: boolean; id?: string; deleted?: boolean; error?: string }> =>
-      ipcRenderer.invoke('configGroups:delete', id),
+      ipcRenderer.invoke(IpcChannels.CONFIG_GROUPS_DELETE, id),
 
     setActive: (id: string): Promise<{ success: boolean; group?: ConfigGroup; error?: string }> =>
-      ipcRenderer.invoke('configGroups:setActive', id),
+      ipcRenderer.invoke(IpcChannels.CONFIG_GROUPS_SET_ACTIVE, id),
 
     switch: (id: string): Promise<{ success: boolean; group?: ConfigGroup; preset?: string; error?: string }> =>
-      ipcRenderer.invoke('configGroups:switch', id),
+      ipcRenderer.invoke(IpcChannels.CONFIG_GROUPS_SWITCH, id),
   },
 
   // Team Task — 多角色协作任务
   team: {
     execute: (description: string, customRoles?: Array<{ id: string; name: string; systemPrompt: string }>): Promise<{ success: boolean; report?: unknown; error?: string }> =>
-      ipcRenderer.invoke('team:execute', description, customRoles),
+      ipcRenderer.invoke(IpcChannels.TEAM_EXECUTE, description, customRoles),
 
     getResult: (planId: string): Promise<{ success: boolean; data?: unknown; error?: string }> =>
-      ipcRenderer.invoke('team:getResult', planId),
+      ipcRenderer.invoke(IpcChannels.TEAM_GET_RESULT, planId),
 
     onPhaseChange: (callback: (event: { phase: string; detail: string }) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, event: { phase: string; detail: string }) => callback(event)
-      ipcRenderer.on('team:streamPhase', handler)
-      return () => ipcRenderer.removeListener('team:streamPhase', handler)
+      ipcRenderer.on(IpcChannels.TEAM_STREAM_PHASE, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.TEAM_STREAM_PHASE, handler)
     },
 
     onDiscussion: (callback: (event: { id: string; phase: string; roleId: string; roleName: string; content: string }) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, event: { id: string; phase: string; roleId: string; roleName: string; content: string }) => callback(event)
-      ipcRenderer.on('team:streamDiscussion', handler)
-      return () => ipcRenderer.removeListener('team:streamDiscussion', handler)
+      ipcRenderer.on(IpcChannels.TEAM_STREAM_DISCUSSION, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.TEAM_STREAM_DISCUSSION, handler)
     },
 
     onTaskEvent: (callback: (event: { type: 'start' | 'complete'; taskId: string; description: string; success?: boolean; durationMs?: number; output?: string; error?: string }) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, event: { type: 'start' | 'complete'; taskId: string; description: string; success?: boolean; durationMs?: number; output?: string; error?: string }) => callback(event)
-      ipcRenderer.on('team:streamTask', handler)
-      return () => ipcRenderer.removeListener('team:streamTask', handler)
+      ipcRenderer.on(IpcChannels.TEAM_STREAM_TASK, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.TEAM_STREAM_TASK, handler)
     },
 
     onDone: (callback: (event: { success: boolean; totalDurationMs: number; discussionRounds: number; taskResults: unknown[]; planId: string }) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, event: { success: boolean; totalDurationMs: number; discussionRounds: number; taskResults: unknown[]; planId: string }) => callback(event)
-      ipcRenderer.on('team:streamDone', handler)
-      return () => ipcRenderer.removeListener('team:streamDone', handler)
+      ipcRenderer.on(IpcChannels.TEAM_STREAM_DONE, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.TEAM_STREAM_DONE, handler)
     },
 
     onError: (callback: (event: { error: string }) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, event: { error: string }) => callback(event)
-      ipcRenderer.on('team:streamError', handler)
-      return () => ipcRenderer.removeListener('team:streamError', handler)
+      ipcRenderer.on(IpcChannels.TEAM_STREAM_ERROR, handler)
+      return () => ipcRenderer.removeListener(IpcChannels.TEAM_STREAM_ERROR, handler)
     },
   },
 
   // Tools — 工具管理
   tools: {
     getAll: (): Promise<{ success: boolean; data?: { tools: any[]; groups: any[]; hintRules: any[] }; error?: string }> =>
-      ipcRenderer.invoke('tools:getAll'),
+      ipcRenderer.invoke(IpcChannels.TOOLS_GET_ALL),
 
     getGroups: (): Promise<{ success: boolean; data?: any[]; error?: string }> =>
-      ipcRenderer.invoke('tools:getGroups'),
+      ipcRenderer.invoke(IpcChannels.TOOLS_GET_GROUPS),
 
     getHintRules: (): Promise<{ success: boolean; data?: any[]; error?: string }> =>
-      ipcRenderer.invoke('tools:getHintRules'),
+      ipcRenderer.invoke(IpcChannels.TOOLS_GET_HINT_RULES),
 
     add: (tool: any): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:add', tool),
+      ipcRenderer.invoke(IpcChannels.TOOLS_ADD, tool),
 
     update: (id: string, updates: any): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:update', id, updates),
+      ipcRenderer.invoke(IpcChannels.TOOLS_UPDATE, id, updates),
 
     remove: (id: string): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('tools:remove', id),
+      ipcRenderer.invoke(IpcChannels.TOOLS_REMOVE, id),
 
     toggle: (id: string): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:toggle', id),
+      ipcRenderer.invoke(IpcChannels.TOOLS_TOGGLE, id),
 
     addGroup: (group: any): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:addGroup', group),
+      ipcRenderer.invoke(IpcChannels.TOOLS_ADD_GROUP, group),
 
     updateGroup: (id: string, updates: any): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:updateGroup', id, updates),
+      ipcRenderer.invoke(IpcChannels.TOOLS_UPDATE_GROUP, id, updates),
 
     removeGroup: (id: string): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('tools:removeGroup', id),
+      ipcRenderer.invoke(IpcChannels.TOOLS_REMOVE_GROUP, id),
 
     addToGroup: (toolId: string, groupId: string): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('tools:addToGroup', toolId, groupId),
+      ipcRenderer.invoke(IpcChannels.TOOLS_ADD_TO_GROUP, toolId, groupId),
 
     removeFromGroup: (toolId: string, groupId: string): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('tools:removeFromGroup', toolId, groupId),
+      ipcRenderer.invoke(IpcChannels.TOOLS_REMOVE_FROM_GROUP, toolId, groupId),
 
     addHintRule: (rule: any): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:addHintRule', rule),
+      ipcRenderer.invoke(IpcChannels.TOOLS_ADD_HINT_RULE, rule),
 
     updateHintRule: (id: string, updates: any): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:updateHintRule', id, updates),
+      ipcRenderer.invoke(IpcChannels.TOOLS_UPDATE_HINT_RULE, id, updates),
 
     removeHintRule: (id: string): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('tools:removeHintRule', id),
+      ipcRenderer.invoke(IpcChannels.TOOLS_REMOVE_HINT_RULE, id),
 
     matchHints: (input: string): Promise<{ success: boolean; data?: { groups: any[]; tools: any[] }; error?: string }> =>
-      ipcRenderer.invoke('tools:matchHints', input),
+      ipcRenderer.invoke(IpcChannels.TOOLS_MATCH_HINTS, input),
 
     reset: (): Promise<{ success: boolean }> =>
-      ipcRenderer.invoke('tools:reset'),
+      ipcRenderer.invoke(IpcChannels.TOOLS_RESET),
 
     getById: (id: string): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:getById', id),
+      ipcRenderer.invoke(IpcChannels.TOOLS_GET_BY_ID, id),
 
     /** 把内置工具/分组/规则恢复成内置默认（清除用户对其的覆盖） */
     resetBuiltin: (
       kind: 'tool' | 'group' | 'hintRule',
       id: string
     ): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('tools:resetBuiltin', kind, id),
+      ipcRenderer.invoke(IpcChannels.TOOLS_RESET_BUILTIN, kind, id),
 
     /** 确保实体已有可编辑文件（内置项首次会物化一份），返回 JSON 文件路径 */
     ensureFile: (id: string): Promise<{ success: boolean; data?: { path: string }; error?: string }> =>
-      ipcRenderer.invoke('tools:ensureFile', id),
+      ipcRenderer.invoke(IpcChannels.TOOLS_ENSURE_FILE, id),
 
     /** 在系统文件管理器中定位并选中该工具的 JSON 文件 */
     revealFile: (id: string): Promise<{ success: boolean; data?: { path: string }; error?: string }> =>
-      ipcRenderer.invoke('tools:revealFile', id),
+      ipcRenderer.invoke(IpcChannels.TOOLS_REVEAL_FILE, id),
 
     // ---- 角色与元工具（dev.txt §4/§6）----
 
     /** 全部角色配置 */
     getRoles: (): Promise<{ success: boolean; data?: any[]; error?: string }> =>
-      ipcRenderer.invoke('tools:getRoles'),
+      ipcRenderer.invoke(IpcChannels.TOOLS_GET_ROLES),
 
     /** 更新角色配置（默认组 / 允许组 / 禁用标签 / 禁用风险 / 活跃上限） */
     updateRole: (id: string, updates: any): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:updateRole', id, updates),
+      ipcRenderer.invoke(IpcChannels.TOOLS_UPDATE_ROLE, id, updates),
 
     /** 搜索工具，返回轻量卡片（不含完整 schema） */
     search: (
       query: string,
       opts?: { group?: string; tags?: string[]; limit?: number }
     ): Promise<{ success: boolean; data?: any[]; error?: string }> =>
-      ipcRenderer.invoke('tools:search', query, opts),
+      ipcRenderer.invoke(IpcChannels.TOOLS_SEARCH, query, opts),
 
     /** 加载工具进当前会话活跃集 */
     load: (ids: string[], sessionId?: string): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:load', ids, sessionId),
+      ipcRenderer.invoke(IpcChannels.TOOLS_LOAD, ids, sessionId),
 
     /** 从活跃集卸载工具 */
     unload: (ids: string[], sessionId?: string): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:unload', ids, sessionId),
+      ipcRenderer.invoke(IpcChannels.TOOLS_UNLOAD, ids, sessionId),
 
     /** 当前活跃工具 */
     active: (sessionId?: string): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:active', sessionId),
+      ipcRenderer.invoke(IpcChannels.TOOLS_ACTIVE, sessionId),
 
     // ---- 度量与上下文状态（dev.txt §13）----
 
     /** 运行时度量汇总：成功率 / 误选率 / token / 分层占比 */
     metrics: (since?: number): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:metrics', since),
+      ipcRenderer.invoke(IpcChannels.TOOLS_METRICS, since),
 
     /** 清空度量 */
     resetMetrics: (): Promise<{ success: boolean; error?: string }> =>
-      ipcRenderer.invoke('tools:metricsReset'),
+      ipcRenderer.invoke(IpcChannels.TOOLS_METRICS_RESET),
 
     /** 当前上下文构建状态（是否分层、全量基线 token、预算） */
     contextStatus: (): Promise<{ success: boolean; data?: any; error?: string }> =>
-      ipcRenderer.invoke('tools:contextStatus'),
+      ipcRenderer.invoke(IpcChannels.TOOLS_CONTEXT_STATUS),
   },
 
   /**
@@ -1527,19 +1531,73 @@ const electronAPI = {
       ipcRenderer.invoke(IpcChannels.PERMISSIONS_PARSE, rule),
   },
 
+  // ─────────────────── 通用通道（白名单受限） ───────────────────
+  //
+  // 这三个方法原本可调用**任意** IPC channel，完全绕过白名单 ——
+  // 渲染层一旦被注入脚本（XSS、恶意 markdown、被污染的模型输出经 innerHTML 渲染），
+  // 就能触达主进程全部 269 个 channel，包括文件读写、命令执行等高权限接口。
+  //
+  // 现改为白名单校验：只放行下面显式列出的前缀/精确名。
+  // 新增能力时**优先**加专用命名空间 API（如 managementApi.*），
+  // 只有在确实需要动态通道时才考虑扩充此白名单。
   on: (channel: string, callback: (...args: unknown[]) => void) => {
+    assertAllowedChannel(channel, 'on')
     const subscription = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => callback(...args)
     ipcRenderer.on(channel, subscription)
     return () => ipcRenderer.removeListener(channel, subscription)
   },
 
   send: (channel: string, ...args: unknown[]) => {
+    assertAllowedChannel(channel, 'send')
     ipcRenderer.send(channel, ...args)
   },
 
   invoke: (channel: string, ...args: unknown[]) => {
+    assertAllowedChannel(channel, 'invoke')
     return ipcRenderer.invoke(channel, ...args)
   },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)
+
+/**
+ * 通用通道白名单。
+ *
+ * 设计原则：**默认拒绝**。凡是渲染层需要的 IPC，优先加专用命名空间 API；
+ * 只有在通道名本身是动态的（如按 id 订阅事件流）时才登记到此处。
+ *
+ * `GENERIC_ALLOWED_PREFIXES` 按前缀放行（如 `chat:stream:` 这类带动态后缀的）；
+ * `GENERIC_ALLOWED_EXACT` 放行精确通道名。
+ */
+const GENERIC_ALLOWED_EXACT = new Set<string>([
+  // 目前无例外项：渲染层需要的通道**全部**已有专用 API
+  // （含事件订阅 onStreamChunk / onStreamDone / onStreamError 等 8 个）。
+  // 保留结构是为了后续扩充时有明确落点，而不是回到「任意通道」。
+])
+
+const GENERIC_ALLOWED_PREFIXES: readonly string[] = [
+  // 当前为空。曾考虑放行 `chat:stream:*`，但该前缀与实际通道名不符
+  // （真实名是 `chat:streamChunk` 这种驼峰式），且这些通道已有专用订阅方法，
+  // 不需要走通用入口。留空即「通用入口默认全拒」。
+]
+
+/**
+ * 校验通道是否允许通过通用入口调用。
+ *
+ * 拒绝时**抛错**而不是静默忽略：静默会让调用方以为订阅成功、实际收不到事件，
+ * 排查成本远高于直接失败。
+ */
+function assertAllowedChannel(channel: string, via: 'on' | 'send' | 'invoke'): void {
+  if (typeof channel !== 'string' || !channel) {
+    throw new Error(`[preload] 非法 channel：${String(channel)}`)
+  }
+  if (GENERIC_ALLOWED_EXACT.has(channel)) return
+  if (GENERIC_ALLOWED_PREFIXES.some(p => channel.startsWith(p))) return
+
+  const err = new Error(
+    `[preload] channel "${channel}" 不在通用白名单内（via ${via}）。` +
+      `请改用专用 API（如 electronAPI.xxx.*），或在 preload 的 GENERIC_ALLOWED_* 中登记。`,
+  )
+  console.error(err.message)
+  throw err
+}

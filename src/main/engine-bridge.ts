@@ -23,6 +23,7 @@ import { toolPluginRegistry, type ToolPlugin } from '../engine/plugin/toolPlugin
 import { allLegacyToolPlugins, coreToolPlugins, advancedToolPlugins } from '../engine/plugin/legacyToolPlugins.ts'
 import { ConfigManager } from './store/config'
 import type { AgentLoopConfig } from '../engine/loopConfig'
+import type { ImageBudgetConfig } from '../shared/types'
 import { sendMessageStream, type ApiConfig } from '../engine/api/client.ts'
 
 /** 注册并加载启用的旧版工具插件，返回工具 Map */
@@ -203,6 +204,45 @@ export function applyToolRuntimeConfig(): void {
 }
 
 /**
+ * 注入子代理的隔离引擎工厂。
+ *
+ * `SubAgentManager` 缺省用 `new QueryEngine(...)` 构造子引擎，但那**没有 apiClient**
+ * —— 子引擎的 query 不会真的跑模型（管理器注释已说明「调用方需保证注入后再 execute」）。
+ * 即：不注入的话子代理功能只是"能构造、不能工作"。
+ *
+ * 这里用当前生效的 API 设置，为每个子代理创建**独立**的引擎与 apiClient：
+ * 独立的对话上下文（不读写父会话）、独立的 provider/model/baseUrl。
+ * 子代理的中间过程因此不会污染主对话历史。
+ */
+function wireSubAgentFactory(engine: QueryEngine): void {
+  try {
+    engine.subAgentManager.setEngineFactory((opts) => {
+      // 子代理默认继承父会话的连接参数，但允许 agent 配置覆盖 model
+      const settings = lastApiSettings
+      const subEngine = new QueryEngine({
+        model: opts.model || settings.model,
+        provider: (settings.provider as 'openai' | 'anthropic') || 'openai',
+        systemPrompt: opts.systemPrompt,
+        maxOutputTokens: opts.maxOutputTokens,
+      })
+      // 每个子引擎独占一条 apiClient 流，避免与父会话/其他子代理互相干扰
+      subEngine.setApiClient({
+        sendMessage: createApiClientStream(
+          settings.provider,
+          settings.apiKey,
+          opts.model || settings.model,
+          settings.baseUrl,
+        ),
+      })
+      return subEngine
+    })
+    console.log('[EngineBridge] Sub-agent engine factory wired (isolated engines)')
+  } catch (e) {
+    console.warn('[EngineBridge] wireSubAgentFactory failed:', (e as Error).message)
+  }
+}
+
+/**
  * 从配置读取 Agent 循环控制参数。
  *
  * 这些值原先硬编码在 messageLoop.ts 内，现由用户在设置界面调整。
@@ -313,6 +353,20 @@ export function readAuditConfig(): {
     }
   } catch {
     return { enableAudit: false }
+  }
+}
+
+/**
+ * 从配置读取图片预算。
+ *
+ * 未配置时返回空值，引擎侧不启用图片裁剪 —— 与改造前行为一致。
+ */
+export function readImageBudgetConfig(): ImageBudgetConfig | void {
+  try {
+    const cfg = ConfigManager.get() as { imageBudget?: ImageBudgetConfig } | void
+    return cfg?.imageBudget
+  } catch {
+    return void 0
   }
 }
 
@@ -771,6 +825,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         subagents,
         tools: commandTools,
         agentLoop: readAgentLoopConfig(),
+        imageBudget: readImageBudgetConfig(),
         ...readAuditConfig(),
       }
       engine = new QueryEngine(opts)
@@ -802,6 +857,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         subagents,
         tools: commandTools,
         agentLoop: readAgentLoopConfig(),
+        imageBudget: readImageBudgetConfig(),
         ...readAuditConfig(),
       })
       console.log('[EngineBridge] No active profile, using defaults')
@@ -826,6 +882,9 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
     // 注入参数级权限规则：`Bash(git status)` 这类细粒度 allow/deny/ask。
     // 未配置时注入空集，判定走 passthrough → 完全沿用既有权限逻辑。
     if (engine) await wireToolPermissions(engine)
+
+    // 注入子代理引擎工厂：缺省构造的子引擎没有 apiClient，query 不会真的跑模型
+    if (engine) wireSubAgentFactory(engine)
 
     // 同步命令到 ToolCollection，确保工具系统与注册表一致
     await toolCollection.syncFromRegistry()
@@ -888,6 +947,7 @@ export function updateEngineApiClient(opts: {
     ...(systemPrompt ? { systemPrompt } : {}),
     // 循环参数允许热更新：设置界面改完立即生效，无需重启
     agentLoop: readAgentLoopConfig(),
+    imageBudget: readImageBudgetConfig(),
   })
   eng.setApiClient({
     sendMessage: createApiClientStream(provider, apiKey, model, baseUrl),

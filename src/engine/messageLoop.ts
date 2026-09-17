@@ -21,6 +21,8 @@ import { resolveToolName } from "./toolNameResolver";
 import { resolveLoopConfig, type AgentLoopConfig } from "./loopConfig.ts";
 import { CompactCoordinator } from "./compactCoordinator.ts";
 import { writeSessionTranscriptSegment } from "./transcript.ts";
+import { SessionMemory, extractKeyPoints } from "./memory/sessionMemory.ts";
+import type { ImageBudgetOptions } from "./imageBudget.ts";
 
 export interface QueryResult {
   state: string;
@@ -104,6 +106,15 @@ export class MessageLoop {
   private toolSignatureHistory: string[] = [];
   /** 循环控制参数 —— 由 deps.loopLimits 注入，缺省回落到默认值 */
   private limits: Required<AgentLoopConfig>;
+  /**
+   * 会话级滚动记忆（单次对话内、只喂给压缩）。
+   *
+   * 与磁盘上的项目记忆不同层次：它随会话创建、随会话丢弃，不落盘。
+   * 作用是让多次压缩之间保持信息连续性 —— 见 sessionMemory.ts 的说明。
+   */
+  private sessionMemory = new SessionMemory();
+  /** 已执行的压缩轮次，用于标记要点来源 */
+  private compactRound = 0;
   /** 压缩阈值与熔断状态；惰性创建（需要先拿到预算器的窗口配置） */
   private compactCoordinatorInstance: CompactCoordinator | null = null;
 
@@ -137,6 +148,58 @@ export class MessageLoop {
   /** 当前生效的循环控制参数（供 UI 回显与诊断） */
   getLoopLimits(): Required<AgentLoopConfig> {
     return { ...this.limits }
+  }
+
+  /** 当前会话记忆的要点数（诊断用） */
+  getSessionMemorySize(): number {
+    return this.sessionMemory.size
+  }
+
+  /** 更新图片预算（设置界面改完即时生效）；传空值表示不启用裁剪 */
+  setImageBudget(budget?: ImageBudgetOptions | null): void {
+    this.deps.imageBudget = budget ?? void 0
+  }
+
+  /** 清空会话记忆（会话重置 / 用户清空上下文时调用） */
+  resetSessionMemory(): void {
+    this.sessionMemory.clear()
+    this.compactRound = 0
+  }
+
+  /**
+   * 从压缩产物中吸收要点进会话记忆。
+   *
+   * 压缩后的消息里第一条 system 通常是摘要（由 `buildSummaryMessage` 包装）。
+   * 从中抽取「约束/决策/错误」类段落累加 —— 下一步、当前工作那类段落
+   * 下一轮就过时了，存进去只会挤占额度。
+   */
+  private absorbCompactSummary(
+    before: InternalMessage[],
+    after: InternalMessage[],
+  ): void {
+    try {
+      // 没变小说明压缩未生效，不产生新要点
+      if (after.length >= before.length) return
+
+      // 找压缩产出的摘要：压缩后新增/替换的 system 消息，且长度显著
+      const summaryMsg = after.find(
+        m => m.role === 'system' && typeof m.content === 'string' && m.content.length > 200,
+      )
+      if (!summaryMsg || typeof summaryMsg.content !== 'string') return
+
+      this.compactRound++
+      const points = extractKeyPoints(summaryMsg.content)
+      if (points.length > 0) {
+        this.sessionMemory.addAll(points, this.compactRound)
+        engineLog(
+          'SESSION_MEMORY',
+          `第 ${this.compactRound} 轮压缩沉淀 ${points.length} 条要点（累计 ${this.sessionMemory.size} 条）`,
+        )
+      }
+    } catch (e) {
+      // 会话记忆是增强项：失败绝不影响压缩结果
+      console.warn('[MessageLoop] absorbCompactSummary failed:', (e as Error).message)
+    }
   }
 
   /**
@@ -194,6 +257,7 @@ export class MessageLoop {
     this.deps.onEvent({ type: 'iteration_start', iteration: 0 });
     this.resetAutoFixLoop()
     this.resetGitContext()
+    this.resetSessionMemory()
     this.lastToolCalls = []
     this.autoContinueCount = 0
     this.toolSignatureHistory = []
@@ -276,9 +340,16 @@ export class MessageLoop {
           writeSessionTranscriptSegment(this.deps.conversation.messages, {
             sessionId: this.deps.sessionId,
           });
+          // 压缩前把本会话此前的要点交给摘要器：长对话会被多次压缩，
+          // 每次摘要都是对「上一次摘要」的二次加工，早期关键信息逐轮衰减。
+          const beforeCompact = this.deps.conversation.messages;
           this.deps.conversation.messages = await this.deps.autoCompactor!.compact(
             this.deps.conversation.messages,
+            { priorNotes: this.sessionMemory.formatForCompact() },
           );
+          // 压缩后从新摘要里抽取要点，累加进会话记忆（供下一轮压缩用）。
+          // 放在这里而非压缩器内部：会话状态属于 messageLoop，压缩器不该持有它。
+          this.absorbCompactSummary(beforeCompact, this.deps.conversation.messages);
         },
         // 用预算器的真实计量（含 API 校准值），而非简单的消息条数
         () => this.deps.tokenBudget.checkBudget(this.deps.conversation.messages).usedTokens,
@@ -310,6 +381,8 @@ export class MessageLoop {
       provider: this.deps.provider,
       preAnalysis: this.deps.preAnalysis,
       harness: this.deps.harness,
+      // 图片预算此前只在 deps 里声明、从未向下传递 —— 图片占用因此完全不受控。
+      imageBudget: this.deps.imageBudget,
     });
 
     engineLog('REQ', JSON.stringify(request, null, 2).slice(0, 5000));

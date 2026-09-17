@@ -276,7 +276,7 @@ export function registerChatHandlers(): void {
   })
 
   // 新增：消息循环事件订阅（渲染层可通过此通道实时接收事件）
-  ipcMain.handle('chat:subscribeEvents', async (event) => {
+  ipcMain.handle(IpcChannels.CHAT_SUBSCRIBE_EVENTS, async (event) => {
     const sender = event.sender
     const eng = getEngineInstance()
     if (!eng) return { success: false, error: 'Engine not initialized' }
@@ -291,7 +291,7 @@ export function registerChatHandlers(): void {
   })
 
   // 新增：取消事件订阅
-  ipcMain.handle('chat:unsubscribeEvents', async () => {
+  ipcMain.handle(IpcChannels.CHAT_UNSUBSCRIBE_EVENTS, async () => {
     return { success: true }
   })
 
@@ -385,7 +385,7 @@ export function registerChatHandlers(): void {
   })
 
   // 新增：Human-in-the-loop 权限响应
-  ipcMain.handle('chat:grantPermission', async (_, requestId: string) => {
+  ipcMain.handle(IpcChannels.CHAT_GRANT_PERMISSION, async (_, requestId: string) => {
     try {
       getEngineInstance()?.grantPermission(requestId)
       return { success: true }
@@ -394,7 +394,7 @@ export function registerChatHandlers(): void {
     }
   })
 
-  ipcMain.handle('chat:denyPermission', async (_, requestId: string) => {
+  ipcMain.handle(IpcChannels.CHAT_DENY_PERMISSION, async (_, requestId: string) => {
     try {
       getEngineInstance()?.denyPermission(requestId)
       return { success: true }
@@ -404,7 +404,7 @@ export function registerChatHandlers(): void {
   })
 
   // 新增：暂停/恢复
-  ipcMain.handle('chat:pause', async (_, reason?: string) => {
+  ipcMain.handle(IpcChannels.CHAT_PAUSE, async (_, reason?: string) => {
     try {
       getEngineInstance()?.pause(reason)
       return { success: true }
@@ -413,7 +413,7 @@ export function registerChatHandlers(): void {
     }
   })
 
-  ipcMain.handle('chat:resume', async (_, input?: string) => {
+  ipcMain.handle(IpcChannels.CHAT_RESUME, async (_, input?: string) => {
     try {
       getEngineInstance()?.resume(input)
       return { success: true }
@@ -423,7 +423,7 @@ export function registerChatHandlers(): void {
   })
 
   // 新增：获取引擎状态
-  ipcMain.handle('chat:getState', async () => {
+  ipcMain.handle(IpcChannels.CHAT_GET_STATE, async () => {
     try {
       return { state: getEngineInstance()?.getState() || 'idle' }
     } catch {

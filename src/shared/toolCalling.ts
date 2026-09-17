@@ -139,9 +139,23 @@ export function normalizeToolCallingConfig(value: unknown): ToolCallingConfig {
       customPromptTemplate: typeof advanced.customPromptTemplate === 'string'
         ? advanced.customPromptTemplate
         : undefined,
-      allowedToolNames: Array.isArray(advanced.allowedToolNames)
-        ? advanced.allowedToolNames.filter((n): n is string => typeof n === 'string')
-        : [],
+      // 仅在输入**显式提供** allowedToolNames 时才输出该字段。
+      //
+      // 不能无条件补 `[]`：`DEFAULT_TOOL_CALLING_CONFIG` 的形状里没有这个字段，
+      // 而测试同时锁定「常量的形状」与「归一化非法值 === 常量」两条不变量
+      // （tests/tool-calling/tool-config-v2.test.ts 第 12 行与第 59 行）。
+      // 无条件补上会让归一化结果与常量不再相等。
+      //
+      // 不输出也不影响行为：读取方用可选链取该字段（见 ToolCallingEngine 的
+      // allowList），字段缺省与空数组在该处等价 —— 都表示「不收窄」。
+      // 保留这种区分还能让「未配置」与「显式配置为空」在存储层可辨别。
+      ...(Array.isArray(advanced.allowedToolNames)
+        ? {
+            allowedToolNames: advanced.allowedToolNames.filter(
+              (n): n is string => typeof n === 'string',
+            ),
+          }
+        : {}),
     },
   }
 }

@@ -114,6 +114,8 @@ export interface AppConfig {
   loadBalancer?: LoadBalancerConfig
   /** 工具运行参数（落盘策略、执行超时） */
   toolRuntime?: ToolRuntimeConfig
+  /** 图片令牌预算 */
+  imageBudget?: ImageBudgetConfig
   /** 记忆召回限制 */
   memory?: MemoryConfig
   /** 自动记忆提取（回合结束后台提炼） */
@@ -213,6 +215,32 @@ export interface AutoMemoryConfig {
 export const DEFAULT_AUTO_MEMORY_CONFIG: Required<AutoMemoryConfig> = {
   enabled: false,
   maxInputChars: 8000,
+}
+
+/**
+ * 图片预算。
+ *
+ * base64 图片会**永久驻留对话历史**且无法被摘要压缩
+ * （摘要是把消息换成文字描述；图片一旦进历史只能保留或整条丢弃）。
+ * 几张截图就能堆出几十万 token，远超文本消息。
+ *
+ * 此前 `MessageLoopDeps.imageBudget` 只在类型里声明、从未向下传递。
+ */
+export interface ImageBudgetConfig {
+  /** 历史图片（最近 N 轮之外）的合计 token 阈值；0 = 不限制。默认 20000 */
+  historyBase64TokenThreshold?: number
+  /** 单条消息内图片的 token 上限；0 = 不限制。默认 8000 */
+  maxImageTokensPerMessage?: number
+  /** 最近多少条消息内的图片受保护，永不替换。默认 2 */
+  keepRecentMessages?: number
+}
+
+export const DEFAULT_IMAGE_BUDGET_CONFIG: Required<ImageBudgetConfig> = {
+  // 默认值刻意保守：宁可多留图（用户可能在追问），也不要过早丢图导致答非所问。
+  // 想强制省上下文可调小，想要"图片永不删"设为 0。
+  historyBase64TokenThreshold: 20000,
+  maxImageTokensPerMessage: 8000,
+  keepRecentMessages: 2,
 }
 
 /** 子代理相关参数 */
@@ -583,6 +611,7 @@ export interface ConfigUpdateRequest {
   retryCount?: number
   loadBalancer?: LoadBalancerConfig
   toolRuntime?: ToolRuntimeConfig
+  imageBudget?: ImageBudgetConfig
   memory?: MemoryConfig
   autoMemory?: AutoMemoryConfig
   subagent?: SubagentConfig

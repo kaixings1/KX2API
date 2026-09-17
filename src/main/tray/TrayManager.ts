@@ -10,6 +10,7 @@ import {
 import path from 'path'
 import { TrayWindow } from './TrayWindow'
 import { ConfigManager } from '../store/config'
+import { IpcChannels } from '../ipc/channels'
 
 const isWindows = process.platform === 'win32'
 const isLinux = process.platform === 'linux'
@@ -124,11 +125,11 @@ export class TrayManager {
   }
 
   private setupIpcHandlers(): void {
-    ipcMain.on('tray:open-dashboard', () => {
+    ipcMain.on(IpcChannels.TRAY_OPEN_DASHBOARD, () => {
       this.openDashboard()
     })
 
-    ipcMain.on('tray:resize', (_event, height: number) => {
+    ipcMain.on(IpcChannels.TRAY_RESIZE, (_event, height: number) => {
       this.trayWindow?.setHeight(height)
       if (this.trayWindow?.isVisible()) {
         const bounds = this.tray?.getBounds()
@@ -138,11 +139,11 @@ export class TrayManager {
       }
     })
 
-    ipcMain.on('tray:set-height', (_event, height: number) => {
+    ipcMain.on(IpcChannels.TRAY_SET_HEIGHT, (_event, height: number) => {
       this.trayWindow?.setHeight(height)
     })
 
-    ipcMain.on('tray:quit-app', () => {
+    ipcMain.on(IpcChannels.TRAY_QUIT_APP, () => {
       this.destroy()
       ;(app as any).isQuitting = true
       app.quit()

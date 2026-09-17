@@ -5,6 +5,7 @@
  */
 import type { ToolCall } from "./responseHandler.ts";
 import { maybePersistToolResult } from "./toolResultStore.ts";
+import { needsRepair, repairArgsBySchema } from "./tool-harness/jsonSchemaRepair.ts";
 import { formatToolError, formatValidationError, issuesFromSimpleErrors } from "./errors/toolErrorFormat.ts";
 import { evaluatePermission, explainRule, type PermissionRule } from "./permissions/permissionRules.ts";
 
@@ -214,7 +215,26 @@ export class ToolScheduler {
         metadata: { toolNotFound: true, candidates: near },
       };
     }
-    const validation = tool.validate(call.input);
+    // 参数修复：模型给出的键名/类型常与 schema 有系统性偏差
+    // （`filePath` vs `file_path`、布尔写成 "true"、数字写成 "42"、单值当数组）。
+    // 这些**全都能在本地纠正**，不必让模型重试一次 —— 每次重试都是一轮 API 调用。
+    //
+    // 只在「预判需要修复」时才跑完整流程（`needsRepair` 很便宜），
+    // 避免给每次正常的工具调用增加开销。
+    let input = call.input;
+    const schema = (tool as { parameters?: Record<string, unknown> }).parameters;
+    if (schema && typeof schema === 'object' && needsRepair(input, schema)) {
+      const repaired = repairArgsBySchema(input, schema);
+      if (repaired.repairs.length > 0) {
+        console.log(
+          `[TOOL] 参数已修复 ${call.name}: ` +
+            repaired.repairs.map(r => `${r.field}(${r.strategy})`).join(', '),
+        );
+        input = repaired.data;
+      }
+    }
+
+    const validation = tool.validate(input);
     if (!validation.valid) {
       // 把原始校验错误整理成「缺少 / 多余 / 类型不符」三类陈述。
       // 模型看到「缺少必需参数 `path`」就能直接补上，而原始的自由文本
@@ -234,7 +254,7 @@ export class ToolScheduler {
     let hookContext = ''
     if (this.hooks.preToolUse) {
       try {
-        const hr = await this.hooks.preToolUse(call.name, call.input);
+        const hr = await this.hooks.preToolUse(call.name, input);
         if (hr?.deny) {
           return {
             success: false,
@@ -250,7 +270,7 @@ export class ToolScheduler {
     }
 
     try {
-      const output = await this.executor.execute(tool, call.input, {
+      const output = await this.executor.execute(tool, input, {
         // 工具自带 timeout 优先；否则用注入的默认值，最后回落到 10 分钟
         timeout:
           (tool as { timeout?: number }).timeout ??
@@ -264,7 +284,7 @@ export class ToolScheduler {
 
       if (this.hooks.postToolUse) {
         try {
-          await this.hooks.postToolUse(call.name, call.input, true, finalOutput);
+          await this.hooks.postToolUse(call.name, input, true, finalOutput);
         } catch (e) {
           console.warn(`[TOOL] PostToolUse 钩子异常（已忽略）: ${(e as Error).message}`);
         }
@@ -276,7 +296,7 @@ export class ToolScheduler {
       const errMsg = formatToolError(e);
       if (this.hooks.postToolUse) {
         try {
-          await this.hooks.postToolUse(call.name, call.input, false, errMsg);
+          await this.hooks.postToolUse(call.name, input, false, errMsg);
         } catch {
           /* 钩子异常已在上方记录过，此处静默 */
         }

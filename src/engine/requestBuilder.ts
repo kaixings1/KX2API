@@ -5,6 +5,7 @@
  */
 import { MessageNormalizer, type InternalMessage } from "./messageNormalizer.ts";
 import { ensureToolResultPairing } from "./messageIntegrity.ts";
+import { applyImageBudget, type ImageBudgetOptions } from "./imageBudget.ts";
 import {
   createContentReplacementState,
   enforceToolResultBudget,
@@ -48,6 +49,8 @@ export interface RequestParams {
   preAnalysis?: Array<{ type: string; message: string; line?: number }>;
   /** Harness 模型适配配置 */
   harness?: HarnessConfig;
+  /** 图片预算：超限的历史图片会被替换为占位文本 */
+  imageBudget?: ImageBudgetOptions;
 }
 
 /**
@@ -114,10 +117,71 @@ export class RequestBuilder {
     // 压缩、会话恢复、中断都可能留下孤立 tool_result 或缺失结果，
     // 这两种情况下 Anthropic / OpenAI 都会直接 400，整轮对话无法继续。
     const paired = ensureToolResultPairing(params.messages);
+
+    // 配对修复后的**诊断**（只报告、不修改消息）。
+    //
+    // `ensureToolResultPairing` 的策略是「剥离 / 补占位」，它**不检测也不处理
+    // 顺序类问题**：result 出现在 call 之前、result 未紧跟 call、重复 result。
+    // 这些情况经修复后通常能发出请求，但模型看到的历史顺序是乱的，
+    // 表现为"工具结果对不上号"，很难从现象反推原因。
+    //
+    // 刻意不自动修：顺序修复靠**重排消息**，会打乱对话时序，风险高于收益。
+    // 先把问题暴露出来（需 KX2_DEBUG_INTEGRITY=1），需要时再决定是否动手。
+    if (process.env.KX2_DEBUG_INTEGRITY === '1') {
+      void import('./tool-history-guard/validate.ts')
+        .then(({ validateToolHistory }) => {
+          // 必须传自定义 adapter：项目**内部**统一用 `toolUseId`
+          // （见 messageNormalizer.ts:32），而默认 adapter 期望的是**外部格式**
+          // `tool_call_id` / `tool_use_id`。不传会把每条正常的工具结果都误报成
+          // malformed —— 诊断本身必须对准项目方言，否则产生的全是噪声。
+          const internalAdapter = {
+            getToolCalls: (m: { content?: unknown }) => {
+              const out: Array<{ id: string | null; rawId: unknown }> = []
+              if (Array.isArray(m?.content)) {
+                for (const b of m.content as Array<Record<string, unknown>>) {
+                  if (b && b.type === 'tool_use' && typeof b.id === 'string') {
+                    out.push({ id: b.id, rawId: b.id })
+                  }
+                }
+              }
+              return out
+            },
+            getToolResults: (m: { role?: string; toolUseId?: unknown }) => {
+              if (m?.role !== 'tool') return []
+              const id = typeof m.toolUseId === 'string' ? m.toolUseId : null
+              return [{ id, rawId: m.toolUseId }]
+            },
+          }
+          const res = validateToolHistory(paired as never, {
+            adapter: internalAdapter as never,
+          })
+          if (!res.valid && res.errors.length > 0) {
+            console.warn(
+              `[RequestBuilder] 工具历史校验发现 ${res.errors.length} 处问题：` +
+                res.errors.map(e => `${e.code}@${e.index}`).join(', '),
+            )
+          }
+        })
+        .catch(() => {
+          /* 诊断失败不影响请求 */
+        })
+    }
+
     // 单轮聚合预算：N 个并行工具各自未超单结果阈值，但总和仍可能挤爆上下文。
     // 放在配对修复之后 —— 它只替换内容不改结构，不会破坏配对。
     const budgeted = await enforceToolResultBudget(paired, this.replacementState);
-    const messages = this.normalizer.normalize(budgeted, provider);
+    // 图片预算：base64 图片会永久驻留历史且无法被摘要压缩，
+    // 几张截图就能堆出几十万 token。在发请求前把超预算的老图替换为占位文本。
+    // 同样放在配对修复之后 —— 它只替换块内容，不改消息结构。
+    const imageBudgeted = params.imageBudget
+      ? applyImageBudget(budgeted, params.imageBudget)
+      : { messages: budgeted, elidedImages: 0, elidedTokens: 0 };
+    if (imageBudgeted.elidedImages > 0) {
+      console.log(
+        `[RequestBuilder] 图片预算：移除 ${imageBudgeted.elidedImages} 张历史图片（约 ${imageBudgeted.elidedTokens} tokens）`,
+      );
+    }
+    const messages = this.normalizer.normalize(imageBudgeted.messages, provider);
 
     // Phase 2: 注入 preAnalysis 建议到 system prompt
     let systemPrompt = params.system

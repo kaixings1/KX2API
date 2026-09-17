@@ -12,7 +12,7 @@ import { SectionCard } from '@/components/ui/section-card'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Plus, Trash2, Edit3, Save, X, RotateCcw,
-  Wrench, FolderOpen, Lightbulb, Check, Search, RefreshCw, Download, Upload, ArrowRight, Info,
+  Wrench, FolderOpen, Lightbulb, Check, Search, RefreshCw, Download, Upload, ArrowRight, Info, ListChecks,
 } from 'lucide-react'
 import { ImportExportDialog, ManagementToolbar } from '@/components/management'
 import { ToolGroupsPanel } from './ToolGroupsPanel'
@@ -33,6 +33,12 @@ export function ToolManagementPage() {
   const [message, setMessage] = useState('')
   const [search, setSearch] = useState('')
   const [activeIds, setActiveIds] = useState<string[]>([])
+  // 手动工具白名单（toolCallingConfig.advanced.allowedToolNames）：逗号分隔的工具名
+  const [allowNames, setAllowNames] = useState('')
+  const [allowNamesLoaded, setAllowNamesLoaded] = useState(false)
+  const [allowNamesSaving, setAllowNamesSaving] = useState(false)
+  // 最近一次从配置读到的完整 toolCallingConfig，用于保存时合并、不破坏其他字段
+  const [toolCallingCfg, setToolCallingCfg] = useState<any>(null)
 
   // Tool form
   const [editingTool, setEditingTool] = useState<string | null>(null)
@@ -97,9 +103,46 @@ export function ToolManagementPage() {
       try {
         const cfg = await window.electronAPI.config.get()
         setActiveIds((cfg as { enabledToolGroups?: string[] }).enabledToolGroups || [])
+        // 手动白名单：toolCallingConfig.advanced.allowedToolNames
+        const tc = (cfg as { toolCallingConfig?: { advanced?: { allowedToolNames?: string[] } } }).toolCallingConfig
+        setToolCallingCfg(tc ?? null)
+        const names = tc?.advanced?.allowedToolNames
+        if (Array.isArray(names)) setAllowNames(names.join(', '))
+        setAllowNamesLoaded(true)
       } catch { /* ignore */ }
     })()
   }, [loading])
+
+  // 保存手动工具白名单（逗号分隔 → 数组写入 toolCallingConfig.advanced.allowedToolNames）
+  const handleSaveAllowNames = async () => {
+    setAllowNamesSaving(true)
+    try {
+      const list = allowNames
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+      const ok = await window.electronAPI.config.update({
+        toolCallingConfig: {
+          advanced: {
+            allowedToolNames: list,
+            promptPreviewEnabled: false,
+          },
+        },
+      })
+      if (ok) {
+        showMsg(list.length > 0
+          ? `工具白名单已保存：${list.join(', ')}`
+          : '工具白名单已清空（不发该收窄）')
+      } else {
+        showError(t('tools.saveFailed', '保存失败'))
+      }
+    } catch (e) {
+      console.error('[ToolManagement] Save allowlist failed:', e)
+      showError(t('tools.saveFailed', '保存失败'))
+    } finally {
+      setAllowNamesSaving(false)
+    }
+  }
 
   // ==================== Tool CRUD ====================
 
@@ -455,6 +498,40 @@ export function ToolManagementPage() {
       {!loading && (
         <ToolGroupsPanel tools={tools} groups={groups} onChanged={loadAll} />
       )}
+
+      {/* 手动工具白名单：显式收窄注入到模型的工具（优先级高于生效组自动推导） */}
+      <SectionCard title={t('tools.allowlistTitle', '手动工具白名单')} icon={ListChecks}>
+        <p className="text-xs text-[var(--text-dim)] leading-relaxed mb-3">
+          {t('tools.allowlistDesc', '可手动指定只把下列工具名注入给模型（逗号分隔）。留空 = 不手动收窄，仍按上方「当前生效工具组」自动注入。此项写入 toolCallingConfig.advanced.allowedToolNames，保存后下一条消息立即生效。')}
+        </p>
+        <div className="flex gap-2">
+          <Input
+            value={allowNames}
+            onChange={e => setAllowNames(e.target.value)}
+            placeholder="例如：ls, dir, cat, read_file"
+            disabled={!allowNamesLoaded}
+            className="flex-1"
+          />
+          <Button size="sm" onClick={handleSaveAllowNames} disabled={!allowNamesLoaded || allowNamesSaving}>
+            <Save className="w-3.5 h-3.5 mr-1" /> {t('tools.saveAllowlist', '保存白名单')}
+          </Button>
+        </div>
+        {allowNamesLoaded && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-[var(--text-muted)]">
+            <span>
+              {allowNames
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean).length > 0
+                ? `将收窄到 ${allowNames.split(',').map(s => s.trim()).filter(Boolean).length} 个工具`
+                : '当前未启用手动白名单（按生效组注入）'}
+            </span>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setAllowNames('')}>
+              {t('tools.clear', '清空')}
+            </Button>
+          </div>
+        )}
+      </SectionCard>
 
       {message && (
         <div className="flex items-center gap-2 text-sm text-green-400 bg-green-400/10 px-3 py-2 rounded">

@@ -105,9 +105,7 @@ export class ToolCallingEngine {
     const allowList = this.config.advanced?.allowedToolNames
     if (Array.isArray(allowList) && allowList.length > 0 && clientRequest.tools.length > 0) {
       const keep = new Set(allowList)
-      const filtered = clientRequest.tools.filter(
-        (tool) => keep.has(tool.name) || keep.has((tool.parameters as { name?: string } | null)?.name as string),
-      )
+      const filtered = clientRequest.tools.filter((tool) => keep.has(tool.name))
       if (filtered.length > 0 && filtered.length < clientRequest.tools.length) {
         clientRequest.tools = filtered
         console.log(

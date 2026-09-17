@@ -1,9 +1,0 @@
-npm notice run kx2code@1.0.0 test:extras
-npm notice run node tests/run-all.mjs ; python lines = open(r'D:/KX2API/scripts/_extras.txt', encoding='utf-8', errors='replace').read().splitlines() fails = [l.strip() for l in lines if l.strip().startswith('FAIL') or ('✖' in l and 'test at' not in l)] print('=== FAIL 行 ===') for f in fails[:30]: print(' ', f[:120]) print() tot = [l for l in lines if '合计' in l] print('=== 汇总 ===') for t in tot: print(' ', t); "
-测试文件：0 个（过滤：;）
-
-================================================================
-================================================================
-合计：0 通过, 0 失败, 0 个文件
-
-全部通过

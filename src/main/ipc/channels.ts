@@ -137,6 +137,25 @@ export const IpcChannels = {
   CHAT_SET_CONFIG: 'chat:setConfig',
   CHAT_EXECUTE_COMMAND: 'chat:executeCommand',
 
+  // ── 以下 7 个通道「主进程已注册，但 preload 未暴露、渲染层未调用」──
+  // 属于预留/待接线的能力（暂停恢复、人在回路授权、事件订阅）。
+  // 纳入本表是为了消除「改通道名时静默失联」的隐患，
+  // 而不是宣告它们可用 —— 接线时须同时补 preload 暴露与 electron.d.ts 声明。
+  /** 订阅消息循环事件流（渲染层主动订阅，替代隐式转发） */
+  CHAT_SUBSCRIBE_EVENTS: 'chat:subscribeEvents',
+  /** 取消事件订阅 */
+  CHAT_UNSUBSCRIBE_EVENTS: 'chat:unsubscribeEvents',
+  /** 授权某次工具调用（人在回路） */
+  CHAT_GRANT_PERMISSION: 'chat:grantPermission',
+  /** 拒绝某次工具调用 */
+  CHAT_DENY_PERMISSION: 'chat:denyPermission',
+  /** 暂停消息循环 */
+  CHAT_PAUSE: 'chat:pause',
+  /** 恢复消息循环 */
+  CHAT_RESUME: 'chat:resume',
+  /** 查询循环/暂停状态 */
+  CHAT_GET_STATE: 'chat:getState',
+
   // Profiles (配置组管理)
   PROFILES_GET_ALL: 'profiles:getAll',
   PROFILES_GET_ACTIVE: 'profiles:getActive',
@@ -329,6 +348,15 @@ export const IpcChannels = {
   PERMISSIONS_GET_PATH: 'permissions:getPath',
   /** 规则字符串 → 结构化（UI 预览解析结果） */
   PERMISSIONS_PARSE: 'permissions:parse',
+
+  // 托盘窗口（渲染层 → 主进程，单向 send）
+  //
+  // 这三个此前只在主进程与 preload 里以字符串字面量出现（未纳入本表）——
+  // 改通道名时两侧都不会报错，属"静默失联"隐患。
+  TRAY_OPEN_DASHBOARD: 'tray:open-dashboard',
+  TRAY_RESIZE: 'tray:resize',
+  TRAY_SET_HEIGHT: 'tray:set-height',
+  TRAY_QUIT_APP: 'tray:quit-app',
 
   // Generic management import/export
   MGMT_EXPORT: 'mgmt:export',

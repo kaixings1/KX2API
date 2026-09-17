@@ -34,10 +34,20 @@ export function buildToolCallingRuntimePlan(input: {
   const shouldInjectPrompt = mode === 'managed'
   const shouldParseResponse = mode === 'managed'
 
-  // 协议级 fallback 策略：默认为 always，让各协议解析失败时都走多格式兜底提取，
-  // 避免模型返回的未曾实现格式（如 <tool_call><toolName>…</toolName></tool_call>）
-  // 被当成普通正文输出、工具静默不执行。
-  const fallbackStrategy: FallbackStrategy = 'always'
+  // 协议级 fallback 策略。
+  //
+  // managed_xml 用 never：它的结构化解析已覆盖本项目已知的全部输出形态
+  // （含 surge 子标签 <tool_call><toolName>…</toolName></tool_call> 与
+  //  GLM bracket [function_calls][call:…][/call]，见 protocols/managedXml.ts 的 parse 流程），
+  // 不需要跨协议兜底。开着兜底反而会把**不属于本协议**的格式也解析出来，
+  // 破坏「非流式只接受选定协议」的契约
+  // （由 tests/tool-calling/tool-engine.test.ts 与 types.ts 的 FallbackStrategy 注释锁定）。
+  //
+  // 其余协议解析器覆盖度不足，保留 always 以免模型输出被静默当成正文。
+  //
+  // 注：此处曾一度硬编码为 'always'（为修 surge 格式静默失败），但那属于过度修正 ——
+  // surge 格式的正解是加进 managed_xml 的解析流程（已实现），而非对全部协议开兜底。
+  const fallbackStrategy: FallbackStrategy = protocol === 'managed_xml' ? 'never' : 'always'
 
   return {
     mode,
