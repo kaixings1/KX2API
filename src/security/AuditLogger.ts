@@ -5,7 +5,7 @@
  */
 
 import { promises as fs } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 
 export type AuditLevel = 'info' | 'warning' | 'error' | 'critical';
 
@@ -23,16 +23,65 @@ export interface AuditEntry {
   ipAddress?: string;
 }
 
+/** 审计缓冲默认条数（达到即落盘） */
+export const DEFAULT_AUDIT_BUFFER_SIZE = 100;
+/** 审计默认落盘间隔（毫秒） */
+export const DEFAULT_AUDIT_FLUSH_INTERVAL_MS = 10000;
+
+export interface AuditLoggerOptions {
+  /** 缓冲达到多少条即落盘 */
+  maxBufferSize?: number;
+  /** 定时落盘间隔（毫秒） */
+  flushIntervalMs?: number;
+}
+
 export class AuditLogger {
   private logFile: string;
   private entries: AuditEntry[] = [];
-  private maxBufferSize: number = 100;
-  private flushInterval: number = 10000;
+  private maxBufferSize: number = DEFAULT_AUDIT_BUFFER_SIZE;
+  private flushInterval: number = DEFAULT_AUDIT_FLUSH_INTERVAL_MS;
   private flushTimer: Timer | null = null;
 
-  constructor(logFile: string) {
+  constructor(logFile: string, options: AuditLoggerOptions = {}) {
     this.logFile = logFile;
+    this.setLimits(options);
     this.startFlushTimer();
+  }
+
+  /**
+   * 更新落盘策略（设置界面改完即时生效）。
+   * 缓冲越大写入越少但异常退出可能丢失更多记录；间隔越短越安全但 I/O 更频繁。
+   */
+  setLimits(options: AuditLoggerOptions): void {
+    const { maxBufferSize, flushIntervalMs } = options;
+    if (
+      typeof maxBufferSize === 'number' &&
+      Number.isFinite(maxBufferSize) &&
+      maxBufferSize > 0
+    ) {
+      this.maxBufferSize = Math.floor(maxBufferSize);
+    }
+    if (
+      typeof flushIntervalMs === 'number' &&
+      Number.isFinite(flushIntervalMs) &&
+      flushIntervalMs > 0
+    ) {
+      this.flushInterval = Math.floor(flushIntervalMs);
+      // 间隔变更需重建定时器才生效；否则旧间隔会继续沿用
+      if (this.flushTimer) {
+        clearInterval(this.flushTimer);
+        this.flushTimer = null;
+        this.startFlushTimer();
+      }
+    }
+  }
+
+  /** 当前落盘策略（供 UI 回显） */
+  getLimits(): { maxBufferSize: number; flushIntervalMs: number } {
+    return {
+      maxBufferSize: this.maxBufferSize,
+      flushIntervalMs: this.flushInterval,
+    };
   }
 
   /**
@@ -141,6 +190,10 @@ export class AuditLogger {
         .map((entry) => JSON.stringify(entry))
         .join('\n');
 
+      // appendFile 不会创建目录。审计目录（如 userData/audit）在首次运行时
+      // 并不存在，不先建目录会导致每次落盘都 ENOENT —— 缓冲被回滚、
+      // 审计静默失效，而调用方毫无感知。
+      await fs.mkdir(dirname(this.logFile), { recursive: true });
       await fs.appendFile(this.logFile, lines + '\n', 'utf-8');
     } catch (error) {
       console.error('Failed to flush audit log:', error);

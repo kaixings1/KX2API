@@ -83,9 +83,17 @@ export function applyAuxRuntimeConfig(): void {
  * 与 applyAuxRuntimeConfig 分开，是因为日志/审计实例由启动流程持有，
  * 不属于模块级单例 —— 调用方需把实例传进来。
  */
+export interface LogLimitsTarget {
+  setLimits: (o: { maxLogs?: number; retentionDays?: number }) => void
+}
+
+export interface AuditLimitsTarget {
+  setLimits: (o: { maxBufferSize?: number; flushIntervalMs?: number }) => void
+}
+
 export function applyLogLimitsTo(
-  logger?: { setLimits: (o: { maxLogs?: number; retentionDays?: number }) => void },
-  audit?: { setLimits: (o: { maxBufferSize?: number; flushIntervalMs?: number }) => void },
+  logger?: LogLimitsTarget,
+  audit?: AuditLimitsTarget,
 ): void {
   try {
     const cfg = ConfigManager.get() as { logRuntime?: LogRuntimeShape } | void

@@ -43,15 +43,40 @@ export interface ToolExecutor {
   ): Promise<string>;
 }
 
+/**
+ * 钩子回调。
+ *
+ * 刻意用**注入**而非直接 import —— 钩子实现放在 main 层
+ * （需要 child_process / userData 路径），engine 层不应反向依赖它。
+ * 未注入时全部跳过，不影响既有行为。
+ */
+export interface ToolHooks {
+  /** 工具执行前；返回 { deny } 时跳过执行 */
+  preToolUse?: (toolName: string, input: Record<string, unknown>) => Promise<{
+    deny?: boolean
+    reason?: string
+    /** 追加进结果的上下文（钩子想告诉模型的话） */
+    additionalContext?: string
+  } | void>
+  /** 工具执行后（成功/失败都会调），返回值不影响结果 */
+  postToolUse?: (toolName: string, input: Record<string, unknown>, success: boolean, output: string) => Promise<void>
+}
+
 export class ToolScheduler {
   /** 单次工具执行的默认超时（毫秒）；由上层注入，缺省 10 分钟 */
   private defaultToolTimeoutMs?: number
+  private hooks: ToolHooks = {}
 
   constructor(
     private registry: Map<string, Tool>,
     private permissionManager: PermissionManager,
     private executor: ToolExecutor,
   ) {}
+
+  /** 注入钩子回调（主进程启动时调用） */
+  setHooks(hooks: ToolHooks): void {
+    this.hooks = hooks
+  }
 
   /** 设置默认工具超时（设置界面改完即时生效） */
   setDefaultToolTimeout(ms?: number): void {
@@ -137,6 +162,28 @@ export class ToolScheduler {
     if (!validation.valid) {
       return { success: false, error: `Invalid: ${validation.errors.join(", ")}`, toolUseId: call.id };
     }
+
+    // PreToolUse 钩子：可拒绝执行或补充上下文。
+    // 钩子失败不阻断（异常被吞、按"无裁决"处理）—— 钩子是外部脚本，
+    // 它的健壮性不该成为工具能否执行的前提。
+    let hookContext = ''
+    if (this.hooks.preToolUse) {
+      try {
+        const hr = await this.hooks.preToolUse(call.name, call.input);
+        if (hr?.deny) {
+          return {
+            success: false,
+            error: hr.reason || "被 PreToolUse 钩子拒绝",
+            toolUseId: call.id,
+            metadata: { deniedByHook: true },
+          };
+        }
+        if (hr?.additionalContext) hookContext = hr.additionalContext;
+      } catch (e) {
+        console.warn(`[TOOL] PreToolUse 钩子异常（已忽略）: ${(e as Error).message}`);
+      }
+    }
+
     try {
       const output = await this.executor.execute(tool, call.input, {
         // 工具自带 timeout 优先；否则用注入的默认值，最后回落到 10 分钟
@@ -148,9 +195,26 @@ export class ToolScheduler {
       // 超大结果落盘，上下文里只留预览 + 文件路径（模型可用 Read 读全文）。
       // 这样「读日志/跑构建/列大目录」这类工具不会一次吃光上下文窗口。
       const persisted = await maybePersistToolResult(String(output ?? ""), call.id);
-      return { success: true, output: persisted, toolUseId: call.id };
+      const finalOutput = hookContext ? `${hookContext}\n\n${persisted}` : persisted;
+
+      if (this.hooks.postToolUse) {
+        try {
+          await this.hooks.postToolUse(call.name, call.input, true, finalOutput);
+        } catch (e) {
+          console.warn(`[TOOL] PostToolUse 钩子异常（已忽略）: ${(e as Error).message}`);
+        }
+      }
+      return { success: true, output: finalOutput, toolUseId: call.id };
     } catch (e) {
-      return { success: false, error: e instanceof Error ? e.message : String(e), toolUseId: call.id };
+      const errMsg = e instanceof Error ? e.message : String(e);
+      if (this.hooks.postToolUse) {
+        try {
+          await this.hooks.postToolUse(call.name, call.input, false, errMsg);
+        } catch {
+          /* 钩子异常已在上方记录过，此处静默 */
+        }
+      }
+      return { success: false, error: errMsg, toolUseId: call.id };
     }
   }
 

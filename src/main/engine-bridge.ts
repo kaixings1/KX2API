@@ -9,7 +9,8 @@
  * - 通过 IPC handlers.ts 暴露功能给渲染层
  */
 
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, app } from 'electron'
+import { join } from 'node:path'
 import { QueryEngine, type EngineOptions, type Tool } from '../engine/index.ts'
 import { commandRegistry } from '../engine/commands/registry'
 import { importCommands } from '../engine/commands/importer'
@@ -207,6 +208,67 @@ export function applyToolRuntimeConfig(): void {
  * 这些值原先硬编码在 messageLoop.ts 内，现由用户在设置界面调整。
  * 读取失败或未配置时返回空值，由引擎回落到默认值（行为与改造前一致）。
  */
+/**
+ * 把用户钩子注入引擎的工具调度器。
+ *
+ * 钩子实现位于 main 层（需要 child_process 与 userData 路径），
+ * engine 层不应反向依赖，因此由本桥接层负责注入。
+ *
+ * 注入失败不影响工具执行 —— 钩子是用户可选的扩展点，不是必需组件。
+ */
+async function wireToolHooks(engine: QueryEngine): Promise<void> {
+  try {
+    const { runPreToolUse, runPostToolUse, setHooksConfigPath } = await import('./hooks/index.ts')
+    // 钩子配置固定在 userData 下（不接受项目目录里的定义，见 hookConfig 的安全说明）
+    setHooksConfigPath(join(app.getPath('userData'), 'hooks.json'))
+
+    engine.setToolHooks({
+      preToolUse: async (toolName, input) => {
+        const res = await runPreToolUse(toolName, input)
+        if (res.permissionBehavior === 'deny') {
+          // stopReason 优先；没有则回落到阻塞性错误的文案（该字段是对象，需取内部字符串）
+          const reason =
+            res.stopReason || res.blockingError?.blockingError || '被用户钩子拒绝'
+          return { deny: true, reason }
+        }
+        return { additionalContext: res.additionalContext }
+      },
+      postToolUse: async (toolName, input, success, output) => {
+        await runPostToolUse(toolName, input, output, success)
+      },
+    })
+    console.log('[EngineBridge] Tool hooks wired from', join(app.getPath('userData'), 'hooks.json'))
+  } catch (e) {
+    console.warn('[EngineBridge] wireToolHooks failed:', (e as Error).message)
+  }
+}
+
+/**
+ * 审计配置：日志落在 userData/audit 下，随应用数据统一管理。
+ * 取不到 userData 时（非 Electron 环境）由安全层自行降级为不审计。
+ */
+export function readAuditConfig(): {
+  enableAudit: boolean
+  auditDir?: string
+  auditBufferSize?: number
+  auditFlushIntervalMs?: number
+} {
+  try {
+    const dir = join(app.getPath('userData'), 'audit')
+    const cfg = ConfigManager.get() as {
+      logRuntime?: { auditBufferSize?: number; auditFlushIntervalMs?: number }
+    } | void
+    return {
+      enableAudit: true,
+      auditDir: dir,
+      auditBufferSize: cfg?.logRuntime?.auditBufferSize,
+      auditFlushIntervalMs: cfg?.logRuntime?.auditFlushIntervalMs,
+    }
+  } catch {
+    return { enableAudit: false }
+  }
+}
+
 export function readAgentLoopConfig(): AgentLoopConfig | void {
   try {
     const cfg = ConfigManager.get() as { agentLoop?: AgentLoopConfig } | void
@@ -627,6 +689,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         subagents,
         tools: commandTools,
         agentLoop: readAgentLoopConfig(),
+        ...readAuditConfig(),
       }
       engine = new QueryEngine(opts)
       console.log('[EngineBridge] Active profile:', active.name, 'provider:', opts.provider, 'baseUrl:', active.baseUrl, 'model:', opts.model)
@@ -657,6 +720,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         subagents,
         tools: commandTools,
         agentLoop: readAgentLoopConfig(),
+        ...readAuditConfig(),
       })
       console.log('[EngineBridge] No active profile, using defaults')
 
@@ -673,6 +737,9 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
 
     // 应用工具运行参数（落盘策略、执行超时）：引擎已就绪，此时推送才生效
     applyToolRuntimeConfig()
+
+    // 注入用户钩子：工具调用前可拦截、调用后可注入上下文
+    if (engine) await wireToolHooks(engine)
 
     // 同步命令到 ToolCollection，确保工具系统与注册表一致
     await toolCollection.syncFromRegistry()

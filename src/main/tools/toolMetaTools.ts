@@ -31,38 +31,134 @@ export interface SessionToolState {
   lastUsed: Map<string, number>
 }
 
-/** sessionId → 状态。会话结束由 clearSession 清理，避免长期驻留。 */
+const DEFAULT_SESSION = 'default'
+
+/**
+ * sessionId → 状态。会话结束由 clearSession 清理，避免长期驻留。
+ *
+ * ⚠️ 这是**内存缓存**，事实来源是 `toolSessionStore`（落盘）。
+ * 之所以保留这一层：`buildToolContext` / `touchTool` 在工具循环的热路径上，
+ * 每次同步读盘不可接受。落盘由 store 侧做防抖批量写。
+ *
+ * 之所以要落盘：原先纯内存的实现「重启即丢」——
+ * 用户 tool_load 进来的工具在重启后全部失效，而对话历史还在，
+ * 模型以为工具仍可用于是调用失败。
+ */
 const sessions = new Map<string, SessionToolState>()
 
-const DEFAULT_SESSION = 'default'
+/** 该会话是否已从磁盘水合过 */
+const hydrated = new Set<string>()
 
 function getState(sessionId: string = DEFAULT_SESSION): SessionToolState {
   let s = sessions.get(sessionId)
   if (!s) {
     s = { active: new Set(), roleId: 'default', lastUsed: new Map() }
     sessions.set(sessionId, s)
+    void hydrate(sessionId, s)
   }
   return s
 }
 
-/** 设置会话角色（新建会话时调用） */
-export function setSessionRole(sessionId: string, roleId: string): void {
-  getState(sessionId).roleId = roleId
+/**
+ * 从落盘状态水合到内存（异步，不阻塞首帧）。
+ * 水合期间若内存已有更新，做并集合并而非覆盖，避免丢掉刚发生的变化。
+ */
+async function hydrate(sessionId: string, target: SessionToolState): Promise<void> {
+  if (hydrated.has(sessionId)) return
+  hydrated.add(sessionId)
+  try {
+    const { toolSessionStore } = await import('./toolSessionStore.ts')
+    const st = await toolSessionStore.get(sessionId)
+    // 并集：水合可能与并发写入竞争，不能简单覆盖
+    for (const id of st.active) target.active.add(id)
+    if (st.roleId && st.roleId !== 'default') target.roleId = st.roleId
+    for (const [id, ts] of Object.entries(st.lastUsed)) {
+      const cur = target.lastUsed.get(id) || 0
+      if (ts > cur) target.lastUsed.set(id, ts)
+    }
+  } catch (e) {
+    console.warn('[ToolMeta] 会话状态水合失败:', (e as Error).message)
+  }
 }
 
-/** 清理会话状态 */
+/** 把内存状态同步回落盘存储（由各写操作调用） */
+function persistState(sessionId: string, s: SessionToolState): void {
+  void (async () => {
+    try {
+      const { toolSessionStore } = await import('./toolSessionStore.ts')
+      const st = await toolSessionStore.get(sessionId)
+      st.active = [...s.active]
+      st.roleId = s.roleId
+      st.lastUsed = Object.fromEntries(s.lastUsed)
+      st.updatedAt = Date.now()
+      toolSessionStore.markDirty()
+    } catch (e) {
+      console.warn('[ToolMeta] 会话状态落盘失败:', (e as Error).message)
+    }
+  })()
+}
+
+/** 设置会话角色（新建会话时调用） */
+export function setSessionRole(sessionId: string, roleId: string): void {
+  const s = getState(sessionId)
+  s.roleId = roleId
+  persistState(sessionId, s)
+}
+
+/** 清理会话状态（内存 + 落盘） */
 export function clearSession(sessionId: string): void {
   sessions.delete(sessionId)
+  hydrated.delete(sessionId)
+  void (async () => {
+    try {
+      const { toolSessionStore } = await import('./toolSessionStore.ts')
+      await toolSessionStore.remove(sessionId)
+    } catch {
+      /* 清理失败不影响主流程 */
+    }
+  })()
 }
 
 /** 记录一次工具使用，供 LRU 排序 */
 export function touchTool(sessionId: string, toolId: string): void {
-  getState(sessionId).lastUsed.set(toolId, Date.now())
+  const s = getState(sessionId)
+  s.lastUsed.set(toolId, Date.now())
+  persistState(sessionId, s)
 }
 
 /** 取某工具在会话内的最后使用时间（从未使用返回 0，供 LRU 优先淘汰） */
 export function lastUsedAt(sessionId: string, toolId: string): number {
   return getState(sessionId).lastUsed.get(toolId) || 0
+}
+
+/**
+ * 用对话历史重建活跃集，与当前内存状态取并集。
+ *
+ * 用途：应用重启 / 会话恢复后，仅靠落盘可能不完整（例如历史里有
+ * 落盘之前发生的工具调用）。以历史为事实来源补齐。
+ *
+ * @param messages       对话消息
+ * @param availableTools 当前可用工具名集合
+ */
+export function reconcileFromHistory(
+  sessionId: string,
+  messages: readonly unknown[],
+  availableTools: ReadonlySet<string>,
+): string[] {
+  const s = getState(sessionId)
+  void (async () => {
+    try {
+      const { deriveActiveToolsFromMessages, mergeActiveTools } = await import('./toolSessionStore.ts')
+      const derived = deriveActiveToolsFromMessages(messages, availableTools)
+      const merged = mergeActiveTools([...s.active], derived, availableTools)
+      if (merged.length === s.active.size && merged.every(id => s.active.has(id))) return
+      s.active = new Set(merged)
+      persistState(sessionId, s)
+    } catch (e) {
+      console.warn('[ToolMeta] 历史重建失败:', (e as Error).message)
+    }
+  })()
+  return [...s.active]
 }
 
 // ==================== 检索 ====================
@@ -344,6 +440,8 @@ export function loadTools(
 
   // 超出上限 → 按 LRU 淘汰非核心工具
   evictIfNeeded(state, tools, role.maxActiveTools)
+  // 加载结果落盘：重启后仍能恢复用户显式 load 进来的工具
+  persistState(sessionId, state)
   return { loaded, rejected }
 }
 
@@ -386,6 +484,8 @@ export function unloadTools(
     else if (tool) { state.active.delete(tool.id); unloaded.push(tool.id) }
     else kept.push(id)
   }
+  // 卸载同样要落盘 —— 否则重启后被卸载的工具会"复活"
+  if (unloaded.length > 0) persistState(sessionId, state)
   return { unloaded, kept }
 }
 

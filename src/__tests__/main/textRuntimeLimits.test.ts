@@ -1,8 +1,10 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
+// 注意：主进程实际使用的是 src/security/ 这一套（由 securityEnhancer 引用），
+// src/main/security/ 是未被引用的副本 —— 测试必须指向活跃版本。
 import {
   DEFAULT_AUDIT_BUFFER_SIZE,
   DEFAULT_AUDIT_FLUSH_INTERVAL_MS,
-} from '../../main/security/AuditLogger'
+} from '../../security/AuditLogger'
 import { DEFAULT_MAX_CONCURRENT_AGENTS } from '../../engine/subagent/subAgentManager'
 import {
   getRecentMessageWindow,
@@ -21,7 +23,7 @@ describe('审计日志落盘策略', () => {
   })
 
   it('可通过构造参数注入', async () => {
-    const { AuditLogger } = await import('../../main/security/AuditLogger')
+    const { AuditLogger } = await import('../../security/AuditLogger')
     const logger = new AuditLogger('/tmp/kx2-audit-test.log', {
       maxBufferSize: 5,
       flushIntervalMs: 60000,
@@ -31,7 +33,7 @@ describe('审计日志落盘策略', () => {
   })
 
   it('setLimits 忽略非法值', async () => {
-    const { AuditLogger } = await import('../../main/security/AuditLogger')
+    const { AuditLogger } = await import('../../security/AuditLogger')
     const logger = new AuditLogger('/tmp/kx2-audit-test2.log', { maxBufferSize: 7 })
     logger.setLimits({ maxBufferSize: 0, flushIntervalMs: -5 })
     const limits = logger.getLimits()

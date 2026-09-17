@@ -9,7 +9,7 @@ import { MessageLoop, type MessageLoopDeps, type QueryResult, type AutoContinueC
 import { MessageNormalizer, type InternalMessage } from "./messageNormalizer.ts";
 import { RequestBuilder, type ToolDefinition } from "./requestBuilder.ts";
 import { ResponseHandler } from "./responseHandler.ts";
-import { ToolScheduler, type PermissionManager, type ToolExecutor, type Tool } from "./toolScheduler.ts";
+import { ToolScheduler, type PermissionManager, type ToolExecutor, type Tool, type ToolHooks } from "./toolScheduler.ts";
 import { TokenBudgetManager } from "./tokenBudgetManager.ts";
 import type { AgentLoopConfig } from "./loopConfig.ts";
 import { AutoCompactor } from "./autoCompactor.ts";
@@ -81,6 +81,14 @@ export interface EngineOptions {
   autoContinue?: AutoContinueConfig;
   /** 循环控制参数（轮数上限、连续失败阈值等）；缺省用默认值 */
   agentLoop?: AgentLoopConfig;
+  /** 是否记录工具调用审计（含被安全层拦截的调用） */
+  enableAudit?: boolean;
+  /** 审计日志目录 */
+  auditDir?: string;
+  /** 审计缓冲条数；缺省 100 */
+  auditBufferSize?: number;
+  /** 审计落盘间隔（毫秒）；缺省 10000 */
+  auditFlushIntervalMs?: number;
   /** 技能分��配置（吸收自 CLI 版）：工具分类和技能列表 */
   skills?: Array<{ name: string; description: string; category?: string }>;
   /** 智能体配置（吸收自 CLI 版）：主智能体列表 */
@@ -212,8 +220,13 @@ export class QueryEngine {
         }
       : createDefaultSandboxConfig(false)
     const sandboxExecutor = createSandboxedExecutor(selfHealingExecutor, sandboxConfig)
-    // 安全增强层：在沙箱之上再叠加输出净化 + 命令过滤 + 路径保护
-    const securityEnhancedExecutor = createSecurityEnhancer(sandboxExecutor)
+    // 安全增强层：在沙箱之上再叠加输出净化 + 命令过滤 + 路径保护 + 审计
+    const securityEnhancedExecutor = createSecurityEnhancer(sandboxExecutor, {
+      enableAudit: opts.enableAudit,
+      auditDir: opts.auditDir,
+      auditBufferSize: opts.auditBufferSize,
+      auditFlushIntervalMs: opts.auditFlushIntervalMs,
+    })
     const executor: ToolExecutor = securityEnhancedExecutor
     const registry = opts.tools ?? this.buildRegistry();
 
@@ -225,7 +238,10 @@ export class QueryEngine {
 
     // 创建 ErrorRecovery
     this.recovery = new ErrorRecovery(this.stateMachine, this.retryHandler, this.autoCompactor);
-    const toolScheduler = new ToolScheduler(registry, permissionManager, executor, this.recovery);
+    // 注意：ToolScheduler 只接受 (registry, permissionManager, executor) 三个参数。
+    // 原代码多传了 this.recovery，构造函数并不接收 —— 多余实参在运行时被忽略，
+    // 但属于类型不匹配，这里去掉以免误导（recovery 的职责在 ErrorRecovery 内部）。
+    const toolScheduler = new ToolScheduler(registry, permissionManager, executor);
     this.toolSchedulerInstance = toolScheduler;
 
     this.conversation = this._conversation;
@@ -411,6 +427,16 @@ export class QueryEngine {
 
   getTools(): ToolDefinition[] {
     return this._toolDefinitions;
+  }
+
+  /**
+   * 注入工具钩子（主进程启动时调用）。
+   *
+   * 钩子实现放在 main 层（需要 child_process 与 userData 路径），
+   * engine 层不应反向依赖，因此由此处接收注入。
+   */
+  setToolHooks(hooks: ToolHooks): void {
+    this.toolSchedulerInstance?.setHooks(hooks)
   }
 
   /** 更新引擎的工具定义列表（由 toolManager/toolRuntime 驱动，使配置切换立即生效） */
