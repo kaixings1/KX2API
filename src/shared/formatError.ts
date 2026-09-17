@@ -52,6 +52,18 @@ export function formatSystemHttpError(statusCode: number, body?: string, lang?: 
 
 // ==================== 内部辅助 ====================
 
+/**
+ * 渲染层专用：翻译 i18n key。
+ *
+ * ⚠️ 边界说明：
+ * - 内部用 `require("@/i18n")` / `require("@/stores/settingsStore")` 取渲染层单例。
+ *   `@` 是 renderer 别名、且 ESM 产物里没有 require —— 在**主进程**中必然抛错，
+ *   故两条路径都被 try/catch 包住并回退到 fallback。
+ * - 但主进程只调用 formatSystemError / formatSystemHttpError（走 getErrorTranslation），
+ *   **不经过本函数**。真正会执行到这里的只有渲染层的 formatUserError / formatHttpError。
+ * - 结论：这不是"主进程里的定时炸弹"，而是「渲染层逻辑落在 shared/」的结构遗留。
+ *   若将来主进程需要 i18n，应改为显式注入而不是 require 别名。
+ */
 function translateI18nKey(i18nKey: string, fallback: string, params?: Record<string, string>): string {
   try {
     const i18n = require('@/i18n').default

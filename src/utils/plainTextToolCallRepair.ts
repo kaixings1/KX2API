@@ -340,8 +340,12 @@ function collectOuterTagAsTool(
     // 兼容 <invoke name="list_dir"> 这类模型自造格式：优先从 name 属性取工具名
     const nameAttrMatch = tagAttrs.match(/\bname\s*=\s*["']([^"']+)["']/i)
     const toolName = nameAttrMatch ? nameAttrMatch[1].trim() : tagName
-    // 外层标签必须是合法命令名（含别名兜底）；非命令名（<html>、<document>）跳过
-    if (!isAllowedToolName(toolName, allowedNames)) continue
+    // 外层标签必须是合法命令名（含别名兜底）；非命令名时递归检查内层是否嵌套可识别的工具调用
+    if (!isAllowedToolName(toolName, allowedNames)) {
+      const nested = collectOuterTagAsTool(inner, allowedNames)
+      if (nested.length > 0) blocks.push(...nested)
+      continue
+    }
     // 内层必须至少有一个「参数子标签」，否则视为空容器/纯文本标签
     const CHILD_RE = /<\s*([a-zA-Z_][\w-]*)\b[^>]*>([\s\S]*?)<\s*\/\s*\1\s*>/gi
     let childSeen = false
@@ -549,22 +553,29 @@ export function stripPlainTextToolCalls(
     if (!allowedNames || allowedNames.size === 0) return full
     // 外层标签必须是合法命令名（含别名兜底）
     const tag = _tag.trim()
-    if (!isAllowedToolName(tag, allowedNames)) return full
-    // 内层必须全是参数子标签：先剥出全部 key，再检查没有“可懂正文”残留
-    const CHILD_RE = /<\s*([a-zA-Z_][\w-]*)\b[^>]*>([\s\S]*?)<\s*\/\s*\1\s*>/gi
-    let c: RegExpExecArray | null
-    CHILD_RE.lastIndex = 0
-    let keys = 0
-    while ((c = CHILD_RE.exec(inner)) !== null) {
-      const k = c[1].trim()
-      if (/^(name|toolName|tool_name|tool|fn|function)$/i.test(k)) return full
-      keys++
+    if (isAllowedToolName(tag, allowedNames)) {
+      // 内层必须全是参数子标签：先剥出全部 key，再检查没有”可懂正文”残留
+      const CHILD_RE = /<\s*([a-zA-Z_][\w-]*)\b[^>]*>([\s\S]*?)<\s*\/\s*\1\s*>/gi
+      let c: RegExpExecArray | null
+      CHILD_RE.lastIndex = 0
+      let keys = 0
+      while ((c = CHILD_RE.exec(inner)) !== null) {
+        const k = c[1].trim()
+        if (/^(name|toolName|tool_name|tool|fn|function)$/i.test(k)) return full
+        keys++
+      }
+      if (keys === 0) return full
+      // 子标签之外的残留必须只是空白（不能有”我推荐用”这类正文骨架）
+      const leftover = inner.replace(CHILD_RE, '').trim()
+      if (leftover) return full
+      return ''
     }
-    if (keys === 0) return full
-    // 子标签之外的残留必须只是空白（不能有“我推荐用”这类正文骨架）
-    const leftover = inner.replace(CHILD_RE, '').trim()
-    if (leftover) return full
-    return ''
+    // 外层标签不是合法工具名：递归检查内层是否全是工具调用块。
+    // 若递归剥离后内层完全清空，说明整块都是工具调用，一并移除；
+    // 若内层有正文残留，则保留外层容器（宁可少剥，不可误删正文）。
+    const innerStripped = stripPlainTextToolCalls(inner, allowedNames).trim()
+    if (innerStripped === '') return ''
+    return full
   })
 
   // 剥离扁平 XML 工具调用（无外层包裹）：<toolName>..</toolName> 与紧随的 <arguments>..</arguments>

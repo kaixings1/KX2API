@@ -6,7 +6,7 @@
  * - 数据持久化到项目数据目录下的 tasks.json
  */
 
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { app } from 'electron'
 
@@ -42,7 +42,7 @@ function loadAll(): TaskRecord[] {
 }
 
 function saveAll(tasks: TaskRecord[]): void {
-  const dir = require('path').dirname(DATA_FILE)
+  const dir = dirname(DATA_FILE)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   writeFileSync(DATA_FILE, JSON.stringify(tasks, null, 2), 'utf-8')
 }

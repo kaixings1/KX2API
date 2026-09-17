@@ -1,0 +1,15 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/semanticSearch.ts(431,12): error TS2304: Cannot find name 'fs'.
+src/engine/semanticSearch.ts(432,30): error TS2304: Cannot find name 'fs'.
+src/engine/semanticSearch.ts(445,12): error TS2304: Cannot find name 'fs'.
+src/engine/semanticSearch.ts(445,32): error TS2304: Cannot find name 'fs'.
+src/engine/semanticSearch.ts(450,7): error TS2304: Cannot find name 'fs'.
+src/engine/semanticSearch.ts(465,36): error TS2304: Cannot find name 'fs'.
+src/engine/semanticSearch.ts(476,24): error TS2304: Cannot find name 'fs'.
+src/engine/semanticSearch.ts(480,27): error TS2304: Cannot find name 'fs'.
+src/engine/semanticSearch.ts(593,22): error TS2304: Cannot find name 'fs'.
+src/engine/semanticSearch.ts(606,17): error TS2304: Cannot find name 'existsSync'.
+src/engine/semanticSearch.ts(607,33): error TS2304: Cannot find name 'fsModule'.
+src/engine/semanticSearch.ts(639,11): error TS2304: Cannot find name 'fs'.
+src/engine/semanticSearch.ts(639,54): error TS2304: Cannot find name 'fs'.

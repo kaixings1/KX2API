@@ -97,7 +97,15 @@ export class CodeVectorStore {
     if (this.db) return
 
     try {
-      const { Database } = require('bun:sqlite')
+      // ⚠️ `bun:sqlite` 是 Bun 运行时专有模块，Node/Electron 下**不存在**：
+      //   - 无法解析该模块名；
+      //   - ESM 产物里连 require 本身都没有。
+      // 因此下面的 require 必然抛错，被 catch 捕获后 this.db 恒为 null，
+      // 表现为「索引/搜索静默不可用」。
+      //
+      // 要真正启用本模块，需把存储层换成 Node 侧实现（better-sqlite3 / node:sqlite），
+      // 属新功能开发，不在类型修复范围内 —— 故此处保持原逻辑，仅让失败可诊断。
+      const { Database } = require('bun:sqlite') as { Database: new (path: string) => unknown }
       this.db = new Database(':memory:')
 
       // Main content FTS5 table

@@ -10,6 +10,9 @@
  * - SemanticIndexer 为薄封装：扫描文件 / 持久化 / 增量 / watch
  */
 
+import { existsSync } from 'node:fs'
+import * as fs from 'node:fs'
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -428,7 +431,6 @@ export class SemanticIndexer {
 
   load(): void {
     try {
-      const fs = require('fs')
       if (!fs.existsSync(this.indexFile)) return
       const raw = JSON.parse(fs.readFileSync(this.indexFile, 'utf-8'))
       if (raw.version !== 1 || !raw.files) return
@@ -442,7 +444,6 @@ export class SemanticIndexer {
 
   save(): void {
     try {
-      const fs = require('fs')
       const dir = this.indexFile.slice(0, this.indexFile.lastIndexOf('/'))
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       const payload = {
@@ -464,7 +465,6 @@ export class SemanticIndexer {
     this.rebuilding = true
     const start = Date.now()
     try {
-      const fs = require('fs')
       const files = this.scanFiles(fs)
       const knownPaths = new Set(files)
       let filesIndexed = 0
@@ -592,7 +592,6 @@ export class SemanticIndexer {
 
   watch(): void {
     try {
-      const fs = require('fs')
       if (this.watcher) this.watcher.close()
       this.watcher = fs.watch(this.projectRoot, { recursive: true }, (_event: string, filename: string | null) => {
         if (!filename) return
@@ -607,8 +606,8 @@ export class SemanticIndexer {
         this.debounceTimer = setTimeout(() => {
           const fullPath = `${this.projectRoot}/${rel}`
           try {
-            if (require('fs').existsSync(fullPath)) {
-              this.indexFileNow(require('fs'), fullPath)
+            if (existsSync(fullPath)) {
+              this.indexFileNow(fs, fullPath)
             } else {
               this.files.delete(fullPath)
               this.rebuildIndexData()
@@ -640,7 +639,6 @@ export class SemanticIndexer {
     }
     let indexSize = 0
     try {
-      const fs = require('fs')
       if (fs.existsSync(this.indexFile)) indexSize = fs.statSync(this.indexFile).size
     } catch { /* ignore */ }
     return { files: this.files.size, chunks, symbols, indexSize }

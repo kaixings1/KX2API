@@ -466,7 +466,10 @@ export class LoadBalancer {
  */
 function createLoadBalancer(): LoadBalancer {
   try {
-    const { storeManager } = require('../store/store')
+    // 直接用顶部已静态导入的 storeManager。
+    // 原写法 `require("../store/store")` 在 ESM 产物里会原样保留，
+    // 运行时抛 "require is not defined"，被下面的 catch 吞掉后
+    // 表现为「熔断参数永远读不到用户配置、恒用默认值」。
     const cfg = storeManager.getConfig() as { loadBalancer?: LoadBalancerOptions } | void
     return new LoadBalancer(cfg?.loadBalancer ?? {})
   } catch {

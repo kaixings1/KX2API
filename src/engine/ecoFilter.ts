@@ -3,7 +3,14 @@
  *
  * 在 Bash 输出发送给模型前，经过确定性过滤器管道压缩。
  * 原始输出 tee 到 session 文件，确保可恢复。
+ *
+ * 注：tee 分支原先用 `require("fs")` 就地取模块 —— ESM 产物里没有 require，
+ * 该分支一旦执行即抛错（被 catch 静默吞掉，表现为"原始输出从未落盘"）。
+ * 现改为静态导入 node:fs。
  */
+
+import { existsSync, mkdirSync, appendFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 
 export interface EcoStats {
   commands: number
@@ -218,11 +225,9 @@ export function ecoCompress(
   // Tee 原始输出到 session 文件
   if (teePath && currentSession) {
     try {
-      const fs = require('fs')
-      const path = require('path')
-      const dir = path.dirname(teePath)
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-      fs.appendFileSync(teePath, `\n--- eco raw tee ---\n${content}\n`)
+      const dir = dirname(teePath)
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+      appendFileSync(teePath, `\n--- eco raw tee ---\n${content}\n`)
     } catch { /* noop */ }
   }
 
