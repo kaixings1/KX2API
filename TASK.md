@@ -705,7 +705,7 @@ blockingLimit          = effectiveContextWindow - 3_000   ← 高于自动压缩
 | 会话转录 `sessionTranscript` | ✅ **已实现且已接入** | `engine/transcript.ts`；`messageLoop.ts:23` import、`:276` 压缩前调用并传 `sessionId` |
 | attachments 机制 | ❌ 未实现 | 全仓库无 attachment 相关文件；另一会话曾研究（`scripts/_extract_att.py`）但未落地 |
 | 子代理上下文隔离 | ❌ 未实现 | 无 `createSubagentContext` / `CacheSafeParams` |
-| 对话/会话恢复 | ❌ 未实现 | 无 `conversationRecovery` / `sessionRestore` |
+| 对话/会话恢复 | ✅ **已实现且已接入** | `engine/sessionRecovery.ts`（快照 load/save/clear）；`engine/index.ts` `getHistory` 同步水合 / `query`+`sendMessage` 每轮落盘 / `clearHistory` 删快照（见下方小节） |
 | 会话级记忆 SessionMemory | ❌ 未实现 | 无 sessionMemory 相关文件（与 memdir 不同层次：单次对话内、只喂给 compact） |
 
 **按价值排序的建议顺序**：会话恢复（用户可感知，崩溃/重启后对话不丢）→
@@ -848,9 +848,44 @@ attachments（多模态能力）→ SessionMemory → 子代理上下文隔离�
 ### 四、仍待吸收
 
 - [ ] **子代理上下文隔离**（`createSubagentContext` + CacheSafeParams 共享槽位）
-- [ ] **对话恢复 / 会话恢复**（`conversationRecovery` + `sessionRestore` 的容错四层）
+- [x] **对话恢复 / 会话恢复** — 已移植 `src/engine/sessionRecovery.ts`（轻量快照方案，见「会话恢复」小节）
 - [ ] **会话级记忆 SessionMemory**（单次对话内、只喂给 compact）
 - [ ] attachments 的其余类型（IDE 选择、诊断、预算提示等 —— 本项目暂无对应场景）
+
+## 第六轮后：会话恢复移植（2026-09-18）
+
+### 解决的问题
+
+当前项目（KX2API Electron）会话历史**纯内存、重启即丢**：`engine/_conversation.messages`，
+`CHAT_GET_HISTORY` 读内存、无落盘。崩溃/退出后回来对话全丢。上游
+`conversationRecovery.ts`(597 行) / `sessionRestore.ts`(653 行) 重度耦合
+（worktree / plans / attribution / fileHistory / attachments，Electron 不适用），
+直接搬代价高且大半依赖不存在。
+
+### 轻量快照方案（贴合本架构）
+
+| 文件 | 改动 |
+|---|---|
+| `src/engine/sessionRecovery.ts`（新） | `saveSessionSnapshot`（原子写 tmp+rename）/ `loadSessionSnapshot`（async）/ `loadSessionSnapshotSync`（供 getHistory）/ `clearSessionSnapshot`；目录 `<home>/.doge/projects/<sanitize(项目根)>/session.json`（与记忆系统同构） |
+| `src/engine/index.ts` | `getHistory()` 内存空且有快照 → 同步水合（入页即见旧对话）；`query`/`sendMessage` 每轮结束 `saveSessionSnapshot`（fire-and-Forget）；`clearHistory()` 删快照（用户重新开始 = 丢弃上次） |
+| `src/__tests__/engine/sessionRecovery.test.ts`（新） | 5 项：save→load 往返 / load 不存在 null / 损坏不抛 / clear 删除 / 不同项目 dir 隔离 |
+
+### 设计取舍
+
+- **恢复语义**：`getHistory` 内存空 + 快照有旧消息 → 水合（重启回来对话还在）；`clearHistory` → 删快照（重新开始）。
+- **不碰 chat-handlers/engine-bridge/preload**：恢复逻辑收敛在 engine 内部，无新 IPC/channel，避免与其它在改代码冲突。
+- **原子 + 静默**：tmp+rename 防半截；任何读写异常 `console.warn` 吞掉，绝不阻断对话。
+- 同步读 / 异步写：`getHistory` 同步水印（不引入启动异步链路），`saveSnapshot` 异步 fire-and-Forget。
+
+### 验证（本任务范围）
+
+- `npm run build` ✅
+- `npx vitest run src/__tests__/engine/sessionRecovery.test.ts` → 5/5 通过
+- `npm run test:unit` ✅ 57 文件 / 1056 通过 / 0 失败
+
+⚠️ **已知无关红灯**：`tests/tool-calling/tool-engine.test.ts`（extras）失败，但该测试仅 import
+`src/main/proxy/toolCalling/ToolCallingEngine`，与本次 `src/engine/*` 改动**无 import 交集**，
+系并发生成进程改动 `src/main/proxy/*` 引入的回归，非本任务所致，未擅自代修。
 
 ## 第一轮遗留待办（2026-09-18 复核）
 
