@@ -704,12 +704,12 @@ blockingLimit          = effectiveContextWindow - 3_000   ← 高于自动压缩
 |---|---|---|
 | 会话转录 `sessionTranscript` | ✅ **已实现且已接入** | `engine/transcript.ts`；`messageLoop.ts:23` import、`:276` 压缩前调用并传 `sessionId` |
 | attachments 机制 | ❌ 未实现 | 全仓库无 attachment 相关文件；另一会话曾研究（`scripts/_extract_att.py`）但未落地 |
-| 子代理上下文隔离 | ❌ 未实现 | 无 `createSubagentContext` / `CacheSafeParams` |
+| 子代理上下文隔离 | ✅ **已实现且已接线** | `SubAgentManager.setEngineFactory` + `engine-bridge.wireSubAgentFactory()`；每个子代理独立引擎与 apiClient |
 | 对话/会话恢复 | ✅ **已实现且已接入** | `engine/sessionRecovery.ts`（快照 load/save/clear）；`engine/index.ts` `getHistory` 同步水合 / `query`+`sendMessage` 每轮落盘 / `clearHistory` 删快照（见下方小节） |
-| 会话级记忆 SessionMemory | ❌ 未实现 | 无 sessionMemory 相关文件（与 memdir 不同层次：单次对话内、只喂给 compact） |
+| 会话级记忆 SessionMemory | ✅ **已实现且已接线** | `engine/memory/sessionMemory.ts`；`messageLoop` 压缩前注入要点、压缩后抽取新要点 |
+| attachments 机制 | ❌ 未实现 | 全仓库无 attachment 相关文件（另一会话曾研究但未落地） |
 
-**按价值排序的建议顺序**：会话恢复（用户可感知，崩溃/重启后对话不丢）→
-attachments（多模态能力）→ SessionMemory → 子代理上下文隔离。
+**剩余建议顺序**：attachments 机制（多模态能力，唯一未做的大件）
 
 ## 第六轮后：memory_* 工具与记忆系统目录闭环（2026-09-18）
 
@@ -847,10 +847,51 @@ attachments（多模态能力）→ SessionMemory → 子代理上下文隔离�
 
 ### 四、仍待吸收
 
-- [ ] **子代理上下文隔离**（`createSubagentContext` + CacheSafeParams 共享槽位）
+- [x] **子代理上下文隔离** — `SubAgentManager.setEngineFactory`（每个子代理独立引擎 +
+  独立 apiClient + 独立对话上下文）。⚠️ 该接口此前**零调用方**（缺省构造的子引擎没有
+  apiClient，query 不会真的跑模型）；已在 `engine-bridge.wireSubAgentFactory()` 注入
 - [x] **对话恢复 / 会话恢复** — 已移植 `src/engine/sessionRecovery.ts`（轻量快照方案，见「会话恢复」小节）
-- [ ] **会话级记忆 SessionMemory**（单次对话内、只喂给 compact）
+- [x] **会话级记忆 SessionMemory** — 已实现 `src/engine/memory/sessionMemory.ts`（见下方小节）
 - [ ] attachments 的其余类型（IDE 选择、诊断、预算提示等 —— 本项目暂无对应场景）
+
+### 子代理隔离接线（2026-09-18）
+
+`SubAgentManager` 早已有 `setEngineFactory`（每个子代理独立引擎 + 独立 apiClient +
+独立对话上下文），但该接口**零调用方** —— 缺省用的 `new QueryEngine(...)` 没有 apiClient，
+子引擎的 query 不会真的跑模型（管理器注释也写明「调用方需保证注入后再 execute」）。
+
+已在 `engine-bridge.wireSubAgentFactory()` 注入：用当前生效的 API 设置为每个子代理
+创建独立引擎与 apiClient，子代理的中间过程因此不会污染主对话历史。
+验证：`src/__tests__/engine/subAgentIsolation.test.ts`（7 例，含"工厂确实被调用"断言）。
+
+**engine 层兜底（2026-09-18）**：`subAgentManager.ts` 缺省 factory 从占位改为真实
+`new QueryEngine` —— 通过 `provideEngineConstructor(QueryEngine)` 延迟注入本类构造器
+（`import type` + 模块顶层副作用，规避运行时循环 import），`setEngineFactory` 仍可覆盖。
+这样即使 main 进程未注入引擎工厂，engine 侧缺省也能构造真正隔离的子引擎，不再抛
+「未注入 QueryEngine 构造器」。测试 `subAgentIsolation.test.ts` 覆盖缺省构造不抛、工厂
+透传、独立实例、并发上限、运行时调 maxConcurrent。
+
+### 会话级记忆 SessionMemory（2026-09-18）
+
+新增 `src/engine/memory/sessionMemory.ts`。定位：与 `memoryRecall`（跨对话项目的磁盘记忆）
+**不同层次** —— 单次对话内、进程内、**只喂给 compact**，不落盘（落盘会把上一段对话的
+要点带进新对话，那是 memoryRecall 的职责）。
+
+解决的问题：长对话会被多次压缩，每次摘要都是对「上一次摘要」的二次加工，
+用户原始约束 / 纠正过的方向 / 踩过的坑**逐轮衰减直至消失**。
+
+做法：压缩**前**把已有要点交给摘要器（拼在 9 段提示词**前面**，让它"在既有要点上
+补充/修正"而非从零推断）；压缩**后**从新摘要抽取要点累加。
+
+抽取策略：按 markdown 标题切段，**只保留约束/请求/决策/错误类** ——
+「当前工作 / 下一步」下一轮就过时，存进去只会挤占额度。
+上限：单条 500 字符、总 40 条，超限丢最旧；逐条去重。
+
+⚠️ **测试逼出两个实现缺陷**：
+1. 兜底分支原为「out 为空就取首段」，会把"格式正确但内容都该丢"的情况误救回来
+   （如整篇只有「下一步」）—— 改为**仅当完全没有 markdown 标题时**才兜底
+2. 关键词表遗漏「请求」—— 用户**原始请求**是最该保留的（多轮压缩后最容易丢的就是
+   "最初要做什么"，而那是判断后续是否跑偏的基准），已补入
 
 ## 第六轮后：会话恢复移植（2026-09-18）
 
@@ -892,6 +933,34 @@ attachments（多模态能力）→ SessionMemory → 子代理上下文隔离�
 - [x] 把 `npm run typecheck` 接入 CI — **已修正**：原 CI 指向 `project/tsconfig.json`（另一个项目），
   主应用从未被检查。已拆为 `typecheck-project` + `typecheck-app`（后者盯 `tsconfig.check.json`，
   暂 `continue-on-error` 并输出错误数到 Job Summary，待收敛后转阻断）
-- [ ] 逐个排查剩余值位置的 `Cannot find name`（`TS2304`，运行时崩溃候选）—— **进行中**
-- [ ] `preload` 的字面量 channel 统一收敛为 `IpcChannels` 常量
-- [ ] 评估移除通用 `on/send/invoke` 逃逸口（安全边界：渲染层可调任意 channel）
+- [x] 逐个排查 `Cannot find name`（`TS2304`）—— **已清零：46 → 0**（类型错误总数 710 → 661）
+  - **6 处必崩项**（值位置）：`messages.ts:589` 的 `message`（参数名实为 `msg`，且被 try/catch
+    吞掉 → `hasUnresolvedHooks` 恒 false，放过本该拦截的 hook_blocking_error）；
+    `chat.ts:172` 的裸 `model`（无可用账户时的诊断提示崩溃，用户看不到失败原因）；
+    `managedXml.ts` 的 `parseToolNameSubtagFormat` / `extractArrowArgs`（被调用但从未定义，
+    前者每次 XML 解析都 ReferenceError）；`toolCallExtractor.ts:1104` 的 `argsStart`；
+    `proxy/index.ts` + `store/index.ts` 的「**重导出后直接引用**」
+    （`export { X } from 'y'` 只对外暴露名字，**不在本模块建立绑定**）
+  - 其余为类型位置（补导入即可）；`HarnessConfig` / `Tools` 从未定义，已在 `requestBuilder.ts` 补上
+  - ⚠️ 踩坑：我实现 `parseToolNameSubtagFormat` 时与另一会话撞车（它已有更完整实现，在文件后部），
+    同名声明两次 → `SyntaxError` 导致测试套件加载失败。**动手前应全文件 grep 函数定义，而非只看开头**
+- [x] 评估移除通用 `on/send/invoke` 逃逸口 —— **已收窄为白名单**
+  - 渲染层 3 处 `electronAPI.invoke('managementApi:*')` 改用既有的 `electronAPI.managementApi.*`
+    （该命名空间早已挂载，只是用法没更新）
+  - `preload/index.ts` 新增 `assertAllowedChannel`，白名单**默认全拒**；
+    拒绝时**抛错**而非静默忽略（静默会让调用方误以为订阅成功、实际收不到事件）
+  - `src/__tests__/main/preloadChannelGuard.test.ts`（5 例）锁定「三入口都校验 + 白名单为空 +
+    渲染层零使用」三项约束
+- [x] IPC 通道字面量统一收敛为 `IpcChannels` 常量 —— **已全仓库清零**
+  - `preload/index.ts` 62 处 `invoke`/`send`/`on` **+ 5 处 `removeListener`**
+  - ⚠️ **`removeListener` 是漏网之鱼**：`on(IpcChannels.TEAM_STREAM_PHASE, h)` 配
+    `removeListener('team:streamPhase', h)` —— 值相同所以能跑，但改通道名后监听器移不掉
+    （内存泄漏 + 回调重复触发）。「只改一半」是这类收敛最容易漏的形态
+  - **补 4 个缺失常量**：`TRAY_OPEN_DASHBOARD`/`TRAY_SET_HEIGHT`/`TRAY_QUIT_APP`（主进程与
+    preload 都用字面量）+ `TRAY_RESIZE`（**只在主进程监听侧，按 preload 扫描会漏掉**）
+  - **7 个死通道纳入常量表**：`chat:{subscribeEvents,unsubscribeEvents,grantPermission,
+    denyPermission,pause,resume,getState}` —— 主进程已注册但 preload 未暴露、渲染层未调用。
+    按「代码不能越来越少」原则**保留**，在常量表标注为预留能力（接线时须同时补
+    preload 暴露与 `electron.d.ts` 声明）
+  - `src/__tests__/main/ipcChannelConsistency.test.ts`（4 例）锁定：生产代码零字面量、
+    `on`/`removeListener` 成对、通道值无重复
