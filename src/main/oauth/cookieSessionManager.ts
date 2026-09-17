@@ -10,7 +10,10 @@
  * - networkHeader: 通过 webRequest.onBeforeSendHeaders 拦截
  */
 
-import { BrowserWindow, session, Cookie, type WebContents } from 'electron'
+// electronSession 是别名：本文件多处把 `session` 用作字段名/局部名，
+// 若直接导入 `session` 会被遮蔽，导致 `session: session` 之类写法
+// 把值当类型用（TS2749）。起别名可彻底避免遮蔽。
+import { BrowserWindow, session as electronSession, Cookie, type WebContents } from 'electron'
 import { EventEmitter } from 'events'
 import { ProviderType } from './types'
 import { getTokenExtractionConfig } from './tokenExtractionConfig'
@@ -79,7 +82,7 @@ export class CookieSessionManager extends EventEmitter {
 
     try {
       // Create persistent session
-      const ses = session.fromPartition(partition)
+      const ses = electronSession.fromPartition(partition)
 
       // Bypass SSL certificate verification for cookie sessions
       // This is needed because the local proxy intercepts HTTPS traffic
@@ -88,8 +91,13 @@ export class CookieSessionManager extends EventEmitter {
         callback(0)
       })
 
-      // Also auto-approve certificate errors during page navigation
-      ses.on('certificate-error', (_event: Electron.Event, _webContents: Electron.WebContents, _url: string, _error: string, _certificate: Electron.Certificate, callback: (isTrusted: boolean) => void) => {
+      // 自动放行证书错误。
+      //
+      // 原实现用 `ses.on('certificate-error', ...)` —— 该事件在 Electron 的
+      // Session 类型上没有重载（TS2769），且靠回调签名对齐也难保证。
+      // 改用 `setCertificateVerifyProc`：与本文件上面那处同一机制、类型明确，
+      // 传 0 即表示"验证通过"。
+      ses.setCertificateVerifyProc((_request, callback) => {
         callback(0)
       })
 
@@ -98,8 +106,8 @@ export class CookieSessionManager extends EventEmitter {
         .filter(t => t.type === 'cookie')
         .map(t => t.key)
 
-      ses.cookies.on('changed', async (_event, cookie: Cookie) => {
-        if (cookieNames.includes(cookie.name) && !cookie.removed) {
+      ses.cookies.on('changed', async (_event, cookie: Cookie, _cause, removed: boolean) => {
+        if (cookieNames.includes(cookie.name) && !removed) {
           await this.onCookieChanged(providerType, cookie.name, cookie.value)
         }
       })
@@ -221,7 +229,7 @@ export class CookieSessionManager extends EventEmitter {
    */
   private async extractCredentials(
     providerType: ProviderType,
-    ses: session,
+    ses: Electron.Session,
     webContents: WebContents
   ): Promise<Record<string, string>> {
     const config = getTokenExtractionConfig(providerType)
@@ -296,7 +304,7 @@ export class CookieSessionManager extends EventEmitter {
    */
   private startPeriodicRefresh(
     providerType: ProviderType,
-    ses: session,
+    ses: Electron.Session,
     webContents: WebContents
   ): void {
     // Clear existing timer
@@ -391,7 +399,7 @@ export class CookieSessionManager extends EventEmitter {
       ]
 
       for (const partition of partitions) {
-        const ses = session.fromPartition(partition)
+        const ses = electronSession.fromPartition(partition)
         await ses.clearStorageData()
         await ses.clearCache()
         console.log(`[CookieSession] Cleared storage for ${partition}`)
@@ -428,15 +436,15 @@ export class CookieSessionManager extends EventEmitter {
 
     // Create new visible window for login
     const partition = SESSION_PARTITION_PREFIX + providerType + '-login'
-    const ses = session.fromPartition(partition)
+    const ses = electronSession.fromPartition(partition)
 
     // Bypass SSL certificate verification for cookie sessions
     ses.setCertificateVerifyProc((_request, callback) => {
       callback(0)
     })
 
-    // Also auto-approve certificate errors during page navigation
-    ses.on('certificate-error', (_event: Electron.Event, _webContents: Electron.WebContents, _url: string, _error: string, _certificate: Electron.Certificate, callback: (isTrusted: boolean) => void) => {
+    // 自动放行证书错误（与上面 createSession 处同一机制，理由见该处注释）
+    ses.setCertificateVerifyProc((_request, callback) => {
       callback(0)
     })
 
@@ -455,7 +463,7 @@ export class CookieSessionManager extends EventEmitter {
     await window.loadURL(config.loginUrl)
 
     window.webContents.on('did-finish-load', async () => {
-      const ses = session.fromPartition(partition)
+      const ses = electronSession.fromPartition(partition)
       const creds = await this.extractCredentials(providerType, ses, window.webContents)
       if (this.hasAnyCredential(creds)) {
         this.emit('session-ready', providerType)
@@ -506,7 +514,9 @@ export class CookieSessionManager extends EventEmitter {
 
 interface ProviderSession {
   providerType: ProviderType
-  session: session
+  // 用 Electron.Session：小写的 `session` 在本文件里是局部变量（值），
+  // 不能当类型使用（TS2749）。
+  session: Electron.Session
   window: BrowserWindow
   partition: string
   config: ReturnType<typeof getTokenExtractionConfig>

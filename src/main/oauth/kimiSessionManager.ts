@@ -26,7 +26,7 @@ export interface KimiSessionManagerEvents {
 
 export class KimiSessionManager extends EventEmitter {
   private window: BrowserWindow | null = null
-  private session: session | null = null
+  private session: Electron.Session | null = null
   private currentToken: string | null = null
   private refreshTimer: NodeJS.Timeout | null = null
   private isReady: boolean = false
@@ -46,8 +46,8 @@ export class KimiSessionManager extends EventEmitter {
       this.session = session.fromPartition(KIMI_SESSION_PARTITION)
 
       // Set up cookie change listener
-      this.session.cookies.on('changed', async (_event: Electron.Event, cookie: Electron.Cookie) => {
-        if (cookie.name === KIMI_AUTH_COOKIE_NAME && !cookie.removed) {
+      this.session.cookies.on('changed', async (_event, cookie, _cause, removed) => {
+        if (cookie.name === KIMI_AUTH_COOKIE_NAME && !removed) {
           const len = cookie.value?.length || 0
           console.log('[KimiSession] Cookie refreshed:', KIMI_AUTH_COOKIE_NAME, 'value length:', len)
           this.currentToken = cookie.value || null
@@ -109,12 +109,13 @@ export class KimiSessionManager extends EventEmitter {
       const kimiAuthCookie = cookies.find((c: Electron.Cookie) => c.name === KIMI_AUTH_COOKIE_NAME)
 
       if (kimiAuthCookie?.value) {
-        this.currentToken = kimiAuthCookie.value
-        console.log('[KimiSession] Extracted token, length:', this.currentToken.length)
-        return this.currentToken
+        const token = kimiAuthCookie.value
+        this.currentToken = token
+        console.log('[KimiSession] Extracted token, length:', token.length)
+        return token
       }
 
-      console.log('[KimiSession] No kimi-auth cookie found, cookies available:', cookies.map(c => c.name).join(', '))
+      console.log('[KimiSession] No kimi-auth cookie found, cookies available:', cookies.map((c: Electron.Cookie) => c.name).join(', '))
       return null
     } catch (error) {
       console.error('[KimiSession] Failed to extract token:', error)

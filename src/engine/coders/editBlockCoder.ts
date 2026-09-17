@@ -165,7 +165,7 @@ export class EditBlockCoder implements Coder {
     // 回退：查找相似文件名
     if (!path.isAbsolute(edit.path)) {
       try {
-        const similar = findSimilarFile(edit.path);
+        const similar = await findSimilarFile(edit.path);
         if (similar) {
           const content = await fs.readFile(similar, 'utf-8');
           const newContent = this.replaceContent(content, edit.original, edit.updated);

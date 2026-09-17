@@ -167,7 +167,12 @@ export class SubAgentManager {
     return {
       async query(input: string) {
         const result = await engine.query(input);
-        return { messages: result.messages, tokenUsage: result.tokenUsage };
+        return {
+          messages: result.messages.map(m => ({
+            content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? ''),
+          })) as { content?: string }[],
+          tokenUsage: result.tokenUsage,
+        };
       },
       async abort() {
         try { await engine.abort(); } catch { /* 终止失败忽略 */ }

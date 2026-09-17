@@ -118,7 +118,7 @@ const expandPath = (p: string) => p;
 const getFsImplementation = () => fs;
 
 // Re-export for backward compatibility within this module
-export { ripGrep as ripGrep, fs as getFsImplementation, expandPath };
+export { ripGrep as ripGrep, getFsImplementation, expandPath };
 
 export type SymbolKind = 'function' | 'class' | 'interface' | 'type' | 'const' | 'let' | 'var' | 'enum';
 

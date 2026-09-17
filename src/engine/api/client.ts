@@ -160,7 +160,7 @@ async function sendAnthropicStream(
       }
     },
     onError(error) {
-      callbacks.onError(error)
+      callbacks.onError(error instanceof Error ? error.message : String(error))
     },
     onRetry() {},
     onComment() {},
@@ -583,15 +583,15 @@ export async function sendOpenAIStreamWithTools(
 
     const postStart = Date.now()
     console.log(`[API] POST ${endpoint} model=${config.model} stream=${body.stream} timeout=${client.defaults.timeout || 120000}ms`)
-    let response
+    let response: import('axios').AxiosResponse
     try {
-      response = await Promise.race([
+      response = (await Promise.race([
         client.post(endpoint, body, { signal, responseType: 'stream' }).then(r => {
           console.log(`[API] axios resolved, status=${r.status}`)
           return r
         }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('POST timeout after 120s')), 120000)),
-      ])
+      ])) as import('axios').AxiosResponse
     } catch (postError) {
       console.error(`[API] POST FAILED after ${Date.now() - postStart}ms:`, postError instanceof Error ? postError.message : String(postError))
       throw postError

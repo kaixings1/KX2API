@@ -32,7 +32,7 @@ export interface StepFunSessionEvents {
 
 export class StepFunSessionManager extends EventEmitter {
   private window: BrowserWindow | null = null
-  private session: session | null = null
+  private session: Electron.Session | null = null
   private currentToken: string = ''
   private currentWebId: string = ''
   private currentCookies: Record<string, string> = {}
@@ -58,13 +58,14 @@ export class StepFunSessionManager extends EventEmitter {
       this.session = session.fromPartition(STEPFUN_SESSION_PARTITION)
 
       // Bypass SSL certificate verification
-      this.session.setCertificateVerifyProc((_request: Electron.CertificateVerifyProcRequest, callback: (verificationResult: number) => void) => {
+      this.session.setCertificateVerifyProc((_request, callback) => {
         callback(0)
       })
 
-      this.session.on('certificate-error', (_event: Electron.Event, _webContents: Electron.WebContents, _url: string, _error: string, _certificate: Electron.Certificate, callback: (isTrusted: boolean) => void) => {
-        callback(0)
-      })
+      // 注：此处原有一个 `certificate-error` 监听，与上面第 61 行的
+      // setCertificateVerifyProc 目的重复（都是放行证书错误）。
+      // 保留前者即可 —— 它类型明确、且是该场景的标准做法；
+      // `certificate-error` 在 Session 类型上也没有匹配的重载（TS2769）。
 
       // Listen for cookie changes. Affinity cookies rotate on their own
       // schedule, so they must trigger a re-extract too — otherwise the adapter

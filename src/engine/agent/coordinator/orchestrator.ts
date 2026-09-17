@@ -211,13 +211,14 @@ export class Orchestrator {
 
     const durationMs = Date.now() - startTime
 
-    const taskResult: ExecutionReport["taskResults"][0] = {
+    const taskResult: TaskNodeResult & { taskId: string; description: string } = {
       taskId: task.id,
       description: task.description,
       success,
       output: output.slice(0, 5000),
       error,
       durationMs,
+      executedAt: new Date().toISOString(),
     }
 
     // 更新 plan 中的任务结果
@@ -226,7 +227,7 @@ export class Orchestrator {
       output: output.slice(0, 5000),
       error,
       durationMs,
-      executedAt: new Date().toISOString(),
+      executedAt: taskResult.executedAt,
     }
 
     this.persistPlan(plan)
@@ -323,7 +324,7 @@ export class Orchestrator {
       success: failed === 0,
       taskResults,
       totalDurationMs: Date.now() - startTime,
-      discussionRounds: discussions.length,
+      discussions,
       conclusion,
       finishedAt: new Date().toISOString(),
     }

@@ -10,7 +10,8 @@
  * （Electron 打包后工作目录不固定，相对路径定位不稳）。
  */
 
-import type { Tool, ToolPlugin } from '../../engine/plugin/toolPluginRegistry.ts'
+import type { Tool } from '../toolScheduler.ts'
+import type { ToolPlugin } from './toolPluginRegistry.ts'
 import { MemoryToolHandler } from '../../memory/memoryTool.ts'
 
 /** 单例处理器 */

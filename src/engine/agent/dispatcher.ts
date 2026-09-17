@@ -131,6 +131,7 @@ export class AgentDispatcher {
                 ],
                 {
                   onText: (chunk) => { output += chunk },
+                  onToolUse: () => {},
                   onDone: () => { resolve() },
                   onError: (err) => { reject(new Error(err)) },
                 },
@@ -238,6 +239,7 @@ export class AgentDispatcher {
             ],
             {
               onText: (chunk) => { output += chunk },
+              onToolUse: () => {},
               onDone: () => { resolve() },
               onError: (err) => { reject(new Error(err)) },
             },
