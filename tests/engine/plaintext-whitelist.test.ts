@@ -117,6 +117,34 @@ describe('白名单放行真实工具调用', () => {
   })
 })
 
+describe('外层标签即工具名（collectOuterTagAsTool）', () => {
+  test('外层标签就是工具名时能被识别', () => {
+    const text = '<list_dir><path>D:\\KX2API\\build</path></list_dir>'
+    const blocks = extractPlainTextToolCalls(text, TOOLS)
+    assert.equal(blocks.length, 1, '<list_dir> 应被识别为工具调用')
+    // list_dir 是模型自造名，经别名兜底归一化到 ls
+    assert.equal(blocks[0].name, 'list_dir')
+    assert.equal((blocks[0].arguments as Record<string, unknown>).path, 'D:\\KX2API\\build')
+  })
+
+  test('外层是通用容器时，从 name 属性取工具名（<invoke name="ls">）', () => {
+    const text = '<invoke name="ls"><path>D:\\KX2API\\build</path></invoke>'
+    const blocks = extractPlainTextToolCalls(text, TOOLS)
+    assert.equal(blocks.length, 1, '应从 name 属性解析出工具名')
+    assert.equal(blocks[0].name, 'ls', '工具名必须是 name 属性的值，而非外层标签 invoke')
+  })
+
+  test('外层标签不是工具名、也无 name 属性时不识别', () => {
+    const text = '<div><path>D:\\KX2API\\build</path></div>'
+    assert.equal(extractPlainTextToolCalls(text, TOOLS).length, 0)
+  })
+
+  test('无参数子标签的空容器不识别（避免误吞正文标签）', () => {
+    assert.equal(extractPlainTextToolCalls('<ls></ls>', TOOLS).length, 0)
+    assert.equal(extractPlainTextToolCalls('<ls>你好</ls>', TOOLS).length, 0)
+  })
+})
+
 describe('parsePlainTextToolCalls 全消耗语义 + 白名单', () => {
   test('整段是名单内工具调用 → 返回结果', () => {
     const only = '<tool_call><name>ls</name><arguments>{"path":"."}</arguments></tool_call>'

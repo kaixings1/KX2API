@@ -1,0 +1,35 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/subagent/subAgentManager.ts(142,32): error TS2339: Property 'skillTree' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(155,18): error TS2339: Property 'skillTree' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(156,36): error TS2339: Property 'skillTree' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(199,22): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/engine/subagent/subAgentManager.ts(240,16): error TS2339: Property 'assembly' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(242,18): error TS2339: Property 'assembly' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(243,36): error TS2339: Property 'assembly' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(245,18): error TS2339: Property 'assembly' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(247,25): error TS2339: Property 'assembly' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(250,18): error TS2339: Property 'assembly' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(252,25): error TS2339: Property 'assembly' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(255,18): error TS2339: Property 'assembly' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(256,34): error TS2339: Property 'assembly' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(292,18): error TS2339: Property 'skillTree' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(293,25): error TS2339: Property 'skillTree' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(308,18): error TS2339: Property 'skillTree' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(309,25): error TS2339: Property 'skillTree' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(317,42): error TS2571: Object is of type 'unknown'.
+src/engine/subagent/subAgentManager.ts(317,49): error TS2571: Object is of type 'unknown'.
+src/engine/subagent/subAgentManager.ts(318,62): error TS18046: 'v' is of type 'unknown'.
+src/engine/subagent/subAgentManager.ts(325,71): error TS2551: Property 'modelId' does not exist on type 'SubAgentConfig'. Did you mean 'model'?
+src/engine/subagent/subAgentManager.ts(328,74): error TS2551: Property 'modelId' does not exist on type 'SubAgentConfig'. Did you mean 'model'?
+src/engine/subagent/subAgentManager.ts(330,44): error TS2339: Property 'priority' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(330,64): error TS2339: Property 'priority' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(337,65): error TS2339: Property 'priority' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(337,85): error TS2339: Property 'priority' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(406,16): error TS2339: Property 'capabilities' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(406,36): error TS2339: Property 'capabilities' does not exist on type 'SubAgentConfig'.
+src/engine/subagent/subAgentManager.ts(407,51): error TS2339: Property 'capabilities' does not exist on type 'SubAgentConfig'.
+src/main/engine-bridge.ts(193,29): error TS2339: Property 'setMaxConcurrentAgents' does not exist on type 'SubAgentManager'.
+src/main/engine-bridge.ts(219,28): error TS2339: Property 'setEngineFactory' does not exist on type 'SubAgentManager'.
+src/main/engine-bridge.ts(219,46): error TS7006: Parameter 'opts' implicitly has an 'any' type.

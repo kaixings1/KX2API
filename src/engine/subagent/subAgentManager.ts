@@ -77,20 +77,69 @@ export interface SubAgentManagerDeps {
   }) => void;
 }
 
+/** 子代理默认并发上限（此前硬编码在类字段里，现可运行时调整） */
+export const DEFAULT_MAX_CONCURRENT_AGENTS = 5
+
+/** 归一化并发上限：非有限值或小于 1 时回落默认 */
+function normalizeMaxConcurrent(n: number): number {
+  if (!Number.isFinite(n) || n < 1) return DEFAULT_MAX_CONCURRENT_AGENTS
+  return Math.floor(n)
+}
+
 export class SubAgentManager {
   private registry = new Map<string, SubAgentConfig>();
   private instances = new Map<string, SubAgentInstance>();
-  private maxConcurrentAgents = 5;
+  private maxConcurrentAgents = DEFAULT_MAX_CONCURRENT_AGENTS;
   private activeAgents = 0;
   private deps: SubAgentManagerDeps = {};
+  /** 子引擎工厂：由外部注入真实的引擎装配（缺省回落到 defaultEngineCtor / 隔离桩） */
+  private engineFactory: IsolatedEngineFactory | null = null;
 
-  constructor(deps?: SubAgentManagerDeps) {
-    this.deps = deps ?? {};
+  /**
+   * @param depsOrMax 依赖注入对象，或直接给出并发上限数字。
+   *   传数字是为了让「并发上限」可注入（测试与运行时配置都用这个入口）；
+   *   非法值（0、负数、NaN）一律回落到默认值，避免把并发闸门设成 0 导致全部拒绝。
+   */
+  constructor(depsOrMax?: SubAgentManagerDeps | number) {
+    if (typeof depsOrMax === "number") {
+      this.maxConcurrentAgents = normalizeMaxConcurrent(depsOrMax);
+      this.deps = {};
+    } else {
+      this.deps = depsOrMax ?? {};
+    }
     for (const [name, cfg] of Object.entries(predefinedAgents)) {
       this.registry.set(name, cfg);
     }
   }
 
+  /**
+   * 运行时更新并发上限（设置界面改完即时生效）。
+   * 非法值不改变既有设置 —— 静默忽略比"回落默认"更安全：
+   * 用户误填 0 时不该把已经调好的 12 悄悄变回 5。
+   */
+  setMaxConcurrentAgents(max: number): void {
+    if (!Number.isFinite(max) || max < 1) return;
+    this.maxConcurrentAgents = Math.floor(max);
+  }
+
+  /** 当前并发状况（供 UI 展示与测试断言） */
+  getConcurrencyInfo(): { max: number; active: number; available: number } {
+    return {
+      max: this.maxConcurrentAgents,
+      active: this.activeAgents,
+      available: Math.max(0, this.maxConcurrentAgents - this.activeAgents),
+    };
+  }
+
+  /**
+   * 注入子引擎工厂。
+   *
+   * 缺省实现只是「能构造、不能工作」——内部 createQueryEngine 返回的是隔离桩，
+   * 真正的推理由调用方经此注入的工厂提供（否则子代理的 query 不会真的跑模型）。
+   */
+  setEngineFactory(factory: IsolatedEngineFactory): void {
+    this.engineFactory = factory;
+  }
   setDeps(deps: SubAgentManagerDeps): void {
     this.deps = deps;
   }
@@ -196,7 +245,7 @@ export class SubAgentManager {
       instance.status = "failed";
       const duration = Date.now() - startTime.getTime();
       const errMsg = e instanceof Error ? e.message : String(e);
-      this.failTrace(traceId, errMsg);
+      if (traceId) this.failTrace(traceId, errMsg);
       this.recordExperience(params.agentName, false, duration);
 
       if (traceId && this.deps.onTracePersist) {
@@ -231,6 +280,34 @@ export class SubAgentManager {
 
   private createQueryEngine(config: SubAgentConfig, params: ExecuteSubAgentParams): SubAgentInstance["engine"] {
     const maxTokens = params.maxTokens ?? config.maxTokens ?? 4000;
+
+    // 优先使用外部注入的工厂：它才会把真实 apiClient 装进子引擎。
+    // 次选全局默认构造器；两者都没有时，落到下面的隔离桩（仅能构造、不能推理）。
+    const factory = this.engineFactory
+    if (factory) {
+      const engine = factory({
+        model: params.parentModel ?? config.model ?? "",
+        systemPrompt: config.systemPrompt,
+        maxOutputTokens: maxTokens,
+        allowedTools: config.allowedTools,
+        parentModel: params.parentModel,
+      })
+      return {
+        query: (input: string) => engine.query(input) as ReturnType<SubAgentEngine["query"]>,
+        abort: async () => { engine.abort?.() },
+      }
+    }
+    if (defaultEngineCtor) {
+      const engine = new defaultEngineCtor({
+        model: params.parentModel ?? config.model ?? "",
+        systemPrompt: config.systemPrompt,
+        maxOutputTokens: maxTokens,
+      })
+      return {
+        query: (input: string) => engine.query(input) as ReturnType<SubAgentEngine["query"]>,
+        abort: async () => { engine.abort?.() },
+      }
+    }
     // 隔离的消息历史（含系统提示），保证子代理上下文不泄漏到父会话
     const messages: Array<{ role: string; content: string }> = [];
     let aborted = false;
