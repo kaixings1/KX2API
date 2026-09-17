@@ -1135,6 +1135,35 @@ forwarder 一律调 `adapter.chatCompletion()` 并期望 `{success, stream, body
 **当前状态**：typecheck **0 错误** / `npm run build` ✅ /
 `npm run test:all` ✅（agent 47 + management 74 + extras 555 + unit 1189，0 失败）。
 
+## 第十一轮：修复「界面不显示、不停止」
+
+### 根因一：emit 在构造期快照了回调（主因）
+
+`messageLoop.ts` 原来 `this.emit = this.deps.onEvent ?? (() => {})` 在构造期快照，
+而 `engine/index.ts:364 setLoopEventHandler()` 每次 `query()` 前**事后替换**
+`deps.onEvent` —— 替换失效，`done`/`response_chunk` 一个都到不了渲染层。
+引擎日志打印 `DONE after 7249ms`，但 UI 一直转圈。
+
+改法：把 `emit` 改成 getter 每次动态读 `deps.onEvent`（不能直接改成可选字段，
+否则 19 处调用退化成 TS2722）。
+
+### 根因二：LOOP_GUARD 直接 done，用户看到空回复
+
+熔断后 push 的是**给模型的内部提示**，导致会话最后一条消息变成那条提示，
+UI 取 `messages[last].content` 显示为空/XML 残片。
+改法：新增 `loopGuardTripped`（每次 `run()` 重置），首次触发只切断工具执行并
+`should_continue` 再给模型一轮作答机会，第二次才真正 `done`。
+
+### 回归测试
+
+`tests/engine/message-loop-event-handler.test.ts`（node:test，2 例），
+已验证有效性：把 emit 改回构造期快照 → 2 例全 fail。
+⚠️ vitest 的 `vitest.config.ts` 排除了 `src/engine/__tests__/**`，
+engine 单测必须放 `tests/engine/` 用 node:test。
+
+**验证**：typecheck 0（除另一会话新建的 `src/engine/orchestrator/` 8 处未跟踪文件）/ build ✅ /
+test:all ✅（agent 47 + management 74 + extras **557** + unit 1190，0 失败）。
+
 ### CI 转为阻断式
 
 类型错误归零后，按 `ci.yml` 原注释里的约定，把 `typecheck-app` 的
