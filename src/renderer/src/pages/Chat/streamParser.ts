@@ -82,7 +82,7 @@ export class StreamParser {
   private toolIdCounter = 0
 
   /**
-   * 追加原始流式文本，返回当前已解析的完整�容
+   * 追加原始流式文本，返回当前已解析的完整内容
    */
   append(chunk: string): ParsedContent {
     this.rawAccumulated += chunk

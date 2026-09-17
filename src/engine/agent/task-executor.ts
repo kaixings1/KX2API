@@ -170,7 +170,7 @@ export class TaskExecutor {
       results.push(lastResult!)
 
       if (!lastResult!.success) {
-        failed.push({ id: subtask.id, description: subtask.description, error: lastResult!.error ?? "未��错误" })
+        failed.push({ id: subtask.id, description: subtask.description, error: lastResult!.error ?? "未知错误" })
         // 非关键子任务失败继续，关键失败中断
         if (!subtask.toolHint) {
           aborted = true

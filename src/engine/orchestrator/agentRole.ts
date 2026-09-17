@@ -52,7 +52,7 @@ const ROLE_META: Record<
   researcher: {
     name: 'Researcher',
     goal: '代码库调研、技术调研、依赖分析、最佳实践研究',
-    backstory: '你是 Researcher，负责调研代码库中相关的现有实现、研究技术方案的最佳实践、分析依赖关系和影响范围。你只调研不修改文件，调研报告必须包含具体的文件路径和行号，区分事实（已找到的代码）和推��（基于经验的建议）。',
+    backstory: '你是 Researcher，负责调研代码库中相关的现有实现、研究技术方案的最佳实践、分析依赖关系和影响范围。你只调研不修改文件，调研报告必须包含具体的文件路径和行号，区分事实（已找到的代码）和推测（基于经验的建议）。',
     allowedTools: ['bash', 'file_read', 'glob', 'grep', 'code_search'],
     maxTurns: 10,
   },

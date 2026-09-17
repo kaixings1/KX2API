@@ -122,7 +122,7 @@ export class StreamingToolExecutor {
   }
 
   /**
-   * 检查工具是否可以执行（基��并发状态）
+   * 检查工具是否可以执行（基于并发状态）
    */
   private canExecuteTool(isConcurrencySafe: boolean): boolean {
     const executingTools = this.tools.filter(t => t.status === 'executing')

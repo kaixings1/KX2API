@@ -805,7 +805,7 @@ export interface RequestLogEntry {
   chatEngineInput?: string
   /** Engine 实际请求的 URL（通常是 http://127.0.0.1:8080/v1/chat/completions） */
   chatEngineUrl?: string
-  /** Engine 层使�的 provider 类型 (openai / anthropic / custom) */
+  /** Engine 层使用的 provider 类型 (openai / anthropic / custom) */
   chatEngineProvider?: string
   /** Engine 层使用的 model */
   chatEngineModel?: string

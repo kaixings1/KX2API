@@ -127,7 +127,7 @@ export function AgentDetailPage() {
   if (!agent) {
     return (
       <div className="space-y-4">
-        <BackButton to="/agents" label="返�列表" />
+        <BackButton to="/agents" label="返回列表" />
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
             Agent 不存在或已被删除
