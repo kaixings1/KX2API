@@ -1,5 +1,0 @@
-npm notice run kx2code@1.0.0 npx
-npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
-src/engine/knowledgeGraph.ts(1,1): error TS1490: File appears to be binary.
-src/engine/knowledgeGraph.ts(257,33): error TS1005: ',' expected.
-src/engine/knowledgeGraph.ts(495,1): error TS1005: '}' expected.

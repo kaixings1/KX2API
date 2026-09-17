@@ -1,5 +1,0 @@
-npm notice run kx2code@1.0.0 npx
-npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
-src/engine/codeExplainer.ts(58,27): error TS2868: Cannot find name 'Bun'. Do you need to install type definitions for Bun? Try `npm i --save-dev @types/bun` and then add 'bun' to the types field in your tsconfig.
-src/engine/orchestrator/pipeline.ts(334,45): error TS2304: Cannot find name 'AgentRole'.
-src/engine/orchestrator/pipeline.ts(335,36): error TS2304: Cannot find name 'AgentRole'.

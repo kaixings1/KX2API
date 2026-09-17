@@ -1,4 +1,4 @@
-﻿import type { ToolProtocolAdapter } from './base.ts'
+import type { ToolProtocolAdapter } from './base.ts'
 import type { ToolParseContext } from '../types.ts'
 import {
   addParameter,

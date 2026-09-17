@@ -1,8 +1,0 @@
-npm notice run kx2code@1.0.0 npx
-npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
-src/engine/codeExplainer.ts(58,27): error TS2868: Cannot find name 'Bun'. Do you need to install type definitions for Bun? Try `npm i --save-dev @types/bun` and then add 'bun' to the types field in your tsconfig.
-src/engine/orchestrator/pipeline.ts(55,44): error TS2345: Argument of type 'string' is not assignable to parameter of type 'AgentRole'.
-src/engine/orchestrator/pipeline.ts(203,11): error TS2741: Property 'discuss' is missing in type '{ research: string; analyze: string; design: string; plan: string; implement: string; verify: string; review: string; done: string; failed: string; }' but required in type 'Record<WorkflowStage, string>'.
-src/engine/orchestrator/pipeline.ts(334,9): error TS2741: Property 'discuss' is missing in type '{ research: string; analyze: string; design: string; plan: string; implement: string; verify: string; review: string; done: string; failed: string; }' but required in type 'Record<WorkflowStage, string>'.
-src/engine/orchestrator/taskGraph.ts(191,9): error TS2741: Property 'discuss' is missing in type '{ research: "researcher"; analyze: "pm"; design: "architect"; plan: "team_leader"; implement: "engineer"; verify: "qa"; review: "team_leader"; done: "supervisor"; failed: "supervisor"; }' but required in type 'Record<WorkflowStage, AgentRole>'.
-src/engine/orchestrator/taskGraph.ts(206,9): error TS2741: Property 'discuss' is missing in type '{ research: string; analyze: string; design: string; plan: string; implement: string; verify: string; review: string; done: string; failed: string; }' but required in type 'Record<WorkflowStage, string>'.

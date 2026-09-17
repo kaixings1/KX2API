@@ -26,7 +26,9 @@
     "test:extras": "node tests/run-all.mjs",
     "typecheck": "tsc -p tsconfig.check.json --noEmit",
     "check:integration": "node scripts/check-integration.mjs",
-    "check:repo": "node scripts/check-repo.mjs"
+    "check:repo": "node scripts/check-repo.mjs",
+    "check:encoding": "node scripts/check-encoding.mjs",
+    "fix:eol": "node scripts/normalize-eol.mjs"
   },
   "dependencies": {
     "@koa/router": "^15.3.0",

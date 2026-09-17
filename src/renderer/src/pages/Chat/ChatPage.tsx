@@ -361,18 +361,18 @@ function hasMarkdown(text: string): boolean {
     || /\[.+?\]\(.+?\)/.test(text)           // 链接
 }
 
-// diff 变更行：`-old`/`+new`（符号后紧跟非空白，区别于 markdown 列表 `- item` 的空格）。
-// 判定需「同时存在 - 行与 + 行」且总数 ≥2，避免把普通 `- 无序列表` 误当成 diff。
+// diff 变更行：`-old`/`+new`（符号后紧跟非空白且长度 >= 3，区别于 markdown 标题 `## xxx` 等短行）。
+// 判定需「有效 diff 行总数 >= 3 且同时存在 - 和 +」，避免把普通 `- 无序列表` / `## 标题` 误当成 diff。
 function looksLikeDiff(text: string): boolean {
   const lines = text.split('\n')
   let minus = 0
   let plus = 0
   for (const l of lines) {
     const t = l.replace(/^\s+/, '')
-    if (/^-(?=\S)/.test(t)) minus++
-    else if (/^\+(?=\S)/.test(t)) plus++
+    if (/^-(?=\S{2,})/.test(t)) minus++
+    else if (/^\+(?=\S{2,})/.test(t)) plus++
   }
-  return (minus + plus) >= 2 && minus > 0 && plus > 0
+  return (minus + plus) >= 3 && minus > 0 && plus > 0
 }
 
 /** 是否用 ReactMarkdown 渲染：diff 文本直接走 BodyText 的 diff 高亮，避免被列表化/颜色丢失 */
@@ -388,6 +388,8 @@ function allowsMarkdown(text: string): boolean {
  */
 function normalizeList(text: string): string {
   return text
+    // 文本开头直接是标题（无前置换行）：补一个换行，让 ReactMarkdown 正确识别
+    .replace(/^(#{1,6}\s)/m, '\n$1')
     .replace(/(\n)(\d+[.)])(\s+[^\s])/g, '\n\n$2$3')
     .replace(/(\n)([-*+])(\s+)(?=\S)/g, '\n\n$2$3')
     .replace(/(\n)(#{1,6}\s)/g, '\n\n$2')
