@@ -29,8 +29,41 @@ interface DedupEntry<T> {
   pendingCount: number
 }
 
-const DEFAULT_DEDUP_WINDOW_MS = 2000
-const MAX_BUFFER_MB = 10
+/** 请求去重的默认时间窗口（毫秒） */
+export const DEFAULT_DEDUP_WINDOW_MS = 2000
+/** 单条共享流的最大缓冲（MB） */
+export const DEFAULT_MAX_BUFFER_MB = 10
+
+interface DedupOptions {
+  dedupWindowMs?: number
+  maxBufferMb?: number
+}
+
+const dedupOptions = {
+  dedupWindowMs: DEFAULT_DEDUP_WINDOW_MS,
+  maxBufferMb: DEFAULT_MAX_BUFFER_MB,
+}
+
+/**
+ * 更新去重策略（设置界面改完即时生效）。
+ *
+ * 窗口越大，越容易把「用户短时间内重复点击/重试」合并为一次上游请求，省额度；
+ * 但窗口过大也可能把两次本应独立的新提问误判为重复，导致第二次拿不到回复。
+ */
+export function setDedupOptions(opts: DedupOptions): void {
+  const put = (key: 'dedupWindowMs' | 'maxBufferMb', v: number | void) => {
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) {
+      dedupOptions[key] = key === 'dedupWindowMs' ? Math.floor(v) : v
+    }
+  }
+  put('dedupWindowMs', opts.dedupWindowMs)
+  put('maxBufferMb', opts.maxBufferMb)
+}
+
+/** 当前生效的去重策略 */
+export function getDedupOptions(): { dedupWindowMs: number; maxBufferMb: number } {
+  return { ...dedupOptions }
+}
 
 function computeMessagesHash(messages: any[]): string {
   try {
@@ -76,9 +109,21 @@ export class RequestDeduplicator {
   private cleanupTimer: ReturnType<typeof setInterval> | null = null
   private windowMs: number
 
-  constructor(windowMs: number = DEFAULT_DEDUP_WINDOW_MS) {
+  constructor(windowMs: number = dedupOptions.dedupWindowMs) {
     this.windowMs = windowMs
     this.cleanupTimer = setInterval(() => this.cleanup(), 5000)
+  }
+
+  /** 运行时调整去重窗口（设置界面改完即时生效） */
+  setWindowMs(ms?: number | void): void {
+    if (typeof ms === 'number' && Number.isFinite(ms) && ms > 0) {
+      this.windowMs = Math.floor(ms)
+    }
+  }
+
+  /** 当前去重窗口（诊断用） */
+  getWindowMs(): number {
+    return this.windowMs
   }
 
   destroy(): void {
@@ -227,7 +272,7 @@ export class RequestDeduplicator {
     console.log(`[Dedup] REGISTER-NEW key=${key} stream=${fingerprint.stream} active=${this.entries.size}`)
 
     // Buffer data from the shared stream for late-arriving duplicates
-    const MAX_BUFFER_BYTES = MAX_BUFFER_MB * 1024 * 1024
+    const MAX_BUFFER_BYTES = dedupOptions.maxBufferMb * 1024 * 1024
     let bufferedBytes = 0
 
     entry.sharedStream.on('data', (chunk: Buffer) => {

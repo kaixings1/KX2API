@@ -3,7 +3,26 @@ import { getBuiltinProvider } from './builtin'
 import type { Provider, ProviderCheckResult, Account } from '../../shared/types'
 import type { BuiltinProviderConfig } from '../store/types'
 
-const CHECK_TIMEOUT = 15000
+/** 供应商连通性探测的默认超时（毫秒） */
+export const DEFAULT_CHECK_TIMEOUT = 15000
+
+let checkTimeout = DEFAULT_CHECK_TIMEOUT
+
+/**
+ * 设置探测超时（设置界面改完即时生效）。
+ *
+ * 超时太短会把慢但可用的供应商误判为不可用；太长会让探测页卡住等待。
+ */
+export function setCheckTimeout(ms?: number | void): void {
+  if (typeof ms === 'number' && Number.isFinite(ms) && ms > 0) {
+    checkTimeout = Math.floor(ms)
+  }
+}
+
+/** 当前探测超时 */
+export function getCheckTimeout(): number {
+  return checkTimeout
+}
 
 export interface TokenCheckResult {
   valid: boolean
@@ -49,7 +68,7 @@ export class ProviderChecker {
       const response = await axios({
         method: 'GET',
         url: checkUrl,
-        timeout: CHECK_TIMEOUT,
+        timeout: checkTimeout,
         validateStatus: () => true,
       })
       
@@ -87,7 +106,7 @@ export class ProviderChecker {
         method: 'GET',
         url: `${provider.apiEndpoint}/models`,
         headers: provider.headers,
-        timeout: CHECK_TIMEOUT,
+        timeout: checkTimeout,
         validateStatus: () => true,
       })
       
@@ -197,7 +216,7 @@ export class ProviderChecker {
               Accept: '*/*',
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             },
-            timeout: CHECK_TIMEOUT,
+            timeout: checkTimeout,
             validateStatus: () => true,
           }
         )
@@ -263,7 +282,7 @@ export class ProviderChecker {
       const response = await axios.post(
         'https://chat.stepfun.com/api/agent/capy.agent.v1.AgentService/CreateChatSession',
         {},
-        { headers, timeout: CHECK_TIMEOUT, validateStatus: () => true }
+        { headers, timeout: checkTimeout, validateStatus: () => true }
       )
 
       if (response.status >= 200 && response.status < 300) {
@@ -328,7 +347,7 @@ export class ProviderChecker {
             'Origin': 'https://chat.deepseek.com',
             'Referer': 'https://chat.deepseek.com/',
           },
-          timeout: CHECK_TIMEOUT,
+          timeout: checkTimeout,
           validateStatus: () => true,
         }
       )
@@ -405,7 +424,7 @@ export class ProviderChecker {
             'X-Sign': sign.sign,
             'X-Timestamp': `${sign.timestamp}`,
           },
-          timeout: CHECK_TIMEOUT,
+          timeout: checkTimeout,
           validateStatus: () => true,
         }
       )
@@ -476,7 +495,7 @@ export class ProviderChecker {
             'Origin': 'https://www.kimi.com',
             'Referer': 'https://www.kimi.com/',
           },
-          timeout: CHECK_TIMEOUT,
+          timeout: checkTimeout,
           validateStatus: () => true,
         }
       )
@@ -589,7 +608,7 @@ export class ProviderChecker {
             'x-signature': signature,
             'yy': yy,
           },
-          timeout: CHECK_TIMEOUT,
+          timeout: checkTimeout,
           validateStatus: () => true,
         }
       )
@@ -647,7 +666,7 @@ export class ProviderChecker {
             pr: 'qwen',
             ut: '5b68c267-cd8e-fd0e-148a-18345bc9a104',
           },
-          timeout: CHECK_TIMEOUT,
+          timeout: checkTimeout,
           validateStatus: () => true,
         }
       )
@@ -684,7 +703,7 @@ export class ProviderChecker {
             Accept: 'application/json',
             source: 'web',
           },
-          timeout: CHECK_TIMEOUT,
+          timeout: checkTimeout,
           validateStatus: () => true,
         }
       )
@@ -751,7 +770,7 @@ export class ProviderChecker {
         method: config.tokenCheckMethod || 'GET',
         url: `${config.apiEndpoint.replace('/api', '')}${config.tokenCheckEndpoint}`,
         headers,
-        timeout: CHECK_TIMEOUT,
+        timeout: checkTimeout,
         validateStatus: () => true,
       })
       
@@ -794,7 +813,7 @@ export class ProviderChecker {
         method: 'GET',
         url: `${provider.apiEndpoint}/models`,
         headers,
-        timeout: CHECK_TIMEOUT,
+        timeout: checkTimeout,
         validateStatus: () => true,
       })
       
@@ -854,7 +873,7 @@ export class ProviderChecker {
 
       const response = await axios.get(builtinConfig.modelsApiEndpoint, {
         headers,
-        timeout: CHECK_TIMEOUT,
+        timeout: checkTimeout,
         validateStatus: () => true,
       })
 

@@ -1662,6 +1662,17 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       }
     }
 
+    // 代理层/日志层参数热更新：去重窗口、流队列上限、探测超时等
+    if (updates && ('proxyRuntime' in updates || 'logRuntime' in updates)) {
+      try {
+        const { applyAuxRuntimeConfig } = await import('../runtimeConfigApply.ts')
+        applyAuxRuntimeConfig()
+        console.log('[RuntimeConfig] 代理/日志参数已热更新')
+      } catch (e) {
+        console.warn('[RuntimeConfig] 同步代理/日志参数失败:', (e as Error).message)
+      }
+    }
+
     // 工具运行参数热更新：落盘策略 + 执行超时，改完即时生效
     if (updates && 'toolRuntime' in updates) {
       try {

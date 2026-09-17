@@ -191,6 +191,11 @@ export function applyToolRuntimeConfig(): void {
         eng.subAgentManager.setMaxConcurrentAgents(sub.maxConcurrentAgents)
       }
     }
+
+    // 代理层与日志层参数：各自独立应用，不依赖引擎实例
+    void import('./runtimeConfigApply.ts')
+      .then(({ applyAuxRuntimeConfig }) => applyAuxRuntimeConfig())
+      .catch(() => {})
   } catch (e) {
     console.warn('[EngineBridge] 应用运行参数失败，使用默认值:', (e as Error).message)
   }
@@ -320,18 +325,30 @@ function createApiClientStream(
 
     // 记忆召回（吸收自 Claude Code 的 memdir）：按最后一条用户消息检索相关记忆。
     // 记忆属增强项，任何异常都静默降级为空，绝不阻断主请求。
+    //
+    // 走分片缓存：本函数在**工具循环的每一轮**都会被调用，而用户输入在一次
+    // query 内不变 —— 不缓存就等于每轮都重新扫描记忆目录并读取文件。
     let memorySection: string | null = null
     try {
       const lastUser = [...rawMessages].reverse().find(m => m.role === 'user')
       const query = typeof lastUser?.content === 'string' ? lastUser.content : ''
       if (query.trim()) {
-        const { buildMemoryPromptSection } = await import('../engine/memory/memoryRecall.ts')
-        memorySection = await buildMemoryPromptSection(query)
+        const [{ buildMemoryPromptSection }, { section, buildPromptFromSections, fingerprint }] = await Promise.all([
+          import('../engine/memory/memoryRecall.ts'),
+          import('../engine/promptSections.ts'),
+        ])
+        const text = await buildPromptFromSections([
+          // 键里带 query 指纹：不同输入命中不同条目，同一输入复用结果
+          section(`memory:${fingerprint(query)}`, () => buildMemoryPromptSection(query)),
+        ])
+        memorySection = text.trim() ? text : null
       }
     } catch (e) {
       console.warn('[EngineBridge] memory recall skipped:', (e as Error).message)
     }
 
+    // 注意顺序：toolHint（随工具组变化，低频）在前，
+    // memorySection（每轮可能不同）在后 —— 缓存前缀越稳定，命中率越高。
     const systemExtra = [toolHint, memorySection].filter(Boolean).join('\n\n')
     if (systemExtra) {
       const sysIdx = messages.findIndex(m => m.role === 'system')
@@ -670,6 +687,27 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
 /** 获取引擎实例（供 IPC handlers 使用） */
 export function getEngineInstance(): QueryEngine | null {
   return engine
+}
+
+/**
+ * 重置请求构建器的会话级缓存。
+ *
+ * `RequestBuilder` 持有工具结果的替换决策状态（`replacementState`），
+ * 该状态带**冻结语义** —— 一旦某个 toolUseId 被决策为「替换」或「不替换」，
+ * 后续轮次不得反悔，否则替换集合每轮变化会让 prompt cache 全量失效。
+ *
+ * 代价是它会跨会话累积：清空历史时必须一并重置，否则新会话会沿用旧决策
+ * （表现为新对话里出现上一个会话的落盘预览）。
+ */
+export function resetRequestBuilderCaches(): void {
+  try {
+    const eng = getEngineInstance() as unknown as {
+      requestBuilder?: { resetReplacementState?: () => void }
+    } | null
+    eng?.requestBuilder?.resetReplacementState?.()
+  } catch {
+    // 缓存重置属清理动作，失败不应阻断会话清空
+  }
 }
 
 /**

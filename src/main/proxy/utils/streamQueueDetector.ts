@@ -26,7 +26,27 @@ export type StreamQueueResult =
   | { kind: 'tool_calls'; toolCalls: ToolCall[]; consumedText: string }
   | { kind: 'none' }
 
-const MAX_QUEUE_BYTES = 64 * 1024
+/** 队列检测的默认缓冲上限（字节） */
+export const DEFAULT_MAX_QUEUE_BYTES = 64 * 1024
+
+let maxQueueBytes = DEFAULT_MAX_QUEUE_BYTES
+
+/**
+ * 设置队列检测缓冲上限（设置界面改完即时生效）。
+ *
+ * 检测器需攒够文本才能判断「模型是否把工具调用写成了排队文本」；
+ * 上限太小会因截断而漏判（看不到完整结构），太大会增加内存与首字延迟。
+ */
+export function setMaxQueueBytes(n?: number | void): void {
+  if (typeof n === 'number' && Number.isFinite(n) && n > 0) {
+    maxQueueBytes = Math.floor(n)
+  }
+}
+
+/** 当前缓冲上限 */
+export function getMaxQueueBytes(): number {
+  return maxQueueBytes
+}
 
 export class StreamQueueDetector {
   private queue: QueuedChunk[] = []
@@ -129,7 +149,7 @@ export class StreamQueueDetector {
    */
   enforceMaxSize(): StreamQueueResult[] {
     const results: StreamQueueResult[] = []
-    while (this.queue.length > 0 && this.queueText.length > MAX_QUEUE_BYTES) {
+    while (this.queue.length > 0 && this.queueText.length > maxQueueBytes) {
       const flushed = this.dequeueHead()
       results.push({ kind: 'text', content: flushed })
     }

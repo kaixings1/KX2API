@@ -1,6 +1,6 @@
 # 代码接入体检报告
 
-生成时间：2026/9/15 21:53:43
+生成时间：2026/9/17 08:35:07
 
 三档口径：**应用引用**（从 4 个真实入口可达）／**仅测试引用**／**孤儿**（两边都不可达）。
 
@@ -9,27 +9,28 @@
 | 顶层项 | 分类 | 文件数 | 大小 | 应用引用 | 说明 |
 | --- | --- | ---: | ---: | ---: | --- |
 | `legacy/` | 旧代码归档（已移出构建链路） | 2915 | 18.7MB | 0 ⚠️ | 旧代码归档：从 src/ 移出的未接入代码，保留供移植参考，不参与构建 |
-| `src/` | 应用运行时 | 808 | 5.6MB | 392 | 主源码 |
-| `tests/` | 测试链路 | 52 | 301.2KB | 0 ⚠️ | 测试用例（node:test / 独立脚本两套） |
-| `out/` | 构建/打包 | 38 | 13.6MB | 0 ⚠️ | electron-vite 构建产物（生成物） |
+| `src/` | 应用运行时 | 836 | 5.9MB | 411 | 主源码 |
+| `tests/` | 测试链路 | 59 | 364.7KB | 0 ⚠️ | 测试用例（node:test / 独立脚本两套） |
+| `out/` | 构建/打包 | 45 | 13.7MB | 0 ⚠️ | electron-vite 构建产物（生成物） |
 | `docs/` | 文档 | 27 | 3.3MB | 0 ⚠️ | 文档 |
 | `capture/` | 人工使用（脚本/参考数据） | 22 | 86.6KB | 0 ⚠️ | 抓包脚本（配合 Edge 9222 调试端口），手动运行 |
+| `scripts/` | 人工使用（脚本/参考数据） | 20 | 65.4KB | 0 ⚠️ | 构建/发布/自检脚本（npm run 会用到其中部分） |
 | `project/` | 人工使用（脚本/参考数据） | 17 | 23.7KB | 0 ⚠️ | 独立的小项目/示例，未被主程序引用 |
 | `skills/` | 人工使用（脚本/参考数据） | 12 | 25.3KB | 0 ⚠️ | 技能样例数据（可被用户导入，非代码依赖） |
 | `tools/` | 人工使用（脚本/参考数据） | 10 | 72.8KB | 0 ⚠️ | 独立工具脚本（tsx 直接运行），未被主程序引用 |
-| `scripts/` | 人工使用（脚本/参考数据） | 10 | 52.8KB | 0 ⚠️ | 构建/发布/自检脚本（npm run 会用到其中部分） |
 | `build/` | 构建/打包 | 9 | 1.2MB | 0 ⚠️ | 打包资源（icon 等），被 electron-builder 使用 |
 | `config/` | 人工使用（脚本/参考数据） | 4 | 1.4KB | 0 ⚠️ | 配置样例/预设，未被代码读取 |
 | `self-test-patch-project/` | 人工使用（脚本/参考数据） | 3 | 1.2KB | 0 ⚠️ | 自测用补丁样例项目 |
-| `debug.txt` | 生成物/日志（可删） | 1 | 83.1MB | 0 ⚠️ |  |
-| `0` | 生成物/日志（可删） | 1 | 1008.0KB | 0 ⚠️ |  |
-| `dev/` | 人工使用（脚本/参考数据） | 1 | 467.9KB | 0 ⚠️ | 开发用临时脚本 |
+| `latest` | 生成物/日志（可删） | 1 | 136.5MB | 0 ⚠️ |  |
+| `debug.txt` | 生成物/日志（可删） | 1 | 136.5MB | 0 ⚠️ |  |
+| `dev/` | 人工使用（脚本/参考数据） | 1 | 990.4KB | 0 ⚠️ | 开发用临时脚本 |
 | `package-lock.json` | 构建/打包 | 1 | 356.1KB | 0 ⚠️ | 构建/运行配置 |
 | `LICENSE` | 文档 | 1 | 173.9KB | 0 ⚠️ |  |
 | `stepfun_connect_headers.json` | 一次性产物（可删） | 1 | 38.6KB | 0 ⚠️ |  |
+| `TASK.md` | 文档 | 1 | 29.0KB | 0 ⚠️ |  |
 | `stepfun_ws_frames.json` | 一次性产物（可删） | 1 | 17.2KB | 0 ⚠️ |  |
+| `dev.txt` | 未分类 | 1 | 16.2KB | 0 ⚠️ |  |
 | `stepfun_session_create.json` | 一次性产物（可删） | 1 | 12.8KB | 0 ⚠️ |  |
-| `TASK.md` | 文档 | 1 | 10.1KB | 0 ⚠️ |  |
 | `stepfun_api.proto` | 一次性产物（可删） | 1 | 8.0KB | 0 ⚠️ |  |
 | `fix_teamtask3.py` | 未分类 | 1 | 7.3KB | 0 ⚠️ |  |
 | `CLAUDE.md` | 文档 | 1 | 6.8KB | 0 ⚠️ |  |
@@ -44,33 +45,35 @@
 | `REFACTOR_PLAN.md` | 文档 | 1 | 2.3KB | 0 ⚠️ |  |
 | `stepfun_chatstream_capture.json` | 一次性产物（可删） | 1 | 2.1KB | 0 ⚠️ |  |
 | `electron.vite.config.ts` | 构建/打包 | 1 | 1.6KB | 0 ⚠️ | 构建/运行配置 |
+| `tsconfig.check.json` | 未分类 | 1 | 1.1KB | 0 ⚠️ |  |
 | `tool_queue_extractor/` | 人工使用（脚本/参考数据） | 1 | 1.1KB | 0 ⚠️ | 抓包用的工具队列提取器（Python） |
 | `vitest.config.ts` | 构建/打包 | 1 | 1.0KB | 0 ⚠️ | 构建/运行配置 |
 | `README.md` | 文档 | 1 | 731B | 0 ⚠️ |  |
 | `tailwind.config.ts` | 构建/打包 | 1 | 261B | 0 ⚠️ | 构建/运行配置 |
 | `run_prod.bat` | 构建/打包 | 1 | 185B | 0 ⚠️ | 构建/运行配置 |
+| `run.bat` | 构建/打包 | 1 | 132B | 0 ⚠️ | 构建/运行配置 |
 | `postcss.config.cjs` | 构建/打包 | 1 | 82B | 0 ⚠️ | 构建/运行配置 |
-| `run.bat` | 构建/打包 | 1 | 79B | 0 ⚠️ | 构建/运行配置 |
-| `package.json` | 构建/打包 | 1 | 4.4KB | 1 | 构建/运行配置 |
+| `0` | 生成物/日志（可删） | 1 | 0B | 0 ⚠️ |  |
+| `package.json` | 构建/打包 | 1 | 4.5KB | 1 | 构建/运行配置 |
 | `-p/` | 未分类 | 0 | 0B | 0 ⚠️ |  |
 
 ## 二、src/ 各目录接入情况
 
 | 目录 | 文件数 | 应用引用 | 仅测试 | 孤儿 |
 | --- | ---: | ---: | ---: | ---: |
-| `src/main` | 472 | 197 | 0 | 275 |
-| `src/renderer` | 167 | 145 | 0 | 22 |
-| `src/engine` | 132 | 40 | 0 | 92 |
-| `src/__tests__` | 10 | 0 | 0 | 10 |
+| `src/main` | 482 | 204 | 0 | 278 |
+| `src/renderer` | 172 | 150 | 0 | 22 |
+| `src/engine` | 137 | 46 | 0 | 91 |
+| `src/__tests__` | 17 | 0 | 0 | 17 |
 | `src/security` | 9 | 3 | 0 | 6 |
-| `src/shared` | 7 | 4 | 0 | 3 |
+| `src/shared` | 8 | 5 | 0 | 3 |
 | `src/utils` | 5 | 1 | 0 | 4 |
 | `src/memory` | 2 | 1 | 0 | 1 |
 | `src/preload` | 2 | 1 | 0 | 1 |
 | `src/generated` | 1 | 0 | 0 | 1 |
 | `src/globals.d.ts` | 1 | 0 | 0 | 1 |
 
-## 三、孤儿文件清单（416 个）
+## 三、孤儿文件清单（425 个）
 
 <details><summary><code>src/main/proxy</code> — 161 个</summary>
 
@@ -451,6 +454,18 @@
 
 </details>
 
+<details><summary><code>src/main/tools</code> — 7 个</summary>
+
+- `src/main/tools/default-data.json`
+- `src/main/tools/toolExecutor.ts`
+- `src/main/tools/toolsService.ts`
+- `src/main/tools/__tests__/toolFileStore.test.ts`
+- `src/main/tools/__tests__/toolManager.test.ts`
+- `src/main/tools/__tests__/toolRuntime.test.ts`
+- `src/main/tools/__tests__/toolRuntimeV2.test.ts`
+
+</details>
+
 <details><summary><code>src/engine/commands</code> — 6 个</summary>
 
 - `src/engine/commands/impl.d.ts`
@@ -508,27 +523,29 @@
 
 </details>
 
+<details><summary><code>src/__tests__/engine</code> — 4 个</summary>
+
+- `src/__tests__/engine/loopConfig.test.ts`
+- `src/__tests__/engine/memoryRecallLimits.test.ts`
+- `src/__tests__/engine/preAnalysis.test.ts`
+- `src/__tests__/engine/toolResultStore.test.ts`
+
+</details>
+
+<details><summary><code>src/__tests__/main</code> — 4 个</summary>
+
+- `src/__tests__/main/ipc-handlers.test.ts`
+- `src/__tests__/main/loadBalancerConfig.test.ts`
+- `src/__tests__/main/textRuntimeLimits.test.ts`
+- `src/__tests__/main/variantSelector.test.ts`
+
+</details>
+
 <details><summary><code>src/engine/llm-tool-parser</code> — 3 个</summary>
 
 - `src/engine/llm-tool-parser/index.ts`
 - `src/engine/llm-tool-parser/parser.ts`
 - `src/engine/llm-tool-parser/__tests__/parser.test.ts`
-
-</details>
-
-<details><summary><code>src/main/agents</code> — 3 个</summary>
-
-- `src/main/agents/agentsService.ts`
-- `src/main/agents/AgentStore.ts`
-- `src/main/agents/index.ts`
-
-</details>
-
-<details><summary><code>src/main/tools</code> — 3 个</summary>
-
-- `src/main/tools/toolsService.ts`
-- `src/main/tools/__tests__/toolManager.test.ts`
-- `src/main/tools/__tests__/toolRuntime.test.ts`
 
 </details>
 
@@ -555,10 +572,10 @@
 
 </details>
 
-<details><summary><code>src/engine/token-counter</code> — 2 个</summary>
+<details><summary><code>src/main/agents</code> — 2 个</summary>
 
-- `src/engine/token-counter/index.ts`
-- `src/engine/token-counter/__tests__/index.test.ts`
+- `src/main/agents/AgentStore.ts`
+- `src/main/agents/index.ts`
 
 </details>
 
@@ -632,6 +649,12 @@
 
 </details>
 
+<details><summary><code>src/engine/memory</code> — 1 个</summary>
+
+- `src/engine/memory/memoryWriter.ts`
+
+</details>
+
 <details><summary><code>src/engine/progress-engine</code> — 1 个</summary>
 
 - `src/engine/progress-engine/index.ts`
@@ -644,15 +667,15 @@
 
 </details>
 
-<details><summary><code>src/engine/services</code> — 1 个</summary>
-
-- `src/engine/services/awaySummary.ts`
-
-</details>
-
 <details><summary><code>src/engine/streaming</code> — 1 个</summary>
 
 - `src/engine/streaming/streamProcessor.js.map`
+
+</details>
+
+<details><summary><code>src/engine/token-counter</code> — 1 个</summary>
+
+- `src/engine/token-counter/__tests__/index.test.ts`
 
 </details>
 
@@ -839,11 +862,5 @@
 <details><summary><code>src/utils/stringUtils.ts</code> — 1 个</summary>
 
 - `src/utils/stringUtils.ts`
-
-</details>
-
-<details><summary><code>src/__tests__/main</code> — 1 个</summary>
-
-- `src/__tests__/main/ipc-handlers.test.ts`
 
 </details>

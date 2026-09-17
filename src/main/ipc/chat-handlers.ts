@@ -235,6 +235,19 @@ export function registerChatHandlers(): void {
     }
     try {
       getEngineInstance()!.clearHistory()
+
+      // 会话状态随之作废，必须一并清理 —— 否则新会话会复用上一个会话的
+      // 派生状态：记忆召回缓存（按用户输入指纹索引）、工具结果替换决策
+      // （冻结语义会让新会话继续沿用旧决策）。
+      try {
+        const { clearSectionCache } = await import('../../engine/promptSections.ts')
+        clearSectionCache()
+      } catch { /* 缓存清理属增强项，失败不影响主流程 */ }
+      try {
+        const { resetRequestBuilderCaches } = await import('../engine-bridge.ts')
+        resetRequestBuilderCaches()
+      } catch { /* 同上 */ }
+
       return true
     } catch {
       return false

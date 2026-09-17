@@ -378,6 +378,100 @@
   - 其中检索测试**复现原实现的两个误报**（`search` 命中 `research`、`git` 命中 `digital`）并证明修复有效
   - 记忆写入器测试含**读写闭环验证**（写入 → 召回命中）
 
+## 第四轮：提示词缓存与协议一致性（2026-09-17 收尾）
+
+### 一、修复 P0：提示词变体协议与解析器不一致
+
+`XML_VARIANT.modelPatterns = ['.*']` 且 priority 与 `DEFAULT_VARIANT` 相同，靠数组顺序
+**抢在 default 之前匹配所有模型**。而 `DefaultPromptAdapter.transformRequest` 用
+`selectPromptVariant({model})` 注入协议、却用 bracket 解析器解析响应：
+
+```
+main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts:125  selectPromptVariant({model, provider})
+main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts:143  const variant = this.getPromptVariant(model)
+main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.ts:110  extractToolCallsFromText(content, 'default')  ← bracket
+```
+
+后果：给 gpt-4o 这类通用模型注入 **XML 工具调用协议**，却按 **bracket 格式解析**响应
+→ 模型按 XML 输出时解析不出来 → 工具调用失败。
+
+修复：`XML_VARIANT.modelPatterns` 改为 `[]`（不参与按模型名自动匹配）。
+XML 协议的正规入口是显式指定（`getVariantByFormat('xml')`、`CherryStudioPromptAdapter`
+已声明 `format = 'xml'`），都不依赖该字段。
+
+### 二、修复：`variantSelector` 的未声明变量与排序缺失
+
+- `registerVariants` 内 `_sorted = false` —— 该变量**从未声明**，ES module 严格模式下
+  必然抛 ReferenceError，使批量注册完全不可用（该函数当前无调用方，属潜伏缺陷）
+- 批量注册后**不排序**，而 `selectPromptVariant` 按数组顺序取首个匹配 → 后注册的
+  高优先级变体永远匹配不到（单个注册的 `registerVariant` 有排序，行为不一致）
+- 修复：删除 `_sorted`，注册后统一 `sort(priority desc)`
+
+### 三、新增 `src/engine/promptSections.ts`：系统提示分片与缓存
+
+移植自 `D:\src\constants\systemPromptSections.ts`（上游 70 行，零依赖）。
+
+**解决的真实问题**：`engine-bridge.createApiClientStream` 在**工具循环的每一轮**都被调用，
+而它每次都重新计算 `memorySection`（扫描记忆目录 + 读取文件）。一次 query 内用户输入不变，
+不缓存等于每轮重复 I/O。
+
+- `section(name, compute)` — 记忆化；`name` 即缓存键（须把影响输出的输入拼进键）
+- `volatileSection(name, compute, reason)` — 每轮重算，**reason 必填**（破坏缓存前缀需自证）
+- `resolveSections` 并行求值；单分片失败降级为 null，不拖垮整体组装
+- **真 LRU**：命中时 `touchEntry` 刷新位置（Map 对已存在键 `set` 不改变顺序，
+  只读不重排会让热键停在最旧位置被误踢 —— 该缺陷被单测抓到）
+- `checkSectionOrder` / `buildPromptFromSections`：检出「稳定段排在易变段之后」的顺序错误
+- `fingerprint`：长文本哈希做缓存键，避免常驻大字符串
+
+**接线**：
+- `engine-bridge` 用 `section('memory:' + fingerprint(query), ...)` 包住记忆召回
+- `CHAT_CLEAR_HISTORY` 清空时调 `clearSectionCache()` + `resetRequestBuilderCaches()`
+
+⚠️ **接线教训**：`resetReplacementState()` 与 `clearSectionCache()` 起初都只定义了、
+**没有调用方**。配置化/缓存化最常见的失败就是「接口有了但没接上」——
+新增此类接口后必须反向确认存在真实调用点。
+
+### 四、修复：`AuditLogger` 缺方法与浮空 Promise
+
+- 测试引用的 `src/main/security/AuditLogger` 缺 `stopFlushTimer()`，
+  只有 `stop()`（清定时器 + 触发 flush，带 I/O 副作用）。
+  补 `stopFlushTimer()` public 方法（只释放定时器句柄，用于测试/参数校验场景）。
+- `stop(): void` 内部调用 `this.flush()` 却丢弃返回的 Promise —— 若紧接着进程退出会丢日志。
+  改为 `async stop(): Promise<void>` 并 `await`，用 try/catch 保证即使 flush 失败也先释放句柄
+  （定时器不释放会让 Node 进程无法退出）。
+
+### 五、定量发现：425 个孤儿文件（未清理，需决策）
+
+`npm run check:repo` 结果：`src/` 共 836 文件，应用引用 411，**孤儿 425**。
+
+| 目录 | 孤儿数 |
+|---|---|
+| src/main | 274 |
+| src/engine | 91 |
+| src/renderer | 21 |
+| src/__tests__ | 17 |
+| src/security | 6 |
+| src/utils / src/shared / 其它 | 16 |
+
+**security 双份实锤**：
+- `src/main/security/` —— **7/7 全部是孤儿**（整个目录未被任何生产代码引用，
+  仅 `textRuntimeLimits.test.ts` 引用其 AuditLogger）
+- `src/security/` —— 9 文件中 3 个被 `engine/securityEnhancer.ts` 与
+  `engine/sandbox/index.ts` 引用（活的），其余 6 个是孤儿
+
+⚠️ **未擅自清理**。CLAUDE.md 明确警告过：`.gitignore` 含 `src/**/*.js` 与 `src/**/*.d.ts`，
+按后缀一把删会误伤不会被 git 跟踪的手写声明文件。且删除是破坏性操作，
+需先确认这些目录是否为迁移中间态。建议按目录分批评估，每批先跑 `npm run build` + `test:all`。
+
+### 六、验证结果
+
+- `npm run build` ✅
+- `npm run test:all` ✅ 附加 546 / 单元 614（本轮新增 24）/ **0 失败**
+- `npm run check:repo` ✅ 报告已刷新至 `docs/integration-report.md`
+- 新增测试：
+  - `src/__tests__/main/variantSelector.test.ts`(16) — 复现「未知模型被套 XML 变体」并锁定修复
+  - `src/__tests__/engine/promptSections.test.ts`(24) — 含 LRU 语义（热键存活 / 冷键淘汰）双向验证
+
 ## 第一轮遗留待办
 
 - [ ] 逐个排查剩余值位置的 `Cannot find name`（清单见 `scripts/_tscheck.py` 输出）

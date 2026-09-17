@@ -118,6 +118,10 @@ export interface AppConfig {
   memory?: MemoryConfig
   /** 子代理并发等 */
   subagent?: SubagentConfig
+  /** 代理层运行参数（去重窗口、流队列、探测超时、轮询间隔） */
+  proxyRuntime?: ProxyRuntimeConfig
+  /** 日志与审计保留策略 */
+  logRuntime?: LogRuntimeConfig
   apiKeys: ApiKey[]
   enableApiKey: boolean
   /** 当前生效的工具组 id（空数组 = 全局组，发送所有已启用的工具） */
@@ -202,6 +206,50 @@ export interface SubagentConfig {
 export const DEFAULT_SUBAGENT_CONFIG: Required<SubagentConfig> = {
   maxConcurrentAgents: 5,
   recentMessageWindow: 30,
+}
+
+/** 代理层运行参数 */
+export interface ProxyRuntimeConfig {
+  /** 请求去重时间窗口（毫秒）；默认 2000 */
+  dedupWindowMs?: number
+  /** 去重共享流缓冲上限（MB）；默认 10 */
+  dedupMaxBufferMb?: number
+  /** 流队列检测缓冲上限（字节）；默认 65536 */
+  queueDetectorMaxBytes?: number
+  /** 供应商探测超时（毫秒）；默认 15000 */
+  checkTimeoutMs?: number
+  /** 定时任务轮询间隔（毫秒）；默认 15000 */
+  taskCheckIntervalMs?: number
+}
+
+export const DEFAULT_PROXY_RUNTIME_CONFIG: Required<ProxyRuntimeConfig> = {
+  dedupWindowMs: 2000,
+  dedupMaxBufferMb: 10,
+  queueDetectorMaxBytes: 65536,
+  checkTimeoutMs: 15000,
+  taskCheckIntervalMs: 15000,
+}
+
+/** 日志与审计保留策略 */
+export interface LogRuntimeConfig {
+  /** 内存中保留的日志条数上限；默认 10000 */
+  maxLogs?: number
+  /** 日志文件保留天数；默认 7 */
+  retentionDays?: number
+  /** 审计日志缓冲条数；默认 100 */
+  auditBufferSize?: number
+  /** 审计日志落盘间隔（毫秒）；默认 10000 */
+  auditFlushIntervalMs?: number
+  /** 分片缓存条目上限；默认 200 */
+  promptSectionCacheLimit?: number
+}
+
+export const DEFAULT_LOG_RUNTIME_CONFIG: Required<LogRuntimeConfig> = {
+  maxLogs: 10000,
+  retentionDays: 7,
+  auditBufferSize: 100,
+  auditFlushIntervalMs: 10000,
+  promptSectionCacheLimit: 200,
 }
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
@@ -517,6 +565,8 @@ export interface ConfigUpdateRequest {
   toolRuntime?: ToolRuntimeConfig
   memory?: MemoryConfig
   subagent?: SubagentConfig
+  proxyRuntime?: ProxyRuntimeConfig
+  logRuntime?: LogRuntimeConfig
   enableApiKey?: boolean
   enabledToolGroups?: string[]
   oauthProxyMode?: 'system' | 'none'
