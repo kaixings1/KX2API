@@ -322,19 +322,26 @@ function collectTaggedTools(
  *   2. 内层必须至少有一个「参数子标签」（形如 <key>value</key>）—— 无参数的
  *      `<div></div>`、纯文本 `<p>你好</p>` 不算；
  *   3. 内层子标签名排除 name/tool/fn 这类「工具名声明」（那种走 collectTaggedTools）。
+ *
+ * 另外兼容 `<invoke name="list_dir"><path>…</path></invoke>`：外层标签本身不是工具名
+ * 时，优先从 name 属性取真实工具名（某些模型把外层当通用容器、工具名放属性里）。
  */
 function collectOuterTagAsTool(
   text: string,
   allowedNames?: ReadonlySet<string> | null,
 ): PlainTextToolCallBlock[] {
   const blocks: PlainTextToolCallBlock[] = []
-  const OUTER_TAG_RE = /<([a-zA-Z_][\w:\-]*)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi
+  const OUTER_TAG_RE = /<([a-zA-Z_][\w:\-]*)\b([^>]*)>([\s\S]*?)<\/\1\s*>/gi
   let m: RegExpExecArray | null
   while ((m = OUTER_TAG_RE.exec(text)) !== null) {
     const tagName = m[1].trim()
-    const inner = m[2]
+    const tagAttrs = m[2].trim()
+    const inner = m[3]
+    // 兼容 <invoke name="list_dir"> 这类模型自造格式：优先从 name 属性取工具名
+    const nameAttrMatch = tagAttrs.match(/\bname\s*=\s*["']([^"']+)["']/i)
+    const toolName = nameAttrMatch ? nameAttrMatch[1].trim() : tagName
     // 外层标签必须是合法命令名（含别名兜底）；非命令名（<html>、<document>）跳过
-    if (!isAllowedToolName(tagName, allowedNames)) continue
+    if (!isAllowedToolName(toolName, allowedNames)) continue
     // 内层必须至少有一个「参数子标签」，否则视为空容器/纯文本标签
     const CHILD_RE = /<\s*([a-zA-Z_][\w-]*)\b[^>]*>([\s\S]*?)<\s*\/\s*\1\s*>/gi
     let childSeen = false
@@ -351,7 +358,7 @@ function collectOuterTagAsTool(
       obj[key] = val
     }
     if (!childSeen || Object.keys(obj).length === 0) continue
-    blocks.push({ name: tagName, arguments: obj })
+    blocks.push({ name: toolName, arguments: obj })
   }
   return blocks
 }
