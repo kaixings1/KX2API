@@ -1,11 +1,9 @@
 npm notice run kx2code@1.0.0 npx
 npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
-src/engine/agent/command-runners.ts(564,7): error TS2451: Cannot redeclare block-scoped variable 'agentsPlatformImpl'.
-src/engine/agent/command-runners.ts(839,44): error TS2345: Argument of type '{ provider: string; apiKey: string; model: string; baseUrl?: string | undefined; maxTokens?: number | undefined; } | undefined' is not assignable to parameter of type 'ApiConfig'.
-  Type 'undefined' is not assignable to type 'ApiConfig'.
-src/engine/agent/command-runners.ts(848,7): error TS2451: Cannot redeclare block-scoped variable 'agentsPlatformImpl'.
-src/engine/agent/subagent/types.ts(7,44): error TS2307: Cannot find module '../api/client.ts' or its corresponding type declarations.
-src/engine/agent/subagent/types.ts(8,32): error TS2307: Cannot find module '../api/client.ts' or its corresponding type declarations.
+src/engine/agent/task-executor.ts(218,85): error TS2345: Argument of type '{ provider: string; apiKey: string; model: string; baseUrl: string | undefined; maxTokens: number | undefined; } | undefined' is not assignable to parameter of type 'ApiConfig | undefined'.
+  Type '{ provider: string; apiKey: string; model: string; baseUrl: string | undefined; maxTokens: number | undefined; }' is not assignable to type 'ApiConfig'.
+    Types of property 'provider' are incompatible.
+      Type 'string' is not assignable to type '"anthropic" | "openai" | "custom"'.
 src/engine/api/client.ts(688,31): error TS7006: Parameter 'err' implicitly has an 'any' type.
 src/engine/codeVectorStore.ts(162,32): error TS2339: Property 'readFile' does not exist on type '{ existsSync: (_p?: string | undefined) => boolean; }'.
 src/engine/codeVectorStore.ts(168,29): error TS2339: Property 'stat' does not exist on type '{ existsSync: (_p?: string | undefined) => boolean; }'.
@@ -13,7 +11,6 @@ src/engine/codeVectorStore.ts(221,30): error TS2339: Property 'readFile' does no
 src/engine/codeVectorStore.ts(225,27): error TS2339: Property 'stat' does not exist on type '{ existsSync: (_p?: string | undefined) => boolean; }'.
 src/engine/codeVectorStore.ts(381,31): error TS2554: Expected 2-3 arguments, but got 1.
 src/engine/codeVectorStore.ts(398,29): error TS2339: Property 'stat' does not exist on type '{ existsSync: (_p?: string | undefined) => boolean; }'.
-src/engine/commands/registry.ts(3427,3): error TS2353: Object literal may only specify known properties, and 'needsAgent' does not exist in type 'Command'.
 src/main/agents/AgentExecutor.ts(18,13): error TS2322: Type '"start"' is not assignable to type '"done" | "error" | "chunk"'.
 src/main/agents/AgentExecutor.ts(24,32): error TS2353: Object literal may only specify known properties, and 'agentId' does not exist in type 'AgentExecutionEvent'.
 src/main/agents/AgentExecutor.ts(27,29): error TS2353: Object literal may only specify known properties, and 'agentId' does not exist in type 'AgentExecutionEvent'.
@@ -61,9 +58,10 @@ src/main/proxy/adapters/kimi.ts(354,39): error TS2339: Property 'originalModel' 
 src/main/proxy/adapters/kimi.ts(727,73): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer<ArrayBuffer>'.
   Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
     Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
-src/main/proxy/adapters/perplexity.ts(3,35): error TS2307: Cannot find module '../store/types' or its corresponding type declarations.
 src/main/proxy/adapters/perplexity.ts(75,12): error TS2339: Property 'filter' does not exist on type 'never'.
 src/main/proxy/adapters/perplexity.ts(93,10): error TS2339: Property 'filter' does not exist on type 'never'.
+src/main/proxy/adapters/perplexity.ts(169,5): error TS2322: Type 'string | {}' is not assignable to type 'StoredCookies'.
+  Type 'string' is not assignable to type 'StoredCookies'.
 src/main/proxy/adapters/prompt/BasePromptAdapter.ts(122,51): error TS2345: Argument of type 'PromptVariant | null' is not assignable to parameter of type 'PromptVariant | undefined'.
   Type 'null' is not assignable to type 'PromptVariant | undefined'.
 src/main/proxy/adapters/prompt/BasePromptAdapter.ts(130,7): error TS2322: Type 'PromptVariant | null' is not assignable to type 'PromptVariant | undefined'.
@@ -103,9 +101,27 @@ src/main/proxy/adapters/stepfun.ts(820,11): error TS2322: Type 'string | null' i
   Type 'null' is not assignable to type 'string | undefined'.
 src/main/proxy/adapters/stepfun.ts(1168,11): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
   Type 'null' is not assignable to type 'string | undefined'.
-src/main/proxy/adapters/transformers/anthropic.ts(6,101): error TS2307: Cannot find module '../types' or its corresponding type declarations.
-src/main/proxy/adapters/transformers/gemini.ts(6,54): error TS2307: Cannot find module '../types' or its corresponding type declarations.
-src/main/proxy/adapters/transformers/openai.ts(6,101): error TS2307: Cannot find module '../types' or its corresponding type declarations.
+src/main/proxy/adapters/transformers/anthropic.ts(31,30): error TS2551: Property 'toolCallId' does not exist on type 'ChatMessage'. Did you mean 'tool_call_id'?
+src/main/proxy/adapters/transformers/anthropic.ts(137,7): error TS2322: Type '{ promptTokens: any; completionTokens: any; totalTokens: any; } | undefined' is not assignable to type '{ prompt_tokens: number; completion_tokens: number; total_tokens: number; } | undefined'.
+  Object literal may only specify known properties, but 'promptTokens' does not exist in type '{ prompt_tokens: number; completion_tokens: number; total_tokens: number; }'. Did you mean to write 'prompt_tokens'?
+src/main/proxy/adapters/transformers/openai.ts(17,11): error TS2551: Property 'toolCallId' does not exist on type 'ChatMessage'. Did you mean 'tool_call_id'?
+src/main/proxy/adapters/transformers/openai.ts(18,31): error TS2551: Property 'toolCallId' does not exist on type 'ChatMessage'. Did you mean 'tool_call_id'?
+src/main/proxy/adapters/transformers/openai.ts(56,7): error TS2322: Type '{ promptTokens: any; completionTokens: any; totalTokens: any; } | undefined' is not assignable to type '{ prompt_tokens: number; completion_tokens: number; total_tokens: number; } | undefined'.
+  Object literal may only specify known properties, but 'promptTokens' does not exist in type '{ prompt_tokens: number; completion_tokens: number; total_tokens: number; }'. Did you mean to write 'prompt_tokens'?
+src/main/proxy/adapters/transformers/openai.ts(73,11): error TS2551: Property 'topP' does not exist on type 'ChatCompletionRequest'. Did you mean 'top_p'?
+src/main/proxy/adapters/transformers/openai.ts(73,50): error TS2551: Property 'topP' does not exist on type 'ChatCompletionRequest'. Did you mean 'top_p'?
+src/main/proxy/adapters/transformers/openai.ts(74,11): error TS2551: Property 'maxTokens' does not exist on type 'ChatCompletionRequest'. Did you mean 'max_tokens'?
+src/main/proxy/adapters/transformers/openai.ts(74,60): error TS2551: Property 'maxTokens' does not exist on type 'ChatCompletionRequest'. Did you mean 'max_tokens'?
+src/main/proxy/adapters/transformers/openai.ts(77,11): error TS2551: Property 'presencePenalty' does not exist on type 'ChatCompletionRequest'. Did you mean 'presence_penalty'?
+src/main/proxy/adapters/transformers/openai.ts(77,72): error TS2551: Property 'presencePenalty' does not exist on type 'ChatCompletionRequest'. Did you mean 'presence_penalty'?
+src/main/proxy/adapters/transformers/openai.ts(78,11): error TS2551: Property 'frequencyPenalty' does not exist on type 'ChatCompletionRequest'. Did you mean 'frequency_penalty'?
+src/main/proxy/adapters/transformers/openai.ts(78,74): error TS2551: Property 'frequencyPenalty' does not exist on type 'ChatCompletionRequest'. Did you mean 'frequency_penalty'?
+src/main/proxy/adapters/transformers/openai.ts(79,11): error TS2551: Property 'logitBias' does not exist on type 'ChatCompletionRequest'. Did you mean 'logit_bias'?
+src/main/proxy/adapters/transformers/openai.ts(79,46): error TS2551: Property 'logitBias' does not exist on type 'ChatCompletionRequest'. Did you mean 'logit_bias'?
+src/main/proxy/adapters/transformers/openai.ts(81,11): error TS2551: Property 'webSearch' does not exist on type 'ChatCompletionRequest'. Did you mean 'web_search'?
+src/main/proxy/adapters/transformers/openai.ts(81,46): error TS2551: Property 'webSearch' does not exist on type 'ChatCompletionRequest'. Did you mean 'web_search'?
+src/main/proxy/adapters/transformers/openai.ts(95,11): error TS2551: Property 'toolChoice' does not exist on type 'ChatCompletionRequest'. Did you mean 'tool_choice'?
+src/main/proxy/adapters/transformers/openai.ts(96,30): error TS2551: Property 'toolChoice' does not exist on type 'ChatCompletionRequest'. Did you mean 'tool_choice'?
 src/main/proxy/constants/signatures.ts(166,14): error TS2741: Property 'unknown' is missing in type '{ bracket: string[]; xml: string[]; anthropic: string[]; json: string[]; native: never[]; managed_xml: string[]; kimi: string[]; }' but required in type 'Record<ToolCallFormat, string[]>'.
 src/main/proxy/forwarder.ts(56,8): error TS2459: Module '"./services/contextManagementService"' declares 'ChatMessage' locally, but it is not exported.
 src/main/proxy/forwarder.ts(165,14): error TS2551: Property 'forwardStepFunStudio' does not exist on type 'RequestForwarder'. Did you mean 'forwardStepFun'?
@@ -154,7 +170,6 @@ src/main/proxy/routes/completions.ts(135,7): error TS2345: Argument of type '{ m
       Type '{ role: string; content: string; }' is not assignable to type 'ChatMessage'.
         Types of property 'role' are incompatible.
           Type 'string' is not assignable to type '"system" | "user" | "assistant" | "tool"'.
-src/main/proxy/routes/management/accounts.ts(16,8): error TS2307: Cannot find module '../../../../../shared/types' or its corresponding type declarations.
 src/main/proxy/routes/management/config-groups.ts(110,59): error TS2345: Argument of type '{ presets?: Record<string, unknown> | undefined; activePreset?: string | undefined; } | undefined' is not assignable to parameter of type 'Partial<ConfigGroupData> | undefined'.
   Type '{ presets?: Record<string, unknown> | undefined; activePreset?: string | undefined; }' is not assignable to type 'Partial<ConfigGroupData>'.
     Types of property 'presets' are incompatible.
@@ -187,7 +202,6 @@ src/main/proxy/routes/management/config.ts(244,48): error TS2345: Argument of ty
     Type 'unknown' is not assignable to type 'ContextManagementConfig | undefined'.
 src/main/proxy/routes/management/config.ts(245,44): error TS7053: Element implicitly has an 'any' type because expression of type 'keyof AppConfig' can't be used to index type 'AppConfig'.
   Property 'memory' does not exist on type 'AppConfig'.
-src/main/proxy/routes/management/providers.ts(16,8): error TS2307: Cannot find module '../../../../../shared/types' or its corresponding type declarations.
 src/main/proxy/routes/management/providers.ts(99,7): error TS2353: Object literal may only specify known properties, and 'chatPath' does not exist in type '{ name: string; authType: AuthType; apiEndpoint: string; headers?: Record<string, string> | undefined; description?: string | undefined; icon?: string | undefined; supportedModels?: string[] | undefined; credentialFields?: { ...; }[] | undefined; type?: ProviderType | undefined; id?: string | undefined; }'.
 src/main/proxy/routes/management/sessions.ts(11,3): error TS2305: Module '"../../../../shared/types"' has no exported member 'SessionRecord'.
 src/main/proxy/stream.ts(176,14): error TS2339: Property 'push' does not exist on type 'StreamHandler'.
@@ -232,9 +246,6 @@ src/main/tasks/tasksStore.ts(69,7): error TS2322: Type 'number | null' is not as
 src/main/tasks/tasksStore.ts(70,7): error TS2322: Type 'null' is not assignable to type 'number | undefined'.
 src/main/tasks/tasksStore.ts(71,7): error TS2322: Type 'null' is not assignable to type 'string | undefined'.
 src/main/tray/TrayManager.ts(173,25): error TS2339: Property 'language' does not exist on type 'AppConfig'.
-src/main/updater/index.ts(1,26): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
-src/main/updater/index.ts(1,44): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
-src/main/updater/index.ts(1,58): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
 src/main/window/manager.ts(105,49): error TS2769: No overload matches this call.
   Overload 1 of 2, '(o: { [s: string]: string[]; } | ArrayLike<string[]>): [string, string[]][]', gave the following error.
     Argument of type 'Record<string, string[]> | undefined' is not assignable to parameter of type '{ [s: string]: string[]; } | ArrayLike<string[]>'.

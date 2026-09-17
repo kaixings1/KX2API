@@ -7,6 +7,9 @@ import type { ChatCompletionRequest, ChatCompletionResponse, ChatMessage, ChatCo
 
 /**
  * Convert internal ChatMessage to OpenAI format
+ *
+ * 注意：internal 的 ChatMessage（../../types）本身就是 OpenAI 线格式，
+ * 字段是 snake_case（tool_call_id / tool_calls），不是 camelCase。
  */
 export function toOpenAIMessage(msg: ChatMessage): Record<string, any> {
   const result: Record<string, any> = {
@@ -14,8 +17,8 @@ export function toOpenAIMessage(msg: ChatMessage): Record<string, any> {
     content: msg.content,
   }
 
-  if (msg.toolCallId) {
-    result.tool_call_id = msg.toolCallId
+  if (msg.tool_call_id) {
+    result.tool_call_id = msg.tool_call_id
   }
 
   if (msg.tool_calls) {

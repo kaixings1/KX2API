@@ -10,6 +10,7 @@
 
 import { execaCommand } from '../utils/exec.ts'
 import { Team } from '../../main/agent/team/team.ts'
+import type { ApiConfig } from '../api/client.ts'
 
 export type RunnerType = 'local' | 'llm' | 'team' | 'subagent'
 
@@ -21,13 +22,7 @@ export interface CommandRunner {
    * @param cwd 工作目录
    * @param config LLM 配置（llm/subagent 类型需要）
    */
-  execute: (args: string[], cwd: string, config?: {
-    provider: string
-    apiKey: string
-    model: string
-    baseUrl?: string
-    maxTokens?: number
-  }) => Promise<string>
+  execute: (args: string[], cwd: string, config?: ApiConfig) => Promise<string>
 }
 
 // ==================== 本地执行工具 ====================
