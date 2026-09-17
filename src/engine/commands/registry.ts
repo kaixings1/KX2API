@@ -560,7 +560,7 @@ commandRegistry.register({
 
 commandRegistry.register({
   name: 'memory',
-  description: '内存使用',
+  description: '进程内存使用（注意：与「记忆系统」无关，记忆见 /remember）',
   execute: async () => {
     const usage = process.memoryUsage()
     const lines = [
@@ -570,6 +570,81 @@ commandRegistry.register({
       `External: ${(usage.external / 1024 / 1024).toFixed(1)} MB`,
     ]
     return { success: true, output: lines.join('\n') }
+  },
+})
+
+/**
+ * 记忆写入命令。
+ *
+ * 记忆系统此前只有读取侧（memoryRecall 在 engine-bridge 里注入），
+ * 写入侧 memoryWriter 写好了却零调用 —— 结果是记忆目录永远是空的，
+ * 模型每轮都召回到「没有记忆」，整个记忆机制形同虚设。
+ *
+ * 用法：
+ *   /remember <标题> :: <描述> :: <正文>
+ *   /remember list              列出已存记忆
+ */
+commandRegistry.register({
+  name: 'remember',
+  description: '写入一条跨对话记忆（用法: /remember 标题 :: 描述 :: 正文）',
+  execute: async (args) => {
+    try {
+      const { writeMemory, looksWorthRemembering, MAX_MEMORY_BODY_CHARS } =
+        await import('../memory/memoryWriter.ts')
+      const { recallMemories, formatMemoriesForPrompt } = await import(
+        '../memory/memoryRecall.ts'
+      )
+
+      const raw = args.join(' ').trim()
+
+      // 无参数或 list：列出已有记忆，方便确认写入是否生效
+      if (!raw || raw === 'list') {
+        const memories = await recallMemories('', { limit: 50 })
+        if (memories.length === 0) {
+          return { success: true, output: '当前没有任何记忆。用 /remember 标题 :: 描述 :: 正文 添加。' }
+        }
+        const lines = memories.map((m) => `- ${m.name}（${m.type ?? '未分类'}）${m.description}`)
+        return { success: true, output: `共 ${memories.length} 条记忆：\n${lines.join('\n')}` }
+      }
+
+      const parts = raw.split('::').map((s) => s.trim())
+      if (parts.length < 3) {
+        return {
+          success: false,
+          error: '格式：/remember 标题 :: 描述 :: 正文（三段用 :: 分隔）',
+        }
+      }
+      const [name, description, body] = parts
+
+      if (body.length > MAX_MEMORY_BODY_CHARS) {
+        return {
+          success: false,
+          error: `正文过长（${body.length} > ${MAX_MEMORY_BODY_CHARS} 字符），请精简后再记`,
+        }
+      }
+
+      // 预筛只是提示，不阻断 —— 用户显式要求记住的内容应当尊重其意图
+      const worth = looksWorthRemembering(`${name} ${description} ${body}`)
+
+      const result = await writeMemory({
+        name,
+        description,
+        type: 'project',
+        body,
+      })
+
+      if (!result.ok) {
+        return { success: false, error: `写入失败: ${result.reason}` }
+      }
+      return {
+        success: true,
+        output:
+          `已记住：${result.file}` +
+          (worth ? '' : '\n（提示：这条内容未命中「跨对话有用」的信号词，如确需保留可忽略此提示）'),
+      }
+    } catch (e) {
+      return { success: false, error: `记忆写入异常: ${(e as Error).message}` }
+    }
   },
 })
 

@@ -116,6 +116,8 @@ export interface AppConfig {
   toolRuntime?: ToolRuntimeConfig
   /** 记忆召回限制 */
   memory?: MemoryConfig
+  /** 自动记忆提取（回合结束后台提炼） */
+  autoMemory?: AutoMemoryConfig
   /** 子代理并发等 */
   subagent?: SubagentConfig
   /** 代理层运行参数（去重窗口、流队列、探测超时、轮询间隔） */
@@ -193,6 +195,24 @@ export const DEFAULT_MEMORY_CONFIG: Required<MemoryConfig> = {
   maxBytesPerMemory: 4096,
   maxScanFiles: 200,
   minRelevanceScore: 1,
+}
+
+/**
+ * 自动记忆提取。
+ *
+ * 回合结束后判断这轮对话是否值得记，值得才调模型提炼并落盘。
+ * **默认关闭**：它会在每轮额外消耗一次模型调用，必须由用户显式开启。
+ */
+export interface AutoMemoryConfig {
+  /** 是否启用 */
+  enabled?: boolean
+  /** 单次提取的输入字符上限（控制成本）；默认 8000 */
+  maxInputChars?: number
+}
+
+export const DEFAULT_AUTO_MEMORY_CONFIG: Required<AutoMemoryConfig> = {
+  enabled: false,
+  maxInputChars: 8000,
 }
 
 /** 子代理相关参数 */
@@ -564,6 +584,7 @@ export interface ConfigUpdateRequest {
   loadBalancer?: LoadBalancerConfig
   toolRuntime?: ToolRuntimeConfig
   memory?: MemoryConfig
+  autoMemory?: AutoMemoryConfig
   subagent?: SubagentConfig
   proxyRuntime?: ProxyRuntimeConfig
   logRuntime?: LogRuntimeConfig

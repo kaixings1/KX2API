@@ -2,7 +2,7 @@
  * Tool Manager
  * 管理工具定义、分组和提示规则
  * 从 commandRegistry 同步内置工具，支持自定义扩展
- * 内置分组和提示规则从 default-data.json 读取
+ * 内置分组和提示规则来自 defaultData.ts 常量（编译进 bundle）
  */
 
 import type { ToolDefinition, ToolGroup, ToolHintRule, ToolManagementStore, ToolRole } from './types'
@@ -10,49 +10,30 @@ import { commandRegistry } from '../../engine/commands/registry'
 import { toolFileStore, migrateCustomRulesFromStore } from './toolFileStore'
 import { defaultRoles, resolveRole } from './toolRoles'
 import { normalizeToolLabels } from './toolLabels'
-import { join } from 'path'
-import { readFileSync, existsSync } from 'node:fs'
+import { BUILTIN_GROUPS, BUILTIN_HINT_RULES } from './defaultData'
 
-// 从默认数据文件加载内置分组
+/**
+ * 内置分组。
+ *
+ * 早期从 default-data.json 读取，但打包后 __dirname 指向 out/main/，
+ * JSON 不随构建产出，导致内置分组恒为空并反复刷警告。现改为常量模块，
+ * 编译进 bundle，不再依赖文件系统。
+ */
 function loadDefaultGroups(): ToolGroup[] {
-  try {
-    const dataPath = join(__dirname, 'default-data.json')
-    if (!existsSync(dataPath)) {
-      console.warn('[ToolManager] default-data.json not found, returning empty groups')
-      return []
-    }
-    const raw = readFileSync(dataPath, 'utf-8')
-    const data = JSON.parse(raw)
-    const now = Date.now()
-    return (data.groups || []).map((g: ToolGroup) => ({
-      ...g,
-      createdAt: g.createdAt || now,
-    }))
-  } catch (e) {
-    console.error('[ToolManager] load default groups failed:', e)
-    return []
-  }
+  const now = Date.now()
+  return BUILTIN_GROUPS.map((g) => ({
+    ...g,
+    createdAt: g.createdAt || now,
+  }))
 }
 
-// 从默认数据文件加载内置提示规则
+/** 内置提示规则（同上，改为常量模块） */
 function loadDefaultHintRules(): ToolHintRule[] {
-  try {
-    const dataPath = join(__dirname, 'default-data.json')
-    if (!existsSync(dataPath)) {
-      console.warn('[ToolManager] default-data.json not found, returning empty hint rules')
-      return []
-    }
-    const raw = readFileSync(dataPath, 'utf-8')
-    const data = JSON.parse(raw)
-    const now = Date.now()
-    return (data.hintRules || []).map((r: ToolHintRule) => ({
-      ...r,
-      createdAt: r.createdAt || now,
-    }))
-  } catch (e) {
-    console.error('[ToolManager] load default hint rules failed:', e)
-    return []
-  }
+  const now = Date.now()
+  return BUILTIN_HINT_RULES.map((r) => ({
+    ...r,
+    createdAt: r.createdAt || now,
+  }))
 }
 
 /**
@@ -101,7 +82,7 @@ export class ToolManager {
 
   private loadStore(): ToolManagementStore {
     // 文件化主存储：自定义（builtin=false）实体从 tools/groups/hintRules 目录读取，
-    // 内置实体来自 default-data.json 模板 + commandRegistry 同步。
+    // 内置实体来自 defaultData.ts 模板 + commandRegistry 同步。
     const base = this.createDefaultStore()
     // 首次启动时把 electron-store 里遗留的自定义数据迁移到文件目录
     try { migrateCustomRulesFromStore() } catch { /* 迁移失败不阻塞 */ }

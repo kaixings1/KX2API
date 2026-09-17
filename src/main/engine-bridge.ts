@@ -409,9 +409,26 @@ function createApiClientStream(
       console.warn('[EngineBridge] memory recall skipped:', (e as Error).message)
     }
 
-    // 注意顺序：toolHint（随工具组变化，低频）在前，
-    // memorySection（每轮可能不同）在后 —— 缓存前缀越稳定，命中率越高。
-    const systemExtra = [toolHint, memorySection].filter(Boolean).join('\n\n')
+    // 项目指令（CLAUDE.md）：此前只有 /init 生成、没有读取端，
+    // 用户写好的项目约定模型完全看不到。这里补上加载与注入。
+    //
+    // 刻意**不做缓存**：指令文件数量少、体积小，而用户改完 CLAUDE.md 后
+    // 应当立即生效 —— 用缓存换来的那点 I/O 节省，不值得引入"改了不生效"的困惑。
+    let instructionsSection: string | null = null
+    try {
+      const { buildInstructionsSection } = await import('../engine/instructions/claudeMdLoader.ts')
+      instructionsSection = await buildInstructionsSection({
+        // 工作目录优先取请求里带的（会话可能在某个项目里打开），否则用进程 cwd
+        cwd: (request as { cwd?: string }).cwd || process.cwd(),
+      })
+    } catch (e) {
+      console.warn('[EngineBridge] instructions load skipped:', (e as Error).message)
+    }
+
+    // 顺序即缓存前缀稳定性：越靠前的越稳定。
+    //   指令文件（几乎不变）→ 工具提示（随工具组变化）→ 记忆（每轮可能不同）
+    // 把易变内容放在后面，前面的部分才能命中 prompt cache。
+    const systemExtra = [instructionsSection, toolHint, memorySection].filter(Boolean).join('\n\n')
     if (systemExtra) {
       const sysIdx = messages.findIndex(m => m.role === 'system')
       if (sysIdx >= 0) {

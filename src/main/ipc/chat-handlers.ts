@@ -24,6 +24,61 @@ import { Orchestrator } from '../../engine/agent/coordinator/orchestrator'
 import { BUILTIN_ROLES } from '../../engine/agent/coordinator/planner'
 import { formatSystemError } from '../../shared/formatError'
 
+/**
+ * 回合结束后的后台任务：Stop 钩子 + 自动记忆提取。
+ *
+ * 这两件事都属「增强项」：失败静默、绝不阻塞、绝不影响已返回给用户的回复。
+ * 提取记忆会额外消耗模型额度，因此默认关闭，需用户在设置里显式开启。
+ */
+async function runPostTurnTasks(
+  userText: string,
+  messages: ReadonlyArray<{ role?: string; content?: unknown }>,
+): Promise<void> {
+  // 1) Stop 钩子：让用户脚本在每轮结束时介入
+  try {
+    const { runStop } = await import('../hooks/index.ts')
+    await runStop()
+  } catch (e) {
+    console.warn('[Chat] Stop hook skipped:', (e as Error).message)
+  }
+
+  // 2) 自动记忆：仅在用户开启时才跑
+  try {
+    const cfg = storeManager.getConfig() as {
+      autoMemory?: { enabled?: boolean; maxInputChars?: number }
+    }
+    if (!cfg?.autoMemory?.enabled) return
+
+    const assistantText = messages
+      .filter((m) => m.role === 'assistant')
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n')
+    const conversation = `用户：${userText}\n\n助手：${assistantText}`
+
+    const { extractMemoryFromTurn } = await import('../../engine/memory/autoMemory.ts')
+    const active = new ProfileManager().getActive()
+    const result = await extractMemoryFromTurn(conversation, {
+      enabled: true,
+      maxInputChars: cfg.autoMemory.maxInputChars,
+      api: active
+        ? {
+            provider: active.provider || 'openai',
+            apiKey: active.apiKey || '',
+            model: active.model || 'gpt-4o',
+            baseUrl: active.baseUrl,
+          }
+        : void 0,
+    })
+    if (result.written) {
+      console.log('[Chat] 自动记忆已写入:', result.file)
+    } else if (result.skipped) {
+      console.log('[Chat] 自动记忆跳过:', result.skipped)
+    }
+  } catch (e) {
+    console.warn('[Chat] autoMemory skipped:', (e as Error).message)
+  }
+}
+
 function getLang(): string {
   try {
     const config = storeManager.getConfig()
@@ -188,6 +243,11 @@ export function registerChatHandlers(): void {
       const lastMsg = result.messages[result.messages.length - 1]
       const resolvedContent = lastMsg?.content && typeof lastMsg.content === 'string' ? lastMsg.content : ''
       console.log('[IPC][CHAT_SEND_MESSAGE] eng.query DONE after', Date.now() - t0, 'ms, contentLen=', resolvedContent.length, 'requestId=', requestId)
+
+      // 回合结束后台处理：Stop 钩子 + 自动记忆。
+      // 刻意不 await —— 用户不应为后台任务等待，失败也不影响本次回复。
+      void runPostTurnTasks(text, result.messages)
+
       return { success: true, requestId }
     } catch (e) {
       const raw = (e as Error).message

@@ -7,9 +7,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useSettingsStore } from '@/stores/settingsStore'
 import {
   DEFAULT_MEMORY_CONFIG,
+  DEFAULT_AUTO_MEMORY_CONFIG,
   type MemoryConfig,
+  type AutoMemoryConfig,
 } from '@shared/types'
-import { RotateCcw, BookOpen, ListTree, HardDrive, Search, Target } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { RotateCcw, BookOpen, ListTree, HardDrive, Search, Target, Sparkles } from 'lucide-react'
 
 type Values = Required<MemoryConfig>
 
@@ -70,12 +73,27 @@ const ICONS: Record<keyof Values, typeof Search> = {
 export function MemorySettings() {
   const { config, updateConfig, fetchConfig } = useSettingsStore()
   const [values, setValues] = useState<Values>({ ...DEFAULT_MEMORY_CONFIG })
+  const [auto, setAuto] = useState<Required<AutoMemoryConfig>>({ ...DEFAULT_AUTO_MEMORY_CONFIG })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const stored = (config as { memory?: MemoryConfig } | null)?.memory
     if (stored) setValues({ ...DEFAULT_MEMORY_CONFIG, ...stored })
+    const storedAuto = (config as { autoMemory?: AutoMemoryConfig } | null)?.autoMemory
+    if (storedAuto) setAuto({ ...DEFAULT_AUTO_MEMORY_CONFIG, ...storedAuto })
   }, [config])
+
+  const commitAuto = useCallback(
+    async (next: Required<AutoMemoryConfig>) => {
+      setSaving(true)
+      try {
+        await updateConfig({ autoMemory: next } as never)
+      } finally {
+        setSaving(false)
+      }
+    },
+    [updateConfig],
+  )
 
   useEffect(() => {
     if (!config) void fetchConfig()
@@ -196,6 +214,78 @@ export function MemorySettings() {
             </div>
           )
         })}
+      </div>
+
+      {/* 自动记忆：回合结束后台提炼，默认关闭（会额外消耗模型调用） */}
+      <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-[var(--accent-primary)]" />
+            <div className="min-w-0 space-y-1">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="auto-memory-enabled" className="text-sm">
+                  自动记忆
+                </Label>
+                {auto.enabled && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    已开启
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-[var(--text-dim)] leading-relaxed max-w-2xl">
+                每轮结束后自动判断本次对话是否值得长期保留，值得则提炼成一条记忆。
+                命中的内容会进入后续每一轮的上下文，从而跨对话生效。
+                <br />
+                <span className="text-amber-500">
+                  注意：开启后每轮可能额外消耗一次模型调用，且记忆一旦写错会在后续被反复召回。
+                </span>
+              </p>
+            </div>
+          </div>
+          <Switch
+            id="auto-memory-enabled"
+            checked={auto.enabled}
+            disabled={saving}
+            onCheckedChange={(v) => {
+              const next = { ...auto, enabled: v }
+              setAuto(next)
+              void commitAuto(next)
+            }}
+          />
+        </div>
+
+        {auto.enabled && (
+          <div className="flex items-center justify-between gap-3 pt-2 border-t border-[var(--glass-border)]">
+            <div className="space-y-1 min-w-0">
+              <Label htmlFor="auto-memory-maxchars" className="text-sm">
+                提取输入上限
+              </Label>
+              <p className="text-xs text-[var(--text-dim)]">
+                送入提炼模型的最大字符数，越小越省额度。
+              </p>
+            </div>
+            <Input
+              id="auto-memory-maxchars"
+              type="number"
+              inputMode="numeric"
+              value={auto.maxInputChars}
+              min={500}
+              max={100000}
+              onChange={(e) => {
+                const raw = e.target.value
+                if (raw === '') return
+                const n = Number(raw)
+                if (!Number.isFinite(n)) return
+                setAuto((p) => ({
+                  ...p,
+                  maxInputChars: Math.max(500, Math.min(100000, Math.floor(n))),
+                }))
+              }}
+              onBlur={() => void commitAuto(auto)}
+              className="h-8 w-[110px] text-xs text-right tabular-nums shrink-0"
+            />
+          </div>
+        )}
       </div>
     </div>
   )

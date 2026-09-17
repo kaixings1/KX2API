@@ -5,6 +5,7 @@
  */
 import type { InternalMessage } from "./messageNormalizer.ts";
 import { splitAtSafeBoundary, ensureToolResultPairing, groupMessagesByApiRound } from "./messageIntegrity.ts";
+import { buildCompactPrompt, formatCompactSummary, buildSummaryMessage } from "./compactPrompt.ts";
 
 export interface CompactOptions {
   /**
@@ -33,10 +34,17 @@ export class SummaryStrategy implements CompactStrategy {
   name = "summary";
 
   private _llmClient?: { sendMessage: (req: unknown) => Promise<AsyncIterable<unknown>> };
+  /** 附加到摘要提示词末尾的自定义指令（如"重点保留 API 设计决策"） */
+  private customInstructions?: string;
 
   /** 设置 LLM API client（由 AutoCompactor.setApiClient 调用） */
   setLlmClient(client?: { sendMessage: (req: unknown) => Promise<AsyncIterable<unknown>> }): void {
     this._llmClient = client;
+  }
+
+  /** 设置摘要的附加指令 */
+  setCustomInstructions(instructions?: string): void {
+    this.customInstructions = instructions;
   }
 
   async compact(messages: InternalMessage[], options: CompactOptions): Promise<InternalMessage[]> {
@@ -53,7 +61,9 @@ export class SummaryStrategy implements CompactStrategy {
 
     return ensureToolResultPairing([
       ...system,
-      { role: "system", content: `[会话摘要]\n${summary}` },
+      // 用明确的「这是摘要」包装，避免模型把摘要误当成用户说的话；
+      // 同时提示它不要向用户复述摘要本身。
+      { role: "system", content: buildSummaryMessage(summary) },
       ...recent,
     ]);
   }
@@ -65,7 +75,11 @@ export class SummaryStrategy implements CompactStrategy {
   private async generateSummaryWithLLM(messages: InternalMessage[]): Promise<string> {
     if (!this._llmClient) return this.generateSummaryFallback(messages);
 
-    const summarizePrompt = "Provide a detailed but concise summary of our conversation above. Focus on information that would be helpful for continuing the conversation, including what we did, what we're doing, which files we're working on, and what we're going to do next.";
+    // 用 9 段式结构化提示词（engine/compactPrompt.ts）。
+    // 原实现是一句话的英文提示（"Provide a detailed but concise summary..."），
+    // 自由格式的摘要会随机漏掉「用户纠正过什么」「踩过哪些坑」这类
+    // 最该保留的信息，导致压缩后模型在原地再错一次。
+    const summarizePrompt = buildCompactPrompt(this.customInstructions);
 
     const contextMsgs: InternalMessage[] = [
       ...messages,
@@ -75,7 +89,7 @@ export class SummaryStrategy implements CompactStrategy {
     try {
       const stream = await this._llmClient!.sendMessage({
         messages: contextMsgs.map((m) => ({ role: m.role, content: m.content })),
-        max_tokens: 2000,
+        max_tokens: 4000,
         temperature: 0.3,
       });
 
@@ -86,7 +100,10 @@ export class SummaryStrategy implements CompactStrategy {
           chunks.push(event.text);
         }
       }
-      const summary = chunks.join("").trim();
+      const raw = chunks.join("").trim();
+      // 剥离 <analysis> 草稿块并把 <summary> 转成可读标题。
+      // 草稿只是思考过程，不该进上下文。
+      const summary = formatCompactSummary(raw);
       if (summary.length > 100) return summary;
     } catch {
       // 降级到占位摘要

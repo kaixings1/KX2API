@@ -458,6 +458,19 @@ export class QueryEngine {
 
   clearHistory(): void {
     this._conversation.messages = [];
+    // 清空历史 = 上下文归零，此前基于"上下文超限"得出的结论全部失效：
+    // 压缩熔断必须复位（否则新会话带着旧的失败计数），
+    // token 真实用量基准也要清掉（它对应的是已不存在的旧上下文）。
+    try {
+      this.messageLoop?.resetCompactCircuit?.();
+    } catch {
+      /* 循环尚未构造时忽略 */
+    }
+    try {
+      this.tokenBudget?.resetApiUsageBaseline?.();
+    } catch {
+      /* 同上 */
+    }
   }
 
   getConfig(): Record<string, unknown> {

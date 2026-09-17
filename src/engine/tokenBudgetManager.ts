@@ -240,4 +240,14 @@ export class TokenBudgetManager {
   updateConfig(newConfig: Partial<BudgetConfig>): void {
     this.config = { ...this.config, ...newConfig };
   }
+
+  /**
+   * 读取预算配置的副本。
+   *
+   * 供压缩协调器取窗口大小 —— 它按**绝对 token 数**算各级阈值
+   * （有效窗口 - 缓冲），与本类按**比例**判定是两套口径，不能互相推导。
+   */
+  getBudgetConfig(): BudgetConfig {
+    return { ...this.config };
+  }
 }

@@ -19,6 +19,7 @@ import { AutoFixLoop, type AutoFixLoopConfig } from "./autoFixLoop.ts";
 import { GitContextInjector, type GitContextConfig } from "./gitContext.ts";
 import { resolveToolName } from "./toolNameResolver";
 import { resolveLoopConfig, type AgentLoopConfig } from "./loopConfig.ts";
+import { CompactCoordinator } from "./compactCoordinator.ts";
 
 export interface QueryResult {
   state: string;
@@ -100,6 +101,8 @@ export class MessageLoop {
   private toolSignatureHistory: string[] = [];
   /** 循环控制参数 —— 由 deps.loopLimits 注入，缺省回落到默认值 */
   private limits: Required<AgentLoopConfig>;
+  /** 压缩阈值与熔断状态；惰性创建（需要先拿到预算器的窗口配置） */
+  private compactCoordinatorInstance: CompactCoordinator | null = null;
 
   constructor(private deps: MessageLoopDeps) {
     this.limits = resolveLoopConfig(this.deps.loopLimits)
@@ -131,6 +134,47 @@ export class MessageLoop {
   /** 当前生效的循环控制参数（供 UI 回显与诊断） */
   getLoopLimits(): Required<AgentLoopConfig> {
     return { ...this.limits }
+  }
+
+  /**
+   * 惰性创建压缩协调器。
+   *
+   * 阈值必须基于**绝对 token 数**（有效窗口 − 缓冲），与预算器的比例判定
+   * 是两套口径 —— 比例无法表达"必须给压缩本身留出发请求的空间"这件事。
+   */
+  private getCompactCoordinator(): CompactCoordinator {
+    if (!this.compactCoordinatorInstance) {
+      const cfg = this.deps.tokenBudget.getBudgetConfig()
+      this.compactCoordinatorInstance = new CompactCoordinator(
+        cfg.maxContextTokens,
+        cfg.maxOutputTokens,
+      )
+    }
+    return this.compactCoordinatorInstance
+  }
+
+  /**
+   * 复位压缩熔断。
+   *
+   * 会话清空、用户手动触发压缩、切换模型后都应调用 ——
+   * 否则旧的失败计数会被带进新情境，导致过早熔断。
+   */
+  resetCompactCircuit(): void {
+    this.compactCoordinatorInstance?.resetCircuit()
+  }
+
+  /** 压缩与阈值状态（供 UI 展示剩余额度与熔断状态） */
+  getCompactStatus(usedTokens: number): {
+    circuit: { open: boolean; consecutiveFailures: number }
+    warning: ReturnType<CompactCoordinator['getWarningState']>
+    thresholds: ReturnType<CompactCoordinator['getThresholds']>
+  } {
+    const c = this.getCompactCoordinator()
+    return {
+      circuit: c.getCircuitState(),
+      warning: c.getWarningState(usedTokens),
+      thresholds: c.getThresholds(),
+    }
   }
 
   resetAutoFixLoop(): void {
@@ -213,15 +257,40 @@ export class MessageLoop {
     // 工具定义由上层按请求注入（engine-bridge 会随工具组切换而变更），
     // 必须在预算检查前同步，否则计量的是上一轮的工具集。
     this.deps.tokenBudget.setToolDefinitions(this.deps.toolDefinitions);
-    const budget = this.deps.tokenBudget.checkBudget(this.deps.conversation.messages);
-    if (budget.shouldReject) throw new Error(`Token limit exceeded: ${budget.percentage * 100}%`);
-    if (budget.shouldCompact && this.deps.autoCompactor) {
-      const before = this.deps.conversation.messages.length;
-      this.deps.conversation.messages = await this.deps.autoCompactor.compact(this.deps.conversation.messages);
-      const removed = before - this.deps.conversation.messages.length;
-      if (removed > 0) {
-        engineLog('COMPACT', `Compacted ${removed} messages due to budget limit`);
+    let budget = this.deps.tokenBudget.checkBudget(this.deps.conversation.messages);
+
+    // 顺序很关键：**先压缩、后拒绝**。
+    //
+    // 原实现是先 `shouldReject` 抛错、再尝试压缩 —— 由于 shouldReject 的阈值
+    // 高于压缩触发阈值，代码永远走不到压缩分支，等于"上下文一满就直接中断"。
+    // 现在改成先给压缩一次自愈机会，压不动才拒绝。
+    if (this.deps.autoCompactor && budget.shouldCompact) {
+      const coordinator = this.getCompactCoordinator();
+      const result = await coordinator.runCompact(
+        async () => {
+          this.deps.conversation.messages = await this.deps.autoCompactor!.compact(
+            this.deps.conversation.messages,
+          );
+        },
+        // 用预算器的真实计量（含 API 校准值），而非简单的消息条数
+        () => this.deps.tokenBudget.checkBudget(this.deps.conversation.messages).usedTokens,
+      );
+      const o = result.outcome;
+      if (o.attempted) {
+        engineLog(
+          'COMPACT',
+          `压缩${o.succeeded ? '成功' : '未生效'}：${o.beforeTokens} → ${o.afterTokens} tokens` +
+            (o.reason ? `（${o.reason}）` : ''),
+        );
+      } else if (o.reason) {
+        engineLog('COMPACT', `跳过压缩：${o.reason}`);
       }
+      // 压缩后必须重新评估：结果可能已不再超限，也可能仍超限
+      budget = this.deps.tokenBudget.checkBudget(this.deps.conversation.messages);
+    }
+
+    if (budget.shouldReject) {
+      throw new Error(`Token limit exceeded: ${budget.percentage * 100}%`);
     }
 
     const request = await this.deps.requestBuilder.build({

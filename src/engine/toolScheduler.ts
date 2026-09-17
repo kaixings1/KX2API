@@ -5,6 +5,8 @@
  */
 import type { ToolCall } from "./responseHandler.ts";
 import { maybePersistToolResult } from "./toolResultStore.ts";
+import { formatToolError, formatValidationError, issuesFromSimpleErrors } from "./errors/toolErrorFormat.ts";
+import { evaluatePermission, explainRule, type PermissionRule } from "./permissions/permissionRules.ts";
 
 // [LOCAL] 本地定义工具类型，适配 D:\doge-code\src\ 架构
 export interface Tool {
@@ -66,6 +68,8 @@ export class ToolScheduler {
   /** 单次工具执行的默认超时（毫秒）；由上层注入，缺省 10 分钟 */
   private defaultToolTimeoutMs?: number
   private hooks: ToolHooks = {}
+  /** 参数级权限规则；默认空（不改变既有行为） */
+  private permissionRules: PermissionRule[] = []
 
   constructor(
     private registry: Map<string, Tool>,
@@ -76,6 +80,22 @@ export class ToolScheduler {
   /** 注入钩子回调（主进程启动时调用） */
   setHooks(hooks: ToolHooks): void {
     this.hooks = hooks
+  }
+
+  /**
+   * 参数级权限规则（`Bash(git status)`、`Edit(src/**)` 等）。
+   *
+   * 规则优先于通用权限逻辑：命中 allow 直接放行、命中 deny 直接拒绝，
+   * 未命中（passthrough）才交给 permissionManager。
+   * 不配置任何规则时行为与改动前一致。
+   */
+  setPermissionRules(rules: PermissionRule[]): void {
+    this.permissionRules = Array.isArray(rules) ? rules : []
+  }
+
+  /** 当前生效的权限规则（供 UI 回显） */
+  getPermissionRules(): PermissionRule[] {
+    return [...this.permissionRules]
   }
 
   /** 设置默认工具超时（设置界面改完即时生效） */
@@ -101,6 +121,24 @@ export class ToolScheduler {
         out.push(call);
         continue;
       }
+
+      // 先走参数级权限规则（`Bash(git status)` 这类）。
+      // 无规则配置时 evaluatePermission 返回 passthrough，行为与改动前完全一致。
+      const decision = evaluatePermission(this.permissionRules, call.name, call.input);
+      if (decision.behavior === 'deny') {
+        console.warn(
+          `[TOOL] 被权限规则拒绝: ${call.name}` +
+            (decision.matchedRule ? `（${explainRule(decision.matchedRule)}）` : ''),
+        );
+        // 不加入 out —— merge 阶段会把它标记为失败
+        continue;
+      }
+      if (decision.behavior === 'allow') {
+        out.push(call);
+        continue;
+      }
+      // ask / passthrough 交回通用权限逻辑（会触发用户确认）
+
       const has = await this.permissionManager.check(tool, call.input);
       if (has) {
         out.push(call);
@@ -155,12 +193,39 @@ export class ToolScheduler {
   private async executeSingle(call: ToolCall): Promise<ToolResult> {
     const tool = this.registry.get(call.name);
     if (!tool) {
-      console.warn(`[TOOL] Tool not found: ${call.name}. Available tools: ${Array.from(this.registry.keys()).join(', ')}`);
-      return { success: false, error: `Tool not found: ${call.name}`, toolUseId: call.id };
+      const available = Array.from(this.registry.keys());
+      // 给模型可操作的反馈：列出最相近的名字（名字包含关系 / 前缀重叠），
+      // 并指向 tool_search。只说 "not found" 会让模型盲目重试同名调用。
+      const near = available
+        .filter(n => {
+          const a = n.toLowerCase()
+          const b = call.name.toLowerCase()
+          return a.includes(b) || b.includes(a) || a.startsWith(b.slice(0, 4))
+        })
+        .slice(0, 5);
+      const hint = near.length > 0
+        ? `你是不是想用：${near.join(', ')}？`
+        : '可用 tool_search 检索工具名。';
+      console.warn(`[TOOL] Tool not found: ${call.name}. 候选=${near.join(',') || '(无)'} 总数=${available.length}`);
+      return {
+        success: false,
+        error: `工具 \`${call.name}\` 不存在。${hint}`,
+        toolUseId: call.id,
+        metadata: { toolNotFound: true, candidates: near },
+      };
     }
     const validation = tool.validate(call.input);
     if (!validation.valid) {
-      return { success: false, error: `Invalid: ${validation.errors.join(", ")}`, toolUseId: call.id };
+      // 把原始校验错误整理成「缺少 / 多余 / 类型不符」三类陈述。
+      // 模型看到「缺少必需参数 `path`」就能直接补上，而原始的自由文本
+      // 校验错误它不知道要改哪个参数 —— 这直接影响下一次调用能否成功。
+      const rawErrors = Array.isArray(validation.errors) ? validation.errors : [];
+      return {
+        success: false,
+        error: formatValidationError(call.name, issuesFromSimpleErrors(rawErrors)),
+        toolUseId: call.id,
+        metadata: { validationFailed: true },
+      };
     }
 
     // PreToolUse 钩子：可拒绝执行或补充上下文。
@@ -206,7 +271,9 @@ export class ToolScheduler {
       }
       return { success: true, output: finalOutput, toolUseId: call.id };
     } catch (e) {
-      const errMsg = e instanceof Error ? e.message : String(e);
+      // 统一的错误格式化：合并 message / stderr / stdout，超长时**中间**截断
+      // （构建与编译错误的关键信息常在末尾，切尾会丢）。
+      const errMsg = formatToolError(e);
       if (this.hooks.postToolUse) {
         try {
           await this.hooks.postToolUse(call.name, call.input, false, errMsg);
