@@ -262,6 +262,17 @@ Use the result to continue your work, calling more tools as needed.`
       toolCalls,
     })
 
+    // Surge/Claude XML 子标签变体：<tool_call><toolName>X</toolName><arguments>...</arguments></tool_call>
+    // 必须放在 parseSurgeFormat 之后解析——它会把 <toolName> 误当工具名（name='toolName'），
+    // 导致真实工具名丢失、参数也无法正确解析。本分支专门识别 <toolName> 子标签来提取工具名，
+    // 并把 <arguments> 内的 XML 子标签（<path>.</path>）或 JSON 串解析为参数对象。
+    parseToolNameSubtagFormat(parseable, {
+      rawMatches,
+      invalidToolNames,
+      allowedNames,
+      toolCalls,
+    })
+
     // GLM / web-assistant bracket format: [function_calls]...[call:name]{json}[/call]
     parseBracketFormat(parseable, {
       rawMatches,
@@ -442,6 +453,31 @@ function safeParseObject(value: string): Record<string, unknown> {
 //   <tool_call>BashTool->Bash->{"command": "cat '...'"}({"cmd": "cat '...'"});
 //   <tool_call>Read->read_file->{"target_file": "..."}({"target_file": "..."});
 // 用 "->" 分隔 工具名->别名->，后跟 {json} 参数，再可选 ({json}) 第二份参数，以 ";" 结尾。
+/**
+ * 解析箭头格式的参数。
+ *
+ * 形如 `<tool_call>NAME->ALIAS->{...}` 或 `<tool_call>NAME->ALIAS->{...}({...});`
+ * —— 第二个对象是可选的补充参数，两者合并（后者覆盖同名字段）。
+ *
+ * 注：本函数此前**从未定义**，而 parseArrowFormat 里两处调用它 ——
+ * 一旦走到那两个分支就是 ReferenceError。因该格式不是主路径（只在
+ * 特定客户端出现），一直没暴露；但属必崩死角，此处补上。
+ */
+function extractArrowArgs(
+  primary: string | void,
+  extra: string | void,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  const merge = (raw: string | void): void => {
+    if (!raw) return
+    const parsed = safeParseObject(raw)
+    for (const [k, v] of Object.entries(parsed)) out[k] = v
+  }
+  merge(primary)
+  merge(extra)
+  return out
+}
+
 function parseArrowFormat(content: string, options: {
   rawMatches: string[]
   invalidToolNames: string[]

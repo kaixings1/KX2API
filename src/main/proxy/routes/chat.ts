@@ -169,7 +169,14 @@ router.post('/completions', async (ctx: Context) => {
     } else {
       for (const provider of enabledProviders) {
         const effectiveModels = storeManager.getEffectiveModels(provider.id)
-        const supported = effectiveModels.some(m => m.displayName.toLowerCase() === model.toLowerCase())
+        // 原实现写成裸 `model`，但本作用域只有 `request.model`。
+        // 这段是「无可用账户」时的诊断提示构造 —— 走到这里本是为了给出
+        // 「哪个供应商不支持该模型」，却因 ReferenceError 让整条错误处理路径崩掉，
+        // 用户反而看不到任何原因。
+        const requestedModel = String(request.model ?? '')
+        const supported = effectiveModels.some(
+          m => m.displayName.toLowerCase() === requestedModel.toLowerCase(),
+        )
         const accounts = storeManager.getAccountsByProviderId(provider.id, true)
         const activeAccounts = accounts.filter(a => a.status === 'active' && a.credentials?.token)
 

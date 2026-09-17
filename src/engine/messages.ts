@@ -7,7 +7,7 @@
  * - 本文件负责：消息创建、合并、验证、 predicates、Hook、流式处理、systemPrompt 构建。
  */
 
-import { MessageNormalizer, type InternalMessage, type APIMessage } from "./messageNormalizer.ts";
+import { MessageNormalizer, type InternalMessage, type APIMessage, type InternalContent } from "./messageNormalizer.ts";
 
 // ============ 常量 ============
 
@@ -586,7 +586,10 @@ export function hasUnresolvedHooks(messages: InternalMessage[]): boolean {
     if (msg.role !== 'system') return false;
     if (typeof msg.content !== 'string') return false;
     try {
-      const parsed = JSON.parse(message.content);
+      // 原实现误写成 message.content —— 该标识符在本作用域不存在。
+      // 由于被 try/catch 包住，ReferenceError 被静默吞掉，函数恒返回 false
+      // （即「没有未解决的钩子」），会放过本该拦截的 hook_blocking_error。
+      const parsed = JSON.parse(msg.content);
       return parsed?.type === 'hook_blocking_error';
     } catch {
       return false;

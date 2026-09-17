@@ -23,8 +23,8 @@ jobs:
       - run: npm ci
       - run: npx oxlint src/
 
-  typecheck:
-    name: TypeScript
+  typecheck-project:
+    name: TypeScript (project/)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +34,34 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx tsc -p project/tsconfig.json --noEmit
+
+  # 主应用的类型检查。
+  #
+  # 注意用 continue-on-error：当前 tsconfig.check.json 下有约 710 个存量类型错误，
+  # 一次性转成阻断式会让所有 PR 无法合并。这里先「跑起来并暴露数字」，
+  # 待错误收敛到一个可控数量后再改为阻断式（去掉 continue-on-error）。
+  #
+  # 之所以必须有这个 job：原来只有 project/ 的 typecheck，主应用
+  # （src/ 下 800+ 文件）的类型错误从来没有任何检查 —— esbuild 只转译不检查类型，
+  # 因此 `Cannot find name` 这类运行时崩溃候选可以静默通过。
+  typecheck-app:
+    name: TypeScript (src/)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Count type errors
+        run: |
+          npx tsc -p tsconfig.check.json --noEmit 2>&1 | tee /tmp/tsc.log | tail -40 || true
+          ERRORS=$(grep -c "error TS" /tmp/tsc.log || echo 0)
+          echo "## 类型错误数：$ERRORS" >> $GITHUB_STEP_SUMMARY
+          echo "类型错误数：$ERRORS"
+          echo "计划：先收敛到 0，再把本 job 改为阻断式（移除 continue-on-error）"
 
   test-management:
     name: Management Tests

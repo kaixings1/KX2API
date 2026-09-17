@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { getBuiltinProvider } from './builtin'
 import type { Provider, ProviderCheckResult, Account } from '../../shared/types'
 import type { BuiltinProviderConfig } from '../store/types'

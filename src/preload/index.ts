@@ -18,6 +18,7 @@ import type {
 } from '../shared/types'
 
 import type { AgentRecord } from '../main/agents/types'
+import type { ConfigGroup, ConfigGroupData } from '../main/store/configGroups'
 
 // ==================== New Module Types ====================
 

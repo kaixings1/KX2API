@@ -435,22 +435,40 @@ function createApiClientStream(
     // 记忆召回（吸收自 Claude Code 的 memdir）：按最后一条用户消息检索相关记忆。
     // 记忆属增强项，任何异常都静默降级为空，绝不阻断主请求。
     //
-    // 走分片缓存：本函数在**工具循环的每一轮**都会被调用，而用户输入在一次
-    // query 内不变 —— 不缓存就等于每轮都重新扫描记忆目录并读取文件。
+    // 分两步，因为两者的缓存性质不同：
+    //   ① **召回**（扫目录 + 读文件，昂贵）只依赖 query → 按 query 指纹缓存
+    //   ② **过滤**（去重 + 会话预算）依赖对话历史，每轮都在变 → 不缓存
+    // 若把两步合并缓存最终文本，历史一变就会读到过期的注入集合。
     let memorySection: string | null = null
     try {
       const lastUser = [...rawMessages].reverse().find(m => m.role === 'user')
       const query = typeof lastUser?.content === 'string' ? lastUser.content : ''
       if (query.trim()) {
-        const [{ buildMemoryPromptSection }, { section, buildPromptFromSections, fingerprint }] = await Promise.all([
+        const [
+          { recallMemories, formatMemoriesForPrompt },
+          { selectMemoriesToSurface },
+          { memoizeByKey, fingerprint },
+        ] = await Promise.all([
           import('../engine/memory/memoryRecall.ts'),
+          import('../engine/memory/memorySurfaceBudget.ts'),
           import('../engine/promptSections.ts'),
         ])
-        const text = await buildPromptFromSections([
-          // 键里带 query 指纹：不同输入命中不同条目，同一输入复用结果
-          section(`memory:${fingerprint(query)}`, () => buildMemoryPromptSection(query)),
-        ])
-        memorySection = text.trim() ? text : null
+
+        const candidates = await memoizeByKey(`memory-recall:${fingerprint(query)}`, () =>
+          recallMemories(query),
+        )
+
+        // 去重 + 会话累计预算（60KB）。
+        // 关键：传**当前请求的消息** —— 压缩后旧记忆不在其中，预算与去重
+        // 会自然重置，重新浮现是合法的（这是上游刻意选择"扫消息"的原因）。
+        const { selected, remainingBytes } = selectMemoriesToSurface(candidates, rawMessages)
+        if (selected.length < candidates.length) {
+          console.log(
+            `[EngineBridge] memory surfaced: ${selected.length}/${candidates.length} 条，` +
+              `剩余额度 ${Math.round(remainingBytes / 1024)}KB`,
+          )
+        }
+        memorySection = formatMemoriesForPrompt(selected)
       }
     } catch (e) {
       console.warn('[EngineBridge] memory recall skipped:', (e as Error).message)

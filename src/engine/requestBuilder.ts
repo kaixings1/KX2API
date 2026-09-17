@@ -17,6 +17,24 @@ export interface ToolDefinition {
   input_schema: Record<string, unknown>;
 }
 
+/**
+ * Harness 模型适配配置（吸收自 open-interpreter 的 harness 概念）。
+ *
+ * 用于描述「当前模型需要何种请求格式适配」。此前 `MessageLoopDeps.harness`
+ * 与 `EngineOptions.harness` 都标注为该类型，但**该类型从未定义** ——
+ * 因两处都是类型位置，编译后被擦除，所以一直没暴露（也让这两处标注形同虚设）。
+ */
+export interface HarnessConfig {
+  /** 适配器标识；缺省用 provider 默认行为 */
+  adapter?: string
+  /** 是否需要把工具定义塞进 system prompt 而非 tools 字段 */
+  inlineTools?: boolean
+  /** 是否要求模型以特定格式输出工具调用（如 XML） */
+  toolCallFormat?: 'json' | 'xml' | 'bracket'
+  /** 其他透传给适配器的参数 */
+  options?: Record<string, unknown>
+}
+
 export interface RequestParams {
   messages: InternalMessage[];
   system: string;
@@ -28,7 +46,18 @@ export interface RequestParams {
   stream?: boolean;
   /** 预测性 AI 助手：当前文件的静态分析建议 */
   preAnalysis?: Array<{ type: string; message: string; line?: number }>;
+  /** Harness 模型适配配置 */
+  harness?: HarnessConfig;
 }
+
+/**
+ * 旧版 CLI 兼容的「工具集合」类型。
+ *
+ * `engine/index.ts` 里有一处 `tools: [] as Tools`，而 `Tools` 从未定义。
+ * 保留该名字以兼容既有写法：它表示「工具名到工具实现的映射」的宽松形态。
+ * 注：这是**遗留兼容类型**，新代码请用 `Map<string, Tool>`。
+ */
+export type Tools = Map<string, unknown> | unknown[]
 
 export interface APIRequest {
   provider: "anthropic" | "openai" | "google" | "azure" | "bedrock" | "vertexai" | "copilot" | "groq" | "openrouter" | "local" | "xai";

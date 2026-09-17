@@ -3,7 +3,7 @@
  * Selects the appropriate prompt variant based on model and provider
  */
 
-import type { PromptVariantSelectorOptions } from './types'
+import type { PromptVariantSelectorOptions, PromptVariant } from './types'
 import { BUILTIN_VARIANTS } from './variants'
 
 /**

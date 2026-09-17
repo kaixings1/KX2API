@@ -7,6 +7,10 @@
 export * from './types'
 
 // Core storage
+// 必须先 import 建立本地绑定 —— 下面的 initializeStore() 要用到 storeManager，
+// 而 `export { X } from '...'` 只对外暴露名字，不在本模块作用域建立绑定
+// （直接引用会抛 ReferenceError）。
+import { storeManager } from './store'
 export { storeManager, StoreManager } from './store'
 
 // Account management API

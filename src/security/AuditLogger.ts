@@ -40,7 +40,10 @@ export class AuditLogger {
   private entries: AuditEntry[] = [];
   private maxBufferSize: number = DEFAULT_AUDIT_BUFFER_SIZE;
   private flushInterval: number = DEFAULT_AUDIT_FLUSH_INTERVAL_MS;
-  private flushTimer: Timer | null = null;
+  // 不用 Node 的全局 `Timer` 别名：它在 tsconfig.check.json 下解析不到
+  // （该别名由 @types/node 的 globals 提供，主应用未加载）。
+  // 用 setInterval 的返回值类型，跨环境稳定。
+  private flushTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(logFile: string, options: AuditLoggerOptions = {}) {
     this.logFile = logFile;

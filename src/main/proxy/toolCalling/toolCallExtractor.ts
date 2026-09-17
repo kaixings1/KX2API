@@ -1100,6 +1100,10 @@ function parseCalledToolsList(inner: string): Array<{ name: string; args: Record
     }
 
     if (!parsed) {
+      // 参数起点就是当前位置：上面已 pos++ 跳过了 '('。
+      // 原实现写成 inner.substring(argsStart, pos)，而 argsStart 在本作用域
+      // 从未声明 —— 走到这个分支就是 ReferenceError（若外层无 catch 则整段解析失败）。
+      const argsStart = pos
       while (pos < inner.length && inner[pos] !== ')') pos++
       const rawArgs = inner.substring(argsStart, pos).trim()
       if (rawArgs) {

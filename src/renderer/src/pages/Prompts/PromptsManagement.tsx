@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, Trash2, Edit3, Save, X, Sparkles, Code2, Bot, MessageSquare, Star, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import type { SystemPrompt, PromptType } from '@shared/types'
 
 const promptsApi = window.electronAPI.prompts
 

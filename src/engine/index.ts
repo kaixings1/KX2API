@@ -7,7 +7,7 @@
 import { QueryStateMachine } from "./stateMachine.ts";
 import { MessageLoop, type MessageLoopDeps, type QueryResult, type AutoContinueConfig } from "./messageLoop.ts";
 import { MessageNormalizer, type InternalMessage } from "./messageNormalizer.ts";
-import { RequestBuilder, type ToolDefinition } from "./requestBuilder.ts";
+import { RequestBuilder, type ToolDefinition, type HarnessConfig, type Tools } from "./requestBuilder.ts";
 import { ResponseHandler } from "./responseHandler.ts";
 import { ToolScheduler, type PermissionManager, type ToolExecutor, type Tool, type ToolHooks } from "./toolScheduler.ts";
 import type { PermissionRule } from "./permissions/permissionRules.ts";

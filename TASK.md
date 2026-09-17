@@ -775,6 +775,83 @@ attachments（多模态能力）→ SessionMemory → 子代理上下文隔离�
 - `npm run test:all` ✅ 四套全绿：management 74 / extras 546 / unit **1039**（新增 transcript 3）/ agent 47 / **0 失败**
 - `npx vitest run src/__tests__/engine/transcript.test.ts` → 3/3 通过
 
+## 第七轮：接线补齐 + attachments 吸收（2026-09-18 续二）
+
+### 一、补上上一轮自己留的坑：权限规则无调用方
+
+上一轮末我提到「`setPermissionRules()` 尚无调用方」—— 这正是我反复强调的
+「配置化最常见的失败：接口有了但没接上」。本轮补完。
+
+**新增 `src/main/permissions/permissionConfig.ts`**（29 测试），与 hooks 配置同构：
+- 配置存 `userData/permissions.json`，**不接受项目目录定义**（克隆仓库不该改变权限策略）
+- 配置文件用**规则字符串**（`"Bash(git status)"`）而非结构化对象 —— 用户手写更直观
+- 读不到 / 读坏 / 未设置路径 → **空规则集**（= 判定走 passthrough，行为与改造前一致）。
+  权限是安全相关的，但"配置读不出来"既不该变成"一律拒绝"（用户无法操作），
+  也不该变成"一律放行"（安全漏洞）—— 应回到代码里既有的判定路径
+- **单条畸形只跳过该条**，不让整套配置失效（否则表现为"改了配置后权限突然异常"，很难排查）
+- **`VALID_TOOL_NAME_RE` 校验**（测试逼出来的）：`permissionRuleValueFromString`
+  对畸形输入采取「退化为整串当工具名」的保守策略（防抛错），于是一条写错的配置
+  （如 `"(foo)"`）会变成名为 `(foo)` 的无效规则静默留在集合里。
+  配置层必须比解析层更严格
+- 首次启动写示例配置（只读工具放行、危险命令 `ask` 而非直接 `deny`），**不覆盖已有配置**
+
+**接线**：`engine-bridge.wireToolPermissions()` → `QueryEngine.setPermissionRules()`
+→ `ToolScheduler.setPermissionRules()`；`reloadToolPermissions()` 支持热更新。
+
+**IPC 三处一致性**（这是历史踩过的坑）：
+- `channels.ts` 新增 5 个 `PERMISSIONS_*`
+- `handlers.ts` 注册 5 个 handler（含 `PERMISSIONS_PARSE` 供 UI 即时校验规则字符串）
+- `preload/index.ts` 暴露 `permissions` 命名空间
+- `renderer/src/types/electron.d.ts` 同步声明（含 `PermissionRuleEntry`）
+- 用 `scripts/_audit_ipc.py` 复核：新 channel 未出现在任何"未对齐"列表中
+
+### 二、记忆注入的会话预算与去重（attachments 的核心机制）
+
+研究里记的 `attachments.ts` 是 4000 行巨兽（60+ 类型），但真正缺的是其中
+**记忆注入的预算与去重**这一块 —— KX2API 的 `memoryRecall` 只有单文件预算
+（200 行 / 4096 字节），而记忆每轮都会重新注入，单文件预算拦不住总量。
+
+**新增 `src/engine/memory/memorySurfaceBudget.ts`**（27 测试）：
+- 会话累计上限 **60KB**（对齐上游 `RELEVANT_MEMORIES_CONFIG.MAX_SESSION_BYTES`）
+- 单轮最多 5 条
+- 按历史去重 + 按剩余额度截断（二者必须一起做：只去重不管预算仍可能一轮塞太多；
+  只算预算不去重会让同一条记忆反复占额度）
+
+**最关键的设计——扫描消息，而不是维护计数器**。上游源码注释写得很明白：
+
+> 扫描消息而非在 toolUseContext 里维护计数器，这样 /compact 之后旧附件从上下文消失，
+> 预算与去重会自然重置，重新浮现是合法的。
+
+这个性质很重要：压缩后模型上下文里已经没有那些记忆了，此时"再注入一次"是**正确行为**。
+若改用持久计数器，压缩后会永远不再注入任何记忆 —— 用户会觉得"记忆功能莫名其妙失效了"。
+端到端验证确认：第 1 轮注入 5 条 → 第 2 轮 0 条（去重）→
+第 3 轮模拟压缩后 5 条（**预算已重置**）→ 第 4 轮额度耗尽 0 条。
+
+**注入格式改造**：标题里带上文件名（`### 名称 · file.md（…）`）。
+没有可追溯标识就无法判断某条记忆是否已经给过模型 —— 这是去重的前提。
+
+**新增 `memoizeByKey`（位于 `promptSections.ts`，12 测试）**：
+分片缓存原本只支持字符串，但「记忆召回」返回的是列表。
+缓存**原始召回结果**（昂贵：扫目录 + 读文件，只依赖 query），
+每轮再做**过滤**（依赖历史，不缓存）——
+若把过滤后的文本一起缓存，历史一变就会读到过期的注入集合。
+附带并发去重（同 key 并发共享一次计算）与「失败不缓存」（下次可重试）。
+
+**接线**：`engine-bridge` 的记忆段改为「缓存召回 + 每轮过滤 + 格式化」三步。
+
+### 三、验证结果
+
+- `npm run build` ✅
+- `npm run test:all` ✅ 附加 546 / 单元 1051（本轮 **+88**）/ **0 失败**
+- IPC 三处一致性复核通过（`scripts/_audit_ipc.py`）
+
+### 四、仍待吸收
+
+- [ ] **子代理上下文隔离**（`createSubagentContext` + CacheSafeParams 共享槽位）
+- [ ] **对话恢复 / 会话恢复**（`conversationRecovery` + `sessionRestore` 的容错四层）
+- [ ] **会话级记忆 SessionMemory**（单次对话内、只喂给 compact）
+- [ ] attachments 的其余类型（IDE 选择、诊断、预算提示等 —— 本项目暂无对应场景）
+
 ## 第一轮遗留待办（2026-09-18 复核）
 
 - [x] 把 `npm run typecheck` 接入 CI — **已修正**：原 CI 指向 `project/tsconfig.json`（另一个项目），
