@@ -125,11 +125,6 @@ src/main/plans/plansService.ts(119,5): error TS2322: Type 'number | null' is not
   Type 'null' is not assignable to type 'number | undefined'.
 src/main/plugins/pluginsService.ts(111,14): error TS2339: Property 'lastActiveAt' does not exist on type 'PluginRecord'.
 src/main/providers/custom.ts(185,7): error TS2353: Object literal may only specify known properties, and 'credentialFields' does not exist in type 'Provider'.
-src/main/proxy/adapters/deepseek.ts(98,108): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,228): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,282): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,307): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,332): error TS2554: Expected 0 arguments, but got 1.
 src/main/proxy/adapters/glm.ts(781,5): error TS2322: Type 'ToolStreamParser | null' is not assignable to type 'ToolStreamParser | undefined'.
   Type 'null' is not assignable to type 'ToolStreamParser | undefined'.
 src/main/proxy/adapters/glm.ts(1196,23): error TS2448: Block-scoped variable 'flushChunks' used before its declaration.
@@ -203,6 +198,8 @@ src/main/proxy/forwarder.ts(1335,9): error TS2353: Object literal may only speci
 src/main/proxy/forwarder.ts(1617,9): error TS2353: Object literal may only specify known properties, and 'originalModel' does not exist in type 'ChatCompletionRequest'.
 src/main/proxy/forwarder.ts(1940,9): error TS2322: Type 'string | string[] | undefined' is not assignable to type 'string[] | undefined'.
   Type 'string' is not assignable to type 'string[]'.
+src/main/proxy/forwarder.ts(1942,9): error TS2322: Type 'ChatCompletionTool[] | null | undefined' is not assignable to type 'any[] | undefined'.
+  Type 'null' is not assignable to type 'any[] | undefined'.
 src/main/proxy/forwarder.ts(2197,36): error TS2339: Property 'chatCompletion' does not exist on type 'AnthropicAdapter'.
 src/main/proxy/forwarder.ts(2219,52): error TS2554: Expected 0 arguments, but got 2.
 src/main/proxy/forwarder.ts(2220,49): error TS2339: Property 'handleStream' does not exist on type 'AnthropicStreamHandler'.

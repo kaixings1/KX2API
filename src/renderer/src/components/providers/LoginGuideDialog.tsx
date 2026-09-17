@@ -271,7 +271,7 @@ export function LoginGuideDialog({
           <DialogHeader>
             <div className="flex items-center justify-center py-4">
               <div className="h-16 w-16 rounded-full bg-green-500/20 flex items-center justify-center">
-                <Check className="h-8 w-8 text-green-500" />
+                <Check className="h-8 w-8 text-green-500 dark:text-green-400" />
               </div>
             </div>
             <DialogTitle className="text-center">{t('loginGuide.addSuccess')}</DialogTitle>

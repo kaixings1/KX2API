@@ -47,6 +47,22 @@ function inferToolNameFromArgs(args: Record<string, unknown>): string | null {
 }
 
 /** 尝试解析 JSON（含 Markdown 代码块清理 + 5 层容错 fallback） */
+
+/**
+ * 从若干候选值中挑出第一个「确实是字符串」的名字。
+ *
+ * 为什么需要它：解析结果是 `Record<string, unknown>`，
+ * `p.name || p.tool` 这类写法会让整体类型推断为 unknown，
+ * 赋给要求 `string` 的返回类型就报 TS2322。
+ * 这里显式收窄，语义也更准确 —— 非字符串的候选值本就不该被当成工具名。
+ */
+function pickName(...candidates: unknown[]): string | null {
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.trim()) return c
+  }
+  return null
+}
+
 function tryParseJSON(str: string): unknown | null {
   let cleaned = str.trim();
   if (cleaned.startsWith('```')) {
@@ -452,8 +468,13 @@ export class ToolCallExtractor {
         const candidate = Array.isArray(parsed) ? (parsed as unknown[])[0] : parsed;
         const p = candidate as Record<string, unknown>;
         if (candidate && typeof candidate === 'object') {
-          const name = p.name || p.tool || inferToolNameFromArgs(p) || 'unknown';
-          const args = p.arguments ?? p.parameters ?? p;
+          // p 是 Record<string, unknown>，p.name 取出是 unknown ——
+          // 直接参与 || 会让 name 整体推断为 unknown，而返回类型要求 string。
+          // 因此显式收窄：只有字符串才采用，否则回落到推导名。
+          const rawName = p.name ?? p.tool;
+          const name: string =
+            (typeof rawName === 'string' ? rawName : inferToolNameFromArgs(p)) || 'unknown';
+          const args: unknown = p.arguments ?? p.parameters ?? p;
           return { name, args, confidence: 'medium', rawText: fcTag[0], end: fcTag.index + fcTag[0].length };
         }
       }
@@ -465,7 +486,7 @@ export class ToolCallExtractor {
       const parsed = tryParseJSON(toolTag[1].trim());
       if (parsed && typeof parsed === 'object' && parsed !== null) {
         const p = parsed as Record<string, unknown>;
-        const name = p.name || p.tool || inferToolNameFromArgs(p) || 'unknown';
+        const name: string = pickName(p.name, p.tool) ?? inferToolNameFromArgs(p) ?? 'unknown';
         const args = p.arguments ?? p.parameters ?? p;
         return { name, args, confidence: 'high', rawText: toolTag[0], end: toolTag.index + toolTag[0].length };
       }
@@ -550,13 +571,13 @@ export class ToolCallExtractor {
               args = { command: String((raw as Record<string, unknown>).command ?? (raw as Record<string, unknown>).cmd ?? '') };
               break;
             case 'web_search':
-              args = { queries: Array.isArray((raw as Record<string, unknown>).queries) ? (raw as Record<string, unknown>).queries.map(String) : (raw as Record<string, unknown>).query ? [String((raw as Record<string, unknown>).query)] : [] };
+              args = { queries: Array.isArray((raw as Record<string, unknown>).queries) ? ((raw as Record<string, unknown>).queries as unknown[]).map(String) : (raw as Record<string, unknown>).query ? [String((raw as Record<string, unknown>).query)] : [] };
               break;
             case 'code_interpreter':
               args = { code: String((raw as Record<string, unknown>).code ?? ''), description: String((raw as Record<string, unknown>).description ?? '') };
               break;
             case 'web_extractor':
-              args = { urls: Array.isArray((raw as Record<string, unknown>).urls) ? (raw as Record<string, unknown>).urls.map(String) : [], goal: String((raw as Record<string, unknown>).goal ?? '') };
+              args = { urls: Array.isArray((raw as Record<string, unknown>).urls) ? ((raw as Record<string, unknown>).urls as unknown[]).map(String) : [], goal: String((raw as Record<string, unknown>).goal ?? '') };
               break;
             case 'str_replace_editor':
               args = {
@@ -602,7 +623,7 @@ export class ToolCallExtractor {
       const parsed = tryParseJSON(inner.trim());
       if (parsed && typeof parsed === 'object' && parsed !== null) {
         const p = parsed as Record<string, unknown>;
-        const name = p.name || p.tool || 'unknown';
+        const name: string = pickName(p.name, p.tool) ?? 'unknown';
         const args = p.arguments ?? p.parameters ?? p;
         return { name, args, confidence: 'high', rawText: genericToolCall[0], end: genericToolCall.index + genericToolCall[0].length };
       } else {
@@ -651,7 +672,10 @@ export class ToolCallExtractor {
       if (parsed) {
         const candidate = Array.isArray(parsed) ? parsed[0] : parsed;
         if (candidate && typeof candidate === 'object') {
-          const name = candidate.name || candidate.tool || inferToolNameFromArgs(candidate as any) || 'unknown';
+          const name: string =
+            pickName((candidate as Record<string, unknown>).name, (candidate as Record<string, unknown>).tool) ??
+            inferToolNameFromArgs(candidate as Record<string, unknown>) ??
+            'unknown';
           const args = candidate.arguments ?? candidate.parameters ?? candidate;
           return { name, args, confidence: 'medium', rawText: jsonCodeBlock[0], end: jsonCodeBlock.index + jsonCodeBlock[0].length };
         }
@@ -664,7 +688,15 @@ export class ToolCallExtractor {
       const name = openAiToolCalls[1];
       const argsStr = openAiToolCalls[2] || '{}';
       const parsedArgs = tryParseJSON(argsStr);
-      return { name, args, confidence: 'high', rawText: openAiToolCalls[0], end: openAiToolCalls.index + openAiToolCalls[0].length };
+      // 原实现写 `args` —— 该标识符在本作用域不存在（上面定义的是 parsedArgs），
+      // 会直接抛 ReferenceError。能跑起来只是因为这条分支很少命中。
+      return {
+        name,
+        args: parsedArgs ?? {},
+        confidence: 'high',
+        rawText: openAiToolCalls[0],
+        end: openAiToolCalls.index + openAiToolCalls[0].length,
+      };
     }
 
     // 21. 其他命令行风格 Tool: Name (args) 和 Calling: Name (args)
@@ -690,7 +722,7 @@ export class ToolCallExtractor {
       const parsed = tryParseJSON('[' + toolCallsStr + ']')
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         const first = parsed[0] as Record<string, unknown>
-        const name = first.tool || first.name || first.tool_name || 'unknown'
+        const name: string = pickName(first.tool, first.name, first.tool_name) ?? 'unknown'
         const args = first.arguments ?? first.args ?? first.input ?? first
         return {
           name,
@@ -795,14 +827,35 @@ function isListTarget(target: string): boolean {
   return /[\\/]$/.test(target) || (!/\.\w+$/.test(target) && target.includes('/'))
 }
 
+/**
+ * 构造意图匹配结果。
+ *
+ * `args` 参数放宽为 unknown 并在此归一化：各规则拿到的形态不一 ——
+ * 有的是已解析的对象，有的是 JSON 原文（字符串），还有解析失败的 `{}`。
+ * 统一收口到这里，避免每个调用点各自处理（原类型要求
+ * `Record<string, unknown>`，导致多处 TS2322）。
+ */
 function makeIntentMatch(
   name: string,
-  args: Record<string, unknown>,
+  args: unknown,
   rawText: string,
   end: number,
   generatedByProxy = false,
 ): IntentMatch {
-  return { name, args, confidence: 'medium', rawText, end, generatedByProxy }
+  let normalized: Record<string, unknown>
+  if (args && typeof args === 'object' && !Array.isArray(args)) {
+    normalized = args as Record<string, unknown>
+  } else if (typeof args === 'string') {
+    // 字符串形态：尝试解析为对象；失败则包成 { raw: ... } 保住原始信息
+    const parsed = tryParseJSON(args)
+    normalized =
+      parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : { raw: args }
+  } else {
+    normalized = {}
+  }
+  return { name, args: normalized, confidence: 'medium', rawText, end, generatedByProxy }
 }
 
 // ─── 规则实现函数 ──────────────────────────────────────────
@@ -1143,7 +1196,7 @@ function scanAllBalancedJson(text: string): Array<{ name: string; args: unknown;
     const parsed = tryParseJSON(balanced.json)
     if (parsed && typeof parsed === 'object' && parsed !== null) {
       const p = parsed as Record<string, unknown>
-      const name = p.name || p.tool || p.tool_name || inferToolNameFromArgs(p)
+      const name: string | null = pickName(p.name, p.tool, p.tool_name) ?? inferToolNameFromArgs(p)
       if (name) {
         const args = p.arguments ?? p.args ?? p.input ?? p.parameters ?? p
         results.push({

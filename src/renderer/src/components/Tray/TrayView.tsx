@@ -209,7 +209,7 @@ export function TrayView() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
-                <Zap size={12} className="text-amber-500" />
+                <Zap size={12} className="text-amber-500 dark:text-amber-400" />
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">API Endpoint</span>
               </div>
               <button
@@ -220,7 +220,7 @@ export function TrayView() {
                   {host}:{port}
                 </code>
                 {copied ? (
-                  <Check size={12} className="text-emerald-500 flex-shrink-0" />
+                  <Check size={12} className="text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
                 ) : (
                   <Copy size={12} className="text-slate-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                 )}

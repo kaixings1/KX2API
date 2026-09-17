@@ -300,8 +300,6 @@ src/main/proxy/toolCalling/toolCallExtractor.ts(930,32): error TS2345: Argument 
 src/main/proxy/toolCalling/toolCallExtractor.ts(946,32): error TS2345: Argument of type 'string | Record<string, string>' is not assignable to parameter of type 'Record<string, unknown>'.
   Type 'string' is not assignable to type 'Record<string, unknown>'.
 src/main/proxy/toolCalling/toolCallExtractor.ts(1150,11): error TS2322: Type '{}' is not assignable to type 'string'.
-src/main/proxy/toolCalling/ToolCallingEngine.ts(200,5): error TS2322: Type 'ChatCompletionTool[] | null | undefined' is not assignable to type 'ChatCompletionTool[] | null'.
-  Type 'undefined' is not assignable to type 'ChatCompletionTool[] | null'.
 src/main/proxy/tools/toolCallCache.ts(8,26): error TS2307: Cannot find module '../performance/LRUCache.js' or its corresponding type declarations.
 src/main/proxy/tools/toolOrchestrator.ts(9,22): error TS2307: Cannot find module '../utils/pMap.ts' or its corresponding type declarations.
 src/main/proxy/tools/toolOrchestrator.ts(55,65): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.

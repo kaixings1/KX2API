@@ -202,7 +202,7 @@ export function PlanDetailPage() {
 
       {execError && (
         <Card className="border-red-500/50 bg-red-500/5">
-          <CardContent className="py-3 text-sm text-red-500">
+          <CardContent className="py-3 text-sm text-red-500 dark:text-red-400">
             {t('plans.executionFailed', '执行失败')}: {execError}
           </CardContent>
         </Card>
@@ -273,7 +273,7 @@ export function PlanDetailPage() {
                 onClick={() => handleStepToggle(step.id)}
               >
                 {step.status === 'completed'
-                  ? <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  ? <CheckCircle2 className="h-4 w-4 text-green-500 dark:text-green-400 flex-shrink-0" />
                   : <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
                 <span className={cn(step.status === 'completed' && 'text-muted-foreground line-through')}>
                   {i + 1}. {step.description}

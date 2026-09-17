@@ -301,7 +301,7 @@ export function PlanManagement() {
                       onClick={() => handleStepToggle(plan.id, step.id)}
                     >
                       {step.status === 'completed'
-                        ? <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        ? <CheckCircle2 className="h-4 w-4 text-green-500 dark:text-green-400" />
                         : <Circle className="h-4 w-4 group-hover/step:text-primary" />}
                       <span className={cn(step.status === 'completed' && 'line-through')}>{i + 1}. {step.description}</span>
                     </div>

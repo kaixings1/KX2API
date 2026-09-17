@@ -19,10 +19,10 @@ const levelColors: Record<string, string> = {
 }
 
 const levelTextColors: Record<string, string> = {
-  info: 'text-blue-500',
-  warn: 'text-yellow-500',
-  error: 'text-red-500',
-  debug: 'text-gray-500',
+  info: 'text-blue-500 dark:text-blue-400',
+  warn: 'text-yellow-500 dark:text-yellow-400',
+  error: 'text-red-500 dark:text-red-400',
+  debug: 'text-gray-500 dark:text-gray-400',
 }
 
 const formatTime = (timestamp: number): string => {

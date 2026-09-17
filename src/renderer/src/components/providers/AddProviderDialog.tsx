@@ -545,7 +545,7 @@ export function AddProviderDialog({
                       disabled={!fieldValue}
                     >
                       {isCopied ? (
-                        <Check className="h-4 w-4 text-green-500" />
+                        <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
                       ) : (
                         <Copy className="h-4 w-4 text-muted-foreground" />
                       )}
@@ -585,7 +585,7 @@ export function AddProviderDialog({
                       disabled={!fieldValue}
                     >
                       {isCopied ? (
-                        <Check className="h-4 w-4 text-green-500" />
+                        <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
                       ) : (
                         <Copy className="h-4 w-4 text-muted-foreground" />
                       )}

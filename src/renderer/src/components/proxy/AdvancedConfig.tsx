@@ -158,7 +158,7 @@ export function AdvancedConfig({ onConfigChange }: AdvancedConfigProps) {
                   </span>
                 )}
                 {!errors.timeout && formData.timeout && (
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  <CheckCircle2 className="h-3 w-3 text-green-500 dark:text-green-400" />
                 )}
               </Label>
               <Input
@@ -184,7 +184,7 @@ export function AdvancedConfig({ onConfigChange }: AdvancedConfigProps) {
                   </span>
                 )}
                 {!errors.retryCount && formData.retryCount && (
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  <CheckCircle2 className="h-3 w-3 text-green-500 dark:text-green-400" />
                 )}
               </Label>
               <Input

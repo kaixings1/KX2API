@@ -349,7 +349,7 @@ export function TeamTaskPage() {
               return (
                 <div key={task.taskId} className="flex items-start gap-3 text-sm">
                   {task.success ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle2 className="h-4 w-4 text-green-500 dark:text-green-400 flex-shrink-0 mt-0.5" />
                   ) : (
                     <XCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
                   )}
@@ -389,7 +389,7 @@ export function TeamTaskPage() {
               {report.taskResults.map((r) => (
                 <div key={r.taskId} className="flex items-center gap-2 text-sm py-1">
                   {r.success ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 dark:text-green-400" />
                   ) : (
                     <XCircle className="h-3.5 w-3.5 text-destructive" />
                   )}

@@ -535,7 +535,7 @@ export function ModelMappingConfig({ onConfigChange }: ModelMappingConfigProps) 
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {isWildcardMapping && (
-                            <Sparkles className="h-4 w-4 text-amber-500" />
+                            <Sparkles className="h-4 w-4 text-amber-500 dark:text-amber-400" />
                           )}
                           <code className="text-sm">{mapping.requestModel}</code>
                         </div>
@@ -608,7 +608,7 @@ export function ModelMappingConfig({ onConfigChange }: ModelMappingConfigProps) 
         )}
 
         <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
-          <Sparkles className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+          <Sparkles className="h-4 w-4 text-amber-500 dark:text-amber-400 mt-0.5 flex-shrink-0" />
           <div className="space-y-1">
             <p className="text-sm font-medium">{t('proxy.wildcardMapping')}</p>
             <p className="text-xs text-muted-foreground">

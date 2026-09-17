@@ -1,5 +1,5 @@
 npm notice run kx2code@1.0.0 npx
-npm notice run tsc -p tsconfig.check.json --noEmit
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
 src/engine/agent/coordinator/orchestrator.ts(233,44): error TS2345: Argument of type '{ taskId: string; description: string; success: boolean; output: string; error?: string | undefined; durationMs: number; }' is not assignable to parameter of type 'TaskNodeResult'.
   Property 'executedAt' is missing in type '{ taskId: string; description: string; success: boolean; output: string; error?: string | undefined; durationMs: number; }' but required in type 'TaskNodeResult'.
 src/engine/agent/coordinator/orchestrator.ts(326,7): error TS2561: Object literal may only specify known properties, but 'discussionRounds' does not exist in type 'ExecutionReport'. Did you mean to write 'discussions'?
@@ -125,11 +125,6 @@ src/main/plans/plansService.ts(119,5): error TS2322: Type 'number | null' is not
   Type 'null' is not assignable to type 'number | undefined'.
 src/main/plugins/pluginsService.ts(111,14): error TS2339: Property 'lastActiveAt' does not exist on type 'PluginRecord'.
 src/main/providers/custom.ts(185,7): error TS2353: Object literal may only specify known properties, and 'credentialFields' does not exist in type 'Provider'.
-src/main/proxy/adapters/deepseek.ts(98,108): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,228): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,282): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,307): error TS2554: Expected 0 arguments, but got 1.
-src/main/proxy/adapters/deepseek.ts(98,332): error TS2554: Expected 0 arguments, but got 1.
 src/main/proxy/adapters/glm.ts(781,5): error TS2322: Type 'ToolStreamParser | null' is not assignable to type 'ToolStreamParser | undefined'.
   Type 'null' is not assignable to type 'ToolStreamParser | undefined'.
 src/main/proxy/adapters/glm.ts(1196,23): error TS2448: Block-scoped variable 'flushChunks' used before its declaration.
@@ -288,18 +283,6 @@ src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(102,5): error
 src/main/proxy/toolCalling/protocols/codexResponses.ts(32,11): error TS7034: Variable 'toolCalls' implicitly has type 'any[]' in some locations where its type cannot be determined.
 src/main/proxy/toolCalling/protocols/codexResponses.ts(40,9): error TS7005: Variable 'toolCalls' implicitly has an 'any[]' type.
 src/main/proxy/toolCalling/protocols/codexResponses.ts(59,13): error TS7022: 'id' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
-src/main/proxy/toolCalling/toolCallExtractor.ts(457,20): error TS2322: Type '{}' is not assignable to type 'string'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(470,18): error TS2322: Type '{}' is not assignable to type 'string'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(553,91): error TS2571: Object is of type 'unknown'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(559,85): error TS2571: Object is of type 'unknown'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(607,18): error TS2322: Type '{}' is not assignable to type 'string'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(667,22): error TS18004: No value exists in scope for the shorthand property 'args'. Either declare one or provide an initializer.
-src/main/proxy/toolCalling/toolCallExtractor.ts(696,11): error TS2322: Type '{}' is not assignable to type 'string'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(930,32): error TS2345: Argument of type '{}' is not assignable to parameter of type 'Record<string, unknown>'.
-  Index signature for type 'string' is missing in type '{}'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(946,32): error TS2345: Argument of type 'string | Record<string, string>' is not assignable to parameter of type 'Record<string, unknown>'.
-  Type 'string' is not assignable to type 'Record<string, unknown>'.
-src/main/proxy/toolCalling/toolCallExtractor.ts(1150,11): error TS2322: Type '{}' is not assignable to type 'string'.
 src/main/proxy/tools/toolCallCache.ts(8,26): error TS2307: Cannot find module '../performance/LRUCache.js' or its corresponding type declarations.
 src/main/proxy/tools/toolOrchestrator.ts(9,22): error TS2307: Cannot find module '../utils/pMap.ts' or its corresponding type declarations.
 src/main/proxy/tools/toolOrchestrator.ts(55,65): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.

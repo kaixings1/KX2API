@@ -723,7 +723,7 @@ function CredentialFieldsForm({ fields, credentials, onChange, t, providerId }: 
                     disabled={!fieldValue}
                   >
                     {isCopied ? (
-                      <Check className="h-4 w-4 text-green-500" />
+                      <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
                     ) : (
                       <Copy className="h-4 w-4 text-muted-foreground" />
                     )}
@@ -763,7 +763,7 @@ function CredentialFieldsForm({ fields, credentials, onChange, t, providerId }: 
                     disabled={!fieldValue}
                   >
                     {isCopied ? (
-                      <Check className="h-4 w-4 text-green-500" />
+                      <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
                     ) : (
                       <Copy className="h-4 w-4 text-muted-foreground" />
                     )}

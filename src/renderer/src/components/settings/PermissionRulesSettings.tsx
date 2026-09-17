@@ -27,9 +27,9 @@ interface ParsedRule {
 }
 
 const BEHAVIORS = [
-  { value: 'allow', label: '放行', hint: '直接执行，不再询问', icon: Check, cls: 'text-emerald-500' },
-  { value: 'deny', label: '拒绝', hint: '直接拒绝，且不可被其它规则放行', icon: Ban, cls: 'text-red-500' },
-  { value: 'ask', label: '询问', hint: '每次执行前都向用户确认', icon: HelpCircle, cls: 'text-amber-500' },
+  { value: 'allow', label: '放行', hint: '直接执行，不再询问', icon: Check, cls: 'text-emerald-500 dark:text-emerald-400' },
+  { value: 'deny', label: '拒绝', hint: '直接拒绝，且不可被其它规则放行', icon: Ban, cls: 'text-red-500 dark:text-red-400' },
+  { value: 'ask', label: '询问', hint: '每次执行前都向用户确认', icon: HelpCircle, cls: 'text-amber-500 dark:text-amber-400' },
 ] as const
 
 /** 常见规则模板：降低「不知道该写什么」的门槛 */

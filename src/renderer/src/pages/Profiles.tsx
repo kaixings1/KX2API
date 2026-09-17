@@ -320,7 +320,7 @@ export function Profiles() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-red-400 hover:text-red-500"
+                      className="h-7 w-7 text-red-400 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300"
                       onClick={() => setDeleteTarget(p.name)}
                       title={t('profiles.delete', '删除')}
                       disabled={profiles.length <= 1}

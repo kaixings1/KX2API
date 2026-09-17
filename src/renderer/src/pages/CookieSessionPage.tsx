@@ -177,7 +177,7 @@ export function CookieSessionPage() {
             {Object.entries(credentialCache).map(([provider, creds]) => (
               <div key={provider} className="rounded border border-[var(--glass-border)] bg-[var(--glass-bg)] p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 text-green-500 dark:text-green-400" />
                   <span className="text-sm font-medium capitalize">{provider}</span>
                 </div>
                 <pre className="text-xs bg-muted/50 rounded p-2 overflow-auto max-h-32 whitespace-pre-wrap">

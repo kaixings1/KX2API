@@ -34,19 +34,19 @@ export function RequestLogStats({ stats: statsProp }: RequestLogStatsProps) {
       label: t('logs.todaySuccess'),
       value: stats.todaySuccess,
       icon: CheckCircle,
-      color: 'text-green-500',
+      color: 'text-green-500 dark:text-green-400',
     },
     {
       label: t('logs.todayErrors'),
       value: stats.todayError,
       icon: XCircle,
-      color: 'text-red-500',
+      color: 'text-red-500 dark:text-red-400',
     },
     {
       label: t('dashboard.successRate'),
       value: `${successRate}%`,
       icon: Activity,
-      color: 'text-blue-500',
+      color: 'text-blue-500 dark:text-blue-400',
     },
   ]
 

@@ -274,7 +274,7 @@ export function ProxyConfigForm({ onConfigChange }: ProxyConfigFormProps) {
                   </span>
                 )}
                 {!errors.port && formData.port && (
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  <CheckCircle2 className="h-3 w-3 text-green-500 dark:text-green-400" />
                 )}
               </Label>
               <Input
@@ -300,7 +300,7 @@ export function ProxyConfigForm({ onConfigChange }: ProxyConfigFormProps) {
                   </span>
                 )}
                 {!errors.host && formData.host && (
-                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  <CheckCircle2 className="h-3 w-3 text-green-500 dark:text-green-400" />
                 )}
               </Label>
               <Input

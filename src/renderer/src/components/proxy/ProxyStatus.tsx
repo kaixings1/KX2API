@@ -130,7 +130,7 @@ export function ProxyStatus({ onStatusChange }: ProxyStatusProps) {
       title: t('common.success'),
       value: proxyStatistics?.successRequests ?? 0,
       icon: CheckCircle2,
-      color: 'text-green-500',
+      color: 'text-green-500 dark:text-green-400',
     },
     {
       title: t('common.error'),
@@ -142,13 +142,13 @@ export function ProxyStatus({ onStatusChange }: ProxyStatusProps) {
       title: t('dashboard.successRate'),
       value: `${getSuccessRate()}%`,
       icon: Activity,
-      color: 'text-blue-500',
+      color: 'text-blue-500 dark:text-blue-400',
     },
     {
       title: t('dashboard.avgLatency'),
       value: formatLatency(proxyStatistics?.avgLatency ?? 0),
       icon: Timer,
-      color: 'text-amber-500',
+      color: 'text-amber-500 dark:text-amber-400',
     },
   ]
 
