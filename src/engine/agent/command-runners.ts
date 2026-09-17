@@ -11,7 +11,7 @@
 import { execaCommand } from '../utils/exec.ts'
 import { Team } from '../../main/agent/team/team.ts'
 
-export type RunnerType = 'local' | 'llm' | 'team'
+export type RunnerType = 'local' | 'llm' | 'team' | 'subagent'
 
 export interface CommandRunner {
   type: RunnerType
@@ -19,7 +19,7 @@ export interface CommandRunner {
   /**
    * @param args 命令参数
    * @param cwd 工作目录
-   * @param config LLM 配置（llm 类型需要）
+   * @param config LLM 配置（llm/subagent 类型需要）
    */
   execute: (args: string[], cwd: string, config?: {
     provider: string
@@ -561,7 +561,10 @@ const generateImpl: CommandRunner = {
 
 // ==================== 团队类命令（多角色协作） ====================
 
-const agentsPlatformImpl: CommandRunner = {
+// 注意：本文件另有一个同名 `agentsPlatformImpl`（见文件末尾，type: 'local'，
+// 用于 /agents-platform 列出可用子代理类型）。此处这个是基于 Team 的多角色
+// 编排实现（type: 'team'），两者语义不同，故改名区分，避免重名遮蔽（TS2451）。
+const teamOrchestrationImpl: CommandRunner = {
   type: 'team',
   description: '多代理编排平台',
   execute: async (args, cwd) => {
@@ -822,6 +825,48 @@ const helpImpl: CommandRunner = {
   },
 }
 
+// ==================== 代理执行命令 ====================
+
+/**
+ * /agent 命令：执行子代理任务
+ *
+ * 为避免与 dispatcher.ts 循环依赖，这里使用延迟 import。
+ * 用法: /agent <代理类型> <任务描述>
+ *        /agent general-purpose 分析登录模块的安全问题
+ */
+const agentImpl: CommandRunner = {
+  type: 'subagent',
+  description: '执行子代理任务',
+  execute: async (args, cwd, config) => {
+    // 子代理必须拿到真实 LLM 配置，否则子引擎无法调模型
+    if (!config?.apiKey || !config.model) {
+      return '子代理缺少 LLM 配置（apiKey / model）。请先在设置中配置可用的 API 后再调用 /agent。'
+    }
+    const { AgentDispatcher } = await import('./dispatcher.ts')
+    const dispatcher = new AgentDispatcher(config)
+    const result = await dispatcher.dispatch('agent', args, { cwd })
+    return result.output || result.error || '（子代理完成，无输出）'
+  },
+}
+
+/**
+ * /agents-platform 命令：查看代理平台信息
+ */
+const agentsPlatformImpl: CommandRunner = {
+  type: 'local',
+  description: '代理平台信息',
+  execute: async (args, cwd) => {
+    const { DEFAULT_BUILT_IN_AGENTS } = await import('./subagent/definitions.ts')
+    const lines = ['可用子代理类型:']
+    for (const agent of DEFAULT_BUILT_IN_AGENTS) {
+      lines.push(`  ${agent.agentType} — ${agent.whenToUse}`)
+    }
+    lines.push('')
+    lines.push('用法: /agent <类型> <任务描述>')
+    return lines.join('\n')
+  },
+}
+
 // ==================== 命令注册表映射 ====================
 
 export const commandRunners = new Map<string, CommandRunner>([
@@ -873,6 +918,7 @@ export const commandRunners = new Map<string, CommandRunner>([
   ['background', backgroundImpl],
   ['agents', agentsImpl],
   ['agents-platform', agentsPlatformImpl],
+  ['agent', agentImpl],
   ['add-dir', addDirImpl],
   ['config', configImpl],
   ['settings', settingsImpl],

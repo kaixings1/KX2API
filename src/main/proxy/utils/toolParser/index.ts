@@ -60,7 +60,7 @@ export function parseToolCalls(content: string): ToolParseResult {
       result = parseJsonFormat(content)
       break
     case 'managed_xml': {
-      const parsed = managedXmlProtocol.parse(content, { tools: [] })
+      const parsed = managedXmlProtocol.parse(content, { tools: [], protocol: 'managed_xml' })
       result = { content: parsed.content, toolCalls: parsed.toolCalls.map((tc) => ({
         id: tc.id,
         index: tc.index,

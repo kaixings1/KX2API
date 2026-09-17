@@ -171,6 +171,8 @@ export interface ToolCall {
     name: string
     arguments: string
   }
+  /** 原始匹配文本（bracket/XML 解析时附带，用于从正文中剥离） */
+  rawText?: string
 }
 
 /**

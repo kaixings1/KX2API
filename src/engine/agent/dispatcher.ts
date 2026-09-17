@@ -20,6 +20,10 @@ import { TaskDecomposer } from './task-decomposer.ts'
 import { TaskExecutor, type ExecuteResult, type ExecutorOptions } from './task-executor.ts'
 import { type DecompositionPlan } from './task-decomposer.ts'
 import * as path from "node:path"
+import { type AgentDefinition, type SubagentContext } from './subagent/types.ts'
+import { DEFAULT_BUILT_IN_AGENTS, findAgentByType } from './subagent/definitions.ts'
+import { executeSubagent } from './subagent/executor.ts'
+import { filterToolsForAgent } from './subagent/toolFilter.ts'
 
 export interface AgentDispatchResult {
   success: boolean
@@ -60,6 +64,8 @@ export class AgentDispatcher {
           return await this.dispatchWithDecomposition(runner, commandName, args, context)
         case 'llm':
           return await this.dispatchWithDecomposition(runner, commandName, args, context)
+        case 'subagent':
+          return await this.dispatchSubagent(runner, commandName, args, context)
         case 'local':
           return await this.dispatchLocal(runner, commandName, args, context)
         default:
@@ -306,6 +312,81 @@ export class AgentDispatcher {
     lines.push('')
     lines.push('请分析以上信息并提供详细结果。')
     return lines.join('\n')
+  }
+
+  // ==================== 子代理执行链路 ====================
+
+  /**
+   * 子代理策略：根据 agentType 选择代理定义，用子上下文执行
+   *
+   * 用法: /agent <代理类型> <任务描述>
+   *        /agent general-purpose 分析登录模块的安全问题
+   */
+  private async dispatchSubagent(
+    _runner: CommandRunner,
+    _commandName: string,
+    args: string[],
+    context?: Record<string, unknown>,
+  ): Promise<AgentDispatchResult> {
+    const cwd = this.getCwd(context)
+
+    // 解析参数：第一个参数是代理类型，其余是任务描述
+    const agentType = args[0] || 'general-purpose'
+    const prompt = args.slice(1).join(' ') || '请执行通用任务'
+
+    // 查找代理定义
+    const agent = findAgentByType(DEFAULT_BUILT_IN_AGENTS, agentType)
+    if (!agent) {
+      const available = DEFAULT_BUILT_IN_AGENTS.map((a) => a.agentType).join(', ')
+      return {
+        success: false,
+        output: '',
+        error: `未知代理类型: "${agentType}"。可用类型: ${available}`,
+        agentUsed: `subagent(${agentType})`,
+      }
+    }
+
+    // 构建工具列表（简化版：从 K 的 registry 获取所有命令名作为工具）
+    const availableTools: { name: string; description: string }[] = []
+    for (const [name, r] of commandRunners.entries()) {
+      availableTools.push({ name, description: r.description })
+    }
+
+    // 过滤工具（应用代理的 disallowedTools）
+    const resolved = filterToolsForAgent({
+      tools: availableTools,
+      isBuiltIn: agent.source === 'built-in',
+      isAsync: false,
+      permissionMode: agent.permissionMode,
+    })
+
+    // 构建子代理上下文
+    const subagentCtx: SubagentContext = {
+      config: this.config,
+      cwd,
+      availableTools: resolved,
+      prompt,
+      agentType: agent.agentType,
+      isAsync: false,
+    }
+
+    // 执行子代理
+    try {
+      const result = await executeSubagent(agent, subagentCtx)
+      return {
+        success: result.success,
+        output: result.output || '(子代理完成，无输出)',
+        error: result.error,
+        agentUsed: `subagent(${agent.agentType})`,
+      }
+    } catch (e) {
+      return {
+        success: false,
+        output: '',
+        error: `子代理执行失败: ${(e as Error).message}`,
+        agentUsed: `subagent(${agent.agentType})`,
+      }
+    }
   }
 
   // ==================== 工具方法 ====================

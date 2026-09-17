@@ -103,9 +103,6 @@ export class InAppLoginManager extends EventEmitter {
     this.loginSession.setCertificateVerifyProc((_request, callback) => {
       callback(0)
     })
-    this.loginSession.on('certificate-error', (_event: Electron.Event, _webContents: Electron.WebContents, _url: string, _error: string, _certificate: Electron.Certificate, callback: (isTrusted: boolean) => void) => {
-      callback(0)
-    })
 
     if (this.options?.proxyMode === 'none') {
       this.loginSession.setProxy({ mode: 'direct' }).catch((error) => {

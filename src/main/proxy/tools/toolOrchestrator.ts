@@ -6,7 +6,7 @@
  * - runTools：并发安全工具并发执行，互斥工具串行执行
  */
 
-import { pMap } from '../utils/pMap.ts'
+import { pMap } from '../../utils/pMap.ts'
 import type { ContentBlock, ToolDefinition } from '../../../engine/api/client.ts'
 
 export interface ToolExecuteContext {

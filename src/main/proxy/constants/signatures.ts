@@ -19,7 +19,7 @@ export type ClientType =
 /**
  * Tool call output format
  */
-export type ToolCallFormat = 'bracket' | 'xml' | 'anthropic' | 'json' | 'native' | 'managed_xml' | 'kimi'
+export type ToolCallFormat = 'bracket' | 'xml' | 'anthropic' | 'json' | 'native' | 'managed_xml' | 'kimi' | 'unknown'
 
 /**
  * Client signature configuration

@@ -1,5 +1,11 @@
 npm notice run kx2code@1.0.0 npx
 npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/agent/command-runners.ts(564,7): error TS2451: Cannot redeclare block-scoped variable 'agentsPlatformImpl'.
+src/engine/agent/command-runners.ts(839,44): error TS2345: Argument of type '{ provider: string; apiKey: string; model: string; baseUrl?: string | undefined; maxTokens?: number | undefined; } | undefined' is not assignable to parameter of type 'ApiConfig'.
+  Type 'undefined' is not assignable to type 'ApiConfig'.
+src/engine/agent/command-runners.ts(848,7): error TS2451: Cannot redeclare block-scoped variable 'agentsPlatformImpl'.
+src/engine/agent/subagent/types.ts(7,44): error TS2307: Cannot find module '../api/client.ts' or its corresponding type declarations.
+src/engine/agent/subagent/types.ts(8,32): error TS2307: Cannot find module '../api/client.ts' or its corresponding type declarations.
 src/engine/api/client.ts(688,31): error TS7006: Parameter 'err' implicitly has an 'any' type.
 src/engine/codeVectorStore.ts(162,32): error TS2339: Property 'readFile' does not exist on type '{ existsSync: (_p?: string | undefined) => boolean; }'.
 src/engine/codeVectorStore.ts(168,29): error TS2339: Property 'stat' does not exist on type '{ existsSync: (_p?: string | undefined) => boolean; }'.
@@ -7,6 +13,7 @@ src/engine/codeVectorStore.ts(221,30): error TS2339: Property 'readFile' does no
 src/engine/codeVectorStore.ts(225,27): error TS2339: Property 'stat' does not exist on type '{ existsSync: (_p?: string | undefined) => boolean; }'.
 src/engine/codeVectorStore.ts(381,31): error TS2554: Expected 2-3 arguments, but got 1.
 src/engine/codeVectorStore.ts(398,29): error TS2339: Property 'stat' does not exist on type '{ existsSync: (_p?: string | undefined) => boolean; }'.
+src/engine/commands/registry.ts(3427,3): error TS2353: Object literal may only specify known properties, and 'needsAgent' does not exist in type 'Command'.
 src/main/agents/AgentExecutor.ts(18,13): error TS2322: Type '"start"' is not assignable to type '"done" | "error" | "chunk"'.
 src/main/agents/AgentExecutor.ts(24,32): error TS2353: Object literal may only specify known properties, and 'agentId' does not exist in type 'AgentExecutionEvent'.
 src/main/agents/AgentExecutor.ts(27,29): error TS2353: Object literal may only specify known properties, and 'agentId' does not exist in type 'AgentExecutionEvent'.
@@ -35,43 +42,6 @@ src/main/ipc/chat-handlers.ts(170,34): error TS2345: Argument of type '{ timesta
 src/main/ipc/chat-handlers.ts(791,49): error TS2345: Argument of type '{ id: string; description: string; }' is not assignable to parameter of type 'Objective'.
   Property 'priority' is missing in type '{ id: string; description: string; }' but required in type 'Objective'.
 src/main/ipc/chat-handlers.ts(799,34): error TS2551: Property 'discussionRounds' does not exist on type 'ExecutionReport'. Did you mean 'discussions'?
-src/main/oauth/adapters/mimo.ts(28,41): error TS2322: Type '"browser"' is not assignable to type 'AuthMethod'.
-src/main/oauth/adapters/minimax.ts(283,29): error TS2339: Property 'id' does not exist on type '{}'.
-src/main/oauth/adapters/stepfun.ts(26,31): error TS2322: Type '"browser"' is not assignable to type 'AuthMethod'.
-src/main/oauth/adapters/zai.ts(44,31): error TS2322: Type '"browser"' is not assignable to type 'AuthMethod'.
-src/main/oauth/cookieSessionManager.ts(92,14): error TS2769: No overload matches this call.
-  The last overload gave the following error.
-    Argument of type '"certificate-error"' is not assignable to parameter of type '"will-download"'.
-src/main/oauth/cookieSessionManager.ts(92,36): error TS7006: Parameter '_event' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(92,44): error TS7006: Parameter '_webContents' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(92,58): error TS7006: Parameter '_url' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(92,64): error TS7006: Parameter '_error' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(92,72): error TS7006: Parameter '_certificate' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(92,86): error TS7006: Parameter 'callback' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(439,12): error TS2769: No overload matches this call.
-  The last overload gave the following error.
-    Argument of type '"certificate-error"' is not assignable to parameter of type '"will-download"'.
-src/main/oauth/cookieSessionManager.ts(439,34): error TS7006: Parameter '_event' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(439,42): error TS7006: Parameter '_webContents' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(439,56): error TS7006: Parameter '_url' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(439,62): error TS7006: Parameter '_error' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(439,70): error TS7006: Parameter '_certificate' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(439,84): error TS7006: Parameter 'callback' implicitly has an 'any' type.
-src/main/oauth/cookieSessionManager.ts(509,12): error TS2749: 'session' refers to a value, but is being used as a type here. Did you mean 'typeof session'?
-src/main/oauth/inAppLogin.ts(106,26): error TS2769: No overload matches this call.
-  The last overload gave the following error.
-    Argument of type '"certificate-error"' is not assignable to parameter of type '"will-download"'.
-src/main/oauth/inAppLogin.ts(107,16): error TS2345: Argument of type 'number' is not assignable to parameter of type 'boolean'.
-src/main/oauth/manager.ts(482,70): error TS2367: This comparison appears to be unintentional because the types '"deepseek" | "kimi" | "glm" | "qwen" | "qwen-ai" | "zai" | "perplexity"' and '"stepfun"' have no overlap.
-src/main/oauth/stepfunSessionManager.ts(65,23): error TS2769: No overload matches this call.
-  The last overload gave the following error.
-    Argument of type '"certificate-error"' is not assignable to parameter of type '"will-download"'.
-src/main/oauth/stepfunSessionManager.ts(65,45): error TS7006: Parameter '_event' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,53): error TS7006: Parameter '_webContents' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,67): error TS7006: Parameter '_url' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,73): error TS7006: Parameter '_error' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,81): error TS7006: Parameter '_certificate' implicitly has an 'any' type.
-src/main/oauth/stepfunSessionManager.ts(65,95): error TS7006: Parameter 'callback' implicitly has an 'any' type.
 src/main/plans/plansService.ts(117,5): error TS2322: Type '{ id: string; description: string; status: string; result: string | null; }[]' is not assignable to type 'PlanStep[]'.
   Type '{ id: string; description: string; status: PlanStep["status"]; result: string | null; }' is not assignable to type 'PlanStep'.
     Types of property 'result' are incompatible.
@@ -136,6 +106,7 @@ src/main/proxy/adapters/stepfun.ts(1168,11): error TS2322: Type 'string | null' 
 src/main/proxy/adapters/transformers/anthropic.ts(6,101): error TS2307: Cannot find module '../types' or its corresponding type declarations.
 src/main/proxy/adapters/transformers/gemini.ts(6,54): error TS2307: Cannot find module '../types' or its corresponding type declarations.
 src/main/proxy/adapters/transformers/openai.ts(6,101): error TS2307: Cannot find module '../types' or its corresponding type declarations.
+src/main/proxy/constants/signatures.ts(166,14): error TS2741: Property 'unknown' is missing in type '{ bracket: string[]; xml: string[]; anthropic: string[]; json: string[]; native: never[]; managed_xml: string[]; kimi: string[]; }' but required in type 'Record<ToolCallFormat, string[]>'.
 src/main/proxy/forwarder.ts(56,8): error TS2459: Module '"./services/contextManagementService"' declares 'ChatMessage' locally, but it is not exported.
 src/main/proxy/forwarder.ts(165,14): error TS2551: Property 'forwardStepFunStudio' does not exist on type 'RequestForwarder'. Did you mean 'forwardStepFun'?
 src/main/proxy/forwarder.ts(613,9): error TS18046: 'parameters.properties' is of type 'unknown'.
@@ -235,25 +206,11 @@ src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.ts(102,5): error
 src/main/proxy/toolCalling/protocols/codexResponses.ts(32,11): error TS7034: Variable 'toolCalls' implicitly has type 'any[]' in some locations where its type cannot be determined.
 src/main/proxy/toolCalling/protocols/codexResponses.ts(40,9): error TS7005: Variable 'toolCalls' implicitly has an 'any[]' type.
 src/main/proxy/toolCalling/protocols/codexResponses.ts(59,13): error TS7022: 'id' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
-src/main/proxy/tools/toolCallCache.ts(8,26): error TS2307: Cannot find module '../performance/LRUCache.js' or its corresponding type declarations.
-src/main/proxy/tools/toolOrchestrator.ts(9,22): error TS2307: Cannot find module '../utils/pMap.ts' or its corresponding type declarations.
 src/main/proxy/tools/toolOrchestrator.ts(55,65): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
   Type 'undefined' is not assignable to type 'string'.
-src/main/proxy/tools/toolOrchestrator.ts(113,12): error TS7006: Parameter 'block' implicitly has an 'any' type.
 src/main/proxy/utils/accountUtils.ts(80,5): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
   Type 'undefined' is not assignable to type 'string'.
 src/main/proxy/utils/clientDetector.ts(273,21): error TS2339: Property 'promptSectionMarkers' does not exist on type 'DetectionResult'.
-src/main/proxy/utils/index.ts(9,1): error TS2308: Module './toolParser/index' has already exported a member named 'flushToolCallBuffer'. Consider explicitly re-exporting to resolve the ambiguity.
-src/main/proxy/utils/index.ts(9,1): error TS2308: Module './toolParser/index' has already exported a member named 'shouldBlockOutput'. Consider explicitly re-exporting to resolve the ambiguity.
-src/main/proxy/utils/streamQueueDetector.ts(10,26): error TS2307: Cannot find module './types' or its corresponding type declarations.
-src/main/proxy/utils/streamToolHandler.ts(21,3): error TS2305: Module '"./toolParser/index"' has no exported member 'createBaseChunk'.
-src/main/proxy/utils/toolParser/index.ts(39,42): error TS2322: Type '"unknown"' is not assignable to type 'ToolCallFormat'.
-src/main/proxy/utils/toolParser/index.ts(63,56): error TS2345: Argument of type '{ tools: never[]; }' is not assignable to parameter of type 'ToolParseContext'.
-  Property 'protocol' is missing in type '{ tools: never[]; }' but required in type 'ToolParseContext'.
-src/main/proxy/utils/toolParser/index.ts(76,40): error TS2322: Type '"unknown"' is not assignable to type 'ToolCallFormat'.
-src/main/proxy/utils/toolParser/index.ts(172,28): error TS2339: Property 'rawText' does not exist on type 'ToolCall'.
-src/main/proxy/utils/toolParser/index.ts(173,19): error TS2339: Property 'rawText' does not exist on type 'ToolCall'.
-src/main/proxy/utils/toolParser/index.ts(252,17): error TS2339: Property 'rawText' does not exist on type 'ToolCall'.
 src/main/security/InputValidator.ts(149,70): error TS2365: Operator '>' cannot be applied to types 'number' and '{}'.
 src/main/security/InputValidator.ts(153,87): error TS2339: Property 'test' does not exist on type '{}'.
 src/main/store/accounts.ts(83,7): error TS2353: Object literal may only specify known properties, and 'lastStatusCheck' does not exist in type 'Account'.
@@ -274,12 +231,6 @@ src/main/tasks/tasksStore.ts(69,7): error TS2322: Type 'number | null' is not as
   Type 'null' is not assignable to type 'number | undefined'.
 src/main/tasks/tasksStore.ts(70,7): error TS2322: Type 'null' is not assignable to type 'number | undefined'.
 src/main/tasks/tasksStore.ts(71,7): error TS2322: Type 'null' is not assignable to type 'string | undefined'.
-src/main/tray.ts(15,25): error TS2749: 'nativeImage' refers to a value, but is being used as a type here. Did you mean 'typeof nativeImage'?
-src/main/tray.ts(33,32): error TS2749: 'nativeImage' refers to a value, but is being used as a type here. Did you mean 'typeof nativeImage'?
-src/main/tray.ts(58,31): error TS2749: 'nativeImage' refers to a value, but is being used as a type here. Did you mean 'typeof nativeImage'?
-src/main/tray.ts(76,39): error TS2749: 'nativeImage' refers to a value, but is being used as a type here. Did you mean 'typeof nativeImage'?
-src/main/tray/TrayManager.ts(25,25): error TS2749: 'nativeImage' refers to a value, but is being used as a type here. Did you mean 'typeof nativeImage'?
-src/main/tray/TrayManager.ts(43,32): error TS2749: 'nativeImage' refers to a value, but is being used as a type here. Did you mean 'typeof nativeImage'?
 src/main/tray/TrayManager.ts(173,25): error TS2339: Property 'language' does not exist on type 'AppConfig'.
 src/main/updater/index.ts(1,26): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
 src/main/updater/index.ts(1,44): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.

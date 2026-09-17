@@ -479,7 +479,7 @@ export class OAuthManager extends EventEmitter {
         }
 
         // For non-MiniMax/Mimo/StepFun providers, validate immediately when we have a token
-        if (providerType !== 'minimax' && providerType !== 'mimo' && providerType !== 'stepfun') {
+        if (providerType !== 'minimax' && providerType !== 'mimo') {
           if (isValidating) {
             console.log('[OAuthManager] Already validating, skipping')
             return

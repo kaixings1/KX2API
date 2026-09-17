@@ -5,14 +5,14 @@
  * 工具调用结果缓存，支持 TTL 和可缓存工具白名单
  */
 
-import { LRUCache } from '../performance/LRUCache.js'
+import { LRUCache } from '../utils/cacheManager.ts'
 
 export class ToolCallCache {
   private cache: LRUCache<string, any>
   private cachedTools: Set<string>
 
   constructor(maxSize = 100 * 1024 * 1024) {
-    this.cache = new LRUCache({ maxSize, defaultTTL: 300000 })
+    this.cache = new LRUCache({ maxSize, maxAge: 300000 })
     this.cachedTools = new Set([
       'Glob',
       'Grep',
@@ -45,13 +45,13 @@ export class ToolCallCache {
     return this.cache.get(key)
   }
 
-  set(toolName: string, params: Record<string, any>, result: any, ttl?: number): void {
+  set(toolName: string, params: Record<string, any>, result: any, _ttl?: number): void {
     if (!this.isCacheable(toolName)) {
       return
     }
 
     const key = this.generateKey(toolName, params)
-    this.cache.set(key, result, ttl)
+    this.cache.set(key, result)
   }
 
   clear(): void {

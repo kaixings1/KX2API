@@ -839,6 +839,18 @@ commandRegistry.register({
 })
 
 commandRegistry.register({
+  name: 'agent',
+  description: '子代理 — 使用指定代理类型执行任务（用法: /agent <类型> <任务描述>）',
+  execute: async () => {
+    return {
+      success: true,
+      needsAgent: true,
+      output: `[子代理] /agent 命令需要 AI 执行`,
+    }
+  },
+})
+
+commandRegistry.register({
   name: 'api-debug',
   description: 'REST API 调试客户端 - Postman 风格的 API 测试工具',
   execute: async () => {

@@ -12,7 +12,7 @@ export type { ProviderVendor }
 /**
  * Authentication method
  */
-export type AuthMethod = 'oauth' | 'token' | 'cookie' | 'manual'
+export type AuthMethod = 'oauth' | 'token' | 'cookie' | 'manual' | 'browser'
 
 /**
  * OAuth login status

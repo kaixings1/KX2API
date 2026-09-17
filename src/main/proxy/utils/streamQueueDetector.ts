@@ -7,7 +7,7 @@
  */
 
 import { parseToolCalls, type ToolParseResult } from './toolParser/index'
-import { ToolCall } from './types'
+import { ToolCall } from '../types'
 
 export interface QueuedChunk {
   type: 'text'
