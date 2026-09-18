@@ -29,6 +29,13 @@ interface CommandLike {
 function inputToArgs(input: unknown): string[] {
   if (!input || typeof input !== 'object') return []
   const obj = input as Record<string, unknown>
+  // 兼容模型把数组 JSON.stringify 后的输入（如 args: "[\"D:\\\\KX2API\"]"）
+  if (typeof obj.args === 'string' && obj.args.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(obj.args)
+      if (Array.isArray(parsed)) return parsed.map(String)
+    } catch { /* 不是合法 JSON，继续其他逻辑 */ }
+  }
   if (Array.isArray(obj.args)) {
     return obj.args.map(String)
   }

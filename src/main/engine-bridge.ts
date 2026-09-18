@@ -25,6 +25,7 @@ import { ConfigManager } from './store/config'
 import type { AgentLoopConfig } from '../engine/loopConfig'
 import type { ImageBudgetConfig } from '../shared/types'
 import { sendMessageStream, type ApiConfig } from '../engine/api/client.ts'
+import { buildToolFormatPrompt, DEFAULT_TOOL_FORMAT, type ToolFormat } from '../shared/toolCalling.ts'
 
 /** 注册并加载启用的旧版工具插件，返回工具 Map */
 async function loadLegacyPluginTools(): Promise<Map<string, Tool> | null> {
@@ -748,13 +749,7 @@ export const BASE_SYSTEM_PROMPT =
   '【排版规范】\n' +
   '当你汇报目录、文件列表或命令输出时，必须遵守：\n' +
   '1. 列表用标准 Markdown，一个文件/目录单独一项（"- " 或 "1. "），项与项之间换行，绝不写在同一行。\n' +
-  '2. 禁止添加“复制”、“、”、“：”等与内容无关的符号，不要把列表塞进 \'复制\' 代码块——代码块只用于真正的代码片段。（“``` 文件：a.ts、b.ts、c.ts ```” 是错的，应写成 “- a.ts 换行 - b.ts 换行 - c.ts”）。\n' +
-  '3. 有多个分组（如源代码/构建输出/配置文件）时用 Markdown 标题（## / ###）分组，组内用列表。\n\n' +
-  '【工具调用协议】\n' +
-  '当你需要执行操作（如读取文件、运行命令、搜索目录）时，请输出如下格式的标准工具调用 XML，不要写成正文：\n' +
-  '<tool_call>\n  <toolName>ls</toolName>\n  <arguments><path>.</path><showHidden>false</showHidden></arguments>\n</tool_call>\n' +
-  '可用工具清单随每次请求动态附加（见消息末尾的【工具】块），务必只使用其中列出的确切名字，勿自造。\n' +
-  '参数用 <key>value</key> 子标签形式；无参数的命令可省略 arguments。禁止把工具调用作为普通正文输出，系统会识别并执行它。'
+  '2. 禁止添加”复制”、”、”、”：”等与内容无关的符号，不要把列表塞进 \'复制\' 代码块——代码块只用于真正的代码片段。（”``` 文件：a.ts、b.ts、c.ts ```” 是错的，应写成 “- a.ts 换行 - b.ts 换行 - c.ts”）。\n'
 
 /**
  * 排版硬约束：无论 active profile 是否配置了自定义 systemPrompt，
@@ -816,7 +811,9 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
     console.log('[EngineBridge] Command tools registered:', commandTools.size, '(' + Array.from(commandTools.keys()).slice(0, 20).join(', ') + (commandTools.size > 20 ? '…' : '') + ')')
 
     if (active) {
-      const defaultSystem = BASE_SYSTEM_PROMPT
+      const toolFormat = (active.toolFormat || DEFAULT_TOOL_FORMAT) as ToolFormat
+      const toolFormatPrompt = buildToolFormatPrompt(toolFormat)
+      const defaultSystem = BASE_SYSTEM_PROMPT + '\n\n' + toolFormatPrompt
       const composed = composeSystemPrompt(active.systemPrompt, active.promptGroups)
       const opts: EngineOptions = {
         model: active.model || 'gpt-4o',

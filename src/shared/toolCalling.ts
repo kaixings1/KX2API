@@ -1,3 +1,4 @@
+export type ToolFormat = 'xml' | 'json'
 export type ToolCallingModeSetting = 'off' | 'auto' | 'force'
 export type ToolClientAdapterId = 'standard-openai-tools' | 'cherry-studio-mcp' | string
 export type ToolSmokeCategory =
@@ -83,6 +84,33 @@ export const P0_TOOL_PROVIDER_SUPPORT: ToolProviderSupportMeta[] = [
   { providerId: 'qwen', label: 'QWEN', managed: true, protocolId: 'managed_xml', status: 'supported' },
   { providerId: 'mimo', label: 'MIMO', managed: true, protocolId: 'managed_xml', status: 'supported' },
 ]
+
+/** 工具调用格式对应的 system prompt 片段 */
+export function buildToolFormatPrompt(format: ToolFormat): string {
+  if (format === 'json') {
+    return (
+      '【工具调用协议】\n' +
+      '当你需要执行操作（如读取文件、运行命令、搜索目录）时，请输出 JSON 格式的工具调用，不要写成正文：\n' +
+      '{"tool": "ls", "arguments": {"path": ".", "showHidden": false}}\n' +
+      '可用工具清单随每次请求动态附加（见消息末尾的【工具】块），务必只使用其中列出的确切名字，勿自造。\n' +
+      '参数用标准 JSON 对象；无参数的命令可省略 arguments 或传空对象 {}。禁止把工具调用作为普通正文输出，系统会识别并执行它。'
+    )
+  }
+  // 默认 XML
+  return (
+    '【工具调用协议】\n' +
+    '当你需要执行操作（如读取文件、运行命令、搜索目录）时，请输出如下格式的标准工具调用 XML，不要写成正文：\n' +
+    '<tool_use>\n' +
+    '  <toolName>ls</toolName>\n' +
+    '  <arguments><path>.</path><showHidden>false</showHidden></arguments>\n' +
+    '</tool_use>\n' +
+    '可用工具清单随每次请求动态附加（见消息末尾的【工具】块），务必只使用其中列出的确切名字，勿自造。\n' +
+    '参数用 <key>value</key> 子标签形式；无参数的命令可省略 arguments。禁止把工具调用作为普通正文输出，系统会识别并执行它。'
+  )
+}
+
+/** 默认工具调用格式 */
+export const DEFAULT_TOOL_FORMAT: ToolFormat = 'xml'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

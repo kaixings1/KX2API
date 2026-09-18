@@ -14,7 +14,7 @@ res.push(['MANAGEMENT', run('MANAGEMENT', process.execPath, ['tests/management/r
 res.push(['EXTRAS', run('EXTRAS', process.execPath, ['tests/run-all.mjs'])])
 res.push(['UNIT', run('UNIT', process.execPath, ['./node_modules/vitest/vitest.mjs', 'run'])])
 res.push(['BUILD', run('BUILD', process.execPath, ['node_modules/electron-vite/bin/electron-vite.js', 'build'])])
-console.log('\n\n========== SUMMARY ==========')
+console.log('\n\n========== FINAL SUMMARY ==========')
 for (const [n, c] of res) console.log(`${c === 0 ? 'PASS' : 'FAIL'}  ${n}`)
 rmSync('_final.mjs', { force: true })
 process.exit(0)

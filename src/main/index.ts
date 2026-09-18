@@ -26,8 +26,8 @@ import { proxyStatusManager } from './proxy/status'
 // 工具结果落盘目录与工具会话状态：静态导入保证退出路径可用
 import { toolSessionStore, setToolSessionStorePath } from './tools/toolSessionStore.ts'
 import { toolFileStore, migrateCustomRulesFromStore } from './tools/toolFileStore.ts'
-import { AuditLogger } from '../security/AuditLogger.ts'
-import { InputValidator } from '../security/InputValidator.ts'
+import { AuditLogger, InputValidator, CommandFilter, PathGuard, OutputSanitizer, CredentialManager } from './security/index.ts'
+import { PermissionManager } from '../security/PermissionManager.ts'
 
 // Prevent uncaught exceptions from crashing the app
 process.on('uncaughtException', (error) => {
@@ -207,6 +207,50 @@ async function setupApp(): Promise<void> {
     logManager.info('[App] Input validator initialized', {})
   } catch (err) {
     logManager.warn('[App] Input validator init failed', { error: String(err) })
+  }
+
+  // 命令过滤器：危险命令拦截规则集（沙箱外的第二层防护）
+  try {
+    const commandFilter = new CommandFilter()
+    logManager.info('[App] Command filter initialized', { rules: commandFilter.getRules().length })
+  } catch (err) {
+    logManager.warn('[App] Command filter init failed', { error: String(err) })
+  }
+
+  // 路径守卫：文件操作路径安全验证
+  try {
+    const pathGuard = new PathGuard({ rootDir: app.getPath('home') })
+    logManager.info('[App] Path guard initialized', {})
+  } catch (err) {
+    logManager.warn('[App] Path guard init failed', { error: String(err) })
+  }
+
+  // 输出净化器：工具输出脱敏（密钥/路径/IP/邮箱等）
+  try {
+    const outputSanitizer = new OutputSanitizer()
+    logManager.info('[App] Output sanitizer initialized', {})
+  } catch (err) {
+    logManager.warn('[App] Output sanitizer init failed', { error: String(err) })
+  }
+
+  // 凭证管理器：AES-256-CBC 加密存储 API Key 等敏感信息
+  try {
+    const credentialFile = join(app.getPath('userData'), 'credentials.json')
+    const credentialManager = new CredentialManager(credentialFile)
+    await credentialManager.initialize()
+    logManager.info('[App] Credential manager initialized', { file: credentialFile })
+  } catch (err) {
+    logManager.warn('[App] Credential manager init failed', { error: String(err) })
+  }
+
+  // 权限管理器：工具调用权限控制（会话级授权 + 持久规则）
+  try {
+    const appPermissionManager = new PermissionManager()
+    logManager.info('[App] Permission manager initialized', {
+      rules: appPermissionManager.getRules().length,
+    })
+  } catch (err) {
+    logManager.warn('[App] Permission manager init failed', { error: String(err) })
   }
 
   // 工具文件化存储：首次启动时把 electron-store 里的自定义数据迁移到文件目录

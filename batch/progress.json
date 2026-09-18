@@ -5,10 +5,10 @@
   "_totalOrphans": 437,
   "_totalBatches": 54,
   "summary": {
-    "done": 24,
+    "done": 54,
     "in_progress": 0,
-    "pending": 30,
-    "filesDone": 153,
+    "pending": 0,
+    "filesDone": 435,
     "filesTotal": 437
   },
   "batches": [
@@ -163,10 +163,10 @@
       "dir": "src/main/proxy/adapters/__mocks__",
       "title": "代理适配器测试替身 __mocks__",
       "filesTotal": 26,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 26,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档 26（13 对 mock 文件，零引用且 vitest 无 mock 配置）"
     },
     {
       "id": "M2",
@@ -175,10 +175,10 @@
       "dir": "src/main/proxy/adapters/prompt",
       "title": "提示词适配器 prompt",
       "filesTotal": 12,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 12,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档 12（adapters/prompt 整目录零外部引用 —— 被 toolCalling/promptAdapters 那套取代）"
     },
     {
       "id": "M3",
@@ -187,10 +187,10 @@
       "dir": "src/main/proxy/adapters/transformers",
       "title": "协议转换 transformers",
       "filesTotal": 3,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 3,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档 3（transformers/* 只被 barrel 导出、无实际消费；已同步修正 barrel）"
     },
     {
       "id": "M4",
@@ -199,10 +199,10 @@
       "dir": "src/main/proxy/adapters",
       "title": "代理适配器 adapters（根）",
       "filesTotal": 30,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 30,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 29（10 个 *-stream.ts + 14 个旧 .d.ts + 4 个 .py + 零引用 barrel，已同步移除 barrel 导出）；browserToolExtractor 等活文件保留"
     },
     {
       "id": "M5",
@@ -211,10 +211,10 @@
       "dir": "src/main/proxy/toolCalling",
       "title": "工具调用 toolCalling",
       "filesTotal": 31,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 31,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 28（24 个旧 .d.ts + 零引用 promptAdapters/index.ts）；browserToolExtractor/toolChoicePolicy/测试保留"
     },
     {
       "id": "M6",
@@ -223,10 +223,10 @@
       "dir": "src/main/proxy/utils",
       "title": "代理工具函数 utils",
       "filesTotal": 21,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 21,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 20（13 个旧 .d.ts + 7 个零引用 .ts）；streamToolHandler/tools/toolParser/clientDetector 等被 adapters 引用，保留"
     },
     {
       "id": "M7",
@@ -235,10 +235,10 @@
       "dir": "src/main/proxy/routes",
       "title": "代理路由 routes",
       "filesTotal": 14,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 14,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档 14（纯旧 .d.ts，全部有同名 .ts）"
     },
     {
       "id": "M8",
@@ -247,10 +247,10 @@
       "dir": "src/main/proxy/prompt",
       "title": "提示词 prompt",
       "filesTotal": 10,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 10,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 10（9 个旧 .d.ts + 零引用 barrel）；variants/types/variantSelector 保留（被测试与 DefaultPromptAdapter 引用）"
     },
     {
       "id": "M9",
@@ -259,10 +259,10 @@
       "dir": "src/main/proxy/services",
       "title": "代理服务 services",
       "filesTotal": 3,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 3,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档 3（旧 .d.ts）"
     },
     {
       "id": "M10",
@@ -271,10 +271,10 @@
       "dir": "src/main/proxy/config",
       "title": "代理配置 config",
       "filesTotal": 2,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 2,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档（modelProfiles.ts 零引用 + 其旧 .d.ts）"
     },
     {
       "id": "M11",
@@ -283,10 +283,10 @@
       "dir": "src/main/proxy/tools",
       "title": "代理工具池 tools",
       "filesTotal": 4,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 4,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 4（3 个零引用模块 + 1 个旧 .d.ts）；toolCollection.ts 保留（活）"
     },
     {
       "id": "M12",
@@ -295,10 +295,10 @@
       "dir": "src/main/proxy",
       "title": "代理根目录散落文件",
       "filesTotal": 14,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 14,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 13（12 个旧 .d.ts + 零引用 barrel）；apiKeyAuth.test.ts 保留（12 用例在跑）"
     },
     {
       "id": "M13",
@@ -307,10 +307,10 @@
       "dir": "src/main/oauth",
       "title": "OAuth 登录 oauth",
       "filesTotal": 21,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 21,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 20（18 个旧 .d.ts + guides.ts 零引用 + 零引用 barrel index.ts）；kimi/stepfun/cookieSessionManager 等活文件保留"
     },
     {
       "id": "M14",
@@ -319,10 +319,10 @@
       "dir": "src/main/providers",
       "title": "供应商 providers",
       "filesTotal": 14,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 14,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 14（13 个旧 .d.ts + 零引用 barrel）；builtin/index.ts 保留（被 store/types.ts 引用）"
     },
     {
       "id": "M15",
@@ -331,10 +331,10 @@
       "dir": "src/main/utils",
       "title": "主进程工具函数 utils",
       "filesTotal": 14,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 14,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 3（零引用 barrel index.ts + pMap.ts + stripAnsi.ts）；其余 12 个工具被 tests/utils 直接引用，保留"
     },
     {
       "id": "M16",
@@ -343,10 +343,10 @@
       "dir": "src/main/store",
       "title": "存储 store",
       "filesTotal": 9,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 9,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 9（8 个旧 .d.ts + 零引用 barrel index.ts，initializeStore 无人调用）"
     },
     {
       "id": "M17",
@@ -355,10 +355,10 @@
       "dir": "src/main/tools",
       "title": "工具管理 tools",
       "filesTotal": 6,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 6,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 1（toolsService.ts，被 ModuleDataStore 取代）；4 个测试（96 用例在跑）与 toolExecutor.ts 保留"
     },
     {
       "id": "M18",
@@ -367,10 +367,10 @@
       "dir": "src/main/security",
       "title": "安全 security（main 侧）",
       "filesTotal": 5,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 5,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部保留（⚠️ 首次误判为死副本并归档，typecheck+extras 双挂后已回滚；src/main/index.ts 相对引用 + 两套行为不同）"
     },
     {
       "id": "M19",
@@ -379,10 +379,10 @@
       "dir": "src/main/ipc",
       "title": "IPC 处理 ipc",
       "filesTotal": 5,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 5,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 5（4 个旧 .d.ts + 零引用 barrel）；channels/chat-handlers/handlers 保留（活）"
     },
     {
       "id": "M20",
@@ -391,10 +391,10 @@
       "dir": "src/main/agent",
       "title": "智能体 agent",
       "filesTotal": 4,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 4,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档（4 个旧 .d.ts）"
     },
     {
       "id": "M21",
@@ -403,10 +403,10 @@
       "dir": "src/main/requestLogs",
       "title": "请求日志 requestLogs",
       "filesTotal": 4,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 4,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档（2 个旧 .d.ts）"
     },
     {
       "id": "M22",
@@ -415,10 +415,10 @@
       "dir": "src/main/tray",
       "title": "托盘 tray",
       "filesTotal": 4,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 4,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 4（3 个旧 .d.ts + 零引用 barrel）；TrayManager/TrayWindow 保留（活）"
     },
     {
       "id": "M23",
@@ -427,10 +427,10 @@
       "dir": "src/main/window",
       "title": "窗口 window",
       "filesTotal": 3,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 3,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 3（2 个旧 .d.ts + 零引用 index.ts）"
     },
     {
       "id": "M24",
@@ -439,10 +439,10 @@
       "dir": "src/main/types",
       "title": "类型定义 types",
       "filesTotal": 3,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 3,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部保留（3 个 declare module 库类型补丁：ali-oss / electron 增强 / zstd-codec）"
     },
     {
       "id": "M25",
@@ -451,10 +451,10 @@
       "dir": "src/main/agents",
       "title": "智能体注册 agents",
       "filesTotal": 2,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 2,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档（AgentStore.ts + index.ts 均零精确引用）"
     },
     {
       "id": "M26",
@@ -463,10 +463,10 @@
       "dir": "src/main/appLogs",
       "title": "应用日志 appLogs",
       "filesTotal": 2,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 2,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档（2 个旧 .d.ts）"
     },
     {
       "id": "M27",
@@ -475,10 +475,10 @@
       "dir": "src/main/logger",
       "title": "日志器 logger",
       "filesTotal": 2,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 2,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 1（manager.d.ts 旧声明）；categoryFilter.ts 保留（被 2 个测试引用）"
     },
     {
       "id": "M28",
@@ -487,10 +487,10 @@
       "dir": "src/main/updater",
       "title": "更新器 updater",
       "filesTotal": 2,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 2,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档（2 个旧 .d.ts）"
     },
     {
       "id": "M29",
@@ -499,10 +499,10 @@
       "dir": "src/main/__tests__",
       "title": "主进程测试",
       "filesTotal": 2,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 2,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部保留（engine-bridge.test 是活跃 vitest 用例；profiles.test 是被显式 exclude 的独立脚本）"
     },
     {
       "id": "M30",
@@ -511,10 +511,10 @@
       "dir": "src/main",
       "title": "主进程根目录散落文件",
       "filesTotal": 10,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 10,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档 10（6 个旧 .d.ts + tray.ts + 3 个被 ModuleDataStore 取代的 service）"
     },
     {
       "id": "T1",
@@ -661,5 +661,6 @@
       "disposition": "保留（.d.ts 是生效的全局声明，非孤儿）"
     }
   ],
-  "_lastUpdatedAt": "2026-09-18T08:39:33.830Z"
+  "_lastUpdatedAt": "2026-09-18T12:24:09.630Z",
+  "_allDone": true
 }

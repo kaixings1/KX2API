@@ -35,6 +35,8 @@ export interface Profile {
   promptGroups?: Record<string, unknown>
   /** 启用的工具分组列表 */
   enabledToolGroups?: string[]
+  /** 工具调用格式：xml（默认）或 json */
+  toolFormat?: 'xml' | 'json'
 }
 
 interface PresetData {
@@ -47,6 +49,8 @@ interface PresetData {
   tokens?: Record<string, unknown>
   systemPrompt?: string
   promptGroups?: Record<string, unknown>
+  /** 工具调用格式：xml（默认）或 json */
+  toolFormat?: 'xml' | 'json'
 }
 
 interface ProjectStorage {
@@ -162,6 +166,7 @@ function normalizePreset(name: string, data: PresetData): Profile {
     maxRepeat: typeof tokens.maxRepeat === 'number' ? tokens.maxRepeat : void 0,
     systemPrompt: data.systemPrompt || void 0,
     promptGroups: data.promptGroups || void 0,
+    toolFormat: data.toolFormat || void 0,
   }
 }
 

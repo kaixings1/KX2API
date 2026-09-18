@@ -500,11 +500,19 @@ export class QueryEngine {
 
   /** 更新引擎的工具定义列表（由 toolManager/toolRuntime 驱动，使配置切换立即生效） */
   setToolDefinitions(defs: ToolDefinition[]): void {
-    this._toolDefinitions = defs
+    // 合并策略：新定义覆盖同名工具（更新描述/参数），但保留引擎已注册
+    // 且不在新定义中的工具（如 commandTools 白名单命令 ls/dir/cat 等）。
+    // 若直接覆盖，工具组过滤会把白名单命令中的非激活项丢弃，导致模型调用时
+    // 被 messageLoop 判定为 invalid（availableTools 中不存在）。
+    const merged = new Map(this._toolDefinitions.map(t => [t.name, t]))
+    for (const def of defs) {
+      merged.set(def.name, def)
+    }
+    this._toolDefinitions = Array.from(merged.values())
     // 同步更新 messageLoop deps，否则当前轮请求仍用旧值
     const loop = this as unknown as { messageLoop: { deps: { toolDefinitions: ToolDefinition[] } } }
     if (loop?.messageLoop?.deps) {
-      loop.messageLoop.deps.toolDefinitions = defs
+      loop.messageLoop.deps.toolDefinitions = this._toolDefinitions
     }
   }
 

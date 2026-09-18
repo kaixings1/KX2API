@@ -1,0 +1,18 @@
+应用入口：src/main/index.ts, src/preload/index.ts, src/renderer/index.html, src/renderer/src/main.tsx
+src/ 文件总数 885：应用引用 528，仅测试引用 0，仅字符串/动态引用 1，孤儿 356
+
+目录                                总数    应用    测试    字符串
+----------------------------------------------------------
+src/main                         495   218     0      1
+src/__tests__                     49     0     0      0  <== 应用未接入
+src/engine                       155   137     0      0
+src/renderer                     166   159     0      0
+src/security                       8     5     0      0
+src/generated                      1     0     0      0  <== 应用未接入
+src/globals.d.ts                   1     0     0      0  <== 应用未接入
+src/preload                        2     1     0      0
+src/memory                         1     1     0      0
+src/shared                         5     5     0      0
+src/utils                          2     2     0      0
+----------------------------------------------------------
+应用完全未接入的目录：3 个，文件 51 个；孤儿文件（连测试/字符串都没引用）：356 个
