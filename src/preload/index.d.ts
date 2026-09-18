@@ -9,6 +9,7 @@ interface Profile {
     active?: boolean;
     maxToolRounds?: number;
     maxRepeat?: number;
+    toolFormat?: 'xml' | 'json';
 }
 interface TokenValidationResult {
     valid: boolean;

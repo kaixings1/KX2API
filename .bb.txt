@@ -1,0 +1,13 @@
+✔ 两张工具表确实不一致（这是本组用例的前提） (9.4661ms)
+✔ 模型发 shell / cmd / powershell 时，应兜底到可执行的 bash (2.4885ms)
+✔ 模型发 dir / grep 时应兜底到实际存在的 ls / find (1.4561ms)
+✔ 原本就有效的名字不应被改动 (0.2305ms)
+✔ 完全无法识别的名字仍判为无效（不凭空造命令） (1.6736ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 297.8859

@@ -47,6 +47,7 @@ interface Profile {
   _active?: boolean
   maxToolRounds?: number
   maxRepeat?: number
+  toolFormat?: 'xml' | 'json'
 }
 
 const PROVIDER_PRESETS: Record<string, { label: string; baseUrl: string; defaultModel: string }> = {
@@ -71,6 +72,7 @@ export function Profiles() {
   const [newModel, setNewModel] = useState('gpt-4o')
   const [newMaxToolRounds, setNewMaxToolRounds] = useState(5)
   const [newMaxRepeat, setNewMaxRepeat] = useState(3)
+  const [newToolFormat, setNewToolFormat] = useState<'xml' | 'json'>('xml')
 
   // 编辑
   const [editing, setEditing] = useState<Profile | null>(null)
@@ -81,6 +83,7 @@ export function Profiles() {
   const [editModel, setEditModel] = useState('')
   const [editMaxToolRounds, setEditMaxToolRounds] = useState(5)
   const [editMaxRepeat, setEditMaxRepeat] = useState(3)
+  const [editToolFormat, setEditToolFormat] = useState<'xml' | 'json'>('xml')
 
   // 删除确认
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
@@ -140,6 +143,7 @@ export function Profiles() {
         model: newModel.trim() || PROVIDER_PRESETS[newProvider].defaultModel,
         maxToolRounds: newMaxToolRounds,
         maxRepeat: newMaxRepeat,
+        toolFormat: newToolFormat,
       })
       if (result.success) {
         setShowAdd(false)
@@ -167,6 +171,7 @@ export function Profiles() {
     setNewModel('gpt-4o')
     setNewMaxToolRounds(5)
     setNewMaxRepeat(3)
+    setNewToolFormat('xml')
   }
 
   const handleEditSave = async () => {
@@ -184,6 +189,7 @@ export function Profiles() {
         model: editModel.trim() || PROVIDER_PRESETS[editProvider].defaultModel,
         maxToolRounds: editMaxToolRounds,
         maxRepeat: editMaxRepeat,
+        toolFormat: editToolFormat,
       })
       if (result.success) {
         setEditing(null)
@@ -226,6 +232,7 @@ export function Profiles() {
     setEditModel(p.model)
     setEditMaxToolRounds(p.maxToolRounds || 5)
     setEditMaxRepeat(p.maxRepeat || 3)
+    setEditToolFormat(p.toolFormat || 'xml')
   }
 
   return (
@@ -298,6 +305,8 @@ export function Profiles() {
                         <span>轮次: {p.maxToolRounds || 5}</span>
                         <span className="text-[var(--text-faint)]">|</span>
                         <span>重复检测: {p.maxRepeat || 3}</span>
+                        <span className="text-[var(--text-faint)]">|</span>
+                        <span>工具格式: {p.toolFormat || 'xml'}</span>
                       </div>
                       <div className="flex items-center gap-1 mt-1 text-xs text-[var(--text-muted)]">
                         <KeyRound className="w-3 h-3" />
@@ -495,6 +504,18 @@ export function Profiles() {
                 className="mt-1 h-8 text-xs"
               />
             </div>
+            <div>
+              <Label className="text-xs">{t('profiles.toolFormatLabel', '工具调用格式')}</Label>
+              <Select value={newToolFormat} onValueChange={v => setNewToolFormat(v as 'xml' | 'json')}>
+                <SelectTrigger className="mt-1 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="xml">XML</SelectItem>
+                  <SelectItem value="json">JSON</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </SectionCard>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setShowAdd(false)}>{t('profiles.cancel', '取消')}</Button>
@@ -585,6 +606,18 @@ export function Profiles() {
                 onChange={e => setEditMaxRepeat(Number(e.target.value))}
                 className="mt-1 h-8 text-xs"
               />
+            </div>
+            <div>
+              <Label className="text-xs">{t('profiles.toolFormatLabel', '工具调用格式')}</Label>
+              <Select value={editToolFormat} onValueChange={v => setEditToolFormat(v as 'xml' | 'json')}>
+                <SelectTrigger className="mt-1 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="xml">XML</SelectItem>
+                  <SelectItem value="json">JSON</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </SectionCard>
           <DialogFooter>

@@ -7,6 +7,52 @@ function engineLog(prefix: string, ...args: unknown[]): void {
   const t = new Date().toLocaleTimeString('zh-CN', { hour12: false })
   console.log(`[${t}] [ENGINE:${prefix}]`, ...args)
 }
+
+/**
+ * 按「工具概念」在实际可执行的工具集里挑一个同义命令。
+ *
+ * 为什么需要它 —— 项目里存在两张不一致的工具表：
+ *   1. `resolveToolName` 查**命令注册表**（registry，264 个），里面有 shell / cmd /
+ *      grep / findstr / dir 这类「别名命令」；
+ *   2. 本轮可用工具来自 **toolDefinitions**（engine-bridge 用 commandRunners 构造，
+ *      61 个），里面**没有** shell / cmd / grep / findstr / dir，只有 bash / find / ls。
+ *
+ * 于是模型发 `shell` 时：resolveToolName 命中了，但结果不在可用工具里 → 判 invalid
+ * → 整轮工具被跳过（日志里表现为 "1 invalid tool call(s) skipped"）。
+ *
+ * 本函数用概念归类（toolNameCompat）做第二次尝试：
+ *   shell / cmd / powershell / sh → 概念 shell → 若可用工具里有 bash，就用 bash
+ *   dir → 概念 list → ls；grep / findstr → 概念 search → find
+ *
+ * 只在「同名找不到」时兜底，且必须有**同概念的可执行命令**才返回 ——
+ * 找不到就返回 null（保持原有的无效判定，不凭空造命令）。
+ */
+function pickExecutableByConcept(requested: string, available: Set<string>): string | null {
+  if (!requested) return null
+
+  // 同概念的全部写法（含首字母大写变体）里，找一个真的可执行的
+  for (const variant of getToolNameVariants(requested)) {
+    if (available.has(variant)) return variant
+  }
+
+  // 概念命中但写法都没对上时，按「概念 → 该概念的注册命令」做定向映射。
+  // 顺序即优先级：越靠前越贴近用户/模型的原始意图。
+  const concept = getToolConcept(requested)
+  const PREFERRED: Record<string, string[]> = {
+    shell: ['bash', 'exec', 'sh'],
+    list: ['ls', 'dir', 'tree'],
+    read: ['cat', 'head', 'tail'],
+    search: ['find', 'findstr', 'grep'],
+    write: ['cp', 'mkdir', 'mv'],
+    code: ['exec', 'bash'],
+    web: ['search'],
+  }
+  for (const candidate of PREFERRED[concept] ?? []) {
+    if (available.has(candidate)) return candidate
+  }
+
+  return null
+}
 import { QueryStateMachine } from "./stateMachine.ts";
 import { TokenBudgetManager } from "./tokenBudgetManager.ts";
 import { MessageNormalizer, type InternalMessage } from "./messageNormalizer.ts";
@@ -19,6 +65,7 @@ import { AutoCompactor } from "./autoCompactor.ts";
 import { AutoFixLoop, type AutoFixLoopConfig } from "./autoFixLoop.ts";
 import { GitContextInjector, type GitContextConfig } from "./gitContext.ts";
 import { resolveToolName, TOOL_ALIASES } from "./toolNameResolver";
+import { getToolConcept, getToolNameVariants } from "./toolNameCompat.ts";
 import { resolveLoopConfig, type AgentLoopConfig } from "./loopConfig.ts";
 import { CompactCoordinator } from "./compactCoordinator.ts";
 import { writeSessionTranscriptSegment } from "./transcript.ts";
@@ -598,7 +645,19 @@ export class MessageLoop {
         try {
           resolved = await resolveToolName(tc.name)
         } catch { resolved = null }
-        nameResolved.set(tc.name, resolved && availableTools.has(resolved) ? resolved : null);
+        if (resolved && availableTools.has(resolved)) {
+          nameResolved.set(tc.name, resolved);
+          continue;
+        }
+        // 兜底：resolveToolName 查的是**命令注册表**（264 个，含 shell/cmd/grep 等
+        // 别名命令），而此处可用工具来自 **toolDefinitions**（engine-bridge 用
+        // commandRunners 构造，61 个）。两表并不一致，于是出现：
+        //   模型发 `shell` → resolveToolName 命中并返回 'shell'
+        //   → 'shell' 不在 availableTools → 判为 invalid，整轮工具被跳过。
+        // 这里按「概念归类」再试一次：shell/cmd/powershell → bash、dir → ls、
+        // grep/findstr → find 等同义工具，映射到实际可执行的注册命令。
+        const conceptFallback = pickExecutableByConcept(tc.name, availableTools);
+        nameResolved.set(tc.name, conceptFallback);
       }
       const validCalls = processed.toolCalls
         .filter(tc => nameResolved.get(tc.name) != null)

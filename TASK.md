@@ -1330,3 +1330,79 @@ TASK.md 此前记「`TokenBudgetManager.shouldReject` 与 `ToolScheduler` 之间
 `toolScheduler.execute()` **之前** —— 超限时既不发请求也不执行工具。
 **门禁在轮次粒度上是存在的**，且这是合理设计：工具输出的 token 要先进对话历史
 才影响预算，无法也不该在工具调用瞬间判定。**该条不再是遗留项。**
+
+## 第十六轮：孤儿文件分批清理（54 批，2026-09-18）
+
+把 `src/` 下的孤儿文件拆成 **54 个批次**（`batch/` 目录，按目录归类），逐批核查、处置、验证、标记。
+方案与执行记录见 `batch/README.md` + `batch/progress.json`。
+
+### 一、成果
+
+| 指标 | 清理前 | 清理后 |
+| --- | ---: | ---: |
+| `src/` 文件数 | 956 | **639** |
+| 孤儿文件数 | 437 | **110** |
+| 归档到 `legacy/` | — | 约 400 个（legacy 现 3236 文件 / 19.4 MB） |
+
+**54/54 批完成**，每批独立跑 `typecheck + test:all`。最终 **6 项全 PASS**
+（typecheck 0 / agent 47 / management 74 / extras 843 / unit 1116+ / build ✅）。
+
+剩余 110 个"孤儿"中约 51 个是 `src/__tests__/`（活跃测试，属"假孤儿"——
+测试无人 import 但被 vitest 收集执行），其余多为需保留的声明/能力文件。
+
+### 二、处置的四类模式
+
+| 类型 | 判据 | 数量级 |
+| --- | --- | --- |
+| **旧声明** | 存在**同名 `.ts` 实现** + `.d.ts` 零引用 | ~200 |
+| **零引用 barrel** | `index.ts` 只 re-export，无 `from '../xxx'` 消费者 | ~15 |
+| **零引用功能模块** | 完整实现但无人 import（且与别处重复或有更安全替代） | ~40 |
+| **被取代的服务层** | `otherConfigService`/`pluginsService`/`workflowsService`/`toolsService` → 已被 `main/ipc/ModuleDataStore.ts` 取代 | 4 |
+
+### 三、必须保留的四类（体检报告标孤儿但**不能删**）
+
+| 类型 | 例子 | 为什么 |
+| --- | --- | --- |
+| **库类型补丁** | `main/types/{ali-oss,electron,zstd-codec}.d.ts` | `declare module 'xxx'` 形式，靠 tsconfig 全局生效，**不需要被 import**；删了会报 TS7016 |
+| **生效的全局声明** | `generated/globals.d.ts`、`preload/index.d.ts` | 同上（`include: src/**/*.ts` 覆盖 `.d.ts`） |
+| **唯一实现的能力模块** | `engine/hooks/builtInHooks.ts`（安全钩子）、`engine/absorb.ts`（压缩） | 有完整实现 + 测试覆盖，属"移植完成待接线"；删掉等于移除能力 |
+| **测试文件** | `src/__tests__/**`、`engine/__tests__/**` | 无人 import 但被 vitest/node:test 收集执行 |
+
+### 四、两次严重误判与教训（**这是本轮最重要的产出**）
+
+**M18（`src/main/security/`）**：误判为"死副本"并归档 + 改测试指向 → **typecheck + extras 双挂**，已完整回滚。
+
+- 根因①：`src/main/index.ts:29` 用的是 `'./security/index.ts'` —— **同目录内相对引用不含目录名**，
+  而 `git grep "main/security"` 查不到这种写法。
+- 根因②：两套 `security` 实现**行为不同**（活跃版不做 `api_key = xxx` 脱敏，副本做），
+  测试断言的正是副本行为 —— **"同名同签名" ≠ "行为相同"**。
+
+**E1（`tool-harness/repair/`）**：归档整目录 → **typecheck + unit + build 三项齐挂**。
+
+- 根因：**活的** `jsonSchemaRepair.ts` 依赖 `repair/` 里的两个文件（注释写着"复用 key-normalize / json-repair"），
+  且依赖递归（→ `levenshtein` → `types`）。**只查了"谁引用 repair"，没查"repair 被谁引用"**。
+
+**三条铁律**：
+
+1. 查"谁引用了我"必须按**被引用文件的 basename / 完整路径**，不能按目录名或符号名
+   （本项目同名符号极多 —— `CircuitBreaker`、`PlanStep`、`fixToolHistory`、`*Impl` 都各有多份；
+   `git grep "pMap"` 还会命中 `groupMap` 的子串）。
+2. 处置**目录**时，必须递归检查**目录内每个文件被谁 import**（"孤儿目录"里可能藏着活模块的依赖，
+   尤其 `types.ts`/`utils.ts` 这类基础件名字）。
+3. **归档后立刻跑 typecheck 是唯一可靠的兜底**。项目里的注释也会骗人（M18 就被一行过时注释带偏）。
+
+### 五、顺带修复
+
+- 🔴 **3 处硬编码真实 API Key**：`modelscope-auth.test.ts`、`e2e-chat.test.ts`（ModelScope）、
+  `tools/diag-llm.ts`（DeepSeek）→ 全改为读环境变量。**这三个 key 已进 git 历史，
+  建议在服务商侧作废并轮换。**
+- **一个时序脆弱的并发测试**：`orchestrator.test.ts` 原用"总耗时 < 320ms"断言并行，
+  在 `run-all.mjs` 并行跑 61 个文件时因 CPU 争抢随机失败 → 改为观察**并发峰值**（不受负载影响）。
+- **134 处 `.js` 后缀 import** 统一为 `.ts`（57 文件，与项目约定一致）。
+- **回收 331.5 MB**：删除已被 `.gitignore` 忽略的 `debug.txt` 等运行时产物。
+
+### 六、遗留（需你决策）
+
+- 未被 git 跟踪的 `.d.ts` 归档（如 `src/shared/types.d.ts`）只在磁盘上移动了位置，
+  **不会体现在 git 改动里**（`.gitignore` 忽略 `src/**/*.d.ts`）。
+- `batch/` 目录本身未提交（本轮所有改动均未提交）。
