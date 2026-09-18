@@ -57,18 +57,18 @@ batch/
 ### 01-engine（12 批 / 92 文件）
 | 状态 | 批次 | 目录 | 文件数 |
 | :---: | --- | --- | ---: |
-| ⬜ | [E1](01-engine/E1-engine-tool-harness.md) | `src/engine/tool-harness` | 10 |
-| ⬜ | [E2](01-engine/E2-engine-agent.md) | `src/engine/agent` | 9 |
-| ⬜ | [E3](01-engine/E3-engine-flow.md) | `src/engine/flow` | 4 |
-| ⬜ | [E4](01-engine/E4-engine-errors.md) | `src/engine/errors` | 5 |
-| ⬜ | [E5](01-engine/E5-engine-commands.md) | `src/engine/commands` | 6 |
-| ⬜ | [E6](01-engine/E6-engine-llm-tool-parser.md) | `src/engine/llm-tool-parser` | 3 |
+| ✅ | [E1](01-engine/E1-engine-tool-harness.md) | `src/engine/tool-harness` | 10 |
+| ✅ | [E2](01-engine/E2-engine-agent.md) | `src/engine/agent` | 9 |
+| ✅ | [E3](01-engine/E3-engine-flow.md) | `src/engine/flow` | 4 |
+| ✅ | [E4](01-engine/E4-engine-errors.md) | `src/engine/errors` | 5 |
+| ✅ | [E5](01-engine/E5-engine-commands.md) | `src/engine/commands` | 6 |
+| ✅ | [E6](01-engine/E6-engine-llm-tool-parser.md) | `src/engine/llm-tool-parser` | 3 |
 | ✅ | [E7](01-engine/E7-engine-hooks.md) | `src/engine/hooks` | 2 |
 | ✅ | [E8](01-engine/E8-engine-subagent.md) | `src/engine/subagent` | 2 |
 | ✅ | [E9](01-engine/E9-engine-tool-history-guard.md) | `src/engine/tool-history-guard` | 2 |
 | ✅ | [E10](01-engine/E10-engine-api.md) | `src/engine/api` | 1 |
-| ⬜ | [E11](01-engine/E11-engine-__tests__.md) | `src/engine/__tests__` | 9 |
-| ⬜ | [E12](01-engine/E12-engine.md) | `src/engine`（根目录散落） | 20 |
+| ✅ | [E11](01-engine/E11-engine-__tests__.md) | `src/engine/__tests__` | 9 |
+| ✅ | [E12](01-engine/E12-engine.md) | `src/engine`（根目录散落） | 20 |
 
 ### 02-main（30 批 / 313 文件）
 | 状态 | 批次 | 目录 | 文件数 |
@@ -143,6 +143,14 @@ batch/
 | T3 | `src/__tests__/components` | 10 | **全部保留**（活跃测试，120 用例在跑） | 2026-09-18 |
 | T4 | `src/__tests__`（根） | 1 | **归档**（随 X2：被测模块已归档） | 2026-09-18 |
 | R1 | `src/renderer/src/components` | 6 | **全部归档**（零引用的 UI 组件：整个 oauth 目录 + LogDetailModal + LoginGuideDialog） | 2026-09-18 |
+| E1 | `src/engine/tool-harness` | 10 | 归档 10（Zod 版旧流水线）+ 保留 jsonSchemaRepair 及依赖闭包 | 2026-09-18 |
+| E12 | `src/engine`（根目录散落） | 20 | 归档 16 + 保留 absorb.ts（唯一实现）/ orchestraotr barrel / 活跃测试 | 2026-09-18 |
+| E2 | `src/engine/agent` | 9 | **全部归档**（7 个旧 .d.ts + forkMessages/worktree 零引用） | 2026-09-18 |
+| E5 | `src/engine/commands` | 6 | 归档 4（impl.ts + 3 个旧 .d.ts）+ 保留 2 个活跃测试 | 2026-09-18 |
+| E11 | `src/engine/__tests__` | 9 | **全部保留**（独立手动脚本，vitest 显式排除）；**顺带修复 3 处硬编码真实 API Key** | 2026-09-18 |
+| E3 | `src/engine/flow` | 4 | **全部归档**（第三套计划/DAG 实现，零引用） | 2026-09-18 |
+| E4 | `src/engine/errors` | 5 | **全部归档**（通用 CircuitBreaker 零引用 + 4 个 .js.map） | 2026-09-18 |
+| E6 | `src/engine/llm-tool-parser` | 3 | **全部归档**（第 7 套解析器，无白名单保护）+ 测试成对 | 2026-09-18 |
 | E7 | `src/engine/hooks` | 2 | **全部保留**（builtInHooks 是唯一实现的安全能力） | 2026-09-18 |
 | E8 | `src/engine/subagent` | 2 | **归档** 2 个 `.js.map` 构建残留 | 2026-09-18 |
 | E9 | `src/engine/tool-history-guard` | 2 | 归档 `fix.ts`（+ 其测试成对）；`index.ts` 保留 | 2026-09-18 |

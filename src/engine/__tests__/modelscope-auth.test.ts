@@ -1,12 +1,23 @@
 /**
  * ModelScope API auth test
+ *
+ * 用法：MODELSCOPE_API_KEY=ms-xxx npx tsx src/engine/__tests__/modelscope-auth.test.ts
+ *
+ * ⚠️ 密钥从环境变量读取，**不要写死在源码里** —— 该文件受 git 跟踪，
+ * 硬编码的 key 会永久留在仓库历史中（即使后来删除也仍可被检出）。
  */
 
 import axios from 'axios'
 
-const API_KEY = 'ms-e0186bce3a8b49eda2f33d60c84a1492'
+const API_KEY = process.env.MODELSCOPE_API_KEY ?? ''
 const BASE_URL = 'https://api-inference.modelscope.cn/v1/chat/completions'
 const MODEL = 'deepseek-ai/DeepSeek-V4-Flash'
+
+if (!API_KEY) {
+  console.error('缺少 MODELSCOPE_API_KEY 环境变量；示例：')
+  console.error('  MODELSCOPE_API_KEY=ms-xxx npx tsx src/engine/__tests__/modelscope-auth.test.ts')
+  process.exit(1)
+}
 
 async function test() {
   const tests = [

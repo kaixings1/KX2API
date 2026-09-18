@@ -5,10 +5,10 @@
   "_totalOrphans": 437,
   "_totalBatches": 54,
   "summary": {
-    "done": 16,
+    "done": 24,
     "in_progress": 0,
-    "pending": 38,
-    "filesDone": 87,
+    "pending": 30,
+    "filesDone": 153,
     "filesTotal": 437
   },
   "batches": [
@@ -19,10 +19,10 @@
       "dir": "src/engine/tool-harness",
       "title": "工具参数修复层 tool-harness",
       "filesTotal": 10,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 10,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 10（Zod 版旧流水线 + 零引用 barrel + 2 个测试成对）；保留 jsonSchemaRepair + 4 个依赖闭包文件。⚠️ 首次误归档依赖致 3 项验证全挂，已恢复"
     },
     {
       "id": "E2",
@@ -31,10 +31,10 @@
       "dir": "src/engine/agent",
       "title": "子代理与协调器 agent",
       "filesTotal": 9,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 9,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档（7 个旧 .d.ts + forkMessages/worktree 零引用；worktree 是 CLI 场景）"
     },
     {
       "id": "E3",
@@ -43,10 +43,10 @@
       "dir": "src/engine/flow",
       "title": "流程引擎 flow",
       "filesTotal": 4,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 4,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档（整个 flow 目录零引用；第三套计划/DAG 实现，与 main/plans + orchestrator/taskGraph 重复）"
     },
     {
       "id": "E4",
@@ -55,10 +55,10 @@
       "dir": "src/engine/errors",
       "title": "错误处理 errors",
       "filesTotal": 5,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 5,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档（通用 CircuitBreaker 零引用，已有活的 CompactCircuitBreaker；4 个 .js.map 构建残留）"
     },
     {
       "id": "E5",
@@ -67,10 +67,10 @@
       "dir": "src/engine/commands",
       "title": "命令系统 commands",
       "filesTotal": 6,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 6,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 4（impl.ts 零引用 + 3 个旧 .d.ts）；保留 2 个活跃测试"
     },
     {
       "id": "E6",
@@ -79,10 +79,10 @@
       "dir": "src/engine/llm-tool-parser",
       "title": "LLM 工具解析 llm-tool-parser",
       "filesTotal": 3,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 3,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部归档（第 7 套工具调用解析实现，且无白名单保护，已被 plainTextToolCallRepair 取代）+ 测试成对"
     },
     {
       "id": "E7",
@@ -139,10 +139,10 @@
       "dir": "src/engine/__tests__",
       "title": "引擎独立测试脚本",
       "filesTotal": 9,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 9,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部保留（9 个独立手动脚本，vitest 显式排除该目录）；🔴 顺带修复 3 处硬编码真实 API Key"
     },
     {
       "id": "E12",
@@ -151,10 +151,10 @@
       "dir": "src/engine",
       "title": "引擎根目录散落文件",
       "filesTotal": 20,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 20,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 16（零引用功能模块/CLI 入口/旧声明/构建残留）；保留 absorb.ts（唯一实现待接线）+ orchestrator barrel + 活跃测试"
     },
     {
       "id": "M1",
@@ -661,5 +661,5 @@
       "disposition": "保留（.d.ts 是生效的全局声明，非孤儿）"
     }
   ],
-  "_lastUpdatedAt": "2026-09-18T08:13:09.360Z"
+  "_lastUpdatedAt": "2026-09-18T08:39:33.830Z"
 }

@@ -1,16 +1,20 @@
 /**
  * End-to-end chat test — 验证完整链路：引擎 → API → 实际响应
  *
- * 运行: npx tsx src/engine/__tests__/e2e-chat.test.ts
+ * 运行（密钥从环境变量读，不要写死在源码里 —— 本文件受 git 跟踪，
+ * 硬编码的 key 会永久留在仓库历史中）：
+ *   MODELSCOPE_API_KEY=ms-xxx DEEPSEEK_API_KEY=sk-xxx \
+ *     npx tsx src/engine/__tests__/e2e-chat.test.ts
+ *
+ * 未提供密钥的 provider 会自动跳过。
  */
 
 import axios from 'axios'
 
-// 用配置文件中的真实数据
 const profiles = [
-  { name: 'ModelScope', baseUrl: 'https://api-inference.modelscope.cn/v1/chat/completions', apiKey: 'ms-e0186bce3a8b49eda2f33d60c84a1492', model: 'deepseek-ai/DeepSeek-V4-Flash' },
-  { name: 'DeepSeek', baseUrl: 'https://api.deepseek.com/chat/completions', apiKey: 'sk-f34cf...', model: 'deepseek-chat' },
-  { name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1/chat/completions', apiKey: 'sk-ai-v1-...', model: 'tencent/hy3-preview:free' },
+  { name: 'ModelScope', baseUrl: 'https://api-inference.modelscope.cn/v1/chat/completions', apiKey: process.env.MODELSCOPE_API_KEY ?? '', model: 'deepseek-ai/DeepSeek-V4-Flash' },
+  { name: 'DeepSeek', baseUrl: 'https://api.deepseek.com/chat/completions', apiKey: process.env.DEEPSEEK_API_KEY ?? '', model: 'deepseek-chat' },
+  { name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1/chat/completions', apiKey: process.env.OPENROUTER_API_KEY ?? '', model: 'tencent/hy3-preview:free' },
 ]
 
 let passed = 0

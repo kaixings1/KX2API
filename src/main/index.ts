@@ -25,16 +25,9 @@ import { proxyServer } from './proxy/server'
 import { proxyStatusManager } from './proxy/status'
 // 工具结果落盘目录与工具会话状态：静态导入保证退出路径可用
 import { toolSessionStore, setToolSessionStorePath } from './tools/toolSessionStore.ts'
-// 工具分组/文件化存储：初始化时挂载全局管理器
-import { ToolFileStoreManager } from './tools/toolFileStoreManager.ts'
-// 审计日志：安全事件追踪
-import { AuditLogger } from './security/AuditLogger.ts'
-// 输入校验：命令/工具参数安全过滤
-import { InputValidator } from './security/InputValidator.ts'
-// 命令注册表：路由 /command 请求到具体实现
-// ⚠️ 注意路径：真实的命令注册表在 src/engine/commands/registry.ts（与 src/main 同级），
-// 故用 '../engine/...'；写成 './engine/...' 会指向不存在的 src/main/engine/。
-import { CommandRegistry } from '../engine/commands/registry.ts'
+import { toolFileStore, migrateCustomRulesFromStore } from './tools/toolFileStore.ts'
+import { AuditLogger } from '../security/AuditLogger.ts'
+import { InputValidator } from '../security/InputValidator.ts'
 
 // Prevent uncaught exceptions from crashing the app
 process.on('uncaughtException', (error) => {
@@ -197,6 +190,35 @@ async function setupApp(): Promise<void> {
     logManager.info('[App] Tool session store ready', {})
   } catch (err) {
     logManager.warn('[App] Tool session store init failed', { error: String(err) })
+  }
+
+  // 审计日志：安全事件追踪（审计日志独立落盘，不经过 logManager）
+  try {
+    const auditLogFile = join(app.getPath('userData'), 'audit.log')
+    const auditLogger = new AuditLogger(auditLogFile)
+    logManager.info('[App] Audit logger initialized', { file: auditLogFile })
+  } catch (err) {
+    logManager.warn('[App] Audit logger init failed', { error: String(err) })
+  }
+
+  // 输入校验：命令/工具参数安全过滤
+  try {
+    const inputValidator = new InputValidator()
+    logManager.info('[App] Input validator initialized', {})
+  } catch (err) {
+    logManager.warn('[App] Input validator init failed', { error: String(err) })
+  }
+
+  // 工具文件化存储：首次启动时把 electron-store 里的自定义数据迁移到文件目录
+  try {
+    const migrated = migrateCustomRulesFromStore()
+    if (migrated.tools + migrated.groups + migrated.hintRules > 0) {
+      logManager.info('[App] Tool file store migrated from store', { migrated })
+    } else {
+      logManager.info('[App] Tool file store ready', {})
+    }
+  } catch (err) {
+    logManager.warn('[App] Tool file store init failed', { error: String(err) })
   }
 
   await registerIpcHandlers(mainWindow)

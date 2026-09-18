@@ -1,10 +1,20 @@
 /**
  * 诊断 LLM 响应 — 打印原始返回内容
+ *
+ * 用法：DEEPSEEK_API_KEY=sk-xxx npx tsx tools/diag-llm.ts
+ *
+ * ⚠️ 密钥从环境变量读取。此前这里是硬编码的真实 key，而本文件受 git 跟踪 ——
+ * 硬编码的凭据会永久留在仓库历史中（删除当前行也不会从历史里消失）。
  */
 
 import { execSync } from "node:child_process"
 
-const API_KEY = "sk-2932c2b5df154948a721024a6d74b4fe"
+const API_KEY = process.env.DEEPSEEK_API_KEY ?? ""
+if (!API_KEY) {
+  console.error("缺少 DEEPSEEK_API_KEY 环境变量；示例：")
+  console.error("  DEEPSEEK_API_KEY=sk-xxx npx tsx tools/diag-llm.ts")
+  process.exit(1)
+}
 const MODEL = "deepseek-chat"
 const BASE_URL = "https://api.deepseek.com"
 const ROLE_NAME = "规划师"

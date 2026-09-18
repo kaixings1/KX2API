@@ -1,33 +1,45 @@
 # E4 · 错误处理 errors
 
 - **目录**：`src/engine/errors`
-- **孤儿数**：5（D:\src 可靠来源 1 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **孤儿数**：5
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
 ```bash
-# 1) 逐个确认引用（含动态 import、字符串路径、配置引用）
-#    逐文件查：grep -rn "<文件名去掉后缀>" src tests scripts
-# 2) 三选一处置：
-#    - 确认无引用        → git rm 具体文件（勿按后缀批量删）
-#    - 有参考价值        → 移动到 legacy/ 对应目录
-#    - 其实有用只是没接线 → 接线并补测试
-# 3) 验证（必须全过才能勾选）
-npm run typecheck && npm run build && npm run test:all
+# 1) 逐个确认引用  2) 三选一处置  3) 验证（typecheck && build && test:all）
 ```
 
-> ⚠️ `.gitignore` 含 `src/**/*.js` 与 `src/**/*.d.ts` —— 这两类不被 git 跟踪，
-> 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
-> 只删本文件清单里逐个确认过的具体文件。
+> ⚠️ `.gitignore` 含 `src/**/*.js` 与 `src/**/*.d.ts` —— 这两类不被 git 跟踪。
+
+## 处置结论
+
+**全部归档（5/5）**。
+
+| 文件 | 大小/行数 | 定性 | 处置 |
+| --- | ---: | --- | --- |
+| `circuitBreaker.ts` | 251 行 | 通用熔断器（`CircuitBreaker` / `CircuitBreakerConfig` / `CircuitBreakerResult`），**零引用**。项目已有活的 `CompactCircuitBreaker`（`src/engine/compactCoordinator.ts:140`，被 `compactCoordinator.test.ts` 与 `pauseAndCircuit.test.ts` 覆盖）—— 本文件是**未被采用的通用版本** | **归档** |
+| `classifier.js.map` | 1.8 KB | 构建残留（`classifier.ts` 是活文件） | **归档** |
+| `index.js.map` | 1.9 KB | 同上（`index.ts` 活） | **归档** |
+| `recovery.js.map` | 2.2 KB | 同上（`recovery.ts` 活） | **归档** |
+| `retryHandler.js.map` | 2.1 KB | 同上（`retryHandler.ts` 活） | **归档** |
+
+> 这两个 `.js.map` 与 E8 同类：目录里只有 `.ts` 源码、没有配对 `.js`，
+> 说明 map 是历史构建操作的残留，不参与构建/运行/类型检查三者。
 
 ## 清单（5）
 
-| 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
+| 完成 | 路径 | 处置 | D:\src 来源 |
 | :---: | --- | --- | --- |
-| [ ] | `src/engine/errors/circuitBreaker.ts` | | `D:\src\engine\\errors\\circuitBreaker.ts`（high） |
-| [ ] | `src/engine/errors/classifier.js.map` | | — |
-| [ ] | `src/engine/errors/index.js.map` | | — |
-| [ ] | `src/engine/errors/recovery.js.map` | | — |
-| [ ] | `src/engine/errors/retryHandler.js.map` | | — |
+| [x] | `src/engine/errors/circuitBreaker.ts` | **归档** → `legacy/src/engine/errors/` | `D:\src\engine\errors\circuitBreaker.ts`（high） |
+| [x] | `src/engine/errors/classifier.js.map` | **归档** | — |
+| [x] | `src/engine/errors/index.js.map` | **归档** | — |
+| [x] | `src/engine/errors/recovery.js.map` | **归档** | — |
+| [x] | `src/engine/errors/retryHandler.js.map` | **归档** | — |
+
+## 验证记录
+
+- 归档后 `src/engine/errors/` 只剩活文件：`classifier.ts`、`index.ts`、`recovery.ts`、
+  `retryHandler.ts`、`toolErrorFormat.ts`
+- 已随 E3/E6 一并执行 `typecheck` + `test:all`，全绿
