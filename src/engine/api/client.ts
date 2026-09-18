@@ -251,10 +251,15 @@ async function sendOpenAIStream(
     model: config.model,
     max_tokens: config.maxTokens || 4096,
     stream: true,
-    messages: messages.map(m => ({
-      role: m.role,
-      content: typeof m.content === 'string' ? m.content : m.content,
-    })),
+    messages: messages.map((m) => {
+      const record = m as Record<string, unknown>
+      const { role, content, ...rest } = record
+      return {
+        ...rest,
+        role,
+        content: typeof content === 'string' ? content : content,
+      }
+    }),
   }
 
   const response = await client.post(endpoint, body, { signal })
@@ -605,10 +610,15 @@ export async function sendOpenAIStreamWithTools(
   const tools = await buildToolsFromRegistry(config.enabledToolGroups || [])
   console.log('[API] tool definitions:', tools.length)
 
-  const apiMessages = messages.map(m => ({
-    role: m.role,
-    content: typeof m.content === 'string' ? m.content : m.content,
-  }))
+  const apiMessages = messages.map((m) => {
+    const record = m as Record<string, unknown>
+    const { role, content, ...rest } = record
+    return {
+      ...rest,
+      role,
+      content: typeof content === 'string' ? content : content,
+    }
+  })
 
   // 单轮请求：工具执行权归属 MessageLoop。本函数只发一次请求，
   // 把 tool_use 回推给上层；工具结果会进入 history，随下一轮请求再来。

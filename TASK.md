@@ -1206,6 +1206,29 @@ let targetPath: string | n\uFFFDull = null      // 应为 string | null
 **最终状态**：typecheck **0 错误** / `npm run build` ✅ /
 `npm run test:all` ✅（agent 47 + management 74 + extras **561** + unit 1190，0 失败）。
 
+## 第十三轮：审查并修复 orchestrator 模块
+
+用户确认「在开发中，但发现问题可以现在就处理掉」。审查 `src/engine/orchestrator/`
+（并发会话新建的未跟踪目录），修复 5 类问题：
+
+1. **parallel 模式假并行**：`runParallelMode` 用 `for+await` 串行调 `executeLLM`，
+   与 pipeline 无区别；`buildParallelGraph` 生成的图也全串行。改为
+   `Promise.all(readyNodes.map(...))` 真并发 + 分层波次图
+   （research → [analyze,design] → [plan,implement] → [verify,review] 各波并发）。
+   顺带修死循环隐患（空转不退出）。
+2. **`computeQualityScore` / `stageToRole` 各写两份**（同名定义多份头号坑）→ 抽到新 `shared.ts`。
+3. **`TaskNode` 类型两份定义**：`messages.ts` 版零使用、且 `result` 字段类型不符 → 删，由 `taskGraph.ts` 唯一提供。
+4. **`pipeline.ts` qualityGate 用 stage 当 role 查**：`roleResults.find(r.role==='qa')` 应为 stage `verify` → 统一按 stage。
+5. **`buildSummary` 重复算质量分**：调用方已传入，内部又算一次 → 复用参数。
+
+### 新增测试
+
+`tests/engine/orchestrator.test.ts`（node:test，6 例）锁定：分层拓扑、真并发
+（耗时 < 串行、峰值并发 ≤2）、TaskGraph 依赖调度与失败跳过。
+
+**最终状态**：typecheck **0 错误** / `npm run build` ✅ /
+`npm run test:all` ✅（agent 47 + management 74 + extras **567** + unit 1190，0 失败）。
+
 ### CI 转为阻断式
 
 类型错误归零后，按 `ci.yml` 原注释里的约定，把 `typecheck-app` 的
