@@ -5,6 +5,7 @@
  */
 
 import type { WorkflowStage, AgentRole } from './messages.ts'
+import { stageToRole } from './shared.ts'
 
 // ---------------------------------------------------------------------------
 // TaskNode
@@ -152,7 +153,7 @@ export function buildPipelineGraph(stages: WorkflowStage[], taskDescription: str
 export function buildParallelGraph(taskDescription: string): TaskNode[] {
   const nodes: TaskNode[] = []
 
-  // 阶段 0: 调研
+  // 阶段 0: 调研（根节点，无依赖）
   nodes.push({
     id: `step-0-research`,
     description: getStageDescription('research', taskDescription, 0),
@@ -162,22 +163,33 @@ export function buildParallelGraph(taskDescription: string): TaskNode[] {
     status: 'pending',
   })
 
-  // 后续阶段串行
-  const remainingStages: WorkflowStage[] = ['analyze', 'plan', 'implement', 'verify', 'review']
-  let prevId = `step-0-research`
+  // 后续阶段按「波次」并行：同一波内的节点互不依赖，可同时执行；
+  // 下一波依赖上一波全部节点完成。这样既保留阶段间的逻辑先后，
+  // 又让同波内的多个角色真正并发（这是 parallel 模式相对 pipeline 的本质区别）。
+  const waves: WorkflowStage[][] = [
+    ['analyze', 'design'],
+    ['plan', 'implement'],
+    ['verify', 'review'],
+  ]
+  let prevWaveIds: string[] = ['step-0-research']
+  let idx = 1
 
-  for (let i = 0; i < remainingStages.length; i++) {
-    const stage = remainingStages[i]
-    const id = `step-${i + 1}-${stage}`
-    nodes.push({
-      id,
-      description: getStageDescription(stage, taskDescription, i + 1),
-      stage,
-      role: stageToRole(stage),
-      dependencies: [prevId],
-      status: 'pending',
-    })
-    prevId = id
+  for (const wave of waves) {
+    const waveIds: string[] = []
+    for (const stage of wave) {
+      const id = `step-${idx}-${stage}`
+      nodes.push({
+        id,
+        description: getStageDescription(stage, taskDescription, idx),
+        stage,
+        role: stageToRole(stage),
+        dependencies: [...prevWaveIds],
+        status: 'pending',
+      })
+      waveIds.push(id)
+      idx++
+    }
+    prevWaveIds = waveIds
   }
 
   return nodes
@@ -186,22 +198,6 @@ export function buildParallelGraph(taskDescription: string): TaskNode[] {
 // ---------------------------------------------------------------------------
 // 辅助函数
 // ---------------------------------------------------------------------------
-
-function stageToRole(stage: WorkflowStage): AgentRole {
-  const map: Record<WorkflowStage, AgentRole> = {
-    research: 'researcher',
-    analyze: 'pm',
-    design: 'architect',
-    plan: 'team_leader',
-    implement: 'engineer',
-    verify: 'qa',
-    review: 'team_leader',
-    discuss: 'team_leader',
-    done: 'supervisor',
-    failed: 'supervisor',
-  }
-  return map[stage] ?? 'team_leader'
-}
 
 function getStageDescription(stage: WorkflowStage, task: string, index: number): string {
   const templates: Record<WorkflowStage, string> = {

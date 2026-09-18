@@ -604,6 +604,18 @@ export class MessageLoop {
           role: "system",
           content: "Previous tool calls were invalid. Please answer directly without using tools.",
         } as InternalMessage);
+        // 同时清理刚写入的 assistant 消息里的无效 tool_use block，
+        // 避免下一轮请求带着"孤儿 tool_use"发回上游，触发 400 配对错误。
+        const lastMsg = this.deps.conversation.messages[this.deps.conversation.messages.length - 2]
+        if (lastMsg && lastMsg.role === 'assistant' && Array.isArray(lastMsg.content)) {
+          const hasToolUse = (lastMsg.content as Array<Record<string, unknown>>).some(b => b.type === 'tool_use')
+          if (hasToolUse) {
+            this.deps.conversation.messages[this.deps.conversation.messages.length - 2] = {
+              role: 'assistant',
+              content: typeof processed.content === 'string' ? processed.content : '',
+            } as InternalMessage
+          }
+        }
         if (this.consecutiveToolFailures >= this.limits.maxInvalidToolCalls) {
           engineLog('WARN', '连续无效工具调用过多，停止');
           return false;

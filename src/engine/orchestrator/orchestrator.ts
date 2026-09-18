@@ -13,6 +13,7 @@ import type {
   RoleExecutionResult,
 } from './messages.ts'
 import { buildAgentDefinition, getAllRoles, getRoleDisplayName } from './agentRole.ts'
+import { computeQualityScore } from './shared.ts'
 import { PipelineExecutor, type PipelineExecutorDeps, PIPELINE_STAGES } from './pipeline.ts'
 import { TaskGraph, buildParallelGraph } from './taskGraph.ts'
 
@@ -121,54 +122,8 @@ export class Orchestrator {
 
     while (!this.graph.isAllCompleted() && !this.graph.hasFailed()) {
       const readyNodes = this.graph.getReady()
-
-      for (const node of readyNodes) {
-        this.graph.markRunning(node.id)
-
-        const roleDef = buildAgentDefinition(node.role)
-        const context = this.buildNodeContext(node)
-
-        try {
-          const output = await this.deps.executeLLM(
-            node.role,
-            roleDef.systemPrompt,
-            node.description,
-            context
-          )
-
-          const nodeArtifacts = this.extractArtifacts(output)
-          artifacts.push(...nodeArtifacts)
-
-          this.graph.markCompleted(node.id, output)
-          roleResults.push({
-            role: node.role,
-            stage: node.stage,
-            success: true,
-            output,
-            iterations: 1,
-            duration: 0,
-            artifacts: nodeArtifacts,
-          })
-          totalIterations++
-
-          if (this.config.verbose) {
-            console.log(`[Orchestrator] ${node.stage} → ${node.role} 完成`)
-          }
-        } catch (err: any) {
-          this.graph.markFailed(node.id, err.message)
-          roleResults.push({
-            role: node.role,
-            stage: node.stage,
-            success: false,
-            output: err.message,
-            iterations: 1,
-            duration: 0,
-            error: err.message,
-          })
-        }
-      }
-
-      if (readyNodes.length === 0 && !this.graph.isAllCompleted()) {
+      if (readyNodes.length === 0) {
+        // 没有可执行的节点：检查是否有因依赖失败而应跳过的节点，避免死循环
         const allNodes = this.graph.getAll()
         let anySkipped = false
         for (const node of allNodes) {
@@ -177,6 +132,52 @@ export class Orchestrator {
           }
         }
         if (!anySkipped) break
+        continue
+      }
+
+      // 真正并行：同一时刻所有「无依赖、已就绪」的节点同时发起 LLM 调用，
+      // 等全部完成后才进入下一波。这是 parallel 模式相对 pipeline 模式的本质区别
+      // （pipeline 是严格串行）。getReady() 返回的就是当前这一波可并行执行的节点。
+      const graph = this.graph
+      const settled = await Promise.all(
+        readyNodes.map(async (node) => {
+          const n = node as NonNullable<typeof node>
+          graph.markRunning(n.id)
+          const roleDef = buildAgentDefinition(n.role)
+          const context = this.buildNodeContext(n)
+          try {
+            const output = await this.deps.executeLLM(
+              n.role,
+              roleDef.systemPrompt,
+              n.description,
+              context
+            )
+            const nodeArtifacts = this.extractArtifacts(output)
+            graph.markCompleted(n.id, output)
+            return { node: n, success: true as const, output, artifacts: nodeArtifacts }
+          } catch (err: any) {
+            graph.markFailed(n.id, err.message)
+            return { node: n, success: false as const, output: err.message, artifacts: [] as string[] }
+          }
+        })
+      )
+
+      for (const r of settled) {
+        artifacts.push(...r.artifacts)
+        roleResults.push({
+          role: r.node.role,
+          stage: r.node.stage,
+          success: r.success,
+          output: r.output,
+          iterations: 1,
+          duration: 0,
+          artifacts: r.artifacts,
+        })
+        totalIterations++
+
+        if (this.config.verbose) {
+          console.log(`[Orchestrator] ${r.node.stage} → ${r.node.role} ${r.success ? '完成' : '失败'}`)
+        }
       }
     }
 
@@ -399,33 +400,3 @@ export const DEFAULT_CONFIG: OrchestratorConfig = {
   maxDiscussionRounds: 5,
 }
 
-// ---------------------------------------------------------------------------
-// 质量评分
-// ---------------------------------------------------------------------------
-
-function computeQualityScore(results: RoleExecutionResult[]): number {
-  if (results.length === 0) return 0
-
-  let score = 0
-  const weights: Record<string, number> = {
-    research: 10,
-    analyze: 15,
-    design: 15,
-    plan: 10,
-    implement: 25,
-    verify: 20,
-    review: 5,
-  }
-
-  for (const r of results) {
-    const w = weights[r.stage] ?? 10
-    if (r.success) {
-      score += w
-      score += Math.min(5, Math.floor(r.output.length / 200))
-    } else {
-      score += Math.floor(w * 0.2)
-    }
-  }
-
-  return Math.min(100, score)
-}

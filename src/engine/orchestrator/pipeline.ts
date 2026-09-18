@@ -5,6 +5,7 @@
  */
 
 import type { WorkflowStage, AgentRole, AgentMessage, OrchestrationResult, RoleExecutionResult, OrchestratorConfig } from './messages.ts'
+import { computeQualityScore, stageToRole, formatDuration } from './shared.ts'
 import { buildAgentDefinition } from './agentRole.ts'
 
 // Pipeline 阶段定义
@@ -272,7 +273,7 @@ export class PipelineExecutor {
     const lines = [
       `${status} | 最终阶段: ${finalStage}`,
       `质量评分: ${qualityScore}/100`,
-      `总耗时: ${this.formatDuration(totalDuration)}`,
+      `总耗时: ${formatDuration(totalDuration)}`,
       `总迭代: ${this.totalIterations}`,
       '',
       '阶段执行结果:',
@@ -280,7 +281,7 @@ export class PipelineExecutor {
 
     for (const r of results) {
       const icon = r.success ? '✅' : '❌'
-      lines.push(`  ${icon} ${r.role} (${r.stage}) — ${r.iterations} iterations, ${this.formatDuration(r.duration)}`)
+      lines.push(`  ${icon} ${r.role} (${r.stage}) — ${r.iterations} iterations, ${formatDuration(r.duration)}`)
       if (r.error) lines.push(`     错误: ${r.error}`)
       if (r.artifacts && r.artifacts.length > 0) {
         lines.push(`     产出: ${r.artifacts.join(', ')}`)
@@ -290,59 +291,4 @@ export class PipelineExecutor {
     return lines.join('\n')
   }
 
-  private formatDuration(ms: number): string {
-    if (ms < 1000) return `${ms}ms`
-    return `${(ms / 1000).toFixed(1)}s`
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 质量评分
-// ---------------------------------------------------------------------------
-
-function computeQualityScore(results: RoleExecutionResult[]): number {
-  if (results.length === 0) return 0
-
-  let score = 0
-  const weights: Record<string, number> = {
-    research: 10,
-    analyze: 15,
-    design: 15,
-    plan: 10,
-    implement: 25,
-    verify: 20,
-    review: 5,
-  }
-
-  for (const r of results) {
-    const w = weights[r.stage] ?? 10
-    if (r.success) {
-      score += w
-      score += Math.min(5, Math.floor(r.output.length / 200))
-    } else {
-      score += Math.floor(w * 0.2)
-    }
-  }
-
-  return Math.min(100, score)
-}
-
-// ---------------------------------------------------------------------------
-// 阶段 → 角色映射
-// ---------------------------------------------------------------------------
-
-function stageToRole(stage: WorkflowStage): AgentRole {
-  const map: Record<WorkflowStage, AgentRole> = {
-    research: 'researcher',
-    analyze: 'pm',
-    design: 'architect',
-    plan: 'team_leader',
-    implement: 'engineer',
-    verify: 'qa',
-    review: 'team_leader',
-    discuss: 'team_leader',
-    done: 'supervisor',
-    failed: 'supervisor',
-  }
-  return map[stage] ?? 'team_leader'
 }

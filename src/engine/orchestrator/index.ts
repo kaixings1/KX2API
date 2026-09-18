@@ -4,7 +4,7 @@
 
 export { Orchestrator, type OrchestratorDeps, DEFAULT_CONFIG } from './orchestrator.ts'
 export { PipelineExecutor, type PipelineExecutorDeps, PIPELINE_STAGES } from './pipeline.ts'
-export { TaskGraph, buildPipelineGraph, buildParallelGraph } from './taskGraph.ts'
+export { TaskGraph, buildPipelineGraph, buildParallelGraph, type TaskNode } from './taskGraph.ts'
 export {
   buildAgentDefinition,
   getAllRoles,
@@ -19,6 +19,5 @@ export type {
   OrchestrationResult,
   OrchestratorConfig,
   AgentDefinition,
-  TaskNode,
   StageContext,
 } from './messages.ts'

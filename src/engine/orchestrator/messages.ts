@@ -133,20 +133,6 @@ export interface AgentDefinition {
 }
 
 // ---------------------------------------------------------------------------
-// TaskNode — 任务图中的节点
-// ---------------------------------------------------------------------------
-
-export interface TaskNode {
-  id: string
-  description: string
-  stage: WorkflowStage
-  role: AgentRole
-  dependencies: string[]
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
-  result?: RoleExecutionResult
-}
-
-// ---------------------------------------------------------------------------
 // StageContext — 阶段执行上下文
 // ---------------------------------------------------------------------------
 

@@ -716,7 +716,7 @@ export async function sendOpenAIStreamWithTools(
                   } catch (e) {
                     toolCalls[idx].input = {
                       ...toolCalls[idx].input,
-                      raw: tc.function.arguments,
+                      value: tc.function.arguments,
                     }
                   }
                 }

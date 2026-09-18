@@ -29,6 +29,8 @@ export interface APIEvent {
 
 export class ResponseHandler {
   private streamProcessor = new StreamProcessor();
+  /** 暂存 content_block_start 中 tool_use 块的 id/name，等 content_block_stop 时消费 */
+  private pendingToolStarts = new Map<string, { id: string; name: string }>();
   onChunk?: (chunk: { type: string; text?: string }) => void;
   onReasoning?: (text: string) => void;
 
@@ -53,6 +55,20 @@ export class ResponseHandler {
     for await (const event of stream) {
       const processed = this.streamProcessor.process(event);
       switch (processed.type) {
+        case "content_block_start":
+          // content_block_start 事件携带 tool_use 块的 id/name/input（一次性）；
+          // 这些信息在后续 content_block_stop 时可能被清空（StreamProcessor 在 stop 时
+          // 把 currentBlock 置 null），所以必须在 start 阶段就暂存下来。
+          if (processed.block && processed.block.type === "tool_use") {
+            const id = processed.block.id ?? '';
+            const name = processed.block.name ?? '';
+            if (id || name) {
+              // 暂存到 pending 集合，等 content_block_stop 时消费
+              this.pendingToolStarts.set(id, { id, name: name });
+              console.log(`[RESP-HANDLER] content_block_start tool_use id=${id} name=${name}`);
+            }
+          }
+          break;
         case "content_block_delta":
           if (processed.chunk) {
             chunks.push(processed.chunk);
@@ -67,9 +83,16 @@ export class ResponseHandler {
             }
           }
           if (processed.block && processed.block.type === "tool_use") {
+            // 优先使用 content_block_start 时暂存的 id/name（start 事件携带的
+            // 信息在 StreamProcessor 处理 stop 时 currentBlock 已被置 null，
+            // 所以 block.id/block.name 可能为空）。
+            const stored = processed.block.id ? this.pendingToolStarts.get(processed.block.id) : null;
+            this.pendingToolStarts.delete(processed.block.id ?? '');
+            const resolvedId = stored?.id ?? processed.block.id ?? '';
+            const resolvedName = stored?.name ?? processed.block.name ?? '';
             toolCalls.push({
-              id: processed.block.id ?? '',
-              name: processed.block.name ?? '',
+              id: resolvedId,
+              name: resolvedName,
               input:
               processed.block.input != null &&
               typeof processed.block.input === 'object'
