@@ -1,0 +1,13 @@
+✔ registry 里确实存在大量桩命令（本约束的前提） (1.0397ms)
+✔ commandRunners 的实现都是真实现（不含桩） (0.2049ms)
+✔ shell / cmd 在 registry 里是桩 —— 不应被当作可执行工具暴露 (0.1209ms)
+✔ bash 有真实现，应能作为 shell 概念的可执行代表 (0.1475ms)
+✔ commandRunners 中有真实现但 registry 缺失的键应可被识别 (0.1672ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 273.108
