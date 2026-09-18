@@ -113,7 +113,19 @@ export interface OrchestratorConfig {
   autoFix: boolean
   qualityGate: boolean
   verbose: boolean
-  maxDiscussionRounds: number
+  maxDiscussionRounds: number   // discuss 模式最大讨论轮数
+}
+
+export const DEFAULT_ORCHESTRATOR_CONFIG: OrchestratorConfig = {
+  mode: 'pipeline',
+  maxIterations: 10,
+  parallelResearch: true,
+  mergeStrategy: 'merge',
+  roles: ['team_leader', 'pm', 'architect', 'engineer', 'qa', 'researcher'],
+  autoFix: true,
+  qualityGate: true,
+  verbose: false,
+  maxDiscussionRounds: 5,
 }
 
 // ---------------------------------------------------------------------------

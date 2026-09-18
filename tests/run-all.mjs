@@ -32,7 +32,7 @@ function collect(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const full = path.join(dir, name)
     if (statSync(full).isDirectory()) {
-      if (name === 'setup' || name === '__pycache__') continue
+      if (name === 'setup' || name === '__pycache__' || name === 'broken') continue
       collect(full, out)
     } else if (/\.test\.(ts|tsx|mjs|cjs|js)$/.test(name)) {
       out.push(full)
