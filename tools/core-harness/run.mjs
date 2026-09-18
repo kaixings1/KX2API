@@ -226,6 +226,44 @@ const TARGETS = {
       return { input: name, resolved }
     },
   },
+
+  'tool-concept': {
+    describe: '跨写法工具名归类（bash/Bash、ls/ListFiles 是否同一工具）',
+    inputHint: '{ names: string[] }',
+    async run(input) {
+      const mod = await load('src/engine/toolNameCompat.ts')
+      const names = Array.isArray(input.names) ? input.names.map(String) : []
+      return {
+        concept: Object.fromEntries(names.map(n => [n, mod.getToolConcept(n)])),
+        isShell: Object.fromEntries(names.map(n => [n, mod.isShellTool(n)])),
+        isFile: Object.fromEntries(names.map(n => [n, mod.isFileTool(n)])),
+      }
+    },
+  },
+
+  'perm-match': {
+    describe: '权限规则匹配（验证 Bash/bash 两种写法都能命中同一工具）',
+    inputHint: '{ rule: string, toolName: string, input?: object }',
+    async run(input) {
+      const mod = await load('src/engine/permissions/permissionRules.ts')
+      const rule = String(input.rule ?? '')
+      const toolName = String(input.toolName ?? '')
+      const value = mod.permissionRuleValueFromString(rule)
+      const parsed = {
+        source: 'userSettings',
+        behavior: 'allow',
+        value,
+      }
+      const applies = mod.ruleApplies(parsed, toolName, input.input ?? {})
+      return {
+        rule,
+        parsedToolName: value.toolName,
+        ruleContent: value.ruleContent,
+        toolName,
+        applies,
+      }
+    },
+  },
 }
 
 // ─────────────────────────────────────────────────────────────

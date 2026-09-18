@@ -1,0 +1,70 @@
+npm notice run kx2code@1.0.0 test:unit
+npm notice run vitest run
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.ts:28:26). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.11 D:/KX2API
+
+stdout | src/__tests__/main/permissionConfig.test.ts > ensureSamplePermissionConfig — 示例配置 > 示例包含危险命令的 ask 规则（不是直接 deny）
+[Permissions] 已写入示例配置: C:\Users\ADMINI~1\AppData\Local\Temp\kx2-permcfg-ushRXI\permissions.json
+
+stdout | src/__tests__/main/permissionConfig.test.ts > ensureSamplePermissionConfig — 示例配置 > 示例包含危险命令的 ask 规则（不是直接 deny）
+[Permissions] 已加载 6 条规则
+
+stdout | src/__tests__/main/permissionConfig.test.ts > ensureSamplePermissionConfig — 示例配置 > 示例里只读工具默认放行
+[Permissions] 已写入示例配置: C:\Users\ADMINI~1\AppData\Local\Temp\kx2-permcfg-ushRXI\permissions.json
+
+stdout | src/__tests__/main/permissionConfig.test.ts > ensureSamplePermissionConfig — 示例配置 > 示例里只读工具默认放行
+[Permissions] 已加载 6 条规则
+
+ ❯ src/__tests__/main/permissionConfig.test.ts (29 tests | 2 failed) 96ms
+     × 示例包含危险命令的 ask 规则（不是直接 deny） 13ms
+     × 示例里只读工具默认放行 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/main/permissionConfig.test.ts > ensureSamplePermissionConfig — 示例配置 > 示例包含危险命令的 ask 规则（不是直接 deny）
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/main/permissionConfig.test.ts:232:61
+    230|     const askRules = rules.filter(r => r.behavior === 'ask')
+    231|     expect(askRules.length).toBeGreaterThan(0)
+    232|     expect(askRules.some(r => r.value.toolName === 'Bash')).toBe(true)
+       |                                                             ^
+    233|   })
+    234|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/__tests__/main/permissionConfig.test.ts > ensureSamplePermissionConfig — 示例配置 > 示例里只读工具默认放行
+AssertionError: expected undefined to be 'allow' // Object.is equality
+
+- Expected:
+"allow"
+
++ Received:
+undefined
+
+ ❯ src/__tests__/main/permissionConfig.test.ts:256:32
+    254|     const rules = await loadPermissionRules()
+    255|     const readRule = rules.find(r => r.value.toolName === 'Read')
+    256|     expect(readRule?.behavior).toBe('allow')
+       |                                ^
+    257|   })
+    258| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 67 passed (68)
+      Tests  2 failed | 1188 passed (1190)
+   Start at  09:57:17
+   Duration  6.05s (transform 14.12s, setup 0ms, import 18.45s, tests 8.31s, environment 14ms)
+

@@ -1,0 +1,198 @@
+npm notice run kx2code@1.0.0 test:unit
+npm notice run vitest run
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.ts:28:26). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.11 D:/KX2API
+
+stdout | src/__tests__/main/permissionConfig.test.ts > 往返一致 > rulesToEntries 反向转换
+[Permissions] 已加载 1 条规则
+
+stdout | src/__tests__/main/permissionConfig.test.ts > ensureSamplePermissionConfig — 示例配置 > 示例包含危险命令的 ask 规则（不是直接 deny）
+[Permissions] 已写入示例配置: C:\Users\ADMINI~1\AppData\Local\Temp\kx2-permcfg-U6bUiH\permissions.json
+
+stdout | src/__tests__/main/permissionConfig.test.ts > ensureSamplePermissionConfig — 示例配置 > 示例包含危险命令的 ask 规则（不是直接 deny）
+[Permissions] 已加载 6 条规则
+
+ ❯ src/__tests__/main/permissionConfig.test.ts (29 tests | 3 failed) 107ms
+     × 正常条目被解析 12ms
+     × rulesToEntries 反向转换 5ms
+     × 示例包含危险命令的 ask 规则（不是直接 deny） 4ms
+ ❯ src/__tests__/engine/permissionRules.test.ts (54 tests | 6 failed) 71ms
+     × 纯工具名 13ms
+     × 工具名 + 内容 2ms
+     × 空内容归一为工具级规则 1ms
+     × 单独通配归一为工具级规则 1ms
+     × 往返一致（解析后再序列化） 2ms
+     × 未知名原样返回 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/engine/permissionRules.test.ts > permissionRuleValueFromString — 解析 > 纯工具名
+AssertionError: expected { toolName: 'bash' } to deeply equal { toolName: 'Bash' }
+
+- Expected
++ Received
+
+  {
+-   "toolName": "Bash",
++   "toolName": "bash",
+  }
+
+ ❯ src/__tests__/engine/permissionRules.test.ts:55:51
+     53| describe('permissionRuleValueFromString — 解析', () => {
+     54|   it('纯工具名', () => {
+     55|     expect(permissionRuleValueFromString('Bash')).toEqual({ toolName: …
+       |                                                   ^
+     56|   })
+     57|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/__tests__/engine/permissionRules.test.ts > permissionRuleValueFromString — 解析 > 工具名 + 内容
+AssertionError: expected { toolName: 'bash', …(1) } to deeply equal { toolName: 'Bash', …(1) }
+
+- Expected
++ Received
+
+  {
+    "ruleContent": "npm install",
+-   "toolName": "Bash",
++   "toolName": "bash",
+  }
+
+ ❯ src/__tests__/engine/permissionRules.test.ts:59:64
+     57|
+     58|   it('工具名 + 内容', () => {
+     59|     expect(permissionRuleValueFromString('Bash(npm install)')).toEqual…
+       |                                                                ^
+     60|       toolName: 'Bash',
+     61|       ruleContent: 'npm install',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  src/__tests__/engine/permissionRules.test.ts > permissionRuleValueFromString — 解析 > 空内容归一为工具级规则
+AssertionError: expected { toolName: 'bash' } to deeply equal { toolName: 'Bash' }
+
+- Expected
++ Received
+
+  {
+-   "toolName": "Bash",
++   "toolName": "bash",
+  }
+
+ ❯ src/__tests__/engine/permissionRules.test.ts:71:53
+     69|
+     70|   it('空内容归一为工具级规则', () => {
+     71|     expect(permissionRuleValueFromString('Bash()')).toEqual({ toolName…
+       |                                                     ^
+     72|   })
+     73|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  src/__tests__/engine/permissionRules.test.ts > permissionRuleValueFromString — 解析 > 单独通配归一为工具级规则
+AssertionError: expected { toolName: 'bash' } to deeply equal { toolName: 'Bash' }
+
+- Expected
++ Received
+
+  {
+-   "toolName": "Bash",
++   "toolName": "bash",
+  }
+
+ ❯ src/__tests__/engine/permissionRules.test.ts:75:54
+     73|
+     74|   it('单独通配归一为工具级规则', () => {
+     75|     expect(permissionRuleValueFromString('Bash(*)')).toEqual({ toolNam…
+       |                                                      ^
+     76|   })
+     77|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  src/__tests__/engine/permissionRules.test.ts > permissionRuleValueToString — 序列化 > 往返一致（解析后再序列化）
+AssertionError: expected 'bash' to be 'Bash' // Object.is equality
+
+Expected: "Bash"
+Received: "bash"
+
+ ❯ src/__tests__/engine/permissionRules.test.ts:126:46
+    124|     for (const s of ['Bash', 'Bash(npm install)', 'Bash(print\\(1\\))'…
+    125|       const v = permissionRuleValueFromString(s)
+    126|       expect(permissionRuleValueToString(v)).toBe(s)
+       |                                              ^
+    127|     }
+    128|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  src/__tests__/engine/permissionRules.test.ts > normalizeLegacyToolName > 未知名原样返回
+AssertionError: expected 'bash' to be 'Bash' // Object.is equality
+
+Expected: "Bash"
+Received: "bash"
+
+ ❯ src/__tests__/engine/permissionRules.test.ts:138:45
+    136|
+    137|   it('未知名原样返回', () => {
+    138|     expect(normalizeLegacyToolName('Bash')).toBe('Bash')
+       |                                             ^
+    139|   })
+    140|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  src/__tests__/main/permissionConfig.test.ts > parsePermissionEntries — 单条畸形只跳过该条 > 正常条目被解析
+AssertionError: expected 'bash' to be 'Bash' // Object.is equality
+
+Expected: "Bash"
+Received: "bash"
+
+ ❯ src/__tests__/main/permissionConfig.test.ts:112:37
+    110|     const rules = parsePermissionEntries([{ behavior: 'allow', rule: '…
+    111|     expect(rules.length).toBe(1)
+    112|     expect(rules[0].value.toolName).toBe('Bash')
+       |                                     ^
+    113|     expect(rules[0].value.ruleContent).toBe('git status')
+    114|     expect(rules[0].behavior).toBe('allow')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  src/__tests__/main/permissionConfig.test.ts > 往返一致 > rulesToEntries 反向转换
+AssertionError: expected 'bash(rm **)' to be 'Bash(rm **)' // Object.is equality
+
+Expected: "Bash(rm **)"
+Received: "bash(rm **)"
+
+ ❯ src/__tests__/main/permissionConfig.test.ts:191:26
+    189|     expect(back.length).toBe(1)
+    190|     expect(back[0].behavior).toBe('deny')
+    191|     expect(back[0].rule).toBe('Bash(rm **)')
+       |                          ^
+    192|   })
+    193|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  src/__tests__/main/permissionConfig.test.ts > ensureSamplePermissionConfig — 示例配置 > 示例包含危险命令的 ask 规则（不是直接 deny）
+ReferenceError: normalizeLegacyToolName is not defined
+ ❯ src/__tests__/main/permissionConfig.test.ts:235:5
+    233|     // 同时校验旧的 Bash 写法经归一化后仍指向同一工具（老配置不失效）。
+    234|     expect(askRules.some(r => r.value.toolName === 'bash')).toBe(true)
+    235|     expect(normalizeLegacyToolName('Bash')).toBe('bash')
+       |     ^
+    236|   })
+    237|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  2 failed | 66 passed (68)
+      Tests  9 failed | 1181 passed (1190)
+   Start at  09:58:50
+   Duration  6.02s (transform 15.23s, setup 0ms, import 19.67s, tests 8.59s, environment 13ms)
+

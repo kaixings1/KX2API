@@ -1,0 +1,23 @@
+{
+  "_comment": "锁定工具名的概念归类：两套写法必须归到同一概念（否则安全策略与缓存名单会漏判）。",
+  "target": "tool-concept",
+  "input": {
+    "names": ["bash", "Bash", "cmd", "shell", "ls", "ListFiles", "dir", "cat", "Read", "find", "Glob", "Grep"]
+  },
+  "expect": {
+    "concept": {
+      "bash": "shell",
+      "Bash": "shell",
+      "cmd": "shell",
+      "shell": "shell",
+      "ls": "list",
+      "ListFiles": "list",
+      "dir": "list",
+      "cat": "read",
+      "Read": "read",
+      "find": "search",
+      "Glob": "search",
+      "Grep": "search"
+    }
+  }
+}

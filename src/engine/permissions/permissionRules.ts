@@ -23,6 +23,10 @@
  * 反转义时反序（先还原括号，最后还原反斜杠）。
  */
 
+// 跨写法工具名兼容：注册名（bash/cat/ls）与历史风格名（Bash/Read/ListFiles）
+// 指向同一工具时，规则匹配必须能识别 —— 见 ruleApplies 中的说明。
+import { isSameTool } from '../toolNameCompat.ts'
+
 // ─────────────────────────────── 类型 ───────────────────────────────
 
 /** 权限裁决三态 + 透传（工具不表态，交给通用逻辑） */
@@ -70,10 +74,12 @@ export interface PermissionRule {
  * 没有这张表，用户升级后会发现"之前配好的规则突然不生效了"。
  */
 const LEGACY_TOOL_NAME_ALIASES: Record<string, string> = {
+  // ── 工具改名的历史别名（原有）──
   Task: 'Agent',
   KillShell: 'TaskStop',
   AgentOutputTool: 'TaskOutput',
   BashOutputTool: 'TaskOutput',
+
 }
 
 export function normalizeLegacyToolName(name: string): string {
@@ -275,7 +281,16 @@ export function ruleApplies(
   if (ruleTool.includes('*')) {
     if (!matchesRuleContent(ruleTool, actualTool)) return false
   } else if (ruleTool !== actualTool) {
-    return false
+    // 名字不字面相等时，再按「是否同一个工具」判定一次。
+    //
+    // 原因：本项目里同一工具存在两种写法 —— 注册命令名（bash/cat/ls/find，
+    // 实际被调度的名字）与历史风格名（Bash/Read/ListFiles/Glob，用户在
+    // 配置文件与设置页里写的名字）。二者若只做字面比较，规则永远不命中，
+    // 表现为「配了规则却不生效」。
+    //
+    // 这里只放宽**工具是否同一**这一层；下面的 ruleContent 匹配仍严格按
+    // 用户写的内容执行，不改变权限语义的粒度。
+    if (!isSameTool(ruleTool, actualTool)) return false
   }
 
   // 无内容约束 = 该工具整体的规则

@@ -1,0 +1,12 @@
+{
+  "_comment": "锁定跨写法兼容：用户写 Bash(rm **) 或 bash(rm **)，都必须能命中实际工具 bash。这是「规则配了却不生效」的回归用例。",
+  "target": "perm-match",
+  "input": {
+    "rule": "Bash(rm **)",
+    "toolName": "bash",
+    "input": { "command": "rm -rf /" }
+  },
+  "expect": {
+    "applies": true
+  }
+}

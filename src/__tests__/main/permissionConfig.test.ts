@@ -229,7 +229,7 @@ describe('ensureSamplePermissionConfig — 示例配置', () => {
     const rules = await loadPermissionRules()
     const askRules = rules.filter(r => r.behavior === 'ask')
     expect(askRules.length).toBeGreaterThan(0)
-    expect(askRules.some(r => r.value.toolName === 'Bash')).toBe(true)
+    expect(askRules.some(r => r.value.toolName === 'bash')).toBe(true)
   })
 
   it('文件已存在时不覆盖（返回 false）', async () => {
@@ -252,7 +252,7 @@ describe('ensureSamplePermissionConfig — 示例配置', () => {
   it('示例里只读工具默认放行', async () => {
     await ensureSamplePermissionConfig()
     const rules = await loadPermissionRules()
-    const readRule = rules.find(r => r.value.toolName === 'Read')
+    const readRule = rules.find(r => r.value.toolName === 'cat')
     expect(readRule?.behavior).toBe('allow')
   })
 })
