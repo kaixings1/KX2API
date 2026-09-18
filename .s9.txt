@@ -1,0 +1,3 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/autoCompactor.ts(77,68): error TS2554: Expected 1-2 arguments, but got 3.

@@ -13,11 +13,12 @@ export class ToolCallCache {
 
   constructor(maxSize = 100 * 1024 * 1024) {
     this.cache = new LRUCache({ maxSize, maxAge: 300000 })
+    // 只读类工具才可缓存（读文件 / 搜索 / 联网检索）。
+    // 同时列出注册名与历史名：实际工具名是 `cat`/`ls`/`find`，
+    // 而 user 配置与旧代码里用的是 `Read`/`Glob`。只列一套会导致缓存恒不命中。
     this.cachedTools = new Set([
-      'Glob',
-      'Grep',
-      'Read',
-      'WebFetch',
+      'cat', 'head', 'tail', 'ls', 'find', 'wc', 'search',
+      'Read', 'Glob', 'Grep', 'ListFiles', 'WebFetch',
     ])
   }
 

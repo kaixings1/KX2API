@@ -79,8 +79,27 @@ export const DEFAULT_ALLOWED_NAMES: Set<string> = new Set<string>([
   'run_command',
   'run_code',
   'search_files',
-  'websearch',
-  'image_gen',
+  'websearch',
+  'image_gen',
+
+  // ── 本项目注册命令名（commandRunners 的 key）──
+  // 引擎实际调度执行的是这些名字；上游模型在被 system prompt 教过之后
+  // 也会直接输出它们。此前白名单只有 Claude 风格名，导致标准写法被判为
+  // 「未知工具」而拒绝。
+  'ls',
+  'cat',
+  'head',
+  'tail',
+  'bash',
+  'exec',
+  'find',
+  'tree',
+  'wc',
+  'mkdir',
+  'cp',
+  'mv',
+  'rm',
+  'search',
 ])
 
 /**

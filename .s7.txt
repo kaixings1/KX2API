@@ -1,0 +1,4 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/main/proxy/tools/streamingToolExecutor.ts(220,15): error TS2304: Cannot find name 'isShellTool'.
+src/main/proxy/tools/streamingToolExecutor.ts(231,13): error TS2304: Cannot find name 'isShellTool'.

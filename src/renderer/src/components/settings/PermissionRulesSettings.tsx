@@ -32,14 +32,20 @@ const BEHAVIORS = [
   { value: 'ask', label: '询问', hint: '每次执行前都向用户确认', icon: HelpCircle, cls: 'text-amber-500 dark:text-amber-400' },
 ] as const
 
-/** 常见规则模板：降低「不知道该写什么」的门槛 */
+/**
+ * 常见规则模板：降低「不知道该写什么」的门槛。
+ *
+ * 注意：模板里的工具名必须是**注册命令名**（cat/ls/find/bash），
+ * 它们才是实际被调度执行的名字。早期模板写的是 Claude 风格名
+ *（Read/Glob/Grep/Bash），用户照抄后规则不会命中任何工具。
+ */
 const TEMPLATES: RuleEntry[] = [
-  { behavior: 'allow', rule: 'Read' },
-  { behavior: 'allow', rule: 'Glob' },
-  { behavior: 'allow', rule: 'Grep' },
-  { behavior: 'ask', rule: 'Bash(rm **)' },
-  { behavior: 'ask', rule: 'Bash(git push **)' },
-  { behavior: 'ask', rule: 'Bash(npm publish **)' },
+  { behavior: 'allow', rule: 'cat' },
+  { behavior: 'allow', rule: 'ls' },
+  { behavior: 'allow', rule: 'find' },
+  { behavior: 'ask', rule: 'bash(rm **)' },
+  { behavior: 'ask', rule: 'bash(git push **)' },
+  { behavior: 'ask', rule: 'bash(npm publish **)' },
 ]
 
 export function PermissionRulesSettings() {

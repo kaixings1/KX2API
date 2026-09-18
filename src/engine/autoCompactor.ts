@@ -29,6 +29,8 @@ export interface CompactOptions {
    * 为空/未传时行为与改动前完全一致。
    */
   priorNotes?: string;
+  /** 吸收自 Hermes Agent 程序化记忆：摘要时注入相关记忆上下文 */
+  memoryContext?: string[]
 }
 
 export interface CompactStrategy {
@@ -67,8 +69,12 @@ export class SummaryStrategy implements CompactStrategy {
     // 有 LLM client 时生成真实摘要，否则回退到占位摘要。
     // priorNotes（本会话此前的要点）只在走 LLM 摘要时有意义 —— 占位摘要
     // 只是截断拼接，注入要点反而会让它更乱。
+    // 同时注入 memoryContext（吸收自 Hermes Agent 程序化记忆）
+    const memoryContext = options.memoryContext?.length
+      ? `\n\n[相关记忆]\n${options.memoryContext.join('\n')}`
+      : ''
     const summary = this._llmClient
-      ? await this.generateSummaryWithLLM(old, options.priorNotes)
+      ? await this.generateSummaryWithLLM(old, options.priorNotes, memoryContext)
       : await this.generateSummaryFallback(old);
 
     return ensureToolResultPairing([
@@ -87,6 +93,8 @@ export class SummaryStrategy implements CompactStrategy {
   private async generateSummaryWithLLM(
     messages: InternalMessage[],
     priorNotes?: string,
+    /** 相关记忆段（已含前后的换行与标题，见调用点）；空串表示无 */
+    memoryContext?: string,
   ): Promise<string> {
     if (!this._llmClient) return this.generateSummaryFallback(messages);
 
@@ -98,10 +106,11 @@ export class SummaryStrategy implements CompactStrategy {
     // 会话记忆（此前几轮压缩沉淀的要点）拼在提示词**前面**：
     // 让摘要器先看到"已确认的事实"，再读本轮消息 —— 它的任务是
     // 「在既有要点基础上补充/修正」，而不是从零推断。
+    const memorySection = memoryContext && memoryContext.trim() ? memoryContext : "";
     const summarizePrompt =
-      priorNotes && priorNotes.trim()
+      (priorNotes && priorNotes.trim()
         ? `${priorNotes.trim()}\n\n${basePrompt}`
-        : basePrompt;
+        : basePrompt) + memorySection;
 
     const contextMsgs: InternalMessage[] = [
       ...messages,

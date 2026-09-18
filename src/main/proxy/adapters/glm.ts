@@ -803,32 +803,32 @@ export class GLMStreamHandler {
         target = dirMatch[1].replace(/[，。、；,.:!?].*$/, '').trim()
       }
       const bashArgs = { command: 'ls -la ' + target }
-      const bashFp = GLMStreamHandler.toolFingerprint('Bash', bashArgs)
+      const bashFp = GLMStreamHandler.toolFingerprint('bash', bashArgs)
       if (GLMStreamHandler.isToolRecentlyInjected(bashFp)) return null
       GLMStreamHandler.markToolInjected(bashFp)
-      console.log(`[INJECT-TOOL] 代理自行生成工具(去重通过): name=Bash args=${JSON.stringify(bashArgs)}`)
-      return { name: 'Bash', arguments: bashArgs }
+      console.log(`[INJECT-TOOL] 代理自行生成工具(去重通过): name=bash args=${JSON.stringify(bashArgs)}`)
+      return { name: 'bash', arguments: bashArgs }
     }
     // 读取文件：动词需在句界后（放宽白名单：分析/打开/检查/找/搜索 也视为读文件意图）
     const readMatch = prompt.match(/(?:^|[\n。；;!?！？，,、\s])(?:读取|查看|读|分析|打开|检查|找|搜索|读取并分析)\s+([^\s，。、；,.:!?]+\.[a-z0-9]+)/)
     if (readMatch) {
       const readArgs = { path: readMatch[1] }
-      const readFp = GLMStreamHandler.toolFingerprint('Read', readArgs)
+      const readFp = GLMStreamHandler.toolFingerprint('cat', readArgs)
       if (GLMStreamHandler.isToolRecentlyInjected(readFp)) return null
       GLMStreamHandler.markToolInjected(readFp)
-      console.log(`[INJECT-TOOL] 代理自行生成工具(去重通过): name=Read args=${JSON.stringify(readArgs)}`)
-      return { name: 'Read', arguments: readArgs }
+      console.log(`[INJECT-TOOL] 代理自行生成工具(去重通过): name=cat args=${JSON.stringify(readArgs)}`)
+      return { name: 'cat', arguments: readArgs }
     }
     // 路径兜底：用户消息里直接含"盘符路径/文件名.后缀"（如 D:\xxx\a.ts、./src/x.js、/tmp/y.py），
-    // 无论动词为何，都注入 Read 读取该文件。覆盖"分析这个文件""看下 a.ts"等未命中动词的场景。
+    // 无论动词为何，都注入 cat 读取该文件。覆盖"分析这个文件""看下 a.ts"等未命中动词的场景。
     const pathMatch = prompt.match(/(?:[A-Za-z]:[\\/]|[.\\/])[^\s，。、；,.:!?|<>"']+\.[a-z0-9]{1,12}/)
     if (pathMatch) {
       const readArgs = { path: pathMatch[0] }
-      const readFp = GLMStreamHandler.toolFingerprint('Read', readArgs)
+      const readFp = GLMStreamHandler.toolFingerprint('cat', readArgs)
       if (GLMStreamHandler.isToolRecentlyInjected(readFp)) return null
       GLMStreamHandler.markToolInjected(readFp)
-      console.log(`[INJECT-TOOL] 代理兜底生成工具(路径命中): name=Read args=${JSON.stringify(readArgs)}`)
-      return { name: 'Read', arguments: readArgs }
+      console.log(`[INJECT-TOOL] 代理兜底生成工具(路径命中): name=cat args=${JSON.stringify(readArgs)}`)
+      return { name: 'cat', arguments: readArgs }
     }
     // 解析"本对话应读取的文件名"：优先用 forwarder 从 request.messages 提取的
     // 字面路径（lastFileName）；若为空，则回退到 GLM 上传文件时按会话缓存的
@@ -837,17 +837,17 @@ export class GLMStreamHandler {
     const cachedFileName =
       this.lastFileName || (glmUploadedFileNames.get('__last__') as string) || ''
     // 意图短语兜底：用户明确表达"分析/读/看这个文件"的意图，且本对话确实带了文件
-    // （cachedFileName 非空），则无条件注入 Read 该文件——不再要求动词后紧跟 xxx.后缀，
+    // （cachedFileName 非空），则无条件注入 cat 该文件——不再要求动词后紧跟 xxx.后缀，
     // 也不再依赖 request.messages 里的字面路径。覆盖 GLM 网页版 "tool_calls":{} 空工具
     // 信号（emptyToolCallsDetected）下"我想读文件但没产出工具"的场景，保证客户端
     // 至少拿到工具而非空 stop。
     if (cachedFileName && /(?:分析|读取|读|打开|查看|检查|看|处理|修改|修复)\s*(?:这|该|上传的|这个)?\s*文件/.test(prompt)) {
       const readArgs = { path: cachedFileName }
-      const readFp = GLMStreamHandler.toolFingerprint('Read', readArgs)
+      const readFp = GLMStreamHandler.toolFingerprint('cat', readArgs)
       if (GLMStreamHandler.isToolRecentlyInjected(readFp)) return null
       GLMStreamHandler.markToolInjected(readFp)
-      console.log(`[INJECT-TOOL] 代理兜底生成工具(意图短语命中 fileName=${cachedFileName}): name=Read args=${JSON.stringify(readArgs)}`)
-      return { name: 'Read', arguments: readArgs }
+      console.log(`[INJECT-TOOL] 代理兜底生成工具(意图短语命中 fileName=${cachedFileName}): name=cat args=${JSON.stringify(readArgs)}`)
+      return { name: 'cat', arguments: readArgs }
     }
     // 文件名兜底：本对话确实带了文件（cachedFileName 非空），且 GLM 已明确"应当调用
     // 工具但未产出"（emptyToolCallsDetected），则强制注入一个 Read 该文件的工具调用，
@@ -855,11 +855,11 @@ export class GLMStreamHandler {
     // 普通闲聊误注入。
     if (cachedFileName && this.emptyToolCallsDetected) {
       const readArgs = { path: cachedFileName }
-      const readFp = GLMStreamHandler.toolFingerprint('Read', readArgs)
+      const readFp = GLMStreamHandler.toolFingerprint('cat', readArgs)
       if (GLMStreamHandler.isToolRecentlyInjected(readFp)) return null
       GLMStreamHandler.markToolInjected(readFp)
-      console.log(`[INJECT-TOOL] 代理兜底生成工具(空工具+文件名命中 fileName=${cachedFileName}): name=Read args=${JSON.stringify(readArgs)}`)
-      return { name: 'Read', arguments: readArgs }
+      console.log(`[INJECT-TOOL] 代理兜底生成工具(空工具+文件名命中 fileName=${cachedFileName}): name=cat args=${JSON.stringify(readArgs)}`)
+      return { name: 'cat', arguments: readArgs }
     }
     return null
   }

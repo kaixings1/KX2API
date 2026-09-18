@@ -1,0 +1,4 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/sandbox/index.ts(210,40): error TS2304: Cannot find name 'DEFAULT_ALLOWED_TOOLS'.
+src/engine/sandbox/index.ts(314,21): error TS2304: Cannot find name 'DEFAULT_ALLOWED_TOOLS'.

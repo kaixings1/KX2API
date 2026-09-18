@@ -15,6 +15,7 @@ import { OutputSanitizer } from '../security/OutputSanitizer.ts'
 import { CommandFilter } from '../security/CommandFilter.ts'
 import { PathGuard } from '../security/PathGuard.ts'
 import { AuditLogger } from '../security/AuditLogger.ts'
+import { isFileTool, isShellTool } from './toolNameCompat.ts'
 
 export interface SecurityEnhancerConfig {
   /** 是否启用输出净化 */
@@ -132,7 +133,9 @@ export function createSecurityEnhancer(
   return {
     async execute(tool, input, opts) {
       // 1. 命令过滤（Bash 工具）
-      if (cfg.filterCommands && tool.name === 'Bash') {
+      // 用 isShellTool 取代 `tool.name === 'Bash'`：实际工具名是注册命令 `bash`，
+      // 原判断永不命中 —— 命令过滤（数据销毁/权限提升等）因此从未生效。
+      if (cfg.filterCommands && isShellTool(tool.name)) {
         const command = typeof input.command === 'string' ? input.command : ''
         if (command) {
           const result = cmdFilter.check(command)
@@ -153,8 +156,8 @@ export function createSecurityEnhancer(
 
       // 2. 路径保护（文件工具）
       if (cfg.guardPaths) {
-        const fileTools = new Set(['Read', 'Edit', 'Write', 'MultiFileEdit', 'Glob', 'Grep'])
-        if (fileTools.has(tool.name)) {
+        // 概念归类取代硬编码名单：cat/ls/find/Read/Glob… 任意写法都能识别
+        if (isFileTool(tool.name)) {
           const filePath = typeof input.path === 'string' ? input.path
             : typeof input.file_path === 'string' ? input.file_path
             : typeof input.file === 'string' ? input.file

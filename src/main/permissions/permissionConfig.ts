@@ -181,14 +181,16 @@ export async function ensureSamplePermissionConfig(): Promise<boolean> {
     const sample: PermissionConfigFile = {
       version: 1,
       rules: [
-        // 只读类操作默认放行
-        { behavior: 'allow', rule: 'Read' },
-        { behavior: 'allow', rule: 'Glob' },
-        { behavior: 'allow', rule: 'Grep' },
+        // 只读类操作默认放行。
+        // 注意：这里用的是**注册命令名**（cat/ls/find），与实际生效的工具名一致；
+        // 早期示例写的是 Claude 风格名（Read/Glob/Grep），照抄不会命中任何工具。
+        { behavior: 'allow', rule: 'cat' },
+        { behavior: 'allow', rule: 'ls' },
+        { behavior: 'allow', rule: 'find' },
         // 危险命令每次询问（不是直接拒绝，用户仍可确认后执行）
-        { behavior: 'ask', rule: 'Bash(rm **)' },
-        { behavior: 'ask', rule: 'Bash(git push **)' },
-        { behavior: 'ask', rule: 'Bash(npm publish **)' },
+        { behavior: 'ask', rule: 'bash(rm **)' },
+        { behavior: 'ask', rule: 'bash(git push **)' },
+        { behavior: 'ask', rule: 'bash(npm publish **)' },
       ],
     }
     await fs.mkdir(path.dirname(configPath), { recursive: true })

@@ -10,6 +10,8 @@
  * - Promise.race 防挂起（30s timeout）
  */
 
+import { isShellTool } from '../../../engine/toolNameCompat.ts'
+
 export interface ToolExecuteContext {
   name: string
   args: string[]
@@ -216,7 +218,7 @@ export class StreamingToolExecutor {
         if (result.error) {
           thisToolErrored = true
           // 只有 Bash 类命令的失败才取消兄弟工具
-          if (tool.name === 'bash' || tool.name === 'Bash') {
+          if (isShellTool(tool.name)) {
             this.hasErrored = true
             this.erroredToolName = this.getToolDescription(tool)
             this.siblingAbortController.abort('sibling_error')
@@ -227,7 +229,7 @@ export class StreamingToolExecutor {
       } catch (e) {
         thisToolErrored = true
         const errorMsg = (e as Error).message
-        if (tool.name === 'bash' || tool.name === 'Bash') {
+        if (isShellTool(tool.name)) {
           this.hasErrored = true
           this.erroredToolName = this.getToolDescription(tool)
           this.siblingAbortController.abort('sibling_error')

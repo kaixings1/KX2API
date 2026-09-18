@@ -13,8 +13,26 @@
  */
 
 import type { ToolExecutor } from "../toolScheduler.ts"
+import { isFileTool, isShellTool } from '../toolNameCompat.ts'
 import { PathGuard } from "../../security/PathGuard.ts"
 import { CommandFilter } from "../../security/CommandFilter.ts"
+
+// ============ 默认放行名单 ============
+
+/**
+ * 沙箱默认放行的工具（**两套写法都列出**）。
+ *
+ * 历史写法（Bash/Read/ListFiles…）必须保留：用户已保存的配置与 hooks 用的是它们；
+ * 注册名（bash/cat/ls…）也必须列出：**实际被调度执行**的是这些。
+ * 只列一套会导致另一套被误拒 —— 与本文件"危险命令拦截因名不符而从未生效"同源。
+ */
+export const DEFAULT_ALLOWED_TOOLS: string[] = [
+  'bash', 'Bash', 'cmd', 'shell',
+  'cat', 'Read', 'head', 'tail',
+  'ls', 'ListFiles', 'dir', 'tree',
+  'find', 'Glob', 'Grep', 'findstr',
+  'cp', 'mv', 'mkdir', 'Write', 'Edit',
+]
 
 // ============ 类型定义 ============
 
@@ -89,7 +107,10 @@ export class CommandAllowlistPolicy implements SandboxPolicy {
     }
 
     // 检查是否匹配危险模式
-    if (toolName === 'Bash' && typeof input.command === 'string') {
+    // 用 isShellTool 取代 `toolName === 'Bash'`：
+    // 实际工具名是注册命令 `bash`（小写），原判断永不命中 ——
+    // 意味着危险命令拦截（rm -rf 等）从未真正生效过。
+    if (isShellTool(toolName) && typeof input.command === 'string') {
       for (const pattern of this.blockedPatterns) {
         if (pattern.test(input.command)) {
           return false
@@ -138,8 +159,8 @@ export class PathGuardPolicy implements SandboxPolicy {
 
   allowCommand(toolName: string, input: Record<string, unknown>): boolean {
     // 只检查文件操作类工具
-    const fileTools = new Set(['Read', 'Write', 'Edit', 'MultiFileEdit', 'Glob', 'Grep'])
-    if (!fileTools.has(toolName)) {
+    // 用概念归类取代硬编码名单：cat/ls/find/Read/ListFiles… 任意写法都能识别
+    if (!isFileTool(toolName)) {
       return true
     }
 
@@ -173,8 +194,8 @@ export class CommandFilterPolicy implements SandboxPolicy {
   }
 
   allowCommand(toolName: string, input: Record<string, unknown>): boolean {
-    // 只检查 Bash 工具
-    if (toolName !== 'Bash') {
+    // 只检查「执行命令」类工具（bash / cmd / shell … 任意写法均可识别）
+    if (!isShellTool(toolName)) {
       return true
     }
 
@@ -203,7 +224,7 @@ export class WindowsRestrictedTokenPolicy implements SandboxPolicy {
   name = 'windows-restricted-token'
   private allowedTools: Set<string>
 
-  constructor(allowedTools: string[] = ['Bash', 'Read', 'Edit', 'Write']) {
+  constructor(allowedTools: string[] = DEFAULT_ALLOWED_TOOLS) {
     this.allowedTools = new Set(allowedTools)
   }
 
@@ -307,7 +328,7 @@ export function createSandboxedExecutor(
 export function getDefaultSandboxPolicy(): SandboxPolicy {
   if (process.platform === 'win32') {
     return new CommandAllowlistPolicy({
-      allowedTools: ['Bash', 'Read', 'Edit', 'Write', 'Glob', 'Grep'],
+      allowedTools: DEFAULT_ALLOWED_TOOLS,
     })
   }
   return new NoOpSandboxPolicy()
@@ -327,7 +348,7 @@ export function createDefaultSandboxConfig(enabled = true): SandboxConfig {
     enabled: true,
     policy: [
       new CommandAllowlistPolicy({
-        allowedTools: ['Bash', 'Read', 'Edit', 'Write', 'Glob', 'Grep'],
+        allowedTools: DEFAULT_ALLOWED_TOOLS,
       }),
       new PathGuardPolicy(),
       new CommandFilterPolicy(),

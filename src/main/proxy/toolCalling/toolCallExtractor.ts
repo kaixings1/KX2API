@@ -32,17 +32,17 @@ function generateId(): string {
 
 /** 根据参数结构推测工具名 */
 function inferToolNameFromArgs(args: Record<string, unknown>): string | null {
-  if (args.command !== undefined || args.cmd !== undefined) return 'Bash';
-  if (args.code !== undefined) return 'CodeInterpreter';
-  if (args.queries !== undefined || args.query !== undefined) return 'WebSearch';
-  if (args.url !== undefined || args.urls !== undefined) return 'WebExtractor';
-  if (args.file_path !== undefined || args.filePath !== undefined) return 'Read';
+  if (args.command !== undefined || args.cmd !== undefined) return 'bash';
+  if (args.code !== undefined) return 'exec';
+  if (args.queries !== undefined || args.query !== undefined) return 'search';
+  if (args.url !== undefined || args.urls !== undefined) return 'search';
+  if (args.file_path !== undefined || args.filePath !== undefined) return 'cat';
   if (args.pattern !== undefined) {
-    if (args.path === undefined || args.path === '' || args.recursive === true) return 'Glob';
-    return 'Grep';
+    if (args.path === undefined || args.path === '' || args.recursive === true) return 'find';
+    return 'find';
   }
-  if (args.directory !== undefined || args.dir !== undefined) return 'ListFiles';
-  if ((args.old_string !== undefined || args.new_string !== undefined) && args.path) return 'StrReplaceEditor';
+  if (args.directory !== undefined || args.dir !== undefined) return 'ls';
+  if ((args.old_string !== undefined || args.new_string !== undefined) && args.path) return 'fix';
   return null;
 }
 
@@ -208,7 +208,7 @@ function makeToolCall(
   let finalArgs: unknown = args;
 
   // Bash 平台映射
-  if (normalizedName === 'Bash' && typeof finalArgs === 'object' && finalArgs !== null) {
+  if (normalizedName === 'bash' && typeof finalArgs === 'object' && finalArgs !== null) {
     const cmd = (finalArgs as Record<string, unknown>).command ?? (finalArgs as Record<string, unknown>).cmd;
     if (cmd !== undefined) {
       finalArgs = { ...(finalArgs as object), command: mapCommandForPlatform(String(cmd)) };
@@ -883,10 +883,20 @@ function makeIntentMatch(
 }
 
 // ─── 规则实现函数 ──────────────────────────────────────────
+/**
+ * 松散的「模型自造名 → 本项目注册命令名」映射。
+ *
+ * 原表映射到 Claude 风格名（Bash/Read/ListFiles/Glob…），那些名字在本项目
+ * 注册表里一个都不存在 —— 归一化后仍然调不通工具。现统一为注册名，
+ * 与 TOOL_NAME_MAPPING（protocols/shared.ts）和 toolNameResolver 同向。
+ */
 const TOOL_NAME_MAP_LOOSE: Record<string, string> = {
-  bash: 'Bash', read: 'Read', write: 'Write', edit: 'Edit',
-  grep: 'Grep', glob: 'Glob', ls: 'ListFiles', list: 'ListFiles',
-  dir: 'ListFiles', search: 'WebSearch', web: 'WebExtractor',
+  bash: 'bash', shell: 'bash', cmd: 'bash',
+  read: 'cat', cat: 'cat', read_file: 'cat',
+  ls: 'ls', dir: 'ls', list: 'ls', list_dir: 'ls', list_directory: 'ls',
+  find: 'find', glob: 'find', grep: 'find', search: 'find',
+  exec: 'exec', run: 'bash',
+  cp: 'cp', mkdir: 'mkdir',
 }
 
 function ruleEnPrefixedIntent(text: string): IntentMatch | null {
@@ -897,7 +907,7 @@ function ruleEnPrefixedIntent(text: string): IntentMatch | null {
   if (!looksLikePath(target)) return null
   const isList = isListTarget(target)
   return makeIntentMatch(
-    isList ? 'ListFiles' : 'Read',
+    isList ? 'ls' : 'cat',
     isList ? { directory: target } : { file_path: target },
     match[0], match.index + match[0].length, true,
   )
@@ -911,7 +921,7 @@ function ruleEnBareIntent(text: string): IntentMatch | null {
   if (!looksLikePath(target)) return null
   const isList = isListTarget(target)
   return makeIntentMatch(
-    isList ? 'ListFiles' : 'Read',
+    isList ? 'ls' : 'cat',
     isList ? { directory: target } : { file_path: target },
     match[0], match.index + match[0].length, true,
   )
@@ -925,7 +935,7 @@ function ruleQuotedPath(text: string): IntentMatch | null {
   if (path.length < 1) return null
   const isList = /^(列出|显示|查看|看看|ls|dir|list)/.test(text.slice(0, 10))
   return makeIntentMatch(
-    isList ? 'ListFiles' : 'Read',
+    isList ? 'ls' : 'cat',
     isList ? { directory: path } : { file_path: path },
     match[0], match.index + match[0].length,
   )
@@ -938,7 +948,7 @@ function ruleAbsPath(text: string): IntentMatch | null {
   const path = match[1].trim()
   const isList = /^(列出|显示|查看|看看)/.test(text)
   return makeIntentMatch(
-    isList ? 'ListFiles' : 'Read',
+    isList ? 'ls' : 'cat',
     isList ? { directory: path } : { file_path: path },
     match[0], match.index + match[0].length,
   )
@@ -950,7 +960,7 @@ function ruleCnListWithPrefix(text: string): IntentMatch | null {
   if (!match) return null
   const target = match[1].replace(/[`'""]/g, '').trim()
   if (target.length < 1) return null
-  return makeIntentMatch('ListFiles', { directory: target }, match[0], match.index + match[0].length)
+  return makeIntentMatch('ls', { directory: target }, match[0], match.index + match[0].length)
 }
 
 function ruleCnReadWithPrefix(text: string): IntentMatch | null {
@@ -959,7 +969,7 @@ function ruleCnReadWithPrefix(text: string): IntentMatch | null {
   if (!match) return null
   const target = match[1].replace(/[`'""]/g, '').trim()
   if (target.length < 1) return null
-  return makeIntentMatch('Read', { file_path: target }, match[0], match.index + match[0].length)
+  return makeIntentMatch('cat', { file_path: target }, match[0], match.index + match[0].length)
 }
 
 function ruleCnRunWithPrefix(text: string): IntentMatch | null {
@@ -968,7 +978,7 @@ function ruleCnRunWithPrefix(text: string): IntentMatch | null {
   if (!match) return null
   const cmd = match[1].trim()
   if (cmd.length < 1) return null
-  return makeIntentMatch('Bash', { command: cmd }, match[0], match.index + match[0].length)
+  return makeIntentMatch('bash', { command: cmd }, match[0], match.index + match[0].length)
 }
 
 function ruleCnList(text: string): IntentMatch | null {
@@ -977,7 +987,7 @@ function ruleCnList(text: string): IntentMatch | null {
   if (!match) return null
   const target = cleanIntentTarget(match[1])
   if (target.length < 1) return null
-  return makeIntentMatch('ListFiles', { directory: target }, match[0], match.index + match[0].length)
+  return makeIntentMatch('ls', { directory: target }, match[0], match.index + match[0].length)
 }
 
 function ruleCnRead(text: string): IntentMatch | null {
@@ -986,7 +996,7 @@ function ruleCnRead(text: string): IntentMatch | null {
   if (!match) return null
   const target = cleanIntentTarget(match[1])
   if (target.length < 1) return null
-  return makeIntentMatch('Read', { file_path: target }, match[0], match.index + match[0].length)
+  return makeIntentMatch('cat', { file_path: target }, match[0], match.index + match[0].length)
 }
 
 function ruleCnRun(text: string): IntentMatch | null {
@@ -995,7 +1005,7 @@ function ruleCnRun(text: string): IntentMatch | null {
   if (!match) return null
   const cmd = match[1].trim()
   if (cmd.length < 1) return null
-  return makeIntentMatch('Bash', { command: cmd }, match[0], match.index + match[0].length)
+  return makeIntentMatch('bash', { command: cmd }, match[0], match.index + match[0].length)
 }
 
 function ruleSurgeTagJson(text: string): IntentMatch | null {
@@ -1041,13 +1051,13 @@ function ruleToolDeclareCn(text: string): IntentMatch | null {
   let name: string
   let args: Record<string, unknown> = {}
   if (/^(列出|显示|查看|ls|dir|list)/.test(actionWord)) {
-    name = 'ListFiles'
+    name = 'ls'
     args = { directory: quotedPath || unquotedTarget || '' }
   } else if (/^(读取|打开|read|cat)/.test(actionWord)) {
-    name = 'Read'
+    name = 'cat'
     args = { file_path: quotedPath || unquotedTarget || '' }
   } else {
-    name = 'Bash'
+    name = 'bash'
     args = { command: (quotedPath || unquotedTarget || '').replace(/^[运行执行\s]+/, '') }
   }
   return makeIntentMatch(name, args, match[0], match.index + match[0].length)
@@ -1063,13 +1073,13 @@ function ruleLooseToolDeclare(text: string): IntentMatch | null {
   const qp = /[`'""]([^`'""]+)[`'""]/.exec(rawAction)
   const target = qp ? qp[1].trim() : rawAction.replace(/^[运行执行\s]+/, '').trim()
   if (/^(列出|显示|ls|dir|list)/.test(rawAction) && target) {
-    return makeIntentMatch('ListFiles', { directory: target }, match[0], match.index + match[0].length)
+    return makeIntentMatch('ls', { directory: target }, match[0], match.index + match[0].length)
   }
   if (/^(读取|查看|read|cat)/.test(rawAction) && target) {
-    return makeIntentMatch('Read', { file_path: target }, match[0], match.index + match[0].length)
+    return makeIntentMatch('cat', { file_path: target }, match[0], match.index + match[0].length)
   }
   if (/^(运行|执行|run)/.test(rawAction) && target) {
-    return makeIntentMatch('Bash', { command: target }, match[0], match.index + match[0].length)
+    return makeIntentMatch('bash', { command: target }, match[0], match.index + match[0].length)
   }
   return null
 }

@@ -327,21 +327,69 @@ export function stableStringify(value: unknown): string {
 }
 
 export const TOOL_NAME_MAPPING: Record<string, string> = {
-  bash: 'Bash', cmd: 'Bash', shell: 'Bash', powershell: 'Bash', batch: 'Bash',
-  read: 'Read', cat: 'Read', write: 'Write', edit: 'Edit', str_replace_editor: 'StrReplaceEditor',
-  glob: 'Glob', find: 'Glob', ls: 'ListFiles', dir: 'ListFiles', listfiles: 'ListFiles', list_dir: 'ListFiles', list_directory: 'ListFiles',
-  read_file: 'Read', read_file_content: 'Read', write_file: 'Write', write_to_file: 'Write', replace_in_file: 'Edit',
-  grep: 'Glob', search_content: 'Grep',
-  web_search: 'WebSearch', fetch_url: 'WebExtractor', web_extractor: 'WebExtractor',
-  code_interpreter: 'CodeInterpreter', execute_code: 'CodeInterpreter',
-  execute_command: 'Bash', run_command: 'Bash',
+  // 方向：模型可能输出的名字 → **本项目注册命令名**（commandRunners 的 key）。
+  //
+  // 为什么是这个方向：原表映射到 Claude Code 风格名（Bash / Read / Write /
+  // ListFiles / Glob …），而这 11 个名字在本项目注册表里**一个都不存在** ——
+  // 于是凡经此归一化的调用，名字必然对不上可执行的工具。
+  //
+  // 与本文件同源的正确实现见 src/engine/toolNameResolver.ts 的 TOOL_ALIASES
+  //（list_directory → ls、local_read → cat），方向一致。
+  //
+  // 说明：本项目**没有**「写文件 / 改文件 / 联网检索」这类注册命令，
+  // 因此原表中对应的条目（write_file / replace_in_file / web_search …）已删除 ——
+  // 映射到一个语义相近但错误的命令（如 write → cp）比不映射更危险，
+  // 会把"写文件"执行成"复制文件"。
+  bash: 'bash',
+  cmd: 'bash',
+  shell: 'bash',
+  powershell: 'bash',
+  batch: 'bash',
+  execute_command: 'bash',
+  run_command: 'bash',
+  ls: 'ls',
+  dir: 'ls',
+  listfiles: 'ls',
+  list_dir: 'ls',
+  list_directory: 'ls',
+  list_files: 'ls',
+  ls_dir: 'ls',
+  cat: 'cat',
+  read: 'cat',
+  read_file: 'cat',
+  read_file_content: 'cat',
+  local_file: 'cat',
+  local_cat: 'cat',
+  local_read: 'cat',
+  find: 'find',
+  glob: 'find',
+  search_files: 'find',
+  find_file: 'find',
+  find_files: 'find',
+  local_find: 'find',
+  local_search: 'find',
+  // 内容检索：本项目没有独立的 grep / findstr 注册命令，统一走 find
+  grep: 'find',
+  search_content: 'find',
+  findstr_search: 'find',
+  code_interpreter: 'exec',
+  execute_code: 'exec',
 }
 
 export function normalizeToolName(name: string): string {
   const colonBase = name.includes(':') ? name.split(':').pop() || name : name
   const dotBase = colonBase.includes('.') ? colonBase.split('.')[0] : colonBase
   const lower = dotBase.toLowerCase()
-  return TOOL_NAME_MAPPING[lower] || colonBase.charAt(0).toUpperCase() + colonBase.slice(1)
+  // 查不到映射时**原样保留**：
+  //
+  // 原实现是 `colonBase.charAt(0).toUpperCase() + colonBase.slice(1)`，
+  // 会把 `ls` 变成 `Ls` —— 凭空造出一个既不在映射表、也不在注册表里的名字，
+  // 反而让下游更不可能匹配成功。
+  //
+  // 归一化的方向已明确为「本项目注册命令名」，未命中就说明模型用的可能是
+  // 更自由的别名（如 local_dir_list），应交由 toolNameResolver.resolveToolName
+  // 用完整的 TOOL_ALIASES（54 条）+ 模糊匹配处理，而不是在这里做无依据的变形。
+  return TOOL_NAME_MAPPING[lower] || colonBase
 }
 
 export function readBalancedJson(
