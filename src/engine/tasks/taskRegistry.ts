@@ -1,0 +1,145 @@
+/**
+ * engine/tasks/taskRegistry.ts — 任务注册表
+ *
+ * 吸收自 D:\src\tasks.ts 的任务管理能力。
+ */
+
+import type { TaskHandle, TaskProgress, TaskStateBase, TaskType, TaskStatus } from './types.js'
+
+/** 任务条目 */
+interface TaskEntry {
+  state: TaskStateBase
+  cancelFn?: () => void
+  listeners: Set<(progress: TaskProgress) => void>
+}
+
+class TaskRegistry {
+  private tasks = new Map<string, TaskEntry>()
+
+  /** 注册新任务 */
+  register(type: TaskType, metadata: Record<string, unknown> = {}): TaskHandle {
+    const state: TaskStateBase = {
+      id: `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      type,
+      status: 'pending',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      metadata,
+    }
+
+    const entry: TaskEntry = {
+      state,
+      listeners: new Set(),
+    }
+
+    this.tasks.set(state.id, entry)
+
+    return {
+      id: state.id,
+      cancel: () => {
+        entry.state.status = 'cancelled'
+        entry.state.updatedAt = Date.now()
+        entry.cancelFn?.()
+      },
+      onProgress: (cb: (progress: TaskProgress) => void) => {
+        entry.listeners.add(cb)
+        return () => entry.listeners.delete(cb)
+      },
+    }
+  }
+
+  /** 更新任务状态 */
+  updateStatus(id: string, status: TaskStatus): boolean {
+    const entry = this.tasks.get(id)
+    if (!entry) return false
+    entry.state.status = status
+    entry.state.updatedAt = Date.now()
+    return true
+  }
+
+  /** 更新任务元数据 */
+  updateMetadata(id: string, metadata: Partial<Record<string, unknown>>): boolean {
+    const entry = this.tasks.get(id)
+    if (!entry) return false
+    entry.state.metadata = { ...entry.state.metadata, ...metadata }
+    entry.state.updatedAt = Date.now()
+    return true
+  }
+
+  /** 上报进度 */
+  reportProgress(id: string, progress: TaskProgress): boolean {
+    const entry = this.tasks.get(id)
+    if (!entry) return false
+    entry.state.updatedAt = Date.now()
+    for (const cb of entry.listeners) {
+      try { cb(progress) } catch { /* 忽略监听器错误 */ }
+    }
+    return true
+  }
+
+  /** 获取任务状态 */
+  getState(id: string): TaskStateBase | undefined {
+    return this.tasks.get(id)?.state
+  }
+
+  /** 获取所有任务 */
+  getAllTasks(): TaskStateBase[] {
+    return Array.from(this.tasks.values()).map(e => ({ ...e.state }))
+  }
+
+  /** 按类型获取任务 */
+  getTasksByType(type: TaskType): TaskStateBase[] {
+    return this.getAllTasks().filter(t => t.type === type)
+  }
+
+  /** 按状态获取任务 */
+  getTasksByStatus(status: TaskStatus): TaskStateBase[] {
+    return this.getAllTasks().filter(t => t.status === status)
+  }
+
+  /** 获取终止态任务 */
+  getTerminalTasks(): TaskStateBase[] {
+    return this.getAllTasks().filter(t => ['completed', 'failed', 'cancelled'].includes(t.status))
+  }
+
+  /** 清理已终止任务 */
+  cleanupTerminal(olderThanMs = 0): TaskStateBase[] {
+    const now = Date.now()
+    const cleaned: TaskStateBase[] = []
+    for (const [id, entry] of this.tasks) {
+      if (
+        ['completed', 'failed', 'cancelled'].includes(entry.state.status) &&
+        entry.state.updatedAt < now - olderThanMs
+      ) {
+        cleaned.push(entry.state)
+        this.tasks.delete(id)
+      }
+    }
+    return cleaned
+  }
+
+  /** 注册取消函数 */
+  setCancelFn(id: string, fn: () => void): boolean {
+    const entry = this.tasks.get(id)
+    if (!entry) return false
+    entry.cancelFn = fn
+    return true
+  }
+
+  /** 获取任务数量 */
+  get size(): number {
+    return this.tasks.size
+  }
+}
+
+/** 全局任务注册表实例 */
+export const taskRegistry = new TaskRegistry()
+
+/** 便捷导出 */
+export function getAllTasks(): TaskStateBase[] {
+  return taskRegistry.getAllTasks()
+}
+
+export function getTaskByType(type: TaskType): TaskStateBase[] {
+  return taskRegistry.getTasksByType(type)
+}

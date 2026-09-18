@@ -672,6 +672,17 @@ export * from "./errors/classifier.ts";
 export * from "./errors/retryHandler.ts";
 export * from "./errors/recovery.ts";
 export * from "./coders/index.ts";
+export * from "./rules/index.ts";
+export * from "./cost/index.ts";
+export * from "./skills/index.ts";
+export * from "./tasks/index.ts";
+export * from "./query/index.ts";
+export * from "./onboarding/index.ts";
+export * from "./memory/index.ts";
+export * from "./featureFlag/index.ts";
+export * from "./history/index.ts";
+export * from "./utils/index.ts";
+export * from "./bootstrap/index.ts";
 
 // ──────────────────────────────────────────────────────────
 // 空实现：底层模块尚未拆分时的占位函数（待 D:\src 或对应模块提供实现后替换）

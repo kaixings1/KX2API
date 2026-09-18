@@ -17,6 +17,10 @@ export interface Tool {
   parameters: Record<string, unknown>;
   timeout?: number;
   canRunInParallel?: boolean;
+  /** 工具标签（用于预设过滤、权限规则匹配） */
+  tags?: string[];
+  /** 工具别名（用于命令查找） */
+  alias?: string[];
   validate(params: unknown): { valid: boolean; errors?: string[] };
   execute(params: unknown, context?: { timeout?: number; onProgress?: (p: unknown) => void }): Promise<{ content: unknown }>;
 }

@@ -23,7 +23,7 @@ export interface Command {
   execute: (args: string[]) => Promise<CommandResult>
 }
 
-class CommandRegistry {
+export class CommandRegistry {
   private commands = new Map<string, Command>()
 
   register(cmd: Command) {

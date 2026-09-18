@@ -710,6 +710,12 @@ export class MessageLoop {
 
       this.deps.conversation.addToolResults(results);
 
+      // 记录本轮实际执行的工具名，供 autoContinue.readSearch 跨轮检测
+      // 「模型 read/search 后提前终止」并自动续写。此前 lastToolCalls 从未被填充，
+      // 导致该分支恒不触发（死功能）；现在填实后，read/search 之后的静默终止
+      // 才会被正确识别并续写。
+      this.lastToolCalls = validCalls.map((tc) => ({ name: tc.name }));
+
       if (this.gitContext) {
         const editedFiles = this.gitContext.extractFiles(
           results.map(r => ({ toolUseId: r.toolUseId, success: r.success, output: r.output })),

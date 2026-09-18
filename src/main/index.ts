@@ -23,8 +23,18 @@ import { planScheduler } from './plans/planScheduler'
 import { taskScheduler } from './tasks/taskScheduler'
 import { proxyServer } from './proxy/server'
 import { proxyStatusManager } from './proxy/status'
-// 静态导入：cleanup() 是同步的（退出路径无法 await），必须在模块加载期就可用
+// 工具结果落盘目录与工具会话状态：静态导入保证退出路径可用
 import { toolSessionStore, setToolSessionStorePath } from './tools/toolSessionStore.ts'
+// 工具分组/文件化存储：初始化时挂载全局管理器
+import { ToolFileStoreManager } from './tools/toolFileStoreManager.ts'
+// 审计日志：安全事件追踪
+import { AuditLogger } from './security/AuditLogger.ts'
+// 输入校验：命令/工具参数安全过滤
+import { InputValidator } from './security/InputValidator.ts'
+// 命令注册表：路由 /command 请求到具体实现
+// ⚠️ 注意路径：真实的命令注册表在 src/engine/commands/registry.ts（与 src/main 同级），
+// 故用 '../engine/...'；写成 './engine/...' 会指向不存在的 src/main/engine/。
+import { CommandRegistry } from '../engine/commands/registry.ts'
 
 // Prevent uncaught exceptions from crashing the app
 process.on('uncaughtException', (error) => {
