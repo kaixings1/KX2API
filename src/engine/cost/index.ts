@@ -33,3 +33,9 @@ export {
   hasUnknownModelCost,
   getCostCounter,
 } from './costTracker.js'
+
+export {
+  type ModelPricing,
+  MODEL_PRICING,
+  calculateCost,
+} from './pricing.js'

@@ -1,0 +1,34 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/messageLoop.ts(214,57): error TS1002: Unterminated string literal.
+src/engine/messageLoop.ts(215,5): error TS1005: ',' expected.
+src/engine/messageLoop.ts(216,3): error TS1005: ',' expected.
+src/engine/messageLoop.ts(237,51): error TS1002: Unterminated string literal.
+src/engine/messageLoop.ts(238,5): error TS1005: ',' expected.
+src/engine/messageLoop.ts(239,3): error TS1005: ',' expected.
+src/engine/messageLoop.ts(382,84): error TS1002: Unterminated string literal.
+src/engine/messageLoop.ts(383,9): error TS1005: ',' expected.
+src/engine/messageLoop.ts(383,14): error TS1005: ':' expected.
+src/engine/messageLoop.ts(385,7): error TS1005: ',' expected.
+src/engine/messageLoop.ts(385,79): error TS1005: ')' expected.
+src/engine/messageLoop.ts(394,56): error TS1002: Unterminated string literal.
+src/engine/messageLoop.ts(395,15): error TS1005: ',' expected.
+src/engine/messageLoop.ts(396,15): error TS1005: ',' expected.
+src/engine/messageLoop.ts(397,15): error TS1005: ',' expected.
+src/engine/messageLoop.ts(432,3): error TS1128: Declaration or statement expected.
+src/engine/messageLoop.ts(470,90): error TS1002: Unterminated string literal.
+src/engine/messageLoop.ts(472,9): error TS1109: Expression expected.
+src/engine/messageLoop.ts(549,50): error TS1002: Unterminated string literal.
+src/engine/messageLoop.ts(550,9): error TS1005: ',' expected.
+src/engine/messageLoop.ts(551,9): error TS1005: ',' expected.
+src/engine/messageLoop.ts(552,7): error TS1005: ',' expected.
+src/engine/messageLoop.ts(620,46): error TS1002: Unterminated string literal.
+src/engine/messageLoop.ts(621,11): error TS1005: ',' expected.
+src/engine/messageLoop.ts(642,106): error TS1002: Unterminated string literal.
+src/engine/messageLoop.ts(643,9): error TS1005: '}' expected.
+src/engine/messageLoop.ts(645,79): error TS1002: Unterminated string literal.
+src/engine/messageLoop.ts(646,30): error TS1005: ')' expected.
+src/engine/messageLoop.ts(703,46): error TS1002: Unterminated string literal.
+src/engine/messageLoop.ts(704,9): error TS1005: ',' expected.
+src/engine/messageLoop.ts(707,30): error TS1005: ')' expected.
+src/engine/messageLoop.ts(810,35): error TS1161: Unterminated regular expression literal.

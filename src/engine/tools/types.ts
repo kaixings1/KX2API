@@ -51,6 +51,21 @@ export function getEmptyToolPermissionContext(): ToolPermissionContext {
   }
 }
 
+/** 工具运行时接口（引擎调度层使用） */
+export interface Tool {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  timeout?: number;
+  canRunInParallel?: boolean;
+  /** 工具标签（用于预设过滤、权限规则匹配） */
+  tags?: string[];
+  /** 工具别名（用于命令查找） */
+  alias?: string[];
+  validate(params: unknown): { valid: boolean; errors?: string[] };
+  execute(params: unknown, context?: { timeout?: number; onProgress?: (p: unknown) => void }): Promise<{ content: unknown }>;
+}
+
 /** 工具定义（用于构建 Tool 对象的原始定义） */
 export interface ToolDef {
   name: string
@@ -66,6 +81,10 @@ export interface ToolResult {
   success: boolean
   output?: unknown
   error?: string
+  /** 工具调用 ID（引擎层使用） */
+  toolUseId?: string
+  /** 附加元数据 */
+  metadata?: Record<string, unknown>
 }
 
 /** 工具执行选项 */

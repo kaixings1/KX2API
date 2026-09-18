@@ -1,0 +1,35 @@
+file:///D:/KX2API/node_modules/@vitest/runner/dist/chunk-artifact.js:1631
+		throw new Error(`Vitest failed to find ${message}. One of the following is possible:` + "\n- \"vitest\" is imported directly without running \"vitest\" command" + "\n- \"vitest\" is imported inside \"globalSetup\" (to fix this, use \"setupFiles\" instead, because \"globalSetup\" runs in a different context)" + "\n- \"vitest\" is imported inside Vite / Vitest config file" + "\n- Otherwise, it might be a Vitest bug. Please report it to https://github.com/vitest-dev/vitest/issues\n");
+		      ^
+
+Error: Vitest failed to find the runner. One of the following is possible:
+- "vitest" is imported directly without running "vitest" command
+- "vitest" is imported inside "globalSetup" (to fix this, use "setupFiles" instead, because "globalSetup" runs in a different context)
+- "vitest" is imported inside Vite / Vitest config file
+- Otherwise, it might be a Vitest bug. Please report it to https://github.com/vitest-dev/vitest/issues
+
+    at assert (file:///D:/KX2API/node_modules/@vitest/runner/dist/chunk-artifact.js:1631:9)
+    at getRunner (file:///D:/KX2API/node_modules/@vitest/runner/dist/chunk-artifact.js:1639:2)
+    at getDefaultHookTimeout (file:///D:/KX2API/node_modules/@vitest/runner/dist/chunk-artifact.js:634:9)
+    at beforeEach (file:///D:/KX2API/node_modules/@vitest/runner/dist/chunk-artifact.js:717:35)
+    at <anonymous> (D:\KX2API\tests\engine\legacy\broken\coordinator.test.ts:33:1)
+    at ModuleJob.run (node:internal/modules/esm/module_job:437:25)
+    at async node:internal/modules/esm/loader:639:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.15.0
+✖ tests\engine\legacy\broken\coordinator.test.ts (557.6534ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 567.8499
+
+✖ failing tests:
+
+test at tests\engine\legacy\broken\coordinator.test.ts:1:1
+✖ tests\engine\legacy\broken\coordinator.test.ts (557.6534ms)
+  'test failed'

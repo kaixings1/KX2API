@@ -106,7 +106,10 @@ async function testEngineConfig() {
 
   assert(config.provider === 'openai', `Default provider is openai (got ${config.provider})`)
   assert(config.model === 'gpt-4o', `Default model is gpt-4o (got ${config.model})`)
-  assert(typeof config.apiKey === 'string', 'apiKey is string')
+  // 注意：getConfig() 有意**不暴露 apiKey**（引擎配置不应外泄密钥），
+  // 故这里改为校验它确实不在返回结构里 —— 防止将来有人把密钥又塞回来。
+  assert(!('apiKey' in config), 'getConfig() 不暴露 apiKey（安全性约束）')
+  assert(typeof config.systemPrompt === 'string', 'systemPrompt is string')
 
   engine.updateConfig({ model: 'gpt-3.5-turbo' })
   assert(engine.getConfig().model === 'gpt-3.5-turbo', 'updateConfig works')
@@ -122,7 +125,8 @@ async function testHistory() {
   engine.clearHistory()
 
   const history = engine.getHistory()
-  assert(Array.isArray(history.messages), 'getHistory returns messages array')
+  // getHistory() 现直接返回消息数组（不再包一层 { messages }）
+  assert(Array.isArray(history), 'getHistory returns messages array')
 }
 
 async function testImporter() {

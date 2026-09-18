@@ -92,7 +92,8 @@ export class GitContextInjector {
 
   /** 提取文件路径列表 */
   extractFiles(
-    results: Array<{ toolUseId: string; success: boolean; output?: unknown }>,
+    // toolUseId 允许缺省（与 ToolResult 声明一致）：本方法只读 output
+    results: Array<{ toolUseId?: string; success: boolean; output?: unknown }>,
   ): string[] {
     const files: string[] = []
     for (const r of results) {

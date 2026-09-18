@@ -1,0 +1,35 @@
+npm notice run kx2code@1.0.0 test:unit
+npm notice run vitest run
+[33m(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.ts:28:26). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.[39m
+
+ RUN  v4.1.11 D:/KX2API
+
+ ❯ src/__tests__/engine/task-decomposer-executor.test.ts (13 tests | 1 failed) 96ms
+     × 未知任务应降级为单任务 14ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/engine/task-decomposer-executor.test.ts > TaskDecomposer > 未知任务应降级为单任务
+AssertionError: expected 'merge' to be 'single' // Object.is equality
+
+Expected: "single"
+Received: "merge"
+
+ ❯ src/__tests__/engine/task-decomposer-executor.test.ts:133:32
+    131|
+    132|     expect(plan.subtasks.length).toBe(1)
+    133|     expect(plan.mergeStrategy).toBe("single")
+       |                                ^
+    134|   })
+    135|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 69 passed (70)
+      Tests  1 failed | 1207 passed (1208)
+   Start at  13:37:19
+   Duration  6.48s (transform 15.54s, setup 0ms, import 19.51s, tests 12.50s, environment 18ms)
+

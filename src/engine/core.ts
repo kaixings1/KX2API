@@ -8,7 +8,8 @@
  */
 
 import { QueryEngine, type EngineOptions } from './index.ts'
-import { commandRegistry, type CommandResult } from './commands/registry.ts'
+import { commandRegistry } from './commands/registry.ts'
+import type { CommandResult } from './commands/types.js'
 // CLI（cli.ts）需要直接访问命令注册表，作为 core 的扩展导出透出。
 export { commandRegistry } from './commands/registry.ts'
 import { toolCollection } from '../main/proxy/tools/toolCollection.ts'

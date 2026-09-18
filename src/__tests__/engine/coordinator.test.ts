@@ -7,8 +7,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import * as fs from "node:fs"
 import * as path from "node:path"
-import { Orchestrator } from "../agent/coordinator/orchestrator.ts"
-import type { Objective } from "../agent/coordinator/types.ts"
+import { Orchestrator } from "../../engine/agent/coordinator/orchestrator.ts"
+import type { Objective } from "../../engine/agent/coordinator/types.ts"
 
 const TEST_PLANS_DIR = path.join(process.cwd(), ".kx2code", "plans", "__test__")
 
@@ -26,7 +26,7 @@ const PLAN_RESPONSE = JSON.stringify({
 const APPROVED_RESPONSE = "APPROVED"
 
 // 直接 override Planner.prototype.callLLM（跳过 execSync）
-import { Planner } from "../agent/coordinator/planner.ts"
+import { Planner } from "../../engine/agent/coordinator/planner.ts"
 
 const originalCallLLM = Planner.prototype.callLLM
 

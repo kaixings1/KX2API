@@ -1,0 +1,90 @@
+Tool Call Test — 10 commands
+
+
+--- /pwd  ---
+  OK: pwd 执行成功
+  Output: D:\KX2API
+
+--- /ls  ---
+  OK: ls 执行成功
+  Output: [DIR] D:\KX2API  (25 目录 / 59 文件)
+  [DIR]  .doge/
+  [DIR]  .fireclaw/
+  [DIR]  .git/
+  [DIR]  .github/
+  [DIR]  .kx2code/
+  [DIR]  .pytest_cache/
+  [DIR]  .test-home/
+  [DIR]  build/
+  [DIR]  capture/
+
+
+--- /dir  ---
+  OK: dir 执行成功
+  Output: [DIR] D:\KX2API  (25 目录 / 59 文件)
+  <DIR>  .doge/
+  <DIR>  .fireclaw/
+  <DIR>  .git/
+  <DIR>  .github/
+  <DIR>  .kx2code/
+  <DIR>  .pytest_cache/
+  <DIR>  .test-home/
+  <DIR>  build/
+  <DIR>  capture/
+
+
+--- /date  ---
+  OK: date 执行成功
+  Output: 2026/9/18 13:31:51
+
+--- /grep TODO src/engine ---
+  OK: grep 执行成功
+  Output: Command failed: findstr /s /n "TODO" "src/engine"
+
+--- /find package.json src ---
+  OK: find 执行成功
+  Output: Command failed: dir /s /b "src" | findstr /i "package.json"
+
+--- /findstr TODO src/engine ---
+  OK: findstr 执行成功
+  Output: src\engine\autoFixLoop.ts:127:  /\/\/\s*TODO[:\s]/i,
+src\engine\bootstrap\setup.ts:18:  // TODO: 集成到引擎生命周期
+src\engine\commands\availability.ts:23:  // 版本检查（TODO: 集成版本系统）
+src\engine\commands\availabili
+
+--- /where node ---
+  OK: where 执行成功
+  Output: C:\Program Files\nodejs\node.exe
+
+--- /python print("hello") ---
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'hello' is not defined. Did you mean: 'help'?
+  OK: python 执行成功
+  Output: Command failed: python -c "print("hello")"
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'hello' is not defined. Did you mean: 'help'?
+
+--- /python3 print("hello") ---
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'hello' is not defined. Did you mean: 'help'?
+  OK: python3 执行成功
+  Output: Command failed: python3 -c "print("hello")"
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+NameError: name 'hello' is not defined. Did you mean: 'help'?
+
+========================================
+Passed: 10  Failed: 0  Total: 10
+All tools executed successfully!
+✔ tests\engine\legacy\broken\tools.test.ts (1425.1419ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1435.3012

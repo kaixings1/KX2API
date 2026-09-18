@@ -7,21 +7,10 @@
  */
 
 import { runInit } from './init.ts'
+import type { Command, CommandResult } from './types.js'
 
-export interface CommandResult {
-  success: boolean
-  output?: string
-  error?: string
-  needsAgent?: boolean
-}
-
-export interface Command {
-  name: string
-  description: string
-  /** 工具分组，留空则属于 "default" 组 */
-  group?: string
-  execute: (args: string[]) => Promise<CommandResult>
-}
+// Re-export for backward compatibility (other modules import Command from registry.ts)
+export type { Command, CommandResult } from './types.js'
 
 export class CommandRegistry {
   private commands = new Map<string, Command>()

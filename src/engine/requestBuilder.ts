@@ -11,29 +11,13 @@ import {
   enforceToolResultBudget,
   type ContentReplacementState,
 } from "./toolResultStore.ts";
+import { HarnessRouter, type HarnessAdapter, type HarnessConfig } from "./harnessAdapter.ts";
+export type { HarnessConfig } from "./harnessAdapter.ts";
 
 export interface ToolDefinition {
   name: string;
   description: string;
   input_schema: Record<string, unknown>;
-}
-
-/**
- * Harness 模型适配配置（吸收自 open-interpreter 的 harness 概念）。
- *
- * 用于描述「当前模型需要何种请求格式适配」。此前 `MessageLoopDeps.harness`
- * 与 `EngineOptions.harness` 都标注为该类型，但**该类型从未定义** ——
- * 因两处都是类型位置，编译后被擦除，所以一直没暴露（也让这两处标注形同虚设）。
- */
-export interface HarnessConfig {
-  /** 适配器标识；缺省用 provider 默认行为 */
-  adapter?: string
-  /** 是否需要把工具定义塞进 system prompt 而非 tools 字段 */
-  inlineTools?: boolean
-  /** 是否要求模型以特定格式输出工具调用（如 XML） */
-  toolCallFormat?: 'json' | 'xml' | 'bracket'
-  /** 其他透传给适配器的参数 */
-  options?: Record<string, unknown>
 }
 
 export interface RequestParams {
@@ -98,6 +82,22 @@ export interface ModelConfig {
 
 export class RequestBuilder {
   private normalizer = new MessageNormalizer();
+  /** Harness 路由器（吸收自 open-interpreter harness 系统） */
+  private harnessRouter = new HarnessRouter();
+
+  /**
+   * 注入自定义 Harness 适配器（供插件/技能扩展 provider 格式转换）。
+   */
+  registerHarnessAdapter(adapter: HarnessAdapter): void {
+    this.harnessRouter.register(adapter)
+  }
+
+  /**
+   * 列出所有已注册的 Harness provider。
+   */
+  listHarnessProviders(): string[] {
+    return this.harnessRouter.listProviders()
+  }
   /**
    * 工具结果替换决策状态（跨轮次复用同一个实例）。
    *
@@ -197,24 +197,35 @@ export class RequestBuilder {
       stream: params.stream ?? true,
     };
 
+    // 构建基础请求
+    let request: APIRequest
     if (provider === "anthropic") {
-      return {
+      request = {
         provider,
         system: systemPrompt,
         messages,
         tools: params.tools,
         ...modelParams,
       };
+    } else {
+      // 除 Anthropic 外，所有 provider 一律按 OpenAI 兼容格式发送。
+      // 本项目接入的第三方网关（含 Gemini/Vertex 的兼容端点）均提供
+      // OpenAI 兼容接口，无需为各家单独适配工具 schema。
+      request = {
+        provider,
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        tools: this.convertToolsForOpenAI(params.tools),
+        ...modelParams,
+      };
     }
-    // 除 Anthropic 外，所有 provider 一律按 OpenAI 兼容格式发送。
-    // 本项目接入的第三方网关（含 Gemini/Vertex 的兼容端点）均提供
-    // OpenAI 兼容接口，无需为各家单独适配工具 schema。
-    return {
-      provider,
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
-      tools: this.convertToolsForOpenAI(params.tools),
-      ...modelParams,
-    };
+
+    // Harness 适配：通过 provider-specific adapter 转换请求格式（吸收自 open-interpreter harness）
+    if (params.harness) {
+      const adapter = this.harnessRouter.getAdapter(params.harness)
+      request = adapter.adaptRequest(request)
+    }
+
+    return request
   }
 
   private convertToolsForOpenAI(tools: ToolDefinition[]): unknown {

@@ -681,6 +681,10 @@ export class MessageLoop {
       engineLog('TOOL_RESULTS', JSON.stringify(results, null, 2).slice(0, 10000));
 
       for (const r of results) {
+        // toolUseId 在 ToolResult 上是可选的（工具自身实现不知道调用 ID，
+        // 由调度器补上）。事件契约要求它是 string —— 缺失说明这条结果无法
+        // 归因到某次调用，发出去只会让前端按空值建出无主条目，故跳过。
+        if (typeof r.toolUseId !== 'string') continue
         this.emit({
           type: 'post_tool_use',
           toolUseId: r.toolUseId,

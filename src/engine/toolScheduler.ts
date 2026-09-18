@@ -9,29 +9,10 @@ import { needsRepair, repairArgsBySchema } from "./tool-harness/jsonSchemaRepair
 import { formatToolError, formatValidationError, issuesFromSimpleErrors } from "./errors/toolErrorFormat.ts";
 import { evaluatePermission, explainRule, type PermissionRule } from "./permissions/permissionRules.ts";
 import type { HookManager } from "./hooks/hookManager.ts";
+import type { Tool, ToolResult } from "./tools/types.ts";
 
-// [LOCAL] 本地定义工具类型，适配 D:\doge-code\src\ 架构
-export interface Tool {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>;
-  timeout?: number;
-  canRunInParallel?: boolean;
-  /** 工具标签（用于预设过滤、权限规则匹配） */
-  tags?: string[];
-  /** 工具别名（用于命令查找） */
-  alias?: string[];
-  validate(params: unknown): { valid: boolean; errors?: string[] };
-  execute(params: unknown, context?: { timeout?: number; onProgress?: (p: unknown) => void }): Promise<{ content: unknown }>;
-}
-
-export interface ToolResult {
-  toolUseId: string;
-  success: boolean;
-  output?: unknown;
-  error?: string;
-  metadata?: Record<string, unknown>;
-}
+// Re-export for backward compatibility (other modules import Tool/ToolResult from here)
+export type { Tool, ToolResult } from "./tools/types.ts"
 
 export interface PermissionManager {
   check(tool: Tool, input: Record<string, unknown>): Promise<boolean>;

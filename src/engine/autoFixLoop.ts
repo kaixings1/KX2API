@@ -436,7 +436,12 @@ export class AutoFixLoop {
    * 返回注入对话的消息列表（user role），为空则无需修复。
    */
   maybeRun(
-    results: Array<{ toolUseId: string; success: boolean; output?: unknown; error?: string }>,
+    /**
+     * 工具结果。toolUseId 允许缺省 —— 与 ToolResult 的声明保持一致
+     * （工具自身实现不知道调用 ID，由调度器补上）；本方法只读取 output，
+     * 不依赖该字段。
+     */
+    results: Array<{ toolUseId?: string; success: boolean; output?: unknown; error?: string }>,
   ): Array<{ role: 'user'; content: string }> {
     if (!this.config.enabled) return []
     if (this.currentIteration >= this.config.maxIterations) return []
@@ -498,7 +503,8 @@ export class AutoFixLoop {
 
   /** 从所有工具输出中提取被编辑的文件路径（供 cleanupPhase 使用） */
   public extractEditedFiles(
-    results: Array<{ toolUseId: string; success: boolean; output?: unknown; error?: string }>,
+    // toolUseId 允许缺省（与 ToolResult 声明一致）：本方法只读 output
+    results: Array<{ toolUseId?: string; success: boolean; output?: unknown; error?: string }>,
   ): string[] {
     const files: string[] = []
     for (const r of results) {

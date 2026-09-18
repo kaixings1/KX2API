@@ -673,10 +673,27 @@ export * from "./errors/retryHandler.ts";
 export * from "./errors/recovery.ts";
 export * from "./coders/index.ts";
 export * from "./rules/index.ts";
+export * from "./context/index.ts";
+export * from "./commands/index.ts";
+export * from "./tools/index.ts";
 export * from "./cost/index.ts";
 export * from "./skills/index.ts";
 export * from "./tasks/index.ts";
 export * from "./query/index.ts";
+export {
+  TeamRunner,
+  type TeamRunnerOptions,
+  type TeamRunnerEvent,
+  type TeamRunnerResult,
+  createTeamRunner,
+} from "./orchestrator/teamRunner.ts";
+export {
+  UnifiedScheduler,
+  type SchedulerMode,
+  type SchedulerOptions,
+  type SchedulerEvent,
+  createUnifiedScheduler,
+} from "./unifiedScheduler.ts";
 export * from "./onboarding/index.ts";
 export * from "./memory/index.ts";
 export * from "./featureFlag/index.ts";

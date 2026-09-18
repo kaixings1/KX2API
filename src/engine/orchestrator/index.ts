@@ -10,6 +10,13 @@ export {
   getAllRoles,
   getRoleDisplayName,
 } from './agentRole.ts'
+export {
+  TeamRunner,
+  type TeamRunnerOptions,
+  type TeamRunnerEvent,
+  type TeamRunnerResult,
+  createTeamRunner,
+} from './teamRunner.ts'
 export type {
   AgentRole,
   AgentMessage,

@@ -1,0 +1,84 @@
+KX2Code Engine Test Suite
+========================================
+
+[Init] Creating engine...
+  ✓ Engine created
+
+--- Command Registry ---
+  ✓ Total commands >= 200 (got 264)
+  ✓ Core command /help registered
+  ✓ /help has execute
+  ✓ Core command /ls registered
+  ✓ /ls has execute
+  ✓ Core command /cat registered
+  ✓ /cat has execute
+  ✓ Core command /pwd registered
+  ✓ /pwd has execute
+  ✓ Core command /whoami registered
+  ✓ /whoami has execute
+  ✓ Core command /date registered
+  ✓ /date has execute
+  ✓ Core command /git-status registered
+  ✓ /git-status has execute
+  ✓ Core command /echo registered
+  ✓ /echo has execute
+  ✓ No duplicate command names
+
+--- Local Commands ---
+  ✓ /help succeeds
+  ✓ /help output contains header
+  ✓ /pwd succeeds
+  ✓ /pwd returns path
+  ✓ /whoami succeeds
+  ✓ /date succeeds
+  ✓ /echo succeeds
+  ✓ /echo output correct
+  ✓ /ls succeeds
+  ✓ /git-status returns boolean
+
+--- AI Agent Commands ---
+  ✓ /explain returns success
+  ✓ /explain marked as needsAgent
+  ✓ /refactor returns success
+  ✓ /refactor marked as needsAgent
+  ✓ /review returns success
+  ✓ /review marked as needsAgent
+  ✓ /docs returns success
+  ✓ /docs marked as needsAgent
+  ✓ /fix returns success
+  ✓ /fix marked as needsAgent
+
+--- Engine Config ---
+  ✓ Default provider is openai (got openai)
+  ✓ Default model is gpt-4o (got gpt-4o)
+  ✗ apiKey is string
+  ✓ updateConfig works
+  ✓ Config restored
+
+--- History Management ---
+  ✗ getHistory returns messages array
+
+--- Command Importer ---
+  ✓ Importer count matches registry (264 vs 264)
+
+========================================
+Passed: 44
+Failed: 2
+Total:  46
+
+Some tests failed!
+✖ tests\engine\legacy\broken\engine.test.ts (775.8947ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 782.4752
+
+✖ failing tests:
+
+test at tests\engine\legacy\broken\engine.test.ts:1:1
+✖ tests\engine\legacy\broken\engine.test.ts (775.8947ms)
+  'test failed'

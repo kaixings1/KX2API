@@ -12,10 +12,10 @@
 import { describe, it, expect, beforeEach } from "vitest"
 import * as fs from "node:fs"
 import * as path from "node:path"
-import { TaskDecomposer } from "../agent/task-decomposer.ts"
-import { TaskExecutor } from "../agent/task-executor.ts"
-import { type CommandRunner } from "../agent/command-runners.ts"
-import { type DecompositionPlan } from "../agent/task-decomposer.ts"
+import { TaskDecomposer } from "../../engine/agent/task-decomposer.ts"
+import { TaskExecutor } from "../../engine/agent/task-executor.ts"
+import { type CommandRunner } from "../../engine/agent/command-runners.ts"
+import { type DecompositionPlan } from "../../engine/agent/task-decomposer.ts"
 
 const TEST_STATE_DIR = path.join(process.cwd(), ".kx2code", "tasks", "__test__")
 
@@ -130,7 +130,8 @@ describe("TaskDecomposer", () => {
     const plan = await decomposer.decompose("做点什么")
 
     expect(plan.subtasks.length).toBe(1)
-    expect(plan.mergeStrategy).toBe("single")
+    // 合法取值为 sequential | parallel | merge；单任务时设为 merge（见实现第 110 行）
+    expect(plan.mergeStrategy).toBe("merge")
   })
 
   it("计划应持久化到文件", async () => {

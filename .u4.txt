@@ -1,0 +1,14 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/messageLoop.ts(686,11): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/engine/messageLoop.ts(721,11): error TS2345: Argument of type '{ toolUseId: string | undefined; success: boolean; output: unknown; }[]' is not assignable to parameter of type '{ toolUseId: string; success: boolean; output?: unknown; }[]'.
+  Type '{ toolUseId: string | undefined; success: boolean; output: unknown; }' is not assignable to type '{ toolUseId: string; success: boolean; output?: unknown; }'.
+    Types of property 'toolUseId' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.
+src/engine/messageLoop.ts(732,61): error TS2345: Argument of type 'ToolResult[]' is not assignable to parameter of type '{ toolUseId: string; success: boolean; output?: unknown; error?: string | undefined; }[]'.
+  Type 'ToolResult' is not assignable to type '{ toolUseId: string; success: boolean; output?: unknown; error?: string | undefined; }'.
+    Types of property 'toolUseId' are incompatible.
+      Type 'string | undefined' is not assignable to type 'string'.
+        Type 'undefined' is not assignable to type 'string'.

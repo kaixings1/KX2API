@@ -5,7 +5,8 @@
  * 所有命令在 registry.ts 中静态注册，此处仅做计数。
  */
 
-import { commandRegistry, type Command } from './registry.ts'
+import { commandRegistry } from './registry.ts'
+import type { Command } from './types.js'
 
 export async function importCommands(): Promise<number> {
   // 所有命令已在 registry.ts 中注册，返回总数
