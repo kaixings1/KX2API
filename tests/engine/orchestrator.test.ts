@@ -58,19 +58,36 @@ describe('buildParallelGraph — 拓扑结构', () => {
 })
 
 describe('Orchestrator parallel 模式 — 真并行', () => {
-  test('同一波内的节点并发执行（总耗时 < 串行累加）', async () => {
-    const { deps, callLog } = makeDeps({ latencyMs: 50 })
+  test('同一波内的节点并发执行（观察并发峰值，而非绝对耗时）', async () => {
+    // ⚠️ 不用「总耗时 < N ms」断言并发：全量测试（run-all.mjs 并行跑 60+ 文件）
+    // 下 CPU 争抢会让 50ms 延迟实测成 300ms+，产生随机失败。
+    // 改为直接观察「同时在飞的调用数」——这是并发的**定义**，不受机器负载影响。
+    let inFlight = 0
+    let maxConcurrent = 0
+    const calledRoles: string[] = []
+
+    const deps: OrchestratorDeps = {
+      executeLLM: async (role: string) => {
+        calledRoles.push(role)
+        inFlight++
+        maxConcurrent = Math.max(maxConcurrent, inFlight)
+        await new Promise((r) => setTimeout(r, 30))
+        inFlight--
+        return `[${role}] 输出`
+      },
+    }
     const orch = new Orchestrator({ mode: 'parallel', roles: ['team_leader'] }, deps)
-
-    const start = Date.now()
     const result = await orch.run('测试任务')
-    const elapsed = Date.now() - start
 
-    // 6 个节点分 3 波，每波 2 节点并发，每节点 50ms：
-    // 串行需 6*50=300ms，真并行约 3*50=150ms。给足余量断言并发生效。
     assert.equal(result.success, true)
-    assert.ok(elapsed < 320, `应为并发执行（约150ms），实际 ${elapsed}ms（疑似串行）`)
-    assert.equal(callLog.length, 7, '7 个节点（research + 6 后续）都应被调用')
+    assert.equal(calledRoles.length, 7, '7 个节点（research + 6 后续）都应被调用')
+
+    // 分层波次：research 单独一波，之后每波 2 个 → 峰值并发应为 2。
+    // 若退化回串行，峰值会恒为 1，此断言即失败。
+    assert.ok(
+      maxConcurrent >= 2,
+      `应观察到并发（峰值 >= 2），实际峰值 ${maxConcurrent}（疑似串行）`,
+    )
   })
 
   test('节点按波次分批就绪（并发数不超过同波节点数）', async () => {
