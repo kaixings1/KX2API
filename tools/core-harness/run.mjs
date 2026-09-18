@@ -216,10 +216,12 @@ const TARGETS = {
 
   'tool-name': {
     describe: '工具名归一化（模型自造名 → 注册命令名）',
-    inputHint: '{ name: string }',
+    inputHint: '{ name: string }（也可用 --text 直接给名字）',
     async run(input) {
       const mod = await load('src/engine/toolNameResolver.ts')
-      const name = String(input.name ?? '')
+      // 兼容 --text：CLI 的通用入口只塞 text，这里允许直接给名字，
+      // 免得为一个单词还得写 JSON。
+      const name = String(input.name ?? input.text ?? '')
       const resolved = await mod.resolveToolName(name)
       return { input: name, resolved }
     },
