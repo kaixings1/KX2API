@@ -54,11 +54,32 @@ function matchesDenyRule(tool: Tool, rule: DenyRule): boolean {
 
 export type { PresetId } from './presets.js'
 
-/** 按预设过滤工具 */
+/**
+ * 按预设过滤工具。
+ *
+ * 语义：预设的 `tags` 是**允许的标签白名单**（如 minimal = read + bash）。
+ * - 有 allowRules/denyRules 时优先按规则；
+ * - 否则按 tags 白名单：工具的 tags 与预设 tags 有交集即保留。
+ *
+ * ⚠️ 原实现只看 `preset.denyRules`，而 TOOL_PRESETS 里没有任何预设定义该字段
+ * （只有 tags），于是函数恒返回全部工具 —— "按预设筛选"完全没生效，
+ * 而且就算定义了也是按 tag 当 deny 用，与 tags 的允许语义正好相反。
+ */
 export function getToolsForPreset(tools: Tool[], presetId: PresetId): Tool[] {
   const preset = TOOL_PRESETS[presetId]
-  if (!preset.denyRules) return tools
+  if (!preset) return tools
 
-  const rules: DenyRule[] = preset.denyRules.map(r => ({ tag: r }))
-  return filterToolsByDenyRules(tools, rules)
+  // 显式 deny 规则优先（若预设将来定义）
+  if (preset.denyRules && preset.denyRules.length > 0) {
+    return filterToolsByDenyRules(tools, preset.denyRules.map(r => ({ tag: r })))
+  }
+
+  // 按 tags 白名单筛选
+  if (preset.tags.length === 0) return tools
+  const allowed = new Set(preset.tags)
+  return tools.filter(t => {
+    const tags = (t as { tags?: string[] }).tags
+    if (!tags || tags.length === 0) return true // 无标签的工具不做限制
+    return tags.some(tag => allowed.has(tag))
+  })
 }

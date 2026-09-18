@@ -45,18 +45,34 @@ export const TOOL_PRESETS: Record<PresetId, ToolPreset> = {
   },
 }
 
-/** 解析工具预设 */
+/**
+ * 解析工具预设。
+ *
+ * 返回值是**副本**：TOOL_PRESETS 是全局常量，若直接把常量对象交出去，
+ * 调用方一句 `preset.tags.push(...)` 就会永久污染该预设，之后所有解析
+ * 同一预设的代码都拿到被改过的数据（且重启前不会自愈）。
+ */
 export function parseToolPreset(input: string): ToolPreset | null {
   // 直接匹配预设 ID
   const direct = TOOL_PRESETS[input as PresetId]
-  if (direct) return direct
+  if (direct) return clonePreset(direct)
 
   // 名称模糊匹配
   const lower = input.toLowerCase()
   for (const preset of Object.values(TOOL_PRESETS)) {
-    if (preset.name.toLowerCase() === lower) return preset
-    if (preset.id.toLowerCase() === lower) return preset
+    if (preset.name.toLowerCase() === lower) return clonePreset(preset)
+    if (preset.id.toLowerCase() === lower) return clonePreset(preset)
   }
 
   return null
+}
+
+/** 复制预设（含数组字段），避免调用方污染全局常量 */
+export function clonePreset(preset: ToolPreset): ToolPreset {
+  return {
+    ...preset,
+    tags: [...preset.tags],
+    denyRules: preset.denyRules ? [...preset.denyRules] : undefined,
+    allowRules: preset.allowRules ? [...preset.allowRules] : undefined,
+  }
 }

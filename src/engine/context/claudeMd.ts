@@ -23,7 +23,12 @@ export function getAdditionalDirectoriesForClaudeMd(): string[] {
 export function isEnvTruthy(env: string): boolean {
   const val = process.env[env]
   if (!val) return false
-  return !['0', 'false', 'no', 'off', ''].includes(val.toLowerCase())
+  // 必须 trim：shell / .env / Dockerfile 里写成 `VAR= false ` 很常见，
+  // 不 trim 会把带空白的假值（" false "）判为真 —— 这类"开关没生效"的
+  // 问题排查起来很费时间，因为值看起来明明是对的。
+  const normalized = val.trim().toLowerCase()
+  if (normalized === '') return false
+  return !['0', 'false', 'no', 'off'].includes(normalized)
 }
 
 /** 过滤系统注入的记忆文件 */

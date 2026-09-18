@@ -120,19 +120,25 @@ class TaskRegistry {
 
   /** 获取终止态任务 */
   getTerminalTasks(): TaskStateBase[] {
-    return this.getAllTasks().filter(t => ['completed', 'failed', 'cancelled'].includes(t.status))
+    return this.getAllTasks().filter(t => isTerminalTaskStatus(t.status))
   }
 
-  /** 清理已终止任务 */
+  /**
+   * 清理已终止任务。
+   *
+   * `olderThanMs = 0`（默认）的语义是"清理全部终态任务"，因此判定必须用
+   * `<=`：若用 `<`，在**同一毫秒内**刚终止的任务（`updatedAt === now`）
+   * 会被漏掉 —— 表现为"调用清理后任务还在"，且因为时间戳相同还会持续漏掉。
+   */
   cleanupTerminal(olderThanMs = 0): TaskStateBase[] {
     const now = Date.now()
     const cleaned: TaskStateBase[] = []
     for (const [id, entry] of this.tasks) {
       if (
-        ['completed', 'failed', 'cancelled'].includes(entry.state.status) &&
-        entry.state.updatedAt < now - olderThanMs
+        isTerminalTaskStatus(entry.state.status) &&
+        entry.state.updatedAt <= now - olderThanMs
       ) {
-        cleaned.push(entry.state)
+        cleaned.push({ ...entry.state, metadata: { ...entry.state.metadata } })
         this.tasks.delete(id)
       }
     }

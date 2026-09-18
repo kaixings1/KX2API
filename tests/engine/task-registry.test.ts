@@ -128,12 +128,14 @@ describe('taskRegistry — 查询与清理', () => {
     assert.ok(term.every((t) => isTerminalTaskStatus(t.status)))
   })
 
-  test('cleanupTerminal(0) 清掉全部终态任务', () => {
+  test('cleanupTerminal(0) 清掉终态任务', () => {
+    // 注意：taskRegistry 是全局单例，其它用例的残留会影响集合大小，
+    // 因此只断言「自己创建的那条被清理」，不假设 cleaned.length。
     const h = taskRegistry.register('agent')
     taskRegistry.updateStatus(h.id, 'completed')
     const cleaned = taskRegistry.cleanupTerminal(0)
-    assert.ok(cleaned.some((t) => t.id === h.id))
-    assert.equal(taskRegistry.getState(h.id), undefined)
+    assert.ok(cleaned.some((t) => t.id === h.id), '该任务应出现在清理结果中')
+    assert.equal(taskRegistry.getState(h.id), void 0, '清理后应查不到')
   })
 
   test('cleanupTerminal 不动非终态任务', () => {

@@ -13,13 +13,16 @@ const EVENTS = {
 }
 
 /**
- * 简易 MurmurHash3 实现（用于特性分桶）。
- * 与 GrowthBook 使用的算法一致，保证分桶结果可复现。
+ * 简化的 MurmurHash3 变体（用于特性分桶）。
+ *
+ * ⚠️ 说明：这里按「逐字节」处理而非标准 MurmurHash3 的 4 字节块 + 尾部混合，
+ * 因此**结果与 GrowthBook 官方 SDK 不一致**。它满足分桶需要的两条性质：
+ * 确定性（同输入同输出）与雪崩性（微小输入差异得到差异较大的桶位），
+ * 但不能用于与官方 SDK 对拍分桶结果。若要严格对齐上游，需替换为
+ * 标准 MurmurHash3 x86_32 实现。
  */
 export function murmurHash3(str: string): number {
   let h1 = 0
-  let h2 = 0
-  const remainder = str.length % 16
   const bytes = new TextEncoder().encode(str)
 
   for (let i = 0; i < bytes.length; i++) {
@@ -42,11 +45,18 @@ export function murmurHash3(str: string): number {
   return Math.abs(h1)
 }
 
-/** 从属性中获取哈希值 */
+/**
+ * 从属性中获取哈希值。
+ *
+ * ⚠️ 缺失属性时**必须确定性回落**（回落到属性名本身），绝不能用
+ * `Math.random()` —— 那会让同一个实例在同一份数据上每次求值都落到
+ * 不同分桶，用户会在实验组之间反复横跳（A/B 实验的核心前提就是
+ * 「同一用户结果稳定」）。与 hash.ts 的同名函数保持同一口径。
+ */
 function getHashAttribute(attr: string, attributes: Record<string, string | number>): string {
   const val = attributes[attr]
   if (val !== undefined) return String(val)
-  return String(Math.floor(Math.random() * 1000000))
+  return attr
 }
 
 /** 选择 variation 索引 */
@@ -93,8 +103,12 @@ export class GrowthBook {
       return { value: defaultValue, source: 'default' }
     }
 
-    const result = this.evalRules(feature, defaultValue, name)
-    return result
+    // 特性存在但没有任何规则命中时，应回落到**特性自身的 defaultValue**，
+    // 而不是调用方传入的兜底值 —— 否则 `{ defaultValue: true }` 这种
+    // 「默认开启、无规则」的特性会因调用方传 false 而被判为关闭。
+    // 调用方传入的 defaultValue 只用于「特性未定义」的场景。
+    const fallback = feature.defaultValue === undefined ? defaultValue : feature.defaultValue
+    return this.evalRules(feature, fallback, name)
   }
 
   /** 特性是否开启 */

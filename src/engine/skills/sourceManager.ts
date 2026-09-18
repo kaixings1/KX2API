@@ -46,17 +46,26 @@ class SkillSourceManager {
     installedSkills: [],
   }
 
-  /** 获取所有已注册源 */
+  /** 获取所有已注册源（元素为副本，外部修改不影响内部） */
   getAllSources(): SkillSource[] {
-    return [...this.state.sources]
+    return this.state.sources.map(s => ({ ...s }))
   }
 
-  /** 添加技能源 */
+  /**
+   * 添加技能源。
+   *
+   * 显式传入的 id 若已存在则**抛错**而非静默追加：重复 id 会让后续
+   * find/removeSource 只命中第一个，另一个成为"幽灵源"（列表里看得见、
+   * 删不掉、且同名技能会被误判为跨源冲突）。
+   */
   addSource(source: Omit<SkillSource, 'id'> & { id?: string }): SkillSource {
     const id = source.id || `${source.type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    if (source.id && this.state.sources.some(s => s.id === source.id)) {
+      throw new Error(`技能源 id 已存在：${source.id}`)
+    }
     const newSource: SkillSource = { ...source, id }
     this.state.sources.push(newSource)
-    return newSource
+    return { ...newSource }
   }
 
   /** 移除技能源 */
@@ -124,16 +133,25 @@ class SkillSourceManager {
     return conflicts
   }
 
-  /** 从状态快照恢复（用于持久化） */
+  /**
+   * 从状态快照恢复（用于持久化）。
+   *
+   * 元素做深一层拷贝：只 `[...state.sources]` 的话，快照里的对象与内部
+   * 共享引用，调用方随后改动快照（或反过来）会静默改到对方 —— 这类
+   * "改了 A 影响了 B" 在持久化场景里极难排查。
+   */
   restore(state: SourceManagerState): void {
-    this.state = { ...state, sources: [...state.sources], installedSkills: [...state.installedSkills] }
+    this.state = {
+      sources: (state.sources ?? []).map(s => ({ ...s })),
+      installedSkills: (state.installedSkills ?? []).map(s => ({ ...s })),
+    }
   }
 
-  /** 获取可序列化状态 */
+  /** 获取可序列化状态（元素为副本） */
   getState(): SourceManagerState {
     return {
-      sources: [...this.state.sources],
-      installedSkills: [...this.state.installedSkills],
+      sources: this.state.sources.map(s => ({ ...s })),
+      installedSkills: this.state.installedSkills.map(s => ({ ...s })),
     }
   }
 

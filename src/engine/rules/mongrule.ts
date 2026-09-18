@@ -45,9 +45,14 @@ export function evalCondition(
   for (const [k, v] of Object.entries(condition)) {
     switch (k) {
       case '$or':
+        // 空 $or 表示「没有任何条件」—— 析取的空集恒为假。
+        // 原实现直接 return true，会让 `$or: []` 变成恒真条件（放行一切），
+        // 是最危险的一类误判：配置写错时不是拒绝而是全通过。
+        if ((v as ConditionInterface[]).length === 0) return false
         if (!evalOr(obj, v as ConditionInterface[], savedGroups)) return false
         break
       case '$nor':
+        // $nor 是「全部不满足」，空集表示「没有任何条件被满足」→ 真。
         if (evalOr(obj, v as ConditionInterface[], savedGroups)) return false
         break
       case '$and':
@@ -223,12 +228,19 @@ function evalOperatorCondition(
   }
 }
 
+/**
+ * 析取求值。
+ *
+ * 空集返回 **false**（没有任何子条件满足）—— 这是「或」的自然语义。
+ * 注意 $nor 的实现依赖此语义：它先调 evalOr，若为真则整体为假，
+ * 空 $nor 会因此得到 true（「没有条件被满足」），符合 MongoDB 语义。
+ */
 function evalOr(
   obj: TestedObj,
   conditions: ConditionInterface[],
   savedGroups: SavedGroupsValues,
 ): boolean {
-  if (!conditions.length) return true
+  if (!conditions.length) return false
   for (let i = 0; i < conditions.length; i++) {
     if (evalCondition(obj, conditions[i], savedGroups)) return true
   }

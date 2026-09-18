@@ -48,13 +48,20 @@ export function onTasksUpdated(cb: TasksUpdatedCallback): () => void {
   return () => tasksUpdatedListeners.delete(cb)
 }
 
+/**
+ * 通知所有订阅者任务已变更。
+ *
+ * ⚠️ try/catch 必须**逐个监听器**包夹，不能包住整个循环：否则第一个
+ * 监听器抛错会中断循环，它后面的所有监听器都收不到这次通知 ——
+ * 表现为"UI 有时不刷新"，且取决于监听器注册顺序，极难复现。
+ */
 export function notifyTasksUpdated(): void {
-  try {
-    for (const cb of tasksUpdatedListeners) {
+  for (const cb of tasksUpdatedListeners) {
+    try {
       cb()
+    } catch {
+      // 单个监听器异常不影响其它监听器
     }
-  } catch {
-    // 通知失败不影响任务操作
   }
 }
 

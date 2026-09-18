@@ -34,19 +34,37 @@ export function chooseVariation(n: number, coverage: number, hashValue: string):
   return Math.floor(bucket / coverage * n)
 }
 
-/** 带超时的 Promise 包装 */
+/**
+ * 带超时的 Promise 包装。
+ *
+ * ⚠️ 定时器必须在两个方向上都释放：
+ *   - promise 先完成 → 清掉定时器（否则句柄存活到超时，拖住 Node 进程退出；
+ *     超时后还会对一个已 settle 的 promise 再 reject）
+ *   - 超时先触发 → 清掉定时器（已经触发，主动清理更明确）
+ *
+ * 原实现把 `clearTimeout` 写成 `new Promise(executor)` 的**返回值**，
+ * 而 Promise 构造器会忽略执行器的返回值 —— 等于清理逻辑从未执行。
+ * 这里改为在回调内直接 clearTimeout，并用 finally 兜底。
+ */
 export function promiseTimeout<T>(
   promise: Promise<T>,
   ms: number,
   label = 'operation',
 ): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      const id = setTimeout(() => reject(new Error(`${label} 超时 (${ms}ms)`)), ms)
-      return () => clearTimeout(id)
-    }),
-  ])
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      timer = undefined
+      reject(new Error(`${label} 超时 (${ms}ms)`))
+    }, ms)
+  })
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer !== undefined) {
+      clearTimeout(timer)
+      timer = undefined
+    }
+  })
 }
 
 /** 版本号补齐（用于版本比较） */
