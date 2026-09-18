@@ -37,11 +37,23 @@ export interface UrlReference {
 
 export type Reference = FileReference | ImageReference | PasteReference | UrlReference
 
-/** 引用格式正则 */
-const FILE_REF_RE = /@([^\s]+)(?::(\d+)(?:-(\d+))?)?/
-const IMAGE_REF_RE = /@img\/([^\s]+)/
-const PASTE_REF_RE = /@paste(?:\[(\d+)\])?/
-const URL_REF_RE = /@url\/([^\s]+)/
+/**
+ * 引用格式正则。
+ *
+ * ⚠️ 必须带 `g` 标志：`parseReferences` 用的是 `String.prototype.matchAll`，
+ * 而它在正则缺少 `g` 时会**直接抛 TypeError**（"called with a non-global
+ * RegExp argument"）—— 少了 `g` 等于整个解析函数一调用就崩。
+ *
+ * FILE_REF_RE 用负向先行断言排除特殊前缀（img/paste/url），否则
+ * `@([^\s]+)` 的贪婪匹配会把 `@img/a.png` 也解析成一条 file 引用（重复且错误）。
+ */
+// path 部分必须排除 `:` —— 若用 `[^\s]+` 贪婪匹配，`@a.ts:10-20` 里的
+// `:10-20` 会被整段吞进 path（行号永远解析不出来）。路径本身不应含冒号
+// （此处是相对路径引用；冒号专用于分隔行号）。
+const FILE_REF_RE = /@(?!img\/|paste\b|url\/)([^\s:]+)(?::(\d+)(?:-(\d+))?)?/g
+const IMAGE_REF_RE = /@img\/([^\s]+)/g
+const PASTE_REF_RE = /@paste(?:\[(\d+)\])?/g
+const URL_REF_RE = /@url\/([^\s]+)/g
 
 /**
  * 解析文本中的引用标记。

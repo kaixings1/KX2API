@@ -10,7 +10,8 @@ function engineLog(prefix: string, ...args: unknown[]): void {
 import { QueryStateMachine } from "./stateMachine.ts";
 import { TokenBudgetManager } from "./tokenBudgetManager.ts";
 import { MessageNormalizer, type InternalMessage } from "./messageNormalizer.ts";
-import { RequestBuilder, type HarnessConfig } from "./requestBuilder.ts";
+import { RequestBuilder } from "./requestBuilder.ts";
+import type { HarnessConfig } from "./harnessAdapter.ts";
 import { ResponseHandler, type ProcessedResponse } from "./responseHandler.ts";
 import { ToolScheduler } from "./toolScheduler.ts";
 import { ErrorClassifier } from "./errors/classifier.ts";
@@ -692,7 +693,7 @@ export class MessageLoop {
           success: r.success,
           output: typeof r.output === 'string' ? r.output : JSON.stringify(r.output ?? ''),
           error: r.error,
-        });
+        } as Parameters<MessageLoop['emit']>[0]);
       }
 
       const failedCount = results.filter(r => !r.success).length;

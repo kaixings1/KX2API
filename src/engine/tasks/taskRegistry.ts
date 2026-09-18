@@ -5,6 +5,7 @@
  */
 
 import type { TaskHandle, TaskProgress, TaskStateBase, TaskType, TaskStatus } from './types.js'
+import { isTerminalTaskStatus } from './types.js'
 
 /** 任务条目 */
 interface TaskEntry {
@@ -48,10 +49,19 @@ class TaskRegistry {
     }
   }
 
-  /** 更新任务状态 */
+  /**
+   * 更新任务状态。
+   *
+   * 终态（completed/failed/cancelled）不可再变更：一旦任务已结束，
+   * 迟到的回调把状态改回 running 会让它"复活"（界面上看是一条已完成的
+   * 任务重新转圈，且可能被重复取消/重复上报）。幂等重复置同一终态是允许的。
+   */
   updateStatus(id: string, status: TaskStatus): boolean {
     const entry = this.tasks.get(id)
     if (!entry) return false
+    if (isTerminalTaskStatus(entry.state.status) && entry.state.status !== status) {
+      return false
+    }
     entry.state.status = status
     entry.state.updatedAt = Date.now()
     return true
@@ -77,14 +87,25 @@ class TaskRegistry {
     return true
   }
 
-  /** 获取任务状态 */
+  /**
+   * 获取任务状态（返回副本）。
+   *
+   * 与 getAllTasks 保持一致：绝不把内部 state 对象暴露出去 ——
+   * 调用方改动返回值（如把 status 直接置为 failed）会绕过 updateStatus
+   * 的终态保护直接改内部状态，且 updatedAt 不会同步。
+   */
   getState(id: string): TaskStateBase | undefined {
-    return this.tasks.get(id)?.state
+    const entry = this.tasks.get(id)
+    if (!entry) return void 0
+    return { ...entry.state, metadata: { ...entry.state.metadata } }
   }
 
-  /** 获取所有任务 */
+  /** 获取所有任务（返回副本，metadata 亦做一层拷贝） */
   getAllTasks(): TaskStateBase[] {
-    return Array.from(this.tasks.values()).map(e => ({ ...e.state }))
+    return Array.from(this.tasks.values()).map(e => ({
+      ...e.state,
+      metadata: { ...e.state.metadata },
+    }))
   }
 
   /** 按类型获取任务 */

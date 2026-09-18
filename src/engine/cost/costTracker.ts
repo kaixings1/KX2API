@@ -146,6 +146,13 @@ export function addModelUsage(
     inputTokens: 0, outputTokens: 0, cacheReadInputTokens: 0,
     cacheCreationInputTokens: 0, webSearchRequests: 0, costUSD: 0, contextWindow: 0, maxOutputTokens: 0,
   }
+  // 非有限值（NaN/Infinity）一律按 0 记账。
+  //
+  // 价格表没有该模型时 calculateCost 返回 NaN，调用方若直接传入，
+  // `0 + NaN = NaN` 会**永久污染** totalCostUSD（之后每次累加仍是 NaN，
+  // 界面上成本显示从此废掉，且无法自愈）。token 是真实测量值，照常累计；
+  // 只是"算不出钱"的部分记 0，并由 hasUnknownModelCost() 暴露价格表缺口。
+  const safeCost = Number.isFinite(costUSD) ? costUSD : 0
   state.modelUsage[model] = {
     ...existing,
     inputTokens: existing.inputTokens + usage.inputTokens,
@@ -153,9 +160,9 @@ export function addModelUsage(
     cacheReadInputTokens: existing.cacheReadInputTokens + usage.cacheReadInputTokens,
     cacheCreationInputTokens: existing.cacheCreationInputTokens + usage.cacheCreationInputTokens,
     webSearchRequests: existing.webSearchRequests + usage.webSearchRequests,
-    costUSD: existing.costUSD + costUSD,
+    costUSD: existing.costUSD + safeCost,
   }
-  state.totalCostUSD += costUSD
+  state.totalCostUSD += safeCost
   state.totalInputTokens += usage.inputTokens
   state.totalOutputTokens += usage.outputTokens
   state.totalCacheReadInputTokens += usage.cacheReadInputTokens
@@ -208,9 +215,14 @@ export function setHasUnknownModelCost(_value: boolean): void {
 }
 
 export function hasUnknownModelCost(): boolean {
-  // 检查是否有任何模型成本为 0 但使用了 token
+  // 检查是否有任何模型「用了 token 但算不出钱」：成本为 0 或非有限值（NaN）。
+  //
+  // 原实现只判 `costUSD === 0`，而价格表缺失的模型走的是 NaN 路径
+  // （`NaN === 0` 为 false），恰恰是最该报警的情况被漏掉。
+  // addModelUsage 现在把 NaN 归零存储，但直接由 restoreCostState 读入的
+  // 旧数据仍可能是 NaN，故这里两种都判。
   return Object.values(state.modelUsage).some(
-    u => (u.inputTokens > 0 || u.outputTokens > 0) && u.costUSD === 0,
+    u => (u.inputTokens > 0 || u.outputTokens > 0) && (!Number.isFinite(u.costUSD) || u.costUSD === 0),
   )
 }
 
