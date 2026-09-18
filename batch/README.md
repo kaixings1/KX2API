@@ -63,10 +63,10 @@ batch/
 | ⬜ | [E4](01-engine/E4-engine-errors.md) | `src/engine/errors` | 5 |
 | ⬜ | [E5](01-engine/E5-engine-commands.md) | `src/engine/commands` | 6 |
 | ⬜ | [E6](01-engine/E6-engine-llm-tool-parser.md) | `src/engine/llm-tool-parser` | 3 |
-| ⬜ | [E7](01-engine/E7-engine-hooks.md) | `src/engine/hooks` | 2 |
-| ⬜ | [E8](01-engine/E8-engine-subagent.md) | `src/engine/subagent` | 2 |
-| ⬜ | [E9](01-engine/E9-engine-tool-history-guard.md) | `src/engine/tool-history-guard` | 2 |
-| ⬜ | [E10](01-engine/E10-engine-api.md) | `src/engine/api` | 1 |
+| ✅ | [E7](01-engine/E7-engine-hooks.md) | `src/engine/hooks` | 2 |
+| ✅ | [E8](01-engine/E8-engine-subagent.md) | `src/engine/subagent` | 2 |
+| ✅ | [E9](01-engine/E9-engine-tool-history-guard.md) | `src/engine/tool-history-guard` | 2 |
+| ✅ | [E10](01-engine/E10-engine-api.md) | `src/engine/api` | 1 |
 | ⬜ | [E11](01-engine/E11-engine-__tests__.md) | `src/engine/__tests__` | 9 |
 | ⬜ | [E12](01-engine/E12-engine.md) | `src/engine`（根目录散落） | 20 |
 
@@ -143,6 +143,10 @@ batch/
 | T3 | `src/__tests__/components` | 10 | **全部保留**（活跃测试，120 用例在跑） | 2026-09-18 |
 | T4 | `src/__tests__`（根） | 1 | **归档**（随 X2：被测模块已归档） | 2026-09-18 |
 | R1 | `src/renderer/src/components` | 6 | **全部归档**（零引用的 UI 组件：整个 oauth 目录 + LogDetailModal + LoginGuideDialog） | 2026-09-18 |
+| E7 | `src/engine/hooks` | 2 | **全部保留**（builtInHooks 是唯一实现的安全能力） | 2026-09-18 |
+| E8 | `src/engine/subagent` | 2 | **归档** 2 个 `.js.map` 构建残留 | 2026-09-18 |
+| E9 | `src/engine/tool-history-guard` | 2 | 归档 `fix.ts`（+ 其测试成对）；`index.ts` 保留 | 2026-09-18 |
+| E10 | `src/engine/api` | 1 | **归档** `client.d.ts`（被同名 .ts 取代） | 2026-09-18 |
 | R2 | `src/renderer/src`（其它） | 9 | 归档 3（零引用 hooks/store）+ 保留 6（活 .d.ts + 活跃测试）；**顺带修复一个时序脆弱的并发测试** | 2026-09-18 |
 
 ### 经验：体检报告标 "孤儿" ≠ 可以删

@@ -5,10 +5,10 @@
   "_totalOrphans": 437,
   "_totalBatches": 54,
   "summary": {
-    "done": 12,
+    "done": 16,
     "in_progress": 0,
-    "pending": 42,
-    "filesDone": 80,
+    "pending": 38,
+    "filesDone": 87,
     "filesTotal": 437
   },
   "batches": [
@@ -91,10 +91,10 @@
       "dir": "src/engine/hooks",
       "title": "钩子 hooks（engine 侧）",
       "filesTotal": 2,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 2,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "全部保留（hookManager 活；builtInHooks 是唯一实现的安全能力，待接线）"
     },
     {
       "id": "E8",
@@ -103,10 +103,10 @@
       "dir": "src/engine/subagent",
       "title": "子代理 subagent",
       "filesTotal": 2,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 2,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 2 个 .js.map 构建残留"
     },
     {
       "id": "E9",
@@ -115,10 +115,10 @@
       "dir": "src/engine/tool-history-guard",
       "title": "工具历史守卫 tool-history-guard",
       "filesTotal": 2,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 2,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 fix.ts（零引用，修复路径明确不接入）+ 连带归档其测试；index.ts 保留并同步移除导出"
     },
     {
       "id": "E10",
@@ -127,10 +127,10 @@
       "dir": "src/engine/api",
       "title": "API 客户端 api",
       "filesTotal": 1,
-      "filesDone": 0,
-      "status": "pending",
-      "completedAt": null,
-      "disposition": null
+      "filesDone": 1,
+      "status": "done",
+      "completedAt": "2026-09-18",
+      "disposition": "归档 client.d.ts（被同名 client.ts 取代的旧声明）"
     },
     {
       "id": "E11",
@@ -661,5 +661,5 @@
       "disposition": "保留（.d.ts 是生效的全局声明，非孤儿）"
     }
   ],
-  "_lastUpdatedAt": "2026-09-18T08:04:55.606Z"
+  "_lastUpdatedAt": "2026-09-18T08:13:09.360Z"
 }

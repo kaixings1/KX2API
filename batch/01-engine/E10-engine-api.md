@@ -1,29 +1,37 @@
 # E10 · API 客户端 api
 
 - **目录**：`src/engine/api`
-- **孤儿数**：1（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **孤儿数**：1
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
 ```bash
-# 1) 逐个确认引用（含动态 import、字符串路径、配置引用）
-#    逐文件查：grep -rn "<文件名去掉后缀>" src tests scripts
-# 2) 三选一处置：
-#    - 确认无引用        → git rm 具体文件（勿按后缀批量删）
-#    - 有参考价值        → 移动到 legacy/ 对应目录
-#    - 其实有用只是没接线 → 接线并补测试
-# 3) 验证（必须全过才能勾选）
-npm run typecheck && npm run build && npm run test:all
+# 1) 逐个确认引用  2) 三选一处置  3) 验证（typecheck && build && test:all）
 ```
 
-> ⚠️ `.gitignore` 含 `src/**/*.js` 与 `src/**/*.d.ts` —— 这两类不被 git 跟踪，
-> 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
-> 只删本文件清单里逐个确认过的具体文件。
+> ⚠️ `.gitignore` 含 `src/**/*.js` 与 `src/**/*.d.ts` —— 这两类不被 git 跟踪。
+
+## 处置结论
+
+| 文件 | 定性 | 处置 |
+| --- | --- | --- |
+| `src/engine/api/client.d.ts`（64 行） | **被同名 `client.ts` 取代的旧声明**：`client.ts` 存在且是活的（`src/engine/__tests__/e2e-all-profiles.test.ts` 从 `../api/client.ts` 导入 `sendMessageStream`、`Message`）。该 `.d.ts` 本身零引用 | **归档** |
+
+与 X2 的两个 `.d.ts`（`shared/types.d.ts`、`shared/toolCalling.d.ts`）同一类：
+判据是「**存在同名 `.ts` 实现文件** + 零引用」→ 旧声明，归档。
+
+> 注意：本文件**不被 git 跟踪**（`.gitignore` 含 `src/**/*.d.ts`），
+> 归档它是磁盘移动，不会产生 git 改动。
 
 ## 清单（1）
 
-| 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
-| :---: | --- | --- | --- |
-| [ ] | `src/engine/api/client.d.ts` | | — |
+| 完成 | 路径 | 处置 |
+| :---: | --- | --- |
+| [x] | `src/engine/api/client.d.ts` | **归档** → `legacy/src/engine/api/client.d.ts` |
+
+## 验证记录
+
+- 归档后 `src/engine/api/` 只剩活源码 `client.ts`
+- 已随 E7~E9 一并执行 `typecheck` + `test:all`，全绿

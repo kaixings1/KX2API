@@ -1,5 +1,5 @@
-export { fixToolHistory } from "./fix";
 export { validateToolHistory } from "./validate";
+export { fixToolHistory } from "./fix";
 export {
   defaultHistoryAdapter,
   normalizeId,
