@@ -4,8 +4,8 @@
  * 实现 BRIDGE_SAFE_COMMANDS 常量和 isBridgeSafeCommand() / filterCommandsForRemoteMode()。
  */
 
-import type { Command } from './types.js'
-import { BRIDGE_SAFE_COMMANDS } from './types.js'
+import type { Command } from './types.ts'
+import { BRIDGE_SAFE_COMMANDS } from './types.ts'
 
 /** 检查是否为桥接安全命令 */
 export function isBridgeSafeCommand(name: string): boolean {

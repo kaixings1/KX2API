@@ -5,7 +5,7 @@
  * 移植了哈希分桶、规则求值、强制覆盖等核心逻辑。
  */
 
-import type { Feature, FeatureRule, FeatureResult, GrowthBookOptions } from './types.js'
+import type { Feature, FeatureRule, FeatureResult, GrowthBookOptions } from './types.ts'
 
 const EVENTS = {
   FEATURE_EVALUATED: 'feature_evaluated',

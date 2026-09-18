@@ -1248,3 +1248,85 @@ let targetPath: string | n\uFFFDull = null      // 应为 string | null
 本轮误删了被 git 跟踪的 `typecheck-out.txt` —— 它是我本轮创建的临时输出，
 但被某次提交信息为 "test commit" 的提交误纳入了仓库。
 **删除是对的，但如果你希望保留该文件请告知。** 仓库根目录不要放临时输出文件。
+
+## 第十四轮：D:\src 移植模块的接入判断 + 缺陷修复 + 测试覆盖（2026-09-18）
+
+并发会话从 `D:\src` 移植了一批模块到 `src/engine/`（约 30 文件，附 `plan/` 75 份计划文档）。
+本轮对**全部新模块**做了「接入判断 → 缺陷修复 → 测试覆盖」。
+
+### 一、接入判断（结论已记入记忆 `ported-modules-wiring-audit.md`）
+
+| 模块 | 结论 |
+|---|---|
+| `cost/` | ✅ **已接线** —— 接入 `messageLoop` 的 token 记账点（新增 `recordApiUsage()` 单一入口） |
+| `bootstrap/` | ✅ **已实现** —— `setup()` 原为空壳（导入 SessionMemory 却不用、只有 TODO），改为「初始化 MACRO + 设落盘目录」，幂等 |
+| `context/` | ✅ **已修复链路** —— `userContext` 原本双重失效（详见下） |
+| `tasks/` `history/` `skills/` `rules/` `featureFlag/` `query/` | ⚠️ **不接线** —— 各自与项目既有机制重复（main/tasks 已有一套任务系统；sessionRecovery + tool-history-guard 已两套历史），或本项目无对应场景（不做 A/B 实验、无技能 IPC） |
+
+**原则**：这些模块多是从 CLI 版机械搬运，在 Electron 场景下无对应功能。
+强行接线只会制造无用代码路径；「移植正确 + 有测试」已是合格状态。
+
+### 二、修复的真实缺陷（22 处，最严重三个）
+
+1. **`history/references.ts` 四个正则缺 `g` 标志** —— `parseReferences` 用 `matchAll`，
+   缺 `g` **直接抛 TypeError**（函数一调用就崩）。另修：`@img/`/`@paste`/`@url/` 被贪婪
+   正则误判为 file 引用；行号 `:10-20` 被吞进 path（startLine 恒为空）。
+2. **`query/queryGenerator.ts` 的 chunk 只 push 从不 yield** —— 所谓"异步查询生成器"
+   只产出最后一个 `done`，**中间内容全部丢失**（流式接口完全不流式）。已用异步队列桥接。
+3. **`context/userContext.ts` 链路双重失效** —— `getExternalClaudeMdIncludes('')` 传空串
+   致闸门恒假 + `getMemoryFiles` 是空壳恒返回空数组 → **用户上下文永远拿不到 CLAUDE.md**。
+   已改走 `instructions/claudeMdLoader.loadInstructions` + `formatInstructionsForPrompt`。
+
+其余：`cost` 的 NaN 污染 `totalCostUSD` + `hasUnknownModelCost` 漏检 + `setHasUnknownModelCost`
+是空壳 + 计划里的 `formatCost`/`formatTotalCost`/`resetStateForTests` **缺失**（Plan-025 Step 4/5 未完成）；
+`tasks` 终态可被改回 running（复活）+ `getState` 暴露内部引用 + `cleanupTerminal(0)` 同毫秒漏清；
+`featureFlag` 的 `Math.random()` 兜底（实验组每次漂移）+ `evalFeature` 忽略特性自身 defaultValue；
+`rules` 的 `$or: []` 恒真（放行一切）+ `$nor: []` 恒假；`skills` 重复 id 幽灵源 + 浅拷贝 +
+restore 引用共享；`utils/tasks.ts` 监听器循环被单个异常中断；`utils/helpers.ts`
+`promiseTimeout` 定时器从不释放（句柄泄漏）；`bootstrap/macro.ts` 的
+`require('../../package.json')`（路径错 + ESM 无 require）致 VERSION 恒 0.0.0；
+`tools` 的 `getToolsForPreset` 因预设无 `denyRules` 恒不筛 + `parseToolPreset` 返回共享引用。
+
+### 三、新增测试（14 文件 / 约 250 例，全部在 `tests/engine/`）
+
+`cost-tracker`(39) `history-references`(24) `task-registry`(21) `feature-flag`(26)
+`mongrule`(33) `skill-source-manager`(14) `query-generator`(9) `context`(24)
+`todo-tasks`(20) `utils-helpers`(19) `onboarding`(15) `bootstrap-macro`(10)
+`tools-presets`(15) `message-loop-last-tool-calls`(3)
+
+### 四、验证
+
+typecheck **0 错误** / build ✅ / agent 47 / management 74 / extras **841** / unit 1208 —— **全部通过**
+
+### 五、遗留（未动）
+
+- `cost/costHook.ts` 是 engine 层唯一的 React 依赖（已加架构说明注释；零引用故无实际影响）。
+  **它无法简单移到 renderer**：cost 状态在 engine（main 进程）侧，renderer 的 hook
+  读不到，需要先建一条 cost IPC 通道 —— 那属于新功能开发（成本面板），非重构。
+- `utils/claudeMd.ts` 的 `getMemoryFiles` 仍是空壳（**有意保留**：MemoryEntry 不含正文、
+  scanMemories 要的是记忆目录而非项目路径，语义不同不能硬接；调用方已改走 claudeMdLoader）。
+
+## 第十五轮：收尾清理（2026-09-18）
+
+### 一、`.js` 后缀 import 全量统一为 `.ts`（134 处 / 57 文件）
+
+审计确认 109 处相对导入**对应的 `.ts`/`.tsx` 都存在**（0 处会改坏），据此批量替换。
+补充说明：这类后缀在当前工具链（tsx / vite / electron-vite，moduleResolution=bundler）
+下**其实能解析**（已实测），因此它是**风格不一致**而非功能缺陷 —— 统一是为对齐约定、
+消除未来工具链变更的隐患。改完 typecheck 0 / extras 841 / unit 1208 全绿。
+
+### 二、清理运行时产物（回收 331.5 MB）
+
+删除**已被 `.gitignore` 忽略**的产物：`debug.txt`(331.5MB) 及 5 个 `loop-request-task-*.json`。
+`latest` 是 `debug.txt` 的符号链接，随之消失。
+**保留**（被 git 跟踪，需人工判断）：`stepfun_api.proto`、`stepfun_ws_frames.json`
+（protobuf 定义与抓包帧，`capture/_decode_frames.py` 分析用）。
+
+### 三、纠正一处历史误判：上下文预算门禁其实存在
+
+TASK.md 此前记「`TokenBudgetManager.shouldReject` 与 `ToolScheduler` 之间无强制门禁」。
+复核 `messageLoop.runIteration`：预算检查在**每轮构建请求之前**，
+`if (budget.shouldReject) throw` 位于 `requestBuilder.build()` 与
+`toolScheduler.execute()` **之前** —— 超限时既不发请求也不执行工具。
+**门禁在轮次粒度上是存在的**，且这是合理设计：工具输出的 token 要先进对话历史
+才影响预算，无法也不该在工具调用瞬间判定。**该条不再是遗留项。**

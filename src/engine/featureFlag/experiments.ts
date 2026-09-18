@@ -4,8 +4,8 @@
  * 实现 runExperiment() 和 getExperimentResult()。
  */
 
-import { murmurHash3 } from './growthBook.js'
-import { chooseVariation, isIncluded } from './hash.js'
+import { murmurHash3 } from './growthBook.ts'
+import { chooseVariation, isIncluded } from './hash.ts'
 
 /** 实验状态 */
 export type ExperimentStatus = 'draft' | 'running' | 'stopped' | 'archived'

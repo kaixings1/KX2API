@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { repairArgs } from '../repair/index.js';
-import type { RepairAction } from '../types.js';
+import { repairArgs } from '../repair/index.ts';
+import type { RepairAction } from '../types.ts';
 
 describe('repairArgs — Layer 1: key_normalize', () => {
 	it('maps camelCase keys to snake_case schema keys', () => {

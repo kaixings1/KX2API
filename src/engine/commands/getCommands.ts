@@ -4,7 +4,7 @@
  * 实现 getCommands()、clearCommandsCache()、getRemoteSafeCommands()。
  */
 
-import type { Command, AvailabilityRequirement } from './types.js'
+import type { Command, AvailabilityRequirement } from './types.ts'
 
 /** 缓存键 */
 type CacheKey = string
@@ -113,4 +113,4 @@ export function getRemoteSafeCommands(commands: Command[]): Command[] {
  * 过滤命令列表供远程模式使用
  * (re-export from bridgeSafety for backward compatibility)
  */
-export { filterCommandsForRemoteMode } from './bridgeSafety.js'
+export { filterCommandsForRemoteMode } from './bridgeSafety.ts'

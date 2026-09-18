@@ -1,2 +1,2 @@
-export * as repair from './repair/index.js';
-export * from './types.js';
+export * as repair from './repair/index.ts';
+export * from './types.ts';

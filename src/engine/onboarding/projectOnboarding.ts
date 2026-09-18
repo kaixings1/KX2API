@@ -4,7 +4,7 @@
  * 吸收自 D:\src\projectOnboardingState.ts
  */
 
-import type { Step } from './types.js'
+import type { Step } from './types.ts'
 
 export function getSteps(hasClaudeMd: boolean, isWorkspaceDirEmpty: boolean): Step[] {
   return [

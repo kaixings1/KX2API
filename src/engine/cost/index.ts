@@ -36,10 +36,10 @@ export {
   formatTotalCost,
   resetStateForTests,
   recordApiUsage,
-} from './costTracker.js'
+} from './costTracker.ts'
 
 export {
   type ModelPricing,
   MODEL_PRICING,
   calculateCost,
-} from './pricing.js'
+} from './pricing.ts'

@@ -1,5 +1,5 @@
-import { distance } from './levenshtein.js';
-import type { RepairAction } from '../types.js';
+import { distance } from './levenshtein.ts';
+import type { RepairAction } from '../types.ts';
 
 function camelToSnake(s: string): string {
 	return s.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();

@@ -3,10 +3,10 @@
  */
 export {
   historyManager,
-} from './historyManager.js'
+} from './historyManager.ts'
 export type {
   TimestampedHistoryEntry,
-} from './historyManager.js'
+} from './historyManager.ts'
 export {
   parseReferences,
   formatPastedTextRef,
@@ -19,4 +19,4 @@ export {
   type PasteReference,
   type UrlReference,
   type ReferenceType,
-} from './references.js'
+} from './references.ts'

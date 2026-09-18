@@ -28,7 +28,7 @@ import {
   getModelUsage,
   getStoredState,
   type FpsMetrics,
-} from './costTracker.js'
+} from './costTracker.ts'
 
 export interface CostSummaryData {
   totalCostUSD: number

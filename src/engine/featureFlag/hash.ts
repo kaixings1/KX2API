@@ -4,7 +4,7 @@
  * 实现 hash()、getHashAttribute()、getStickyBucketAttributeKey() 等。
  */
 
-import { murmurHash3 } from './growthBook.js'
+import { murmurHash3 } from './growthBook.ts'
 
 /** 哈希字符串 */
 export function hash(str: string): string {

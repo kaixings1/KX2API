@@ -4,7 +4,7 @@
  * 统一组装系统级上下文：git 状态、平台信息、注入、Glossary 等。
  */
 
-import { getSystemPromptInjection } from './promptInjection.js'
+import { getSystemPromptInjection } from './promptInjection.ts'
 
 /** Git 状态获取 */
 export async function getGitStatus(): Promise<string | null> {

@@ -4,7 +4,7 @@
  * 实现记忆文件扫描、CLAUDE.md 外部引用解析等功能。
  */
 
-import type { MemoryFile } from '../utils/claudeMd.js'
+import type { MemoryFile } from '../utils/claudeMd.ts'
 
 /** 检测是否处于 bare 模式 */
 export function isBareMode(): boolean {

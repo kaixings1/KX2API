@@ -4,8 +4,8 @@
  * 吸收自 D:\src\tasks.ts 的任务管理能力。
  */
 
-import type { TaskHandle, TaskProgress, TaskStateBase, TaskType, TaskStatus } from './types.js'
-import { isTerminalTaskStatus } from './types.js'
+import type { TaskHandle, TaskProgress, TaskStateBase, TaskType, TaskStatus } from './types.ts'
+import { isTerminalTaskStatus } from './types.ts'
 
 /** 任务条目 */
 interface TaskEntry {

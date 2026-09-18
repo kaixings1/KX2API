@@ -4,7 +4,7 @@
  * 实现 prefetchPayload() 和本地缓存策略。
  */
 
-import type { Feature } from './types.js'
+import type { Feature } from './types.ts'
 
 /** 远程 API 响应 */
 export interface FeatureApiResponse {

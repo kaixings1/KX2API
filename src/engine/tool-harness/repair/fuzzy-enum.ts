@@ -1,5 +1,5 @@
-import { distance } from './levenshtein.js';
-import type { RepairAction } from '../types.js';
+import { distance } from './levenshtein.ts';
+import type { RepairAction } from '../types.ts';
 
 export function fuzzyMatchEnums(
 	input: Record<string, unknown>,

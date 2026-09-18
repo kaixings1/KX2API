@@ -4,8 +4,8 @@
  * 实现 getMcpSkillCommands()、getSkillToolCommands()、getSlashCommandToolSkills()。
  */
 
-import type { Command } from './types.js'
-import type { Tool } from '../toolScheduler.js'
+import type { Command } from './types.ts'
+import type { Tool } from '../toolScheduler.ts'
 
 /** MCP 命令前缀 */
 const MCP_PREFIX = 'mcp:'

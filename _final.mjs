@@ -9,7 +9,7 @@ function run(label, cmd, args) {
   })
   const out = (r.stdout || '') + (r.stderr || '')
   console.log(`\n===== ${label} (exit=${r.status}) =====`)
-  console.log(out.split('\n').slice(-9).join('\n'))
+  console.log(out.split('\n').slice(-8).join('\n'))
   return r.status ?? 1
 }
 
@@ -23,5 +23,5 @@ res.push(['BUILD', run('BUILD', process.execPath, [resolve('node_modules/electro
 
 console.log('\n\n========== SUMMARY ==========')
 for (const [n, c] of res) console.log(`${c === 0 ? 'PASS' : 'FAIL'}  ${n} (exit=${c})`)
-rmSync('_fin.mjs', { force: true })
+rmSync('_final.mjs', { force: true })
 process.exit(0)

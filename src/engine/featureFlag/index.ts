@@ -5,26 +5,26 @@ export {
   GrowthBook,
   createGrowthBook,
   murmurHash3,
-} from './growthBook.js'
+} from './growthBook.ts'
 
 export type {
   Feature,
   FeatureRule,
   FeatureResult,
   GrowthBookOptions,
-} from './types.js'
+} from './types.ts'
 
 export {
   getHashAttribute,
   getStickyBucketAttributeKey,
   isIncluded,
-} from './hash.js'
+} from './hash.ts'
 
 export type {
   Experiment,
   ExperimentResult,
   ExperimentStatus,
-} from './experiments.js'
+} from './experiments.ts'
 
 export {
   runExperiment,
@@ -32,7 +32,7 @@ export {
   saveExperimentResult,
   getAllExperimentResults,
   getExperimentDedupeKey,
-} from './experiments.js'
+} from './experiments.ts'
 
 export type {
   StickyBucketService,
@@ -40,21 +40,21 @@ export type {
   CookieAttributes,
   JsCookiesCompat,
   IORedisCompat,
-} from './stickyBucket.js'
+} from './stickyBucket.ts'
 
 export {
   prefetchPayload,
   clearPrefetchCache,
-} from './prefetch.js'
+} from './prefetch.ts'
 
 export type {
   FeatureApiResponse,
-} from './prefetch.js'
+} from './prefetch.ts'
 
 export type {
   FeatureRepositoryHelpers,
-} from './repositoryHelpers.js'
+} from './repositoryHelpers.ts'
 
 export {
   createFeatureRepositoryHelpers,
-} from './repositoryHelpers.js'
+} from './repositoryHelpers.ts'

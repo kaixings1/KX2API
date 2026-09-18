@@ -8,7 +8,7 @@
  * KX2API 版已适配现有工具系统（utils/tasks.ts + orchestrator/teamRunner.ts）。
  */
 
-import type { Task } from './utils/tasks.js'
+import type { Task } from './utils/tasks.ts'
 import {
   listTasks,
   claimTask,
@@ -16,10 +16,10 @@ import {
   getTaskListId,
   onTasksUpdated,
   notifyTasksUpdated,
-} from './utils/tasks.js'
-import { createTeamRunner, type TeamRunner } from './orchestrator/teamRunner.js'
-import { type OrchestratorConfig } from './orchestrator/messages.js'
-import { logForDebugging } from './utils/debug.js'
+} from './utils/tasks.ts'
+import { createTeamRunner, type TeamRunner } from './orchestrator/teamRunner.ts'
+import { type OrchestratorConfig } from './orchestrator/messages.ts'
+import { logForDebugging } from './utils/debug.ts'
 
 // ---------------------------------------------------------------------------
 // Types

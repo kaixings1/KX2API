@@ -27,7 +27,7 @@
  *   - 正则：符号提取（复用 repoMap 的 SYMBOL_REGEX）
  */
 
-import { SYMBOL_REGEX, type SymbolKind, type SymbolEntry, ripGrep, getFsImplementation, expandPath } from './repoMap.js'
+import { SYMBOL_REGEX, type SymbolKind, type SymbolEntry, ripGrep, getFsImplementation, expandPath } from './repoMap.ts'
 
 // ============================================================================
 // Types

@@ -4,9 +4,9 @@
  * 实现 helpers 对象：getVisibleFeatures, getEvaluatedFeatures, refreshFeatures。
  */
 
-import { createGrowthBook, type GrowthBook } from './growthBook.js'
-import type { FeatureResult } from './types.js'
-import type { Feature } from './types.js'
+import { createGrowthBook, type GrowthBook } from './growthBook.ts'
+import type { FeatureResult } from './types.ts'
+import type { Feature } from './types.ts'
 
 /** 仓库 helpers 接口 */
 export interface FeatureRepositoryHelpers {

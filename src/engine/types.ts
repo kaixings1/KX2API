@@ -4,4 +4,4 @@
  * 为工具目录提供统一的类型导入路径。
  */
 
-export type { Tool } from './toolScheduler.js';
+export type { Tool } from './toolScheduler.ts';

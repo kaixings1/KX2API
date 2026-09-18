@@ -26,8 +26,8 @@
  * 这些**全都可以在本地纠正**，不必让模型重试一次（每次重试都是一轮 API 调用）。
  */
 
-import { normalizeKeys } from './repair/key-normalize.js'
-import { repairJSON } from './repair/json-repair.js'
+import { normalizeKeys } from './repair/key-normalize.ts'
+import { repairJSON } from './repair/json-repair.ts'
 
 export interface SchemaRepairAction {
   field: string

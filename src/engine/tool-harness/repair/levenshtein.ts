@@ -1,4 +1,4 @@
-import type { RepairAction } from '../types.js';
+import type { RepairAction } from '../types.ts';
 
 /**
  * Built-in Levenshtein distance implementation.

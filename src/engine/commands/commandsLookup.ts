@@ -4,7 +4,7 @@
  * 实现 getCommand()、findCommand()、hasCommand()、formatDescriptionWithSource()。
  */
 
-import type { Command } from './types.js'
+import type { Command } from './types.ts'
 
 /** 统一命令获取接口（精确 -> 别名 -> 前缀匹配） */
 export function getCommand(name: string, commands: Command[]): Command | undefined {

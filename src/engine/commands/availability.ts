@@ -4,7 +4,7 @@
  * 实现 meetsAvailabilityRequirement() 和 filterCommandsByAvailability()。
  */
 
-import type { Command, AvailabilityRequirement } from './types.js'
+import type { Command, AvailabilityRequirement } from './types.ts'
 
 /** 检查命令是否满足可用性要求 */
 export function meetsAvailabilityRequirement(req: AvailabilityRequirement): boolean {

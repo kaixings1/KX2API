@@ -4,7 +4,7 @@
  * 基于 toolFileStore.ts 构建，对外提供统一的单例接口。
  */
 
-import { toolFileStore } from './toolFileStore.js'
+import { toolFileStore } from './toolFileStore.ts'
 
 export class ToolFileStoreManager {
   private static _instance: ToolFileStoreManager | null = null

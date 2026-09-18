@@ -8,7 +8,7 @@
  *   - do_replace() → replaceContent()
  */
 
-import { findSimilarFile } from '../../utils/file.js';
+import { findSimilarFile } from '../../utils/file.ts';
 
 export type EditBlock = {
   path: string;

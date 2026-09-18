@@ -11,4 +11,4 @@ export {
   type TestedObj,
   type SavedGroupsValues,
   type Operator,
-} from './mongrule.js'
+} from './mongrule.ts'

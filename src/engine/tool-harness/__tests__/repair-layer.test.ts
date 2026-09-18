@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	synonymMatchEnums,
 	buildSynonymTable,
-} from '../repair/synonym-table.js';
+} from '../repair/synonym-table.ts';
 
 describe('buildSynonymTable', () => {
 	it('creates lowercase and spaced variants', () => {

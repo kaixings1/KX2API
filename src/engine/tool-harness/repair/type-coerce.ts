@@ -1,4 +1,4 @@
-import type { RepairAction } from '../types.js';
+import type { RepairAction } from '../types.ts';
 
 const BOOL_MAP: Record<string, boolean> = {
 	true: true,

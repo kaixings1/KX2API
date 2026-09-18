@@ -4,9 +4,9 @@
  * 实现 getAllBaseTools() 和 filterToolsByDenyRules()。
  */
 
-import type { Tool } from '../toolScheduler.js'
-import type { PresetId } from './presets.js'
-import { TOOL_PRESETS } from './presets.js'
+import type { Tool } from '../toolScheduler.ts'
+import type { PresetId } from './presets.ts'
+import { TOOL_PRESETS } from './presets.ts'
 
 /** Deny 规则 */
 export interface DenyRule {
@@ -52,7 +52,7 @@ function matchesDenyRule(tool: Tool, rule: DenyRule): boolean {
   return false
 }
 
-export type { PresetId } from './presets.js'
+export type { PresetId } from './presets.ts'
 
 /**
  * 按预设过滤工具。

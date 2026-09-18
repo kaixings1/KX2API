@@ -7,10 +7,10 @@
  */
 
 import { runInit } from './init.ts'
-import type { Command, CommandResult } from './types.js'
+import type { Command, CommandResult } from './types.ts'
 
 // Re-export for backward compatibility (other modules import Command from registry.ts)
-export type { Command, CommandResult } from './types.js'
+export type { Command, CommandResult } from './types.ts'
 
 export class CommandRegistry {
   private commands = new Map<string, Command>()

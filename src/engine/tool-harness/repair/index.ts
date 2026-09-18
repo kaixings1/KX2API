@@ -1,14 +1,14 @@
-import type { RepairAction } from '../types.js';
-import { injectDefaults } from './defaults.js';
-import { fuzzyMatchEnums } from './fuzzy-enum.js';
-import { normalizeKeys } from './key-normalize.js';
-import { semanticMatchEnums } from './semantic-enum.js';
-import { buildStructuredError, type StructuredToolError } from './structured-error.js';
-import { synonymMatchEnums } from './synonym-table.js';
-import { coerceTypes } from './type-coerce.js';
-import { repairJSON } from './json-repair.js';
+import type { RepairAction } from '../types.ts';
+import { injectDefaults } from './defaults.ts';
+import { fuzzyMatchEnums } from './fuzzy-enum.ts';
+import { normalizeKeys } from './key-normalize.ts';
+import { semanticMatchEnums } from './semantic-enum.ts';
+import { buildStructuredError, type StructuredToolError } from './structured-error.ts';
+import { synonymMatchEnums } from './synonym-table.ts';
+import { coerceTypes } from './type-coerce.ts';
+import { repairJSON } from './json-repair.ts';
 
-export { repairJSON } from './json-repair.js';
+export { repairJSON } from './json-repair.ts';
 
 type LayerDef = {
 	name: string;

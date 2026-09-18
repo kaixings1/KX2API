@@ -10,8 +10,8 @@
 
 import { readFile } from 'node:fs/promises'
 
-import { extractSymbols, tokenize, analyzeQuery } from './semanticSearch.js'
-import { buildKnowledgeGraph, type GraphNode, type GraphEdge } from './knowledgeGraph.js'
+import { extractSymbols, tokenize, analyzeQuery } from './semanticSearch.ts'
+import { buildKnowledgeGraph, type GraphNode, type GraphEdge } from './knowledgeGraph.ts'
 
 // ============================================================================
 // Types

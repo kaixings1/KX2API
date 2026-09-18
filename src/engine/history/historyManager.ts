@@ -4,7 +4,7 @@
  * 吸收自 D:\src\history.ts 的时间戳历史和 CRUD 操作。
  */
 
-import type { Reference } from './references.js'
+import type { Reference } from './references.ts'
 
 /** 带时间戳的历史条目 */
 export interface TimestampedHistoryEntry {

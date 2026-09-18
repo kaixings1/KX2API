@@ -1,5 +1,5 @@
-import type { RepairAction } from '../types.js';
-import { ABBREVIATIONS } from './semantic-enum.js';
+import type { RepairAction } from '../types.ts';
+import { ABBREVIATIONS } from './semantic-enum.ts';
 
 /**
  * Expand known abbreviations in a space-separated word string.

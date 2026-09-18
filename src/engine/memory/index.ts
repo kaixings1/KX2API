@@ -7,7 +7,7 @@ export {
   MAX_ENTRY_CHARS,
   MAX_ENTRIES,
   type SessionMemoryEntry,
-} from './sessionMemory.js'
+} from './sessionMemory.ts'
 export {
   recallMemories,
   formatMemoriesForPrompt,
@@ -31,4 +31,4 @@ export {
   type RecalledMemory,
   type RecallOptions,
   type MemoryRecallLimits,
-} from './memoryRecall.js'
+} from './memoryRecall.ts'

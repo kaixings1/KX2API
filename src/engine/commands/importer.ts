@@ -6,7 +6,7 @@
  */
 
 import { commandRegistry } from './registry.ts'
-import type { Command } from './types.js'
+import type { Command } from './types.ts'
 
 export async function importCommands(): Promise<number> {
   // 所有命令已在 registry.ts 中注册，返回总数

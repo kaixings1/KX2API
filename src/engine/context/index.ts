@@ -1,9 +1,9 @@
 /**
  * engine/context/index.ts — 上下文系统 barrel export
  */
-export { getSystemPromptInjection, setSystemPromptInjection } from './promptInjection.js'
-export type { SystemContextData } from './systemContext.js'
-export { getSystemContext } from './systemContext.js'
+export { getSystemPromptInjection, setSystemPromptInjection } from './promptInjection.ts'
+export type { SystemContextData } from './systemContext.ts'
+export { getSystemContext } from './systemContext.ts'
 export {
   isBareMode,
   getAdditionalDirectoriesForClaudeMd,
@@ -12,6 +12,6 @@ export {
   setCachedClaudeMdContent,
   getCachedClaudeMdContent,
   getCachedClaudeMdPath,
-} from './claudeMd.js'
-export type { UserContextData } from './userContext.js'
-export { getUserContext, clearUserContextCache } from './userContext.js'
+} from './claudeMd.ts'
+export type { UserContextData } from './userContext.ts'
+export { getUserContext, clearUserContextCache } from './userContext.ts'

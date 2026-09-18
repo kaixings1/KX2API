@@ -4,10 +4,10 @@
  * 实现 assembleToolPool() 和 getMergedTools()。
  */
 
-import type { Tool } from '../toolScheduler.js'
-import { getAllBaseTools } from './baseToolsFilter.js'
-import type { DenyRule, PresetId } from './baseToolsFilter.js'
-import { getToolsForPreset } from './baseToolsFilter.js'
+import type { Tool } from '../toolScheduler.ts'
+import { getAllBaseTools } from './baseToolsFilter.ts'
+import type { DenyRule, PresetId } from './baseToolsFilter.ts'
+import { getToolsForPreset } from './baseToolsFilter.ts'
 
 /** 工具池 */
 export interface ToolPool {

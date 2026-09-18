@@ -1,5 +1,5 @@
 import { jsonrepair } from 'jsonrepair';
-import type { RepairAction } from '../types.js';
+import type { RepairAction } from '../types.ts';
 
 export function repairJSON(
 	raw: string,
