@@ -31,6 +31,10 @@ import {
   hasUnknownModelCost,
   getCostCounter,
   setLastDuration,
+  formatCost,
+  formatTotalCost,
+  resetStateForTests,
+  setHasUnknownModelCost,
 } from '../../src/engine/cost/costTracker.ts'
 
 function usage(input: number, output: number) {
@@ -200,5 +204,99 @@ describe('状态快照与恢复', () => {
     restoreCostState({ lastSessionId: 'sess-1' } as never)
     resetCostState()
     assert.equal(getStoredState().lastSessionId, 'sess-1')
+  })
+})
+
+describe('formatCost — 费用格式化', () => {
+  test('零费用显示 $0.00', () => {
+    assert.equal(formatCost(0), '$0.00')
+  })
+
+  test('小额保留 4 位（避免全部显示为 $0.00）', () => {
+    assert.equal(formatCost(0.0001), '$0.0001')
+    assert.equal(formatCost(0.005), '$0.0050')
+  })
+
+  test('中等额保留 3 位', () => {
+    assert.equal(formatCost(0.123), '$0.123')
+  })
+
+  test('大于 1 保留 2 位', () => {
+    assert.equal(formatCost(1.2345), '$1.23')
+    assert.equal(formatCost(12.5), '$12.50')
+  })
+
+  test('非有限值显示 $?（提示价格表缺失，而非误导为 0）', () => {
+    assert.equal(formatCost(Number.NaN), '$?')
+    assert.equal(formatCost(Infinity), '$?')
+  })
+
+  test('负数（可能的退款/校正）也可格式化', () => {
+    assert.equal(formatCost(-0.5), '$-0.500')
+  })
+})
+
+describe('formatTotalCost — 总计格式化', () => {
+  beforeEach(() => resetStateForTests())
+
+  test('无调用记录时给出提示', () => {
+    const s = formatTotalCost()
+    assert.ok(s.includes('总费用：$0.00'), s)
+    assert.ok(s.includes('暂无调用记录'), s)
+  })
+
+  test('包含各模型明细与 token 计数', () => {
+    addModelUsage('gpt-4o', usage(1200, 800), 0.018)
+    const s = formatTotalCost()
+    assert.ok(s.includes('gpt-4o'), s)
+    assert.ok(s.includes('1,200 in'), s)
+    assert.ok(s.includes('800 out'), s)
+  })
+
+  test('存在未知成本时给出告警行', () => {
+    addModelUsage('未知模型', usage(100, 100), 0)
+    const s = formatTotalCost()
+    assert.ok(s.includes('未知模型成本'), s)
+  })
+
+  test('按费用降序排列明细', () => {
+    addModelUsage('cheap', usage(100, 100), 0.001)
+    addModelUsage('expensive', usage(100, 100), 9)
+    const s = formatTotalCost()
+    assert.ok(s.indexOf('expensive') < s.indexOf('cheap'), '费用高的应排在前面')
+  })
+})
+
+describe('setHasUnknownModelCost — 显式标志', () => {
+  beforeEach(() => resetStateForTests())
+
+  test('设置后 hasUnknownModelCost 为真（即使无任何用量）', () => {
+    assert.equal(hasUnknownModelCost(), false)
+    setHasUnknownModelCost(true)
+    assert.equal(hasUnknownModelCost(), true)
+  })
+
+  test('resetStateForTests 清掉显式标志', () => {
+    setHasUnknownModelCost(true)
+    resetStateForTests()
+    assert.equal(hasUnknownModelCost(), false)
+  })
+
+  test('resetCostState 不清显式标志（保留会话级判断）', () => {
+    setHasUnknownModelCost(true)
+    resetCostState()
+    assert.equal(hasUnknownModelCost(), true)
+    setHasUnknownModelCost(false)
+  })
+})
+
+describe('resetStateForTests — 测试隔离', () => {
+  test('清空所有计数与 lastSessionId', () => {
+    addModelUsage('gpt-4o', usage(100, 100), 0.01)
+    restoreCostState({ lastSessionId: 'sess-x' } as never)
+    resetStateForTests()
+    assert.equal(getTotalCostUSD(), 0)
+    assert.equal(getCostCounter(), 0)
+    assert.equal(getStoredState().lastSessionId, void 0)
   })
 })

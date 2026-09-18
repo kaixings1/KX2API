@@ -32,6 +32,9 @@ export {
   setHasUnknownModelCost,
   hasUnknownModelCost,
   getCostCounter,
+  formatCost,
+  formatTotalCost,
+  resetStateForTests,
 } from './costTracker.js'
 
 export {

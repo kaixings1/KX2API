@@ -210,11 +210,20 @@ export function setCostStateForRestore(data: StoredCostState): void {
   restoreCostState(data)
 }
 
-export function setHasUnknownModelCost(_value: boolean): void {
-  // KX2API 实现：标记未知模型成本
+/**
+ * 显式标记「存在未知模型成本」。
+ *
+ * 除推导式判定外，调用方有时能直接知道「这个模型没有价格」（例如
+ * 价格表查找失败）。用一个显式标志兜住这类情况，避免只靠启发式推导漏报。
+ */
+let _hasUnknownModelCostFlag = false
+
+export function setHasUnknownModelCost(value: boolean): void {
+  _hasUnknownModelCostFlag = value
 }
 
 export function hasUnknownModelCost(): boolean {
+  if (_hasUnknownModelCostFlag) return true
   // 检查是否有任何模型「用了 token 但算不出钱」：成本为 0 或非有限值（NaN）。
   //
   // 原实现只判 `costUSD === 0`，而价格表缺失的模型走的是 NaN 路径
@@ -228,6 +237,66 @@ export function hasUnknownModelCost(): boolean {
 
 export function getCostCounter(): number {
   return Object.keys(state.modelUsage).length
+}
+
+// ─── 费用格式化 ───
+
+/**
+ * 格式化单笔费用为 `$X.XX` 形式的可读字符串。
+ *
+ * 小额（< 0.01）保留更多小数位：API 单次调用常在 $0.0001 量级，
+ * 一律两位小数会全部显示为 `$0.00`，等于看不到任何信息。
+ * 非有限值单独显示为 `$?`，提示价格表缺失（而非误导性地显示 0）。
+ */
+export function formatCost(cost: number): string {
+  if (!Number.isFinite(cost)) return '$?'
+  if (cost === 0) return '$0.00'
+  const abs = Math.abs(cost)
+  if (abs < 0.01) return `$${cost.toFixed(4)}`
+  if (abs < 1) return `$${cost.toFixed(3)}`
+  return `$${cost.toFixed(2)}`
+}
+
+/**
+ * 格式化总费用（含模型明细）。
+ *
+ * 形如：
+ *   总费用：$0.1234
+ *     gpt-4o            $0.1000  1,200 in / 800 out
+ *     claude-3-haiku    $0.0234  5,000 in / 0 out
+ *   未知模型成本：存在（价格表可能缺失）
+ */
+export function formatTotalCost(): string {
+  const lines: string[] = [`总费用：${formatCost(state.totalCostUSD)}`]
+  const entries = Object.entries(state.modelUsage)
+    .sort((a, b) => b[1].costUSD - a[1].costUSD)
+
+  for (const [model, u] of entries) {
+    lines.push(
+      `  ${model.padEnd(24)} ${formatCost(u.costUSD).padStart(9)}  ` +
+        `${u.inputTokens.toLocaleString()} in / ${u.outputTokens.toLocaleString()} out`,
+    )
+  }
+
+  if (entries.length === 0) {
+    lines.push('  （暂无调用记录）')
+  }
+  if (hasUnknownModelCost()) {
+    lines.push('未知模型成本：存在（价格表可能缺失，费用统计不完整）')
+  }
+  return lines.join('\n')
+}
+
+/**
+ * 重置所有状态（含显式标志）。测试专用。
+ *
+ * 与 `resetCostState()` 的区别：后者保留 `lastSessionId`（跨会话标识），
+ * 且不清 `hasUnknownModelCost` 的显式标志 —— 测试需要完全干净的初始态。
+ */
+export function resetStateForTests(): void {
+  resetCostState()
+  state.lastSessionId = undefined
+  _hasUnknownModelCostFlag = false
 }
 
 /** FPS 指标（可选） */
