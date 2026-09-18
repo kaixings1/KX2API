@@ -14,12 +14,14 @@
  *
  * 运行：node --import tsx --test tests/engine/bootstrap-macro.test.ts
  */
-import { test, describe } from 'node:test'
+import { test, describe, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { ensureBootstrapMacro } from '../../src/engine/bootstrap/macro.ts'
+import { setup, resetSetupState } from '../../src/engine/bootstrap/setup.ts'
+import { getToolResultsDir } from '../../src/engine/toolResultStore.ts'
 
 const pkgVersion = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf-8')).version as string
 
@@ -51,5 +53,40 @@ describe('ensureBootstrapMacro', () => {
     const macro = (globalThis as Record<string, unknown>).MACRO as { BUILD_TIME?: string }
     // 未设置时为 undefined，设置时应透传（此处只验证形状）
     assert.ok(macro.BUILD_TIME === undefined || typeof macro.BUILD_TIME === 'string')
+  })
+})
+
+describe('setup — 引擎启动初始化', () => {
+  beforeEach(() => resetSetupState())
+
+  test('首次调用不抛错', async () => {
+    await assert.doesNotReject(() => setup())
+  })
+
+  test('幂等：同一 sessionId 重复调用不抛错', async () => {
+    await setup({ sessionId: 's1' })
+    await assert.doesNotReject(() => setup({ sessionId: 's1' }))
+  })
+
+  test('初始化后工具结果目录已就绪', async () => {
+    await setup({ sessionId: 's-dir' })
+    const dir = getToolResultsDir()
+    assert.ok(typeof dir === 'string' && dir.length > 0, `应设置落盘目录，实际 ${dir}`)
+  })
+
+  test('显式指定 toolResultsDir 时采用该目录', async () => {
+    const custom = join(process.cwd(), '.kx2-test-results')
+    await setup({ sessionId: 's-custom', toolResultsDir: custom })
+    assert.ok(getToolResultsDir().includes('.kx2-test-results'), getToolResultsDir())
+  })
+
+  test('skipMacro 时不初始化宏也不抛错', async () => {
+    await assert.doesNotReject(() => setup({ sessionId: 's-nomacro', skipMacro: true }))
+  })
+
+  test('不同 sessionId 各自初始化', async () => {
+    await setup({ sessionId: 'a', toolResultsDir: join(process.cwd(), '.r-a') })
+    await setup({ sessionId: 'b', toolResultsDir: join(process.cwd(), '.r-b') })
+    assert.ok(getToolResultsDir().includes('.r-b'), '后一次显式配置应生效')
   })
 })
