@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/proxy/prompt`
 - **孤儿数**：10（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,17 +22,21 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+归档 10（9 个旧 .d.ts + 零引用 barrel）；variants/types/variantSelector 保留（被测试与 DefaultPromptAdapter 引用）
+
 ## 清单（10）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/proxy/prompt/index.d.ts` | | — |
-| [ ] | `src/main/proxy/prompt/index.ts` | | — |
-| [ ] | `src/main/proxy/prompt/types.d.ts` | | — |
-| [ ] | `src/main/proxy/prompt/variantSelector.d.ts` | | — |
-| [ ] | `src/main/proxy/prompt/variants/deepseek.d.ts` | | — |
-| [ ] | `src/main/proxy/prompt/variants/default.d.ts` | | — |
-| [ ] | `src/main/proxy/prompt/variants/glm.d.ts` | | — |
-| [ ] | `src/main/proxy/prompt/variants/index.d.ts` | | — |
-| [ ] | `src/main/proxy/prompt/variants/qwen.d.ts` | | — |
-| [ ] | `src/main/proxy/prompt/variants/xml.d.ts` | | — |
+| [x] | `src/main/proxy/prompt/index.d.ts` | | — |
+| [x] | `src/main/proxy/prompt/index.ts` | | — |
+| [x] | `src/main/proxy/prompt/types.d.ts` | | — |
+| [x] | `src/main/proxy/prompt/variantSelector.d.ts` | | — |
+| [x] | `src/main/proxy/prompt/variants/deepseek.d.ts` | | — |
+| [x] | `src/main/proxy/prompt/variants/default.d.ts` | | — |
+| [x] | `src/main/proxy/prompt/variants/glm.d.ts` | | — |
+| [x] | `src/main/proxy/prompt/variants/index.d.ts` | | — |
+| [x] | `src/main/proxy/prompt/variants/qwen.d.ts` | | — |
+| [x] | `src/main/proxy/prompt/variants/xml.d.ts` | | — |

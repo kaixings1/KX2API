@@ -484,6 +484,7 @@ export function registerChatHandlers(): void {
         baseUrl: engineCfg.baseUrl,
         ...(engineCfg.systemPrompt ? { systemPrompt: engineCfg.systemPrompt } : {}),
         ...(engineCfg.promptGroups ? { promptGroups: engineCfg.promptGroups } : {}),
+        ...(engineCfg.toolFormat ? { toolFormat: engineCfg.toolFormat } : {}),
       })
 
       // 统一使用 syncProfileApiKey 同步到代理认证列表
@@ -710,6 +711,7 @@ export function registerChatHandlers(): void {
         baseUrl: preset.baseURL,
         apiKey: preset.apiKey,
         model: preset.model,
+        ...(preset.toolFormat ? { toolFormat: preset.toolFormat } : {}),
       })
 
       // 5. 通知前端配置已变更

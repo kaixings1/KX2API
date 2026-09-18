@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/providers`
 - **孤儿数**：14（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,21 +22,25 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+归档 14（13 个旧 .d.ts + 零引用 barrel）；builtin/index.ts 保留（被 store/types.ts 引用）
+
 ## 清单（14）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/providers/builtin/deepseek.d.ts` | | — |
-| [ ] | `src/main/providers/builtin/glm.d.ts` | | — |
-| [ ] | `src/main/providers/builtin/index.d.ts` | | — |
-| [ ] | `src/main/providers/builtin/kimi.d.ts` | | — |
-| [ ] | `src/main/providers/builtin/mimo.d.ts` | | — |
-| [ ] | `src/main/providers/builtin/minimax.d.ts` | | — |
-| [ ] | `src/main/providers/builtin/perplexity.d.ts` | | — |
-| [ ] | `src/main/providers/builtin/qwen-ai.d.ts` | | — |
-| [ ] | `src/main/providers/builtin/qwen.d.ts` | | — |
-| [ ] | `src/main/providers/builtin/stepfun.d.ts` | | — |
-| [ ] | `src/main/providers/builtin/zai.d.ts` | | — |
-| [ ] | `src/main/providers/checker.d.ts` | | — |
-| [ ] | `src/main/providers/custom.d.ts` | | — |
-| [ ] | `src/main/providers/index.ts` | | — |
+| [x] | `src/main/providers/builtin/deepseek.d.ts` | | — |
+| [x] | `src/main/providers/builtin/glm.d.ts` | | — |
+| [x] | `src/main/providers/builtin/index.d.ts` | | — |
+| [x] | `src/main/providers/builtin/kimi.d.ts` | | — |
+| [x] | `src/main/providers/builtin/mimo.d.ts` | | — |
+| [x] | `src/main/providers/builtin/minimax.d.ts` | | — |
+| [x] | `src/main/providers/builtin/perplexity.d.ts` | | — |
+| [x] | `src/main/providers/builtin/qwen-ai.d.ts` | | — |
+| [x] | `src/main/providers/builtin/qwen.d.ts` | | — |
+| [x] | `src/main/providers/builtin/stepfun.d.ts` | | — |
+| [x] | `src/main/providers/builtin/zai.d.ts` | | — |
+| [x] | `src/main/providers/checker.d.ts` | | — |
+| [x] | `src/main/providers/custom.d.ts` | | — |
+| [x] | `src/main/providers/index.ts` | | — |

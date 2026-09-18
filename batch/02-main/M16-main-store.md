@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/store`
 - **孤儿数**：9（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,16 +22,20 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+归档 9（8 个旧 .d.ts + 零引用 barrel index.ts，initializeStore 无人调用）
+
 ## 清单（9）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/store/accounts.d.ts` | | — |
-| [ ] | `src/main/store/apiKeySync.d.ts` | | — |
-| [ ] | `src/main/store/config.d.ts` | | — |
-| [ ] | `src/main/store/index.d.ts` | | — |
-| [ ] | `src/main/store/index.ts` | | — |
-| [ ] | `src/main/store/providers.d.ts` | | — |
-| [ ] | `src/main/store/store.d.ts` | | — |
-| [ ] | `src/main/store/types.d.ts` | | — |
-| [ ] | `src/main/store/validator.d.ts` | | — |
+| [x] | `src/main/store/accounts.d.ts` | | — |
+| [x] | `src/main/store/apiKeySync.d.ts` | | — |
+| [x] | `src/main/store/config.d.ts` | | — |
+| [x] | `src/main/store/index.d.ts` | | — |
+| [x] | `src/main/store/index.ts` | | — |
+| [x] | `src/main/store/providers.d.ts` | | — |
+| [x] | `src/main/store/store.d.ts` | | — |
+| [x] | `src/main/store/types.d.ts` | | — |
+| [x] | `src/main/store/validator.d.ts` | | — |

@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/oauth`
 - **孤儿数**：21（D:\src 可靠来源 1 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,28 +22,32 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+归档 20（18 个旧 .d.ts + guides.ts 零引用 + 零引用 barrel index.ts）；kimi/stepfun/cookieSessionManager 等活文件保留
+
 ## 清单（21）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/oauth/__tests__/stepfun-session-token.test.ts` | | — |
-| [ ] | `src/main/oauth/adapters/base.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/deepseek.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/glm.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/index.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/kimi.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/mimo.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/minimax.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/perplexity.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/qwen-ai.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/qwen.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/stepfun.d.ts` | | — |
-| [ ] | `src/main/oauth/adapters/zai.d.ts` | | — |
-| [ ] | `src/main/oauth/guides.d.ts` | | — |
-| [ ] | `src/main/oauth/guides.ts` | | — |
-| [ ] | `src/main/oauth/inAppLogin.d.ts` | | — |
-| [ ] | `src/main/oauth/index.ts` | | `D:\src\services\\oauth\\index.ts`（high） |
-| [ ] | `src/main/oauth/kimiSessionManager.d.ts` | | — |
-| [ ] | `src/main/oauth/manager.d.ts` | | — |
-| [ ] | `src/main/oauth/tokenExtractionConfig.d.ts` | | — |
-| [ ] | `src/main/oauth/types.d.ts` | | — |
+| [x] | `src/main/oauth/__tests__/stepfun-session-token.test.ts` | | — |
+| [x] | `src/main/oauth/adapters/base.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/deepseek.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/glm.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/index.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/kimi.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/mimo.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/minimax.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/perplexity.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/qwen-ai.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/qwen.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/stepfun.d.ts` | | — |
+| [x] | `src/main/oauth/adapters/zai.d.ts` | | — |
+| [x] | `src/main/oauth/guides.d.ts` | | — |
+| [x] | `src/main/oauth/guides.ts` | | — |
+| [x] | `src/main/oauth/inAppLogin.d.ts` | | — |
+| [x] | `src/main/oauth/index.ts` | | `D:\src\services\\oauth\\index.ts`（high） |
+| [x] | `src/main/oauth/kimiSessionManager.d.ts` | | — |
+| [x] | `src/main/oauth/manager.d.ts` | | — |
+| [x] | `src/main/oauth/tokenExtractionConfig.d.ts` | | — |
+| [x] | `src/main/oauth/types.d.ts` | | — |

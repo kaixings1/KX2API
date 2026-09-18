@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/proxy/adapters`
 - **孤儿数**：30（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,37 +22,41 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+归档 29（10 个 *-stream.ts + 14 个旧 .d.ts + 4 个 .py + 零引用 barrel，已同步移除 barrel 导出）；browserToolExtractor 等活文件保留
+
 ## 清单（30）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/proxy/adapters/anthropic-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/coze-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/deepseek-stream.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/deepseek.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/fetch_stepfun.py` | | — |
-| [ ] | `src/main/proxy/adapters/glm.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/google-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/groq-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/index.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/index.ts` | | — |
-| [ ] | `src/main/proxy/adapters/kimi.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/mimo.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/minimax.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/mistral-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/ollama-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/openai-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/perplexity-stream.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/perplexity.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/providerModelOptions.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/qwen-ai.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/qwen.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/siliconcloud-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/stepfun-stream.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/stepfun.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/stepfun_download.py` | | — |
-| [ ] | `src/main/proxy/adapters/stepfun_download2.py` | | — |
-| [ ] | `src/main/proxy/adapters/stepfun_download3.py` | | — |
-| [ ] | `src/main/proxy/adapters/together-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/xai-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/zai.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/anthropic-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/coze-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/deepseek-stream.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/deepseek.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/fetch_stepfun.py` | | — |
+| [x] | `src/main/proxy/adapters/glm.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/google-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/groq-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/index.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/index.ts` | | — |
+| [x] | `src/main/proxy/adapters/kimi.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/mimo.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/minimax.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/mistral-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/ollama-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/openai-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/perplexity-stream.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/perplexity.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/providerModelOptions.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/qwen-ai.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/qwen.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/siliconcloud-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/stepfun-stream.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/stepfun.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/stepfun_download.py` | | — |
+| [x] | `src/main/proxy/adapters/stepfun_download2.py` | | — |
+| [x] | `src/main/proxy/adapters/stepfun_download3.py` | | — |
+| [x] | `src/main/proxy/adapters/together-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/xai-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/zai.d.ts` | | — |

@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/proxy/toolCalling`
 - **孤儿数**：31（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,38 +22,42 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+归档 28（24 个旧 .d.ts + 零引用 promptAdapters/index.ts）；browserToolExtractor/toolChoicePolicy/测试保留
+
 ## 清单（31）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/proxy/toolCalling/ToolCallingEngine.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/ToolStreamParser.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/__tests__/managedXml.toolname.test.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/browserToolExtractor.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/browserToolExtractor.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/clientAdapters/cherryStudioMcp.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/clientAdapters/index.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/clientAdapters/standardOpenAiTools.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/clientAdapters/types.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/diagnostics.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/historyGuard.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/promptAdapters/index.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/promptAdapters/index.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/protocols/anthropicToolUse.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/protocols/base.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/protocols/codexResponses.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/protocols/index.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/protocols/managedBracket.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/protocols/managedXml.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/protocols/shared.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/providerProfiles.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/runtimePlan.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/toolCallExtractor.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/toolChoicePolicy.d.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/toolChoicePolicy.ts` | | — |
-| [ ] | `src/main/proxy/toolCalling/types.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/ToolCallingEngine.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/ToolStreamParser.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/__tests__/managedXml.toolname.test.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/browserToolExtractor.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/browserToolExtractor.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/clientAdapters/cherryStudioMcp.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/clientAdapters/index.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/clientAdapters/standardOpenAiTools.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/clientAdapters/types.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/diagnostics.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/historyGuard.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/promptAdapters/index.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/promptAdapters/index.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/protocols/anthropicToolUse.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/protocols/base.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/protocols/codexResponses.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/protocols/index.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/protocols/managedBracket.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/protocols/managedXml.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/protocols/shared.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/providerProfiles.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/runtimePlan.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/toolCallExtractor.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/toolChoicePolicy.d.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/toolChoicePolicy.ts` | | — |
+| [x] | `src/main/proxy/toolCalling/types.d.ts` | | — |

@@ -400,6 +400,7 @@ export class ProfileManager {
     maxRepeat: number
     systemPrompt?: string
     promptGroups?: Record<string, unknown>
+    toolFormat?: 'xml' | 'json'
   } {
     return {
       provider: profile.provider,
@@ -411,6 +412,7 @@ export class ProfileManager {
       maxRepeat: profile.maxRepeat || 3,
       systemPrompt: profile.systemPrompt,
       promptGroups: profile.promptGroups,
+      toolFormat: profile.toolFormat,
     }
   }
 }

@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/proxy/routes`
 - **孤儿数**：14（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,21 +22,25 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+全部归档 14（纯旧 .d.ts，全部有同名 .ts）
+
 ## 清单（14）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/proxy/routes/chat.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/completions.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/index.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/management/accounts.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/management/apiKeys.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/management/config.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/management/index.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/management/modelMappings.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/management/providers.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/management/proxy.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/management/sessions.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/management/statistics.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/management/toolCalling.d.ts` | | — |
-| [ ] | `src/main/proxy/routes/models.d.ts` | | — |
+| [x] | `src/main/proxy/routes/chat.d.ts` | | — |
+| [x] | `src/main/proxy/routes/completions.d.ts` | | — |
+| [x] | `src/main/proxy/routes/index.d.ts` | | — |
+| [x] | `src/main/proxy/routes/management/accounts.d.ts` | | — |
+| [x] | `src/main/proxy/routes/management/apiKeys.d.ts` | | — |
+| [x] | `src/main/proxy/routes/management/config.d.ts` | | — |
+| [x] | `src/main/proxy/routes/management/index.d.ts` | | — |
+| [x] | `src/main/proxy/routes/management/modelMappings.d.ts` | | — |
+| [x] | `src/main/proxy/routes/management/providers.d.ts` | | — |
+| [x] | `src/main/proxy/routes/management/proxy.d.ts` | | — |
+| [x] | `src/main/proxy/routes/management/sessions.d.ts` | | — |
+| [x] | `src/main/proxy/routes/management/statistics.d.ts` | | — |
+| [x] | `src/main/proxy/routes/management/toolCalling.d.ts` | | — |
+| [x] | `src/main/proxy/routes/models.d.ts` | | — |

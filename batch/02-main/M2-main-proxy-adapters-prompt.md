@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/proxy/adapters/prompt`
 - **孤儿数**：12（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,19 +22,23 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+全部归档 12（adapters/prompt 整目录零外部引用 —— 被 toolCalling/promptAdapters 那套取代）
+
 ## 清单（12）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/proxy/adapters/prompt/BasePromptAdapter.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/BasePromptAdapter.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/CherryStudioPromptAdapter.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/CherryStudioPromptAdapter.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/DefaultPromptAdapter.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/DefaultPromptAdapter.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/KiloCodePromptAdapter.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/KiloCodePromptAdapter.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/PromptAdapterRegistry.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/PromptAdapterRegistry.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/index.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/prompt/index.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/BasePromptAdapter.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/BasePromptAdapter.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/CherryStudioPromptAdapter.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/CherryStudioPromptAdapter.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/DefaultPromptAdapter.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/DefaultPromptAdapter.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/KiloCodePromptAdapter.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/KiloCodePromptAdapter.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/PromptAdapterRegistry.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/PromptAdapterRegistry.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/index.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/prompt/index.ts` | | — |

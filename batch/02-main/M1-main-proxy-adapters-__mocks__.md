@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/proxy/adapters/__mocks__`
 - **孤儿数**：26（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,33 +22,37 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+全部归档 26（13 对 mock 文件，零引用且 vitest 无 mock 配置）
+
 ## 清单（26）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/proxy/adapters/__mocks__/deepseek-stream.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/deepseek-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/deepseek.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/deepseek.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/glm.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/glm.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/kimi.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/kimi.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/mimo.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/mimo.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/minimax.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/minimax.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/perplexity-stream.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/perplexity-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/perplexity.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/perplexity.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/qwen-ai.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/qwen-ai.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/qwen.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/qwen.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/stepfun-stream.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/stepfun-stream.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/stepfun.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/stepfun.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/zai.d.ts` | | — |
-| [ ] | `src/main/proxy/adapters/__mocks__/zai.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/deepseek-stream.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/deepseek-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/deepseek.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/deepseek.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/glm.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/glm.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/kimi.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/kimi.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/mimo.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/mimo.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/minimax.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/minimax.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/perplexity-stream.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/perplexity-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/perplexity.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/perplexity.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/qwen-ai.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/qwen-ai.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/qwen.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/qwen.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/stepfun-stream.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/stepfun-stream.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/stepfun.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/stepfun.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/zai.d.ts` | | — |
+| [x] | `src/main/proxy/adapters/__mocks__/zai.ts` | | — |

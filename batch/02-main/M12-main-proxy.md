@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/proxy`
 - **孤儿数**：14（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,21 +22,25 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+归档 13（12 个旧 .d.ts + 零引用 barrel）；apiKeyAuth.test.ts 保留（12 用例在跑）
+
 ## 清单（14）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/proxy/__tests__/apiKeyAuth.test.ts` | | — |
-| [ ] | `src/main/proxy/constants/signatures.d.ts` | | — |
-| [ ] | `src/main/proxy/dedup/index.d.ts` | | — |
-| [ ] | `src/main/proxy/forwarder.d.ts` | | — |
-| [ ] | `src/main/proxy/index.ts` | | — |
-| [ ] | `src/main/proxy/loadbalancer.d.ts` | | — |
-| [ ] | `src/main/proxy/middleware/managementAuth.d.ts` | | — |
-| [ ] | `src/main/proxy/modelMapper.d.ts` | | — |
-| [ ] | `src/main/proxy/promptToolUse.d.ts` | | — |
-| [ ] | `src/main/proxy/server.d.ts` | | — |
-| [ ] | `src/main/proxy/sessionManager.d.ts` | | — |
-| [ ] | `src/main/proxy/status.d.ts` | | — |
-| [ ] | `src/main/proxy/stream.d.ts` | | — |
-| [ ] | `src/main/proxy/types.d.ts` | | — |
+| [x] | `src/main/proxy/__tests__/apiKeyAuth.test.ts` | | — |
+| [x] | `src/main/proxy/constants/signatures.d.ts` | | — |
+| [x] | `src/main/proxy/dedup/index.d.ts` | | — |
+| [x] | `src/main/proxy/forwarder.d.ts` | | — |
+| [x] | `src/main/proxy/index.ts` | | — |
+| [x] | `src/main/proxy/loadbalancer.d.ts` | | — |
+| [x] | `src/main/proxy/middleware/managementAuth.d.ts` | | — |
+| [x] | `src/main/proxy/modelMapper.d.ts` | | — |
+| [x] | `src/main/proxy/promptToolUse.d.ts` | | — |
+| [x] | `src/main/proxy/server.d.ts` | | — |
+| [x] | `src/main/proxy/sessionManager.d.ts` | | — |
+| [x] | `src/main/proxy/status.d.ts` | | — |
+| [x] | `src/main/proxy/stream.d.ts` | | — |
+| [x] | `src/main/proxy/types.d.ts` | | — |

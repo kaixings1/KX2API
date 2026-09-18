@@ -26,6 +26,8 @@ export interface ConfigGroupData {
     savedModels?: string[]
     savedApiKeys?: string[]
     tokens?: Record<string, number>
+    /** 工具调用格式：xml（默认）或 json */
+    toolFormat?: 'xml' | 'json'
   }>
   activePreset?: string
 }

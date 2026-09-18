@@ -2,8 +2,8 @@
 
 - **目录**：`src/main/agent`
 - **孤儿数**：4（D:\src 可靠来源 0 个）
-- **状态**：⬜ 未开始
-- **完成时间**：—
+- **状态**：✅ 已完成
+- **完成时间**：2026-09-18
 
 ## 处置流程
 
@@ -22,11 +22,15 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
+## 处置结论
+
+全部归档（4 个旧 .d.ts）
+
 ## 清单（4）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [ ] | `src/main/agent/action/sampler.d.ts` | | — |
-| [ ] | `src/main/agent/action/types.d.ts` | | — |
-| [ ] | `src/main/agent/team/team.d.ts` | | — |
-| [ ] | `src/main/agent/team/types.d.ts` | | — |
+| [x] | `src/main/agent/action/sampler.d.ts` | | — |
+| [x] | `src/main/agent/action/types.d.ts` | | — |
+| [x] | `src/main/agent/team/team.d.ts` | | — |
+| [x] | `src/main/agent/team/types.d.ts` | | — |
