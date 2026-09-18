@@ -1,0 +1,6 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/api/client.ts(255,22): error TS2352: Conversion of type 'Message' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'Message'.
+src/engine/api/client.ts(614,20): error TS2352: Conversion of type 'Message' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Index signature for type 'string' is missing in type 'Message'.

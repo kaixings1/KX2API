@@ -440,6 +440,30 @@ export class ToolCallExtractor {
       return { name, args: parsedArgs ?? argsStr, confidence: 'high', rawText: toolCallNested[0], end: toolCallNested.index + toolCallNested[0].length };
     }
 
+    // 8b. <tool_call><toolName>…</toolName><arguments>…</arguments></tool_call>
+    //
+    // 与 pattern 8 的区别只在标签名：<toolName> vs <name>。
+    // 这是 engine-bridge.ts BASE_SYSTEM_PROMPT 明确教给模型的格式
+    // （见其「工具调用协议」段），必须与注入端同源，否则调用必被误解析。
+    const toolCallToolName = /<tool_call>\s*<tool_?name>([^<]+)<\/tool_?name>\s*<arguments>([\s\S]*?)<\/arguments>\s*<\/tool_call>/i.exec(text);
+    if (toolCallToolName) {
+      const name = toolCallToolName[1].trim();
+      const argsStr = toolCallToolName[2].trim();
+      const parsedArgs = tryParseJSON(argsStr);
+      // <arguments> 内多为 <key>value</key> 子标签；JSON 解析失败时按子标签抽取
+      let args: unknown = parsedArgs;
+      if (args === null || args === undefined) {
+        const params: Record<string, string> = {};
+        const paramRegex = /<([a-zA-Z0-9_]+)>([\s\S]*?)<\/\1>/gi;
+        let pm: RegExpExecArray | null;
+        while ((pm = paramRegex.exec(argsStr)) !== null) {
+          params[pm[1]] = pm[2].trim();
+        }
+        args = Object.keys(params).length > 0 ? params : argsStr;
+      }
+      return { name, args, confidence: 'high', rawText: toolCallToolName[0], end: toolCallToolName.index + toolCallToolName[0].length };
+    }
+
     // 9. <function_calls> 包裹的调用
     const fcTag = /<function_calls>([\s\S]*?)<\/function_calls>/i.exec(text);
     if (fcTag) {
@@ -986,6 +1010,13 @@ function ruleSurgeTagJson(text: string): IntentMatch | null {
 function ruleSurgeTagXml(text: string): IntentMatch | null {
   const pattern = /<tool_call>\s*<([a-zA-Z0-9_]+)>([\s\S]*)/i
   const match = pattern.exec(text)
+  // 跳过「容器标签」：<toolName>/<name>/<arguments> 等是标准结构化格式的组成部件，
+  // 它们本身不是工具名。若在此把它们当工具名，会抢在结构化解析之前劫持标准格式
+  // （实测：<tool_call><toolName>ls</toolName>… 被解析成 name="ToolName"）。
+  // 这类文本应交给后面的 pattern 7 / 8 / 8b 处理。
+  if (match && /^(tool_?name|name|arguments?|parameters?|input|args|params)$/i.test(match[1].trim())) {
+    return null
+  }
   if (!match) return null
   const name = normalizeToolName(match[1].trim())
   const inner = match[2]

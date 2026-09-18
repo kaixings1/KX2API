@@ -252,7 +252,7 @@ async function sendOpenAIStream(
     max_tokens: config.maxTokens || 4096,
     stream: true,
     messages: messages.map((m) => {
-      const record = m as Record<string, unknown>
+      const record = m as unknown as Record<string, unknown>
       const { role, content, ...rest } = record
       return {
         ...rest,
@@ -611,7 +611,7 @@ export async function sendOpenAIStreamWithTools(
   console.log('[API] tool definitions:', tools.length)
 
   const apiMessages = messages.map((m) => {
-    const record = m as Record<string, unknown>
+    const record = m as unknown as Record<string, unknown>
     const { role, content, ...rest } = record
     return {
       ...rest,

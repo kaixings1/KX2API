@@ -1,0 +1,13 @@
+{
+  "_comment": "锁定 engine-bridge.ts BASE_SYSTEM_PROMPT 教给模型的 XML 工具调用格式。名字断言目前会命中已知阻断项：normalizeToolName 把 ls 映射成 ListFiles，而本项目注册表里没有该命令（见 tools/core-harness/README.md『已知阻断项』）。故此处先锁定『能被结构化解析 + 参数解析正确』；归一化方向修正后，应把 name 收紧为 ls。",
+  "target": "extract",
+  "input": {
+    "text": "<tool_call>\n  <toolName>ls</toolName>\n  <arguments>\n    <path>.</path>\n    <showHidden>false</showHidden>\n  </arguments>\n</tool_call>"
+  },
+  "expect": {
+    "protocol": "extracted",
+    "toolCalls": [
+      { "arguments": "{\"path\":\".\",\"showHidden\":\"false\"}" }
+    ]
+  }
+}

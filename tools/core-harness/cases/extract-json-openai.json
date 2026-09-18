@@ -1,0 +1,13 @@
+{
+  "_comment": "基线：OpenAI 风格的 name/arguments JSON 工具调用（提取器 pattern 1）。注意：当前 normalizeToolName 会把它映射成 ListFiles，而本项目注册表中没有该命令（见 tools/core-harness/README.md 的「已知阻断项」）。故此处先锁定『能被提取且参数正确』，名字断言待归一化方向修正后再收紧。",
+  "target": "extract",
+  "input": {
+    "text": "{\"name\": \"ls\", \"arguments\": {\"path\": \".\"}}"
+  },
+  "expect": {
+    "protocol": "extracted",
+    "toolCalls": [
+      { "arguments": "{\"path\":\".\"}" }
+    ]
+  }
+}

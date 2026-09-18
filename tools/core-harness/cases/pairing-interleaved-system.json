@@ -1,0 +1,23 @@
+{
+  "_comment": "回归：assistant(含 tool_use) 与其 tool 结果之间被 system 消息隔开时，必须被收拢为相邻。这正是上游 400 'tool calls and tool results do not match' 的场景。",
+  "target": "pairing",
+  "input": {
+    "messages": [
+      { "role": "user", "content": "go" },
+      {
+        "role": "assistant",
+        "content": [{ "type": "tool_use", "id": "c1", "name": "ls", "input": {} }]
+      },
+      { "role": "system", "content": "Continuing to next iteration." },
+      { "role": "tool", "toolUseId": "c1", "content": "ok" }
+    ]
+  },
+  "expect": {
+    "after": [
+      "user:go",
+      "assistant:[tool_use(c1)]",
+      "tool(id=c1)",
+      "system:Continuing to next iteration."
+    ]
+  }
+}

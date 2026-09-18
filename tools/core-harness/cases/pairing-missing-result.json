@@ -1,0 +1,25 @@
+{
+  "_comment": "回归：同一 assistant 声明了两个 tool_use 但只回了一个结果时，缺失的必须按声明顺序补占位（顺序不能颠倒）。",
+  "target": "pairing",
+  "input": {
+    "messages": [
+      { "role": "user", "content": "go" },
+      {
+        "role": "assistant",
+        "content": [
+          { "type": "tool_use", "id": "call_1", "name": "ls", "input": {} },
+          { "type": "tool_use", "id": "call_2", "name": "pwd", "input": {} }
+        ]
+      },
+      { "role": "tool", "toolUseId": "call_2", "content": "ok2" }
+    ]
+  },
+  "expect": {
+    "after": [
+      "user:go",
+      "assistant:[tool_use(call_1),tool_use(call_2)]",
+      "tool(id=call_1)",
+      "tool(id=call_2)"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+<tool_call>
+  <toolName>ls</toolName>
+  <arguments>
+    <path>.</path>
+    <showHidden>false</showHidden>
+  </arguments>
+</tool_call>
