@@ -1,0 +1,4 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/utils/claudeMd.ts(50,20): error TS2339: Property 'map' does not exist on type 'Promise<MemoryEntry[]>'.
+src/engine/utils/claudeMd.ts(50,25): error TS7006: Parameter 'e' implicitly has an 'any' type.

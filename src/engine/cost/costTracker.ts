@@ -7,6 +7,11 @@
  * - 支持按模型统计
  */
 
+// 用 .ts 后缀：本项目的 moduleResolution 为 "bundler"，不会把 .js 自动映射到 .ts。
+// 写成 './pricing.js' 会导致该导入解析失败，进而使本模块整体解析中断 ——
+// 表现为上游 `recordApiUsage` 报 "Cannot find name"（导入链断了）。
+import { calculateCost } from './pricing.ts'
+
 export interface ModelUsage {
   inputTokens: number
   outputTokens: number
@@ -237,6 +242,34 @@ export function hasUnknownModelCost(): boolean {
 
 export function getCostCounter(): number {
   return Object.keys(state.modelUsage).length
+}
+
+// ─── 接线便捷函数 ───
+
+/**
+ * 按模型记账一次 API 调用（token + 费用）。
+ *
+ * 这是「引擎 → 成本追踪」的单一入口：调用方只需给出模型名与 token 数，
+ * 价格换算与未知模型处置都在这里完成，避免每个调用点各写一遍。
+ */
+export function recordApiUsage(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+): void {
+  const usage = {
+    inputTokens: Math.max(0, inputTokens | 0),
+    outputTokens: Math.max(0, outputTokens | 0),
+    cacheReadInputTokens: 0,
+    cacheCreationInputTokens: 0,
+    webSearchRequests: 0,
+  }
+  const cost = calculateCost(model, usage)
+  if (!Number.isFinite(cost)) {
+    // 价格表没有这个模型：token 照常统计，费用记 0，并打上未知标记
+    setHasUnknownModelCost(true)
+  }
+  addModelUsage(model, usage, cost)
 }
 
 // ─── 费用格式化 ───

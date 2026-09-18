@@ -4,8 +4,8 @@
  * 获取用户级上下文：CLAUDE.md 文件内容、日期等。
  */
 
-import { getExternalClaudeMdIncludes, getMemoryFiles, shouldShowClaudeMdExternalIncludesWarning } from '../utils/claudeMd.js'
-import { isBareMode, getAdditionalDirectoriesForClaudeMd, filterInjectedMemoryFiles, getCachedClaudeMdContent } from './claudeMd.js'
+import { isBareMode, getCachedClaudeMdContent } from './claudeMd.ts'
+import { loadInstructions, formatInstructionsForPrompt } from '../instructions/claudeMdLoader.ts'
 
 /** 用户上下文数据 */
 export interface UserContextData {
@@ -41,21 +41,24 @@ export async function getUserContext(): Promise<UserContextData> {
     return { ...result }
   }
 
-  // 优先使用缓存内容
+  // 优先使用缓存内容（由 claudeMdLoader 在加载后写入）
   const cached = getCachedClaudeMdContent()
   if (cached) {
     result.claudeMd = cached
   } else {
-    // 尝试加载 CLAUDE.md 外部引用
+    // 缓存未命中时，直接调用带正文的项目指令加载器。
+    //
+    // ⚠️ 原实现的链路是断的，有两重失效：
+    //   ① `getExternalClaudeMdIncludes('')` 传的是空串，解析结果恒为空数组，
+    //      而它被当作闸门（`if (includes.length > 0)`）→ 整段从未执行；
+    //   ② 即便进去，`getMemoryFiles` 也是空壳（恒返回 []），仍拿不到内容。
+    // 这里改为直接走 instructions/claudeMdLoader（真实实现：
+    // 逐级向上查找、@include 展开、本地覆盖文件优先）。
+    // 失败一律静默降级为 null —— 用户上下文是增强项，不该阻断对话。
     try {
-      const includes = getExternalClaudeMdIncludes('')
-      if (includes.length > 0) {
-        const memoryFiles = getMemoryFiles(process.cwd())
-        const filtered = filterInjectedMemoryFiles(memoryFiles)
-        if (filtered.length > 0) {
-          result.claudeMd = filtered.map(f => f.content).join('\n\n---\n\n')
-        }
-      }
+      const files = await loadInstructions({ cwd: process.cwd() })
+      const formatted = formatInstructionsForPrompt(files)
+      if (formatted) result.claudeMd = formatted
     } catch {
       // ignore
     }

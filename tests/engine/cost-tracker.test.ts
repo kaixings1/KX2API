@@ -35,6 +35,7 @@ import {
   formatTotalCost,
   resetStateForTests,
   setHasUnknownModelCost,
+  recordApiUsage,
 } from '../../src/engine/cost/costTracker.ts'
 
 function usage(input: number, output: number) {
@@ -287,6 +288,49 @@ describe('setHasUnknownModelCost — 显式标志', () => {
     resetCostState()
     assert.equal(hasUnknownModelCost(), true)
     setHasUnknownModelCost(false)
+  })
+})
+
+describe('recordApiUsage — 引擎接线入口', () => {
+  beforeEach(() => resetStateForTests())
+
+  test('已知模型：按价格表换算并累加', () => {
+    recordApiUsage('gpt-4o', 1000, 1000)
+    assert.ok(Math.abs(getTotalCostUSD() - (0.005 + 0.015)) < 1e-12, `实际 ${getTotalCostUSD()}`)
+    assert.equal(getTotalInputTokens(), 1000)
+    assert.equal(getTotalOutputTokens(), 1000)
+    assert.equal(getUsageForModel('gpt-4o')!.costUSD > 0, true)
+  })
+
+  test('多次调用累加', () => {
+    recordApiUsage('gpt-4o', 1000, 0)
+    recordApiUsage('gpt-4o', 1000, 0)
+    assert.ok(Math.abs(getTotalCostUSD() - 0.01) < 1e-12)
+    assert.equal(getTotalInputTokens(), 2000)
+  })
+
+  test('未知模型：token 统计、费用不污染总计、并标记未知成本', () => {
+    recordApiUsage('gpt-4o', 1000, 0)
+    const before = getTotalCostUSD()
+    recordApiUsage('某不存在的模型', 500, 500)
+
+    assert.ok(Number.isFinite(getTotalCostUSD()), '总计不得被 NaN 污染')
+    assert.equal(getTotalCostUSD(), before, '未知模型不应影响已知的累计费用')
+    assert.equal(getTotalInputTokens(), 1500, 'token 仍应累计')
+    assert.equal(hasUnknownModelCost(), true, '应标记存在未知成本')
+  })
+
+  test('负数/非法 token 被规整为 0，不产生负费用', () => {
+    recordApiUsage('gpt-4o', -100, -50)
+    assert.equal(getTotalInputTokens(), 0)
+    assert.equal(getTotalOutputTokens(), 0)
+    assert.equal(getTotalCostUSD(), 0)
+  })
+
+  test('小数 token 向下取整为整数', () => {
+    recordApiUsage('gpt-4o', 100.9, 50.2)
+    assert.equal(getTotalInputTokens(), 100)
+    assert.equal(getTotalOutputTokens(), 50)
   })
 })
 

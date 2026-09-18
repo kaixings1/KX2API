@@ -35,6 +35,7 @@ export {
   formatCost,
   formatTotalCost,
   resetStateForTests,
+  recordApiUsage,
 } from './costTracker.js'
 
 export {

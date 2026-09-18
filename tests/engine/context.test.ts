@@ -196,4 +196,28 @@ describe('userContext — 缓存语义', () => {
     clearUserContextCache()
     assert.equal((await getUserContext()).claudeMd, '# 第二版')
   })
+
+  test('缓存未命中时应真正读到项目 CLAUDE.md（回归：原链路双重失效）', async () => {
+    // 原实现有双重失效：includes 闸门恒假 + getMemoryFiles 是空壳，
+    // 导致「用户上下文」永远拿不到 CLAUDE.md。现在改用 claudeMdLoader，
+    // 在本仓库（存在 CLAUDE.md）下应当能读到内容。
+    clearUserContextCache()
+    setCachedClaudeMdContent(null)
+    const ctx = await getUserContext()
+    assert.ok(
+      ctx.claudeMd && ctx.claudeMd.length > 0,
+      '应通过 claudeMdLoader 读到项目 CLAUDE.md，实际为空',
+    )
+  })
+
+  test('bare 模式下不读取 CLAUDE.md', async () => {
+    const saved = process.env.CLAUDE_CODE_BARE_MODE
+    process.env.CLAUDE_CODE_BARE_MODE = '1'
+    clearUserContextCache()
+    setCachedClaudeMdContent(null)
+    const ctx = await getUserContext()
+    assert.equal(ctx.claudeMd, null, 'bare 模式应跳过指令加载')
+    if (saved === undefined) delete process.env.CLAUDE_CODE_BARE_MODE
+    else process.env.CLAUDE_CODE_BARE_MODE = saved
+  })
 })

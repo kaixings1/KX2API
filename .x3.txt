@@ -1,0 +1,5 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/context/userContext.ts(56,33): error TS2552: Cannot find name 'getMemoryFiles'. Did you mean 'memoryFiles'?
+src/engine/context/userContext.ts(57,24): error TS2304: Cannot find name 'filterInjectedMemoryFiles'.
+src/engine/context/userContext.ts(59,40): error TS7006: Parameter 'f' implicitly has an 'any' type.

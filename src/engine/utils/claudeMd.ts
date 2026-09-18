@@ -28,11 +28,22 @@ export function getExternalClaudeMdIncludes(content: string): string[] {
 
 /**
  * 扫描项目路径下的记忆文件。
+ *
  * 返回记忆文件列表（不包含 MEMORY.md 索引）。
+ *
+ * ⚠️ 当前为空实现，且**不可**用 memoryRecall.scanMemories 直接顶替：
+ *   - scanMemories 的参数是「记忆目录」（需 resolveMemoryDir 转换），
+ *     而本函数拿到的是「项目路径」；
+ *   - MemoryEntry 只有元数据（file/absPath/name/description/type/mtimeMs），
+ *     **不含正文**，而调用方要的是 `content`；
+ *   - MemoryEntry.type 可空，本函数 MemoryFile.scope 必填。
+ * 三者相加说明二者语义不同，硬接会得到一个「字段全对不上」的结果。
+ *
+ * 项目里真正提供「带正文的项目指令文件」的是 instructions/claudeMdLoader.ts
+ * （loadInstructions / formatInstructionsForPrompt，429 行完整实现）。
+ * 因此 userContext 改为直接走它，本函数保留给「只需要元数据」的场景。
  */
-export function getMemoryFiles(projectPath: string): MemoryFile[] {
-  // 实际实现由 main 进程文件系统操作提供
-  // 这里提供接口定义，实际扫描延迟到需要时
+export function getMemoryFiles(_projectPath: string): MemoryFile[] {
   return []
 }
 

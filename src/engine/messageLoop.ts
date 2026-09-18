@@ -22,6 +22,7 @@ import { resolveToolName, TOOL_ALIASES } from "./toolNameResolver";
 import { resolveLoopConfig, type AgentLoopConfig } from "./loopConfig.ts";
 import { CompactCoordinator } from "./compactCoordinator.ts";
 import { writeSessionTranscriptSegment } from "./transcript.ts";
+import { recordApiUsage } from "./cost/costTracker.ts";
 import { SessionMemory, extractKeyPoints } from "./memory/sessionMemory.ts";
 import type { ImageBudgetOptions } from "./imageBudget.ts";
 
@@ -521,6 +522,16 @@ export class MessageLoop {
 
     if (processed.usage) {
       this.deps.tokenBudget.recordUsage(processed.usage.inputTokens, processed.usage.outputTokens);
+      // 成本追踪：按模型累加 token 与费用。此前 cost 模块移植进来却零调用，
+      // 界面上永远显示 $0.00 —— 每次 API 调用后在这里记账才能真正生效。
+      // 价格表缺失时 calculateCost 返回 NaN，addModelUsage 内部会归零并
+      // 由 hasUnknownModelCost() 暴露缺口，不会污染总计。
+      try {
+        recordApiUsage(this.deps.model, processed.usage.inputTokens, processed.usage.outputTokens);
+      } catch (e) {
+        // 成本统计是增强项：失败绝不影响对话主流程
+        engineLog('COST', `记账失败（已忽略）：${(e as Error).message}`);
+      }
     }
 
     engineLog('RESP', JSON.stringify(processed, null, 2).slice(0, 10000));

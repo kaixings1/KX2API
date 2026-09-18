@@ -1,0 +1,4 @@
+npm notice run kx2code@1.0.0 npx
+npm notice run tsc -p tsconfig.check.json --noEmit --pretty false
+src/engine/cost/costTracker.ts(262,16): error TS2304: Cannot find name 'calculateCost'.
+src/engine/messageLoop.ts(529,9): error TS2304: Cannot find name 'recordApiUsage'.
