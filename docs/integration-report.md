@@ -1,6 +1,6 @@
 # 代码接入体检报告
 
-生成时间：2026/9/18 16:46:31
+生成时间：2026/9/19 11:02:24
 
 三档口径：**应用引用**（从 4 个真实入口可达）／**仅测试引用**／**孤儿**（两边都不可达）。
 
@@ -8,12 +8,12 @@
 
 | 顶层项 | 分类 | 文件数 | 大小 | 应用引用 | 说明 |
 | --- | --- | ---: | ---: | ---: | --- |
-| `legacy/` | 旧代码归档（已移出构建链路） | 2990 | 19.0MB | 0 ⚠️ | 旧代码归档：从 src/ 移出的未接入代码，保留供移植参考，不参与构建 |
-| `src/` | 应用运行时 | 885 | 6.4MB | 521 | 主源码 |
-| `tests/` | 测试链路 | 79 | 481.2KB | 0 ⚠️ | 测试用例（node:test / 独立脚本两套） |
+| `legacy/` | 旧代码归档（已移出构建链路） | 3236 | 19.4MB | 0 ⚠️ | 旧代码归档：从 src/ 移出的未接入代码，保留供移植参考，不参与构建 |
+| `src/` | 应用运行时 | 632 | 6.1MB | 526 | 主源码 |
+| `tests/` | 测试链路 | 81 | 488.6KB | 0 ⚠️ | 测试用例（node:test / 独立脚本两套） |
 | `plan/` | 未分类 | 75 | 95.3KB | 0 ⚠️ |  |
-| `out/` | 构建/打包 | 60 | 14.1MB | 0 ⚠️ | electron-vite 构建产物（生成物） |
-| `batch/` | 未分类 | 56 | 146.0KB | 0 ⚠️ |  |
+| `out/` | 构建/打包 | 62 | 14.1MB | 0 ⚠️ | electron-vite 构建产物（生成物） |
+| `batch/` | 未分类 | 59 | 166.8KB | 0 ⚠️ |  |
 | `scripts/` | 人工使用（脚本/参考数据） | 28 | 85.3KB | 0 ⚠️ | 构建/发布/自检脚本（npm run 会用到其中部分） |
 | `docs/` | 文档 | 27 | 3.3MB | 0 ⚠️ | 文档 |
 | `capture/` | 人工使用（脚本/参考数据） | 22 | 86.6KB | 0 ⚠️ | 抓包脚本（配合 Edge 9222 调试端口），手动运行 |
@@ -23,12 +23,12 @@
 | `build/` | 构建/打包 | 9 | 1.2MB | 0 ⚠️ | 打包资源（icon 等），被 electron-builder 使用 |
 | `config/` | 人工使用（脚本/参考数据） | 4 | 1.4KB | 0 ⚠️ | 配置样例/预设，未被代码读取 |
 | `self-test-patch-project/` | 人工使用（脚本/参考数据） | 3 | 1.2KB | 0 ⚠️ | 自测用补丁样例项目 |
-| `debug.txt` | 生成物/日志（可删） | 1 | 96.7MB | 0 ⚠️ |  |
-| `latest` | 生成物/日志（可删） | 1 | 96.7MB | 0 ⚠️ |  |
+| `debug.txt` | 生成物/日志（可删） | 1 | 5.5MB | 0 ⚠️ |  |
+| `latest` | 生成物/日志（可删） | 1 | 5.5MB | 0 ⚠️ |  |
 | `dev/` | 人工使用（脚本/参考数据） | 1 | 990.4KB | 0 ⚠️ | 开发用临时脚本 |
 | `package-lock.json` | 构建/打包 | 1 | 356.1KB | 0 ⚠️ | 构建/运行配置 |
 | `LICENSE` | 文档 | 1 | 173.9KB | 0 ⚠️ |  |
-| `TASK.md` | 文档 | 1 | 90.9KB | 0 ⚠️ |  |
+| `TASK.md` | 文档 | 1 | 95.6KB | 0 ⚠️ |  |
 | `stepfun_connect_headers.json` | 一次性产物（可删） | 1 | 38.6KB | 0 ⚠️ |  |
 | `stepfun_ws_frames.json` | 一次性产物（可删） | 1 | 17.2KB | 0 ⚠️ |  |
 | `loop-response-task-5.json` | 一次性产物（可删） | 1 | 16.2KB | 0 ⚠️ |  |
@@ -44,6 +44,7 @@
 | `diagnose_stepfun_auth.cjs` | 一次性产物（可删） | 1 | 5.4KB | 0 ⚠️ |  |
 | `loop-request-task-1.json` | 一次性产物（可删） | 1 | 4.7KB | 0 ⚠️ |  |
 | `diagnose_token_expiry.cjs` | 一次性产物（可删） | 1 | 4.2KB | 0 ⚠️ |  |
+| `check-repo-result.txt` | 未分类 | 1 | 4.0KB | 0 ⚠️ |  |
 | `diagnose_token_parse.cjs` | 一次性产物（可删） | 1 | 3.9KB | 0 ⚠️ |  |
 | `fix_teamtask2.py` | 未分类 | 1 | 3.9KB | 0 ⚠️ |  |
 | `fix_teamtask.py` | 未分类 | 1 | 3.9KB | 0 ⚠️ |  |
@@ -51,6 +52,7 @@
 | `REFACTOR_PLAN.md` | 文档 | 1 | 2.3KB | 0 ⚠️ |  |
 | `stepfun_chatstream_capture.json` | 一次性产物（可删） | 1 | 2.1KB | 0 ⚠️ |  |
 | `electron.vite.config.ts` | 构建/打包 | 1 | 1.8KB | 0 ⚠️ | 构建/运行配置 |
+| `check-result.txt` | 未分类 | 1 | 1.2KB | 0 ⚠️ |  |
 | `tsconfig.check.json` | 未分类 | 1 | 1.1KB | 0 ⚠️ |  |
 | `tool_queue_extractor/` | 人工使用（脚本/参考数据） | 1 | 1.1KB | 0 ⚠️ | 抓包用的工具队列提取器（Python） |
 | `vitest.config.ts` | 构建/打包 | 1 | 1.0KB | 0 ⚠️ | 构建/运行配置 |
@@ -58,6 +60,8 @@
 | `README.md` | 文档 | 1 | 731B | 0 ⚠️ |  |
 | `tailwind.config.ts` | 构建/打包 | 1 | 581B | 0 ⚠️ | 构建/运行配置 |
 | `__search_tmp.py` | 一次性产物（可删） | 1 | 365B | 0 ⚠️ |  |
+| `check-utils-orphan.mjs` | 未分类 | 1 | 327B | 0 ⚠️ |  |
+| `check-utils.mjs` | 未分类 | 1 | 317B | 0 ⚠️ |  |
 | `run_prod.bat` | 构建/打包 | 1 | 185B | 0 ⚠️ | 构建/运行配置 |
 | `test-invoke.mjs` | 未分类 | 1 | 149B | 0 ⚠️ |  |
 | `test-invoke.ts` | 未分类 | 1 | 149B | 0 ⚠️ |  |
@@ -70,11 +74,11 @@
 
 | 目录 | 文件数 | 应用引用 | 仅测试 | 孤儿 |
 | --- | ---: | ---: | ---: | ---: |
-| `src/main` | 495 | 211 | 0 | 284 |
+| `src/main` | 242 | 211 | 0 | 31 |
 | `src/renderer` | 166 | 159 | 0 | 7 |
-| `src/engine` | 155 | 137 | 0 | 18 |
+| `src/engine` | 155 | 139 | 0 | 16 |
 | `src/__tests__` | 49 | 0 | 0 | 49 |
-| `src/security` | 8 | 5 | 0 | 3 |
+| `src/security` | 8 | 8 | 0 | 0 |
 | `src/shared` | 5 | 5 | 0 | 0 |
 | `src/preload` | 2 | 1 | 0 | 1 |
 | `src/utils` | 2 | 2 | 0 | 0 |
@@ -82,181 +86,7 @@
 | `src/globals.d.ts` | 1 | 0 | 0 | 1 |
 | `src/memory` | 1 | 1 | 0 | 0 |
 
-## 三、孤儿文件清单（364 个）
-
-<details><summary><code>src/main/proxy</code> — 169 个</summary>
-
-- `src/main/proxy/adapters/anthropic-stream.ts`
-- `src/main/proxy/adapters/coze-stream.ts`
-- `src/main/proxy/adapters/deepseek-stream.d.ts`
-- `src/main/proxy/adapters/deepseek.d.ts`
-- `src/main/proxy/adapters/fetch_stepfun.py`
-- `src/main/proxy/adapters/glm.d.ts`
-- `src/main/proxy/adapters/google-stream.ts`
-- `src/main/proxy/adapters/groq-stream.ts`
-- `src/main/proxy/adapters/index.ts`
-- `src/main/proxy/adapters/kimi.d.ts`
-- `src/main/proxy/adapters/mimo.d.ts`
-- `src/main/proxy/adapters/minimax.d.ts`
-- `src/main/proxy/adapters/mistral-stream.ts`
-- `src/main/proxy/adapters/ollama-stream.ts`
-- `src/main/proxy/adapters/openai-stream.ts`
-- `src/main/proxy/adapters/perplexity-stream.d.ts`
-- `src/main/proxy/adapters/perplexity.d.ts`
-- `src/main/proxy/adapters/prompt/BasePromptAdapter.d.ts`
-- `src/main/proxy/adapters/prompt/BasePromptAdapter.ts`
-- `src/main/proxy/adapters/prompt/CherryStudioPromptAdapter.d.ts`
-- `src/main/proxy/adapters/prompt/CherryStudioPromptAdapter.ts`
-- `src/main/proxy/adapters/prompt/DefaultPromptAdapter.d.ts`
-- `src/main/proxy/adapters/prompt/DefaultPromptAdapter.ts`
-- `src/main/proxy/adapters/prompt/index.d.ts`
-- `src/main/proxy/adapters/prompt/index.ts`
-- `src/main/proxy/adapters/prompt/KiloCodePromptAdapter.d.ts`
-- `src/main/proxy/adapters/prompt/KiloCodePromptAdapter.ts`
-- `src/main/proxy/adapters/prompt/PromptAdapterRegistry.d.ts`
-- `src/main/proxy/adapters/prompt/PromptAdapterRegistry.ts`
-- `src/main/proxy/adapters/providerModelOptions.d.ts`
-- `src/main/proxy/adapters/qwen-ai.d.ts`
-- `src/main/proxy/adapters/qwen.d.ts`
-- `src/main/proxy/adapters/siliconcloud-stream.ts`
-- `src/main/proxy/adapters/stepfun-stream.d.ts`
-- `src/main/proxy/adapters/stepfun.d.ts`
-- `src/main/proxy/adapters/stepfun_download.py`
-- `src/main/proxy/adapters/stepfun_download2.py`
-- `src/main/proxy/adapters/stepfun_download3.py`
-- `src/main/proxy/adapters/together-stream.ts`
-- `src/main/proxy/adapters/transformers/anthropic.ts`
-- `src/main/proxy/adapters/transformers/gemini.ts`
-- `src/main/proxy/adapters/transformers/openai.ts`
-- `src/main/proxy/adapters/xai-stream.ts`
-- `src/main/proxy/adapters/zai.d.ts`
-- `src/main/proxy/adapters/__mocks__/deepseek-stream.d.ts`
-- `src/main/proxy/adapters/__mocks__/deepseek-stream.ts`
-- `src/main/proxy/adapters/__mocks__/deepseek.d.ts`
-- `src/main/proxy/adapters/__mocks__/deepseek.ts`
-- `src/main/proxy/adapters/__mocks__/glm.d.ts`
-- `src/main/proxy/adapters/__mocks__/glm.ts`
-- `src/main/proxy/adapters/__mocks__/kimi.d.ts`
-- `src/main/proxy/adapters/__mocks__/kimi.ts`
-- `src/main/proxy/adapters/__mocks__/mimo.d.ts`
-- `src/main/proxy/adapters/__mocks__/mimo.ts`
-- `src/main/proxy/adapters/__mocks__/minimax.d.ts`
-- `src/main/proxy/adapters/__mocks__/minimax.ts`
-- `src/main/proxy/adapters/__mocks__/perplexity-stream.d.ts`
-- `src/main/proxy/adapters/__mocks__/perplexity-stream.ts`
-- `src/main/proxy/adapters/__mocks__/perplexity.d.ts`
-- `src/main/proxy/adapters/__mocks__/perplexity.ts`
-- `src/main/proxy/adapters/__mocks__/qwen-ai.d.ts`
-- `src/main/proxy/adapters/__mocks__/qwen-ai.ts`
-- `src/main/proxy/adapters/__mocks__/qwen.d.ts`
-- `src/main/proxy/adapters/__mocks__/qwen.ts`
-- `src/main/proxy/adapters/__mocks__/stepfun-stream.d.ts`
-- `src/main/proxy/adapters/__mocks__/stepfun-stream.ts`
-- `src/main/proxy/adapters/__mocks__/stepfun.d.ts`
-- `src/main/proxy/adapters/__mocks__/stepfun.ts`
-- `src/main/proxy/adapters/__mocks__/zai.d.ts`
-- `src/main/proxy/adapters/__mocks__/zai.ts`
-- `src/main/proxy/config/modelProfiles.d.ts`
-- `src/main/proxy/config/modelProfiles.ts`
-- `src/main/proxy/constants/signatures.d.ts`
-- `src/main/proxy/dedup/index.d.ts`
-- `src/main/proxy/forwarder.d.ts`
-- `src/main/proxy/index.ts`
-- `src/main/proxy/loadbalancer.d.ts`
-- `src/main/proxy/middleware/managementAuth.d.ts`
-- `src/main/proxy/modelMapper.d.ts`
-- `src/main/proxy/prompt/index.d.ts`
-- `src/main/proxy/prompt/index.ts`
-- `src/main/proxy/prompt/types.d.ts`
-- `src/main/proxy/prompt/variants/deepseek.d.ts`
-- `src/main/proxy/prompt/variants/default.d.ts`
-- `src/main/proxy/prompt/variants/glm.d.ts`
-- `src/main/proxy/prompt/variants/index.d.ts`
-- `src/main/proxy/prompt/variants/qwen.d.ts`
-- `src/main/proxy/prompt/variants/xml.d.ts`
-- `src/main/proxy/prompt/variantSelector.d.ts`
-- `src/main/proxy/promptToolUse.d.ts`
-- `src/main/proxy/routes/chat.d.ts`
-- `src/main/proxy/routes/completions.d.ts`
-- `src/main/proxy/routes/index.d.ts`
-- `src/main/proxy/routes/management/accounts.d.ts`
-- `src/main/proxy/routes/management/apiKeys.d.ts`
-- `src/main/proxy/routes/management/config.d.ts`
-- `src/main/proxy/routes/management/index.d.ts`
-- `src/main/proxy/routes/management/modelMappings.d.ts`
-- `src/main/proxy/routes/management/providers.d.ts`
-- `src/main/proxy/routes/management/proxy.d.ts`
-- `src/main/proxy/routes/management/sessions.d.ts`
-- `src/main/proxy/routes/management/statistics.d.ts`
-- `src/main/proxy/routes/management/toolCalling.d.ts`
-- `src/main/proxy/routes/models.d.ts`
-- `src/main/proxy/server.d.ts`
-- `src/main/proxy/services/contextManagementService.d.ts`
-- `src/main/proxy/services/promptGenerator.d.ts`
-- `src/main/proxy/services/promptInjectionService.d.ts`
-- `src/main/proxy/sessionManager.d.ts`
-- `src/main/proxy/status.d.ts`
-- `src/main/proxy/stream.d.ts`
-- `src/main/proxy/toolCalling/browserToolExtractor.d.ts`
-- `src/main/proxy/toolCalling/browserToolExtractor.ts`
-- `src/main/proxy/toolCalling/clientAdapters/cherryStudioMcp.d.ts`
-- `src/main/proxy/toolCalling/clientAdapters/index.d.ts`
-- `src/main/proxy/toolCalling/clientAdapters/standardOpenAiTools.d.ts`
-- `src/main/proxy/toolCalling/clientAdapters/types.d.ts`
-- `src/main/proxy/toolCalling/diagnostics.d.ts`
-- `src/main/proxy/toolCalling/historyGuard.d.ts`
-- `src/main/proxy/toolCalling/promptAdapters/BasePromptAdapter.d.ts`
-- `src/main/proxy/toolCalling/promptAdapters/CherryStudioPromptAdapter.d.ts`
-- `src/main/proxy/toolCalling/promptAdapters/DefaultPromptAdapter.d.ts`
-- `src/main/proxy/toolCalling/promptAdapters/index.d.ts`
-- `src/main/proxy/toolCalling/promptAdapters/index.ts`
-- `src/main/proxy/toolCalling/promptAdapters/KiloCodePromptAdapter.d.ts`
-- `src/main/proxy/toolCalling/promptAdapters/PromptAdapterRegistry.d.ts`
-- `src/main/proxy/toolCalling/protocols/anthropicToolUse.d.ts`
-- `src/main/proxy/toolCalling/protocols/base.d.ts`
-- `src/main/proxy/toolCalling/protocols/codexResponses.d.ts`
-- `src/main/proxy/toolCalling/protocols/index.d.ts`
-- `src/main/proxy/toolCalling/protocols/managedBracket.d.ts`
-- `src/main/proxy/toolCalling/protocols/managedXml.d.ts`
-- `src/main/proxy/toolCalling/protocols/shared.d.ts`
-- `src/main/proxy/toolCalling/providerProfiles.d.ts`
-- `src/main/proxy/toolCalling/runtimePlan.d.ts`
-- `src/main/proxy/toolCalling/toolCallExtractor.d.ts`
-- `src/main/proxy/toolCalling/ToolCallingEngine.d.ts`
-- `src/main/proxy/toolCalling/toolChoicePolicy.d.ts`
-- `src/main/proxy/toolCalling/toolChoicePolicy.ts`
-- `src/main/proxy/toolCalling/ToolStreamParser.d.ts`
-- `src/main/proxy/toolCalling/types.d.ts`
-- `src/main/proxy/toolCalling/__tests__/managedXml.toolname.test.ts`
-- `src/main/proxy/tools/streamingToolExecutor.ts`
-- `src/main/proxy/tools/toolCallCache.ts`
-- `src/main/proxy/tools/toolCollection.d.ts`
-- `src/main/proxy/tools/toolOrchestrator.ts`
-- `src/main/proxy/types.d.ts`
-- `src/main/proxy/utils/accountUtils.d.ts`
-- `src/main/proxy/utils/accountUtils.ts`
-- `src/main/proxy/utils/asyncStore.d.ts`
-- `src/main/proxy/utils/asyncStore.ts`
-- `src/main/proxy/utils/cacheManager.d.ts`
-- `src/main/proxy/utils/cacheManager.ts`
-- `src/main/proxy/utils/clientDetector.d.ts`
-- `src/main/proxy/utils/errors.d.ts`
-- `src/main/proxy/utils/errors.ts`
-- `src/main/proxy/utils/index.d.ts`
-- `src/main/proxy/utils/index.ts`
-- `src/main/proxy/utils/promptSignatures.d.ts`
-- `src/main/proxy/utils/promptSignatures.ts`
-- `src/main/proxy/utils/streamToolHandler.d.ts`
-- `src/main/proxy/utils/toolFormatConverter.d.ts`
-- `src/main/proxy/utils/toolParser/index.d.ts`
-- `src/main/proxy/utils/toolParser.d.ts`
-- `src/main/proxy/utils/tools.d.ts`
-- `src/main/proxy/utils/unifiedToolParser.d.ts`
-- `src/main/proxy/utils/unifiedToolParser.ts`
-- `src/main/proxy/utils/__tests__/streamQueueDetector.smoke.ts`
-- `src/main/proxy/__tests__/apiKeyAuth.test.ts`
-
-</details>
+## 三、孤儿文件清单（106 个）
 
 <details><summary><code>src/__tests__/engine</code> — 28 个</summary>
 
@@ -291,65 +121,17 @@
 
 </details>
 
-<details><summary><code>src/main/oauth</code> — 21 个</summary>
-
-- `src/main/oauth/adapters/base.d.ts`
-- `src/main/oauth/adapters/deepseek.d.ts`
-- `src/main/oauth/adapters/glm.d.ts`
-- `src/main/oauth/adapters/index.d.ts`
-- `src/main/oauth/adapters/kimi.d.ts`
-- `src/main/oauth/adapters/mimo.d.ts`
-- `src/main/oauth/adapters/minimax.d.ts`
-- `src/main/oauth/adapters/perplexity.d.ts`
-- `src/main/oauth/adapters/qwen-ai.d.ts`
-- `src/main/oauth/adapters/qwen.d.ts`
-- `src/main/oauth/adapters/stepfun.d.ts`
-- `src/main/oauth/adapters/zai.d.ts`
-- `src/main/oauth/guides.d.ts`
-- `src/main/oauth/guides.ts`
-- `src/main/oauth/inAppLogin.d.ts`
-- `src/main/oauth/index.ts`
-- `src/main/oauth/kimiSessionManager.d.ts`
-- `src/main/oauth/manager.d.ts`
-- `src/main/oauth/tokenExtractionConfig.d.ts`
-- `src/main/oauth/types.d.ts`
-- `src/main/oauth/__tests__/stepfun-session-token.test.ts`
-
-</details>
-
-<details><summary><code>src/main/providers</code> — 14 个</summary>
-
-- `src/main/providers/builtin/deepseek.d.ts`
-- `src/main/providers/builtin/glm.d.ts`
-- `src/main/providers/builtin/index.d.ts`
-- `src/main/providers/builtin/kimi.d.ts`
-- `src/main/providers/builtin/mimo.d.ts`
-- `src/main/providers/builtin/minimax.d.ts`
-- `src/main/providers/builtin/perplexity.d.ts`
-- `src/main/providers/builtin/qwen-ai.d.ts`
-- `src/main/providers/builtin/qwen.d.ts`
-- `src/main/providers/builtin/stepfun.d.ts`
-- `src/main/providers/builtin/zai.d.ts`
-- `src/main/providers/checker.d.ts`
-- `src/main/providers/custom.d.ts`
-- `src/main/providers/index.ts`
-
-</details>
-
-<details><summary><code>src/main/utils</code> — 14 个</summary>
+<details><summary><code>src/main/utils</code> — 11 个</summary>
 
 - `src/main/utils/array.ts`
 - `src/main/utils/CircularBuffer.ts`
 - `src/main/utils/formatBriefTimestamp.ts`
 - `src/main/utils/hash.ts`
-- `src/main/utils/index.ts`
 - `src/main/utils/normalizeModelId.ts`
-- `src/main/utils/pMap.ts`
 - `src/main/utils/sequential.ts`
 - `src/main/utils/set.ts`
 - `src/main/utils/slashCommandParsing.ts`
 - `src/main/utils/sleep.ts`
-- `src/main/utils/stripAnsi.ts`
 - `src/main/utils/timeouts.ts`
 - `src/main/utils/withResolvers.ts`
 
@@ -400,37 +182,10 @@
 
 </details>
 
-<details><summary><code>src/main/store</code> — 9 个</summary>
-
-- `src/main/store/accounts.d.ts`
-- `src/main/store/apiKeySync.d.ts`
-- `src/main/store/config.d.ts`
-- `src/main/store/index.d.ts`
-- `src/main/store/index.ts`
-- `src/main/store/providers.d.ts`
-- `src/main/store/store.d.ts`
-- `src/main/store/types.d.ts`
-- `src/main/store/validator.d.ts`
-
-</details>
-
-<details><summary><code>src/main/security</code> — 7 个</summary>
-
-- `src/main/security/AuditLogger.ts`
-- `src/main/security/CommandFilter.ts`
-- `src/main/security/CredentialManager.ts`
-- `src/main/security/index.ts`
-- `src/main/security/InputValidator.ts`
-- `src/main/security/OutputSanitizer.ts`
-- `src/main/security/PathGuard.ts`
-
-</details>
-
-<details><summary><code>src/main/tools</code> — 7 个</summary>
+<details><summary><code>src/main/tools</code> — 6 个</summary>
 
 - `src/main/tools/toolExecutor.ts`
 - `src/main/tools/toolFileStoreManager.ts`
-- `src/main/tools/toolsService.ts`
 - `src/main/tools/__tests__/toolFileStore.test.ts`
 - `src/main/tools/__tests__/toolManager.test.ts`
 - `src/main/tools/__tests__/toolRuntime.test.ts`
@@ -449,40 +204,13 @@
 
 </details>
 
-<details><summary><code>src/main/ipc</code> — 5 个</summary>
+<details><summary><code>src/main/proxy</code> — 5 个</summary>
 
-- `src/main/ipc/channels.d.ts`
-- `src/main/ipc/chat-handlers.d.ts`
-- `src/main/ipc/handlers.d.ts`
-- `src/main/ipc/index.d.ts`
-- `src/main/ipc/index.ts`
-
-</details>
-
-<details><summary><code>src/main/agent</code> — 4 个</summary>
-
-- `src/main/agent/action/sampler.d.ts`
-- `src/main/agent/action/types.d.ts`
-- `src/main/agent/team/team.d.ts`
-- `src/main/agent/team/types.d.ts`
-
-</details>
-
-<details><summary><code>src/main/requestLogs</code> — 4 个</summary>
-
-- `src/main/requestLogs/manager.d.ts`
-- `src/main/requestLogs/sanitizer.d.ts`
-- `src/main/requestLogs/types.d.ts`
-- `src/main/requestLogs/__tests__/accountTrend.test.ts`
-
-</details>
-
-<details><summary><code>src/main/tray</code> — 4 个</summary>
-
-- `src/main/tray/index.d.ts`
-- `src/main/tray/index.ts`
-- `src/main/tray/TrayManager.d.ts`
-- `src/main/tray/TrayWindow.d.ts`
+- `src/main/proxy/toolCalling/browserToolExtractor.ts`
+- `src/main/proxy/toolCalling/toolChoicePolicy.ts`
+- `src/main/proxy/toolCalling/__tests__/managedXml.toolname.test.ts`
+- `src/main/proxy/utils/__tests__/streamQueueDetector.smoke.ts`
+- `src/main/proxy/__tests__/apiKeyAuth.test.ts`
 
 </details>
 
@@ -494,25 +222,10 @@
 
 </details>
 
-<details><summary><code>src/main/window</code> — 3 个</summary>
-
-- `src/main/window/index.d.ts`
-- `src/main/window/index.ts`
-- `src/main/window/manager.d.ts`
-
-</details>
-
 <details><summary><code>src/engine/commands</code> — 2 个</summary>
 
 - `src/engine/commands/__tests__/executeCommand.test.ts`
 - `src/engine/commands/__tests__/init.test.ts`
-
-</details>
-
-<details><summary><code>src/engine/hooks</code> — 2 个</summary>
-
-- `src/engine/hooks/builtInHooks.ts`
-- `src/engine/hooks/index.ts`
 
 </details>
 
@@ -523,31 +236,10 @@
 
 </details>
 
-<details><summary><code>src/main/agents</code> — 2 个</summary>
+<details><summary><code>src/main/requestLogs</code> — 2 个</summary>
 
-- `src/main/agents/AgentStore.ts`
-- `src/main/agents/index.ts`
-
-</details>
-
-<details><summary><code>src/main/appLogs</code> — 2 个</summary>
-
-- `src/main/appLogs/manager.d.ts`
-- `src/main/appLogs/types.d.ts`
-
-</details>
-
-<details><summary><code>src/main/logger</code> — 2 个</summary>
-
-- `src/main/logger/categoryFilter.ts`
-- `src/main/logger/manager.d.ts`
-
-</details>
-
-<details><summary><code>src/main/updater</code> — 2 个</summary>
-
-- `src/main/updater/index.d.ts`
-- `src/main/updater/UpdaterManager.d.ts`
+- `src/main/requestLogs/sanitizer.d.ts`
+- `src/main/requestLogs/__tests__/accountTrend.test.ts`
 
 </details>
 
@@ -558,9 +250,9 @@
 
 </details>
 
-<details><summary><code>src/engine/absorb.ts</code> — 1 个</summary>
+<details><summary><code>src/engine/hooks</code> — 1 个</summary>
 
-- `src/engine/absorb.ts`
+- `src/engine/hooks/index.ts`
 
 </details>
 
@@ -588,63 +280,15 @@
 
 </details>
 
-<details><summary><code>src/main/data</code> — 1 个</summary>
+<details><summary><code>src/main/logger</code> — 1 个</summary>
 
-- `src/main/data/builtin-prompts.d.ts`
-
-</details>
-
-<details><summary><code>src/main/engine-bridge.d.ts</code> — 1 个</summary>
-
-- `src/main/engine-bridge.d.ts`
+- `src/main/logger/categoryFilter.ts`
 
 </details>
 
-<details><summary><code>src/main/index.d.ts</code> — 1 个</summary>
+<details><summary><code>src/main/oauth</code> — 1 个</summary>
 
-- `src/main/index.d.ts`
-
-</details>
-
-<details><summary><code>src/main/lib</code> — 1 个</summary>
-
-- `src/main/lib/challenge.d.ts`
-
-</details>
-
-<details><summary><code>src/main/otherConfig</code> — 1 个</summary>
-
-- `src/main/otherConfig/otherConfigService.ts`
-
-</details>
-
-<details><summary><code>src/main/plugins</code> — 1 个</summary>
-
-- `src/main/plugins/pluginsService.ts`
-
-</details>
-
-<details><summary><code>src/main/profiles</code> — 1 个</summary>
-
-- `src/main/profiles/manager.d.ts`
-
-</details>
-
-<details><summary><code>src/main/tray.d.ts</code> — 1 个</summary>
-
-- `src/main/tray.d.ts`
-
-</details>
-
-<details><summary><code>src/main/tray.ts</code> — 1 个</summary>
-
-- `src/main/tray.ts`
-
-</details>
-
-<details><summary><code>src/main/workflows</code> — 1 个</summary>
-
-- `src/main/workflows/workflowsService.ts`
+- `src/main/oauth/__tests__/stepfun-session-token.test.ts`
 
 </details>
 
@@ -657,23 +301,5 @@
 <details><summary><code>src/renderer/favicon.png</code> — 1 个</summary>
 
 - `src/renderer/favicon.png`
-
-</details>
-
-<details><summary><code>src/security/CredentialManager.ts</code> — 1 个</summary>
-
-- `src/security/CredentialManager.ts`
-
-</details>
-
-<details><summary><code>src/security/index.ts</code> — 1 个</summary>
-
-- `src/security/index.ts`
-
-</details>
-
-<details><summary><code>src/security/PermissionManager.ts</code> — 1 个</summary>
-
-- `src/security/PermissionManager.ts`
 
 </details>

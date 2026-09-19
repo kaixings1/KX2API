@@ -22,15 +22,26 @@ npm run typecheck && npm run build && npm run test:all
 > 按后缀删会误伤手写声明（如 `src/renderer/src/types/electron.d.ts`）。
 > 只删本文件清单里逐个确认过的具体文件。
 
-## 处置结论
+## 处置结论（修正 2026-09-19：补充 sanitizer.d.ts，accountTrend.test 保留）
 
-全部归档（2 个旧 .d.ts）
+**原判定**：全部归档（2 个旧 .d.ts）。
+**修正后**：归档 3 个 `.d.ts` 旧声明 + 保留 1 个活跃测试。逐批验证发现：
+
+- 实际归属 legacy 的：`manager.d.ts`、`types.d.ts`（均已成功归档）；另 `sanitizer.d.ts`
+  是**被 `sanitizer.ts` 完全取代**的旧声明（`tests/request-logs/request-log-sanitizer.test.ts`
+  引用的是 `.ts` 实现，非 `.d.ts`）→ 原批次漏了它，现已补删。
+- `accountTrend.test.ts` **不是孤儿/废弃**：它测试活的 `manager.ts`（`RequestLogManager`，
+  vitest 用例），必须**保留**（原「全部归档」对该文件是误判）。
+- `sanitizer.ts` / `manager.ts` / `types.ts` 均为活实现，保留。
+
+> ⚠️ `.d.ts` 不被 git 跟踪（CLAUDE.md 铁律）——`sanitize.d.ts` 物理删除即可，
+> 不产生 git 变更；即便在彻底删除后也不会影响构建（无人引用它）。
 
 ## 清单（4）
 
 | 完成 | 路径 | 处置 | D:\src 来源（严格匹配） |
 | :---: | --- | --- | --- |
-| [x] | `src/main/requestLogs/__tests__/accountTrend.test.ts` | | — |
-| [x] | `src/main/requestLogs/manager.d.ts` | | — |
-| [x] | `src/main/requestLogs/sanitizer.d.ts` | | — |
-| [x] | `src/main/requestLogs/types.d.ts` | | — |
+| [x] | `src/main/requestLogs/__tests__/accountTrend.test.ts` | **保留**（测活的 manager.ts，vitest） | — |
+| [x] | `src/main/requestLogs/manager.d.ts` | 归档 → `legacy/src/main/requestLogs/manager.d.ts` | — |
+| [x] | `src/main/requestLogs/sanitizer.d.ts` | 归档（补删，被同名 sanitizer.ts 取代） | — |
+| [x] | `src/main/requestLogs/types.d.ts` | 归档 → `legacy/src/main/requestLogs/types.d.ts` | — |
