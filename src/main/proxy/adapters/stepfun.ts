@@ -618,12 +618,18 @@ export class StepFunAdapter {
 
     const body: any = {
       model,
-      messages: request.messages.map(msg => ({
-        role: msg.role,
-        content: msg.content == null ? '' : msg.content,
-        ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {}),
-        ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
-      })),
+      messages: (request.messages || []).map((msg: any) => {
+        // 归一化 tool 消息 id：上游可能携 tool_call_id / toolUseId / tool_use_id
+        // 任一方言，缺失时 step_plan 回 400 "tool_call_id is required"，
+        // 这里统一合成出 OpenAI 兼容的 tool_call_id。
+        const out: any = { role: msg.role, content: msg.content == null ? '' : msg.content }
+        if (msg.role === 'tool') {
+          const id = msg.tool_call_id || msg.toolUseId || msg.tool_use_id
+          if (id != null && id !== '') out.tool_call_id = String(id)
+        }
+        if (msg.tool_calls) out.tool_calls = msg.tool_calls
+        return out
+      }),
       stream: request.stream !== undefined ? request.stream : true,
     }
 
@@ -724,6 +730,23 @@ export class StepFunAdapter {
     const endpoint = this.getEndpoint()
 
     console.log('[StepFun][STEP-PLAN] endpoint=', endpoint, 'model=', requestData.model)
+
+    // 发送前诊断：统计发给 step_plan 的 tool 消息，定位 400 "tool_call_id is required"。
+    // 若 emit 后有 tool 消息缺 tool_call_id，说明上游字段方言未被归一化兜住。
+    {
+      const toolMsgs: string[] = []
+      const missingId: string[] = []
+      ;(requestData.messages || []).forEach((m: any, i: number) => {
+        if (!m || m.role !== 'tool') return
+        toolMsgs.push('#' + i)
+        if (typeof m.tool_call_id !== 'string' || m.tool_call_id === '') missingId.push('#' + i)
+      })
+      console.log(
+        '[StepFun][STEP-PLAN][DIAG] total=' + (requestData.messages || []).length +
+        ' toolMsgs=[' + toolMsgs.join(',') + ']' +
+        ' missingToolCallId=[' + missingId.join(',') + ']'
+      )
+    }
 
     const request_ = net.request({
       method: 'POST',

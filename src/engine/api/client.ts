@@ -254,11 +254,21 @@ async function sendOpenAIStream(
     messages: messages.map((m) => {
       const record = m as unknown as Record<string, unknown>
       const { role, content, ...rest } = record
-      return {
-        ...rest,
-        role,
-        content: typeof content === 'string' ? content : content,
+      const msg = { ...rest, role, content: typeof content === 'string' ? content : content }
+      // 归一化 tool 消息 id（同 sendOpenAIStreamWithTools）：内部方言 toolUseId /
+      // tool_use_id → OpenAI 的 tool_call_id，缺失会直连 400。
+      if (msg.role === 'tool') {
+        const id = String(
+          (msg as Record<string, unknown>).tool_call_id ||
+            (msg as Record<string, unknown>).toolUseId ||
+            (msg as Record<string, unknown>).tool_use_id ||
+            '',
+        )
+        ;(msg as Record<string, unknown>).tool_call_id = id
+        delete (msg as Record<string, unknown>).toolUseId
+        delete (msg as Record<string, unknown>).tool_use_id
       }
+      return msg
     }),
   }
 
@@ -610,15 +620,27 @@ export async function sendOpenAIStreamWithTools(
   const tools = await buildToolsFromRegistry(config.enabledToolGroups || [])
   console.log('[API] tool definitions:', tools.length)
 
-  const apiMessages = messages.map((m) => {
-    const record = m as unknown as Record<string, unknown>
-    const { role, content, ...rest } = record
-    return {
-      ...rest,
-      role,
-      content: typeof content === 'string' ? content : content,
-    }
-  })
+  // normalizeToolMsgId：把内部消息方言统一成 OpenAI 兼容消息。
+  // 关键点：MessageLoop 产出的 tool 结果消息带的是内部字段 `toolUseId`（或 Anthropic
+  // 风格的 `tool_use_id`），而 OpenAI 直连 / 兼容网关（含 stepfun step_plan）只认
+  // `tool_call_id`。二者不统一时，直连请求里 tool 消息缺 `tool_call_id`，网关直接回
+  //  400 "invalid tool message, tool_call_id is required"（本地可离线复现）。
+  const apiMessages = messages
+    .map((m) => {
+      const record = m as unknown as Record<string, unknown>
+      const { role, content, ...rest } = record
+      return { ...rest, role, content: typeof content === 'string' ? content : content }
+    })
+    .map((msg) => {
+      if (msg.role !== 'tool') return msg
+      const id = String((msg as Record<string, unknown>).tool_call_id ||
+        (msg as Record<string, unknown>).toolUseId ||
+        (msg as Record<string, unknown>).tool_use_id || '')
+      const out: Record<string, unknown> = { ...msg, tool_call_id: id }
+      delete out.toolUseId
+      delete out.tool_use_id
+      return out
+    })
 
   // 单轮请求：工具执行权归属 MessageLoop。本函数只发一次请求，
   // 把 tool_use 回推给上层；工具结果会进入 history，随下一轮请求再来。

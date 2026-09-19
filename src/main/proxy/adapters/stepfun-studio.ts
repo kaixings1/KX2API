@@ -472,12 +472,17 @@ export class StepFunStudioAdapter {
     const model = this.mapModel(request.model)
     const body: any = {
       model,
-      messages: request.messages.map(msg => ({
-        role: msg.role,
-        content: msg.content == null ? '' : msg.content,
-        ...(msg.tool_call_id ? { tool_call_id: msg.tool_call_id } : {}),
-        ...(msg.tool_calls ? { tool_calls: msg.tool_calls } : {}),
-      })),
+      messages: (request.messages || []).map((msg: any) => {
+        // 归一化 tool 消息 id（同 stepfun.ts）：上游可能携 tool_call_id / toolUseId /
+        // tool_use_id 任一方言，缺失时 step_plan 回 400 "tool_call_id is required"。
+        const out: any = { role: msg.role, content: msg.content == null ? '' : msg.content }
+        if (msg.role === 'tool') {
+          const id = msg.tool_call_id || msg.toolUseId || msg.tool_use_id
+          if (id != null && id !== '') out.tool_call_id = String(id)
+        }
+        if (msg.tool_calls) out.tool_calls = msg.tool_calls
+        return out
+      }),
       stream: request.stream !== undefined ? request.stream : true,
     }
     if (request.temperature !== undefined && request.temperature !== null) body.temperature = request.temperature

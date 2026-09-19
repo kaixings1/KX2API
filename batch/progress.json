@@ -118,7 +118,7 @@
       "filesDone": 2,
       "status": "done",
       "completedAt": "2026-09-18",
-      "disposition": "归档 fix.ts（零引用，修复路径明确不接入）+ 连带归档其测试；index.ts 保留并同步移除导出"
+      "disposition": "保留（修正2026-09-19：fix.ts 是被测试引用的演进版，非零引用；index.ts 保留 fixToolHistory 导出；测试保留）"
     },
     {
       "id": "E10",
@@ -406,7 +406,7 @@
       "filesDone": 4,
       "status": "done",
       "completedAt": "2026-09-18",
-      "disposition": "全部归档（2 个旧 .d.ts）"
+      "disposition": "归档 manager.d.ts/types.d.ts（legacy）+ 补删 sanitizer.d.ts（被 sanitizer.ts 取代）；accountTrend.test.ts 是测 manager.ts 的活测试保留（修正2026-09-19）"
     },
     {
       "id": "M22",
