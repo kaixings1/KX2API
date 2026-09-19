@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-// 注意：主进程实际使用的是 src/security/ 这一套（由 securityEnhancer 引用），
-// src/main/security/ 是未被引用的副本 —— 测试必须指向活跃版本。
+// 注意：security 已合并为 src/security/ 单一目录（原 src/main/security/ 副本已随项 3 删除）。
+// 单测统一从 src/security 导入活跃实现。
 import {
   DEFAULT_AUDIT_BUFFER_SIZE,
   DEFAULT_AUDIT_FLUSH_INTERVAL_MS,

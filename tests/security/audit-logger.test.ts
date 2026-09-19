@@ -8,7 +8,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
 
-import { AuditLogger } from '../../src/main/security/AuditLogger.ts'
+import { AuditLogger } from '../../src/security/AuditLogger.ts'
 
 function tmpFile(): string {
   return path.join(os.tmpdir(), `audit-test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.json`)

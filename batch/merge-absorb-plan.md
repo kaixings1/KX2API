@@ -39,22 +39,30 @@
 
 ---
 
-## 项 3（风险高，需你决策）· `05-other/X1` — 两套 `security` 合并吸收
+---
 
-- **现状**：`src/security/`（9 文件，活跃，被 `securityEnhancer`/`sandbox` 用）
-  **与** `src/main/security/`（7 文件，被 `src/main/index.ts` 用）**两套并存、内容不同**。
-  `src/main/index.ts:29-30` **同时混用两套**（29 行指向 `./security`，30 行指向 `../security`）。
-- **实测差异**：
-  1. 导出签名完全一致；`src/security/` 每个文件更大（多 13~51 行）。
-  2. 🔴 **行为漏洞**：`src/security/OutputSanitizer` 对 `api_key = xxx` 的输出是
-     `"xxx=***REDACTED***"`——**密钥本体留在了输出里**；`src/main/security/` 版正确输出 `"***REDACTED***"`。
-     而 `src/security/` 正是工具输出净化的活跃版本 → **当前线上泄密**。
-  3. `src/main/security/` 独有 `PermissionManager.ts`（`src/security/` 没有）。
-- **方案**：把 `src/main/security/` 的修复版逐文件吸收进 `src/security/`，删除 `src/main/security/` 目录，
-  `src/main/index.ts` 引用统一改指向 `src/security/`。需逐文件比对行为 + 跑 `tests/security/*`。
-- **风险**：高 —— 改动 `src/main/index.ts`（并发会话也在附近活动）且涉及安全代码；
-  必须先修掉 `OutputSanitizer` 的泄密缺陷再合并。
-- **状态**：✅ 项 1 已完成（2026-09-19）；项 3 待你授权。
+## ✅ 项 3（已完成 2026-09-19）· `05-other/X1` — 两套 `security` 合并
+
+- **现状**：`src/security/`（8 文件，活跃，被 `securityEnhancer`/`sandbox` 用）
+  **与** `src/main/security/`（8 文件，被 `src/main/index.ts` 用）两套并存、内容不同。
+- **实测差异**（逐文件比对）：
+  1. 6 个同名文件（AuditLogger/CommandFilter/CredentialManager/InputValidator/PathGuard/OutputSanitizer）
+     除分号/注释风格外，逻辑一致；**AuditLogger 与 OutputSanitizer 有实质行为分歧**。
+  2. 🔴 `src/security/OutputSanitizer` 对 `api_key/password/secret/token` 用 `$1` 捕获组做替换，
+     明文留在输出（`xxx=***REDACTED***`）→ **线上泄密**；`src/main/security` 版正确整体替换。
+  3. 🔴 `src/security/AuditLogger` 三个隐藏 bug：`sensitiveKeys` 用驼峰 `'apiKey'`（经
+     `toLowerCase().includes()` 恒匹配不上→apiKey 明文落盘）；`query()` 无 try/catch（读不到文件
+     抛 ENOENT）；`stop()` 同步不 flush（丢失缓冲）。`src/main/security` 版均已修复。
+- **方案执行**：
+  1. 保留 `src/security/` 为唯一归属（其 index 为全量 `export *`，含 PermissionManager）。
+  2. 修复 `src/security/OutputSanitizer.ts` 3 处 `$1` 泄漏 → 纯 `'***REDACTED***'` 替换。
+  3. 修复 `src/security/AuditLogger.ts`：sensitiveKeys 改全小写 `'apikey'`；query 加 try/catch 容错；
+     补 `stopFlushTimer()` + `stop()` 改 async 落盘。
+  4. `src/main/index.ts` 两行 security import 合并为 `from '../security/index.ts'`。
+  5. 删除 `src/main/security/`（git rm），`tests/security/*.test.ts` 4 处 import 改指 `src/security/`。
+- **验证**：typecheck 通过；`tests/security` 三文件全过（audit 8/8、credential 9/9、path-guard 38/38，
+  含「API key 不泄露明文」断言）；`textRuntimeLimits`(vitest) 8/8；`npm run test:all` 全量见下。
+- **风险处置**：改动点均在 active 目录（未被其它会话引用）；删目录经 git rm 保留历史可回滚。
 
 ---
 

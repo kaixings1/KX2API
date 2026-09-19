@@ -8,7 +8,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
 
-import { CredentialManager } from '../../src/main/security/CredentialManager.ts'
+import { CredentialManager } from '../../src/security/CredentialManager.ts'
 
 function tmpFile(): string {
   return path.join(os.tmpdir(), `cred-test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.json`)

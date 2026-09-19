@@ -5,10 +5,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { PathGuard } from '../../src/main/security/PathGuard.ts'
-import { InputValidator } from '../../src/main/security/InputValidator.ts'
-import { CommandFilter } from '../../src/main/security/CommandFilter.ts'
-import { OutputSanitizer } from '../../src/main/security/OutputSanitizer.ts'
+import { PathGuard } from '../../src/security/PathGuard.ts'
+import { InputValidator } from '../../src/security/InputValidator.ts'
+import { CommandFilter } from '../../src/security/CommandFilter.ts'
+import { OutputSanitizer } from '../../src/security/OutputSanitizer.ts'
 
 // ===========================================================================
 // PathGuard

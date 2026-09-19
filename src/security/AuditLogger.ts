@@ -215,11 +215,28 @@ export class AuditLogger {
     category?: string;
     tool?: string;
     limit?: number;
-  }): Promise<AuditEntry[]> {
-    const content = await fs.readFile(this.logFile, 'utf-8');
+  } = {}): Promise<AuditEntry[]> {
+    // 文件尚不存在（首次运行/从未落盘）时返回空，而不是抛 ENOENT ——
+    // 否则「stop 后立刻 query」这类合法调用会被异常打断。坏行（部分写入）
+    // 也跳过而非整份拒绝，保证历史审计不因单行损坏而全不可读。
+    let content: string;
+    try {
+      content = await fs.readFile(this.logFile, 'utf-8');
+    } catch {
+      return [];
+    }
+
     const lines = content.split('\n').filter((line) => line.trim());
 
-    let entries: AuditEntry[] = lines.map((line) => JSON.parse(line) as AuditEntry);
+    let entries: AuditEntry[] = lines
+      .map((line) => {
+        try {
+          return JSON.parse(line) as AuditEntry;
+        } catch {
+          return null;
+        }
+      })
+      .filter((e): e is AuditEntry => e !== null);
 
     if (options.startTime) {
       entries = entries.filter((e) => new Date(e.timestamp) >= options.startTime!);
@@ -253,7 +270,10 @@ export class AuditLogger {
    */
   private sanitizeParams(params: Record<string, any>): Record<string, any> {
     const sanitized: Record<string, any> = {};
-    const sensitiveKeys = ['password', 'token', 'secret', 'apiKey', 'api_key'];
+    // 全部用小写。脱敏判定走 `key.toLowerCase().includes(s)`，
+    // 单独写 `apiKey` 会因大小写不匹配而永远命中不了（`apikey`.includes('apiKey') 为 false），
+    // 导致 apiKey 明文落盘。用全小写 s 才能覆盖 apiKey / api_key / API_KEY 三种写法。
+    const sensitiveKeys = ['password', 'token', 'secret', 'apikey', 'api_key'];
 
     for (const [key, value] of Object.entries(params)) {
       if (sensitiveKeys.some((s) => key.toLowerCase().includes(s))) {
@@ -276,13 +296,31 @@ export class AuditLogger {
   }
 
   /**
-   * 停止定时刷新
+   * 只停止定时器，不触发落盘。
+   *
+   * 与 stop() 的区别：stop() 会顺带 flush（有 I/O 副作用，且返回浮空 Promise）。
+   * 测试、临时实例、参数校验这类场景只需要释放定时器句柄
+   * （否则 setInterval 会让进程/vitest 无法退出），不应附带写入。
    */
-  stop(): void {
+  stopFlushTimer(): void {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
     }
-    this.flush();
+  }
+
+  /**
+   * 停止定时器并落盘剩余缓冲。
+   *
+   * 注意：定时器不释放会让 Node 进程无法退出，因此即使 flush 失败也会
+   * 先清掉句柄（用 try/finally 保证）。
+   */
+  async stop(): Promise<void> {
+    this.stopFlushTimer();
+    try {
+      await this.flush();
+    } catch {
+      // flush 内部已处理异常（会回滚缓冲），此处不向上抛，避免退出流程被阻断
+    }
   }
 }

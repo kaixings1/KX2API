@@ -75,14 +75,14 @@ export class OutputSanitizer {
    */
   private redactSecrets(text: string): string {
     const patterns: Array<{ pattern: RegExp; replacement: string }> = [
-      // API Key
-      { pattern: /(?:api[_-]?key|apikey)["\s]*[:=]\s*["']?([a-zA-Z0-9\-_]{20,})["']?/gi, replacement: '$1=***REDACTED***' },
+      // API Key —— 替换为纯脱敏标记，**不得**用 $1 保留密钥本体（旧版会把明文留在输出里）
+      { pattern: /(?:api[_-]?key|apikey)["\s]*[:=]\s*["']?[a-zA-Z0-9\-_]{20,}["']?/gi, replacement: '***REDACTED***' },
       // Bearer Token
       { pattern: /Bearer\s+([a-zA-Z0-9\-_\.]+)/gi, replacement: 'Bearer ***REDACTED***' },
-      // Password
-      { pattern: /(?:password|passwd|pwd)["\s]*[:=]\s*["']?([^"'\s]+)["']?/gi, replacement: '$1=***REDACTED***' },
-      // Secret
-      { pattern: /(?:secret|token)["\s]*[:=]\s*["']?([a-zA-Z0-9\-_]{16,})["']?/gi, replacement: '$1=***REDACTED***' },
+      // Password —— 同上，整体替换不保留明文
+      { pattern: /(?:password|passwd|pwd)["\s]*[:=]\s*["']?[^"'\s]+["']?/gi, replacement: '***REDACTED***' },
+      // Secret / Token —— 同上，整体替换不保留明文
+      { pattern: /(?:secret|token)["\s]*[:=]\s*["']?[a-zA-Z0-9\-_]{16,}["']?/gi, replacement: '***REDACTED***' },
       // AWS Access Key
       { pattern: /AKIA[0-9A-Z]{16}/g, replacement: '***AWS_KEY_REDACTED***' },
       // AWS Secret Key

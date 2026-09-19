@@ -26,8 +26,7 @@ import { proxyStatusManager } from './proxy/status'
 // 工具结果落盘目录与工具会话状态：静态导入保证退出路径可用
 import { toolSessionStore, setToolSessionStorePath } from './tools/toolSessionStore.ts'
 import { toolFileStore, migrateCustomRulesFromStore } from './tools/toolFileStore.ts'
-import { AuditLogger, InputValidator, CommandFilter, PathGuard, OutputSanitizer, CredentialManager } from './security/index.ts'
-import { PermissionManager } from '../security/PermissionManager.ts'
+import { AuditLogger, InputValidator, CommandFilter, PathGuard, OutputSanitizer, CredentialManager, PermissionManager } from '../security/index.ts'
 
 // Prevent uncaught exceptions from crashing the app
 process.on('uncaughtException', (error) => {
