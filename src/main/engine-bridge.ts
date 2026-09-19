@@ -280,6 +280,26 @@ async function wireToolHooks(engine: QueryEngine): Promise<void> {
         await runPostToolUse(toolName, input, output, success)
       },
     })
+
+    // 内置安全/审计钩子：把 engine/hooks/builtInHooks 的工厂接到引擎的 HookManager 上。
+    // 这些是「唯一实现」的安全能力（密钥检测、文件类型告警、工具审计、失败追踪），
+    // 此前零引用。此处接线使其真正生效，见 batch/01-engine/E7-engine-hooks.md。
+    const { HookManager } = await import('../engine/hooks/hookManager.ts')
+    const { createSecretDetectionHook, createFileTypeWarningHook, createToolAuditLogHook,
+            createFailureTrackerHook } = await import('../engine/hooks/builtInHooks.ts')
+    const hm = new HookManager()
+    hm.register({ eventType: 'PreToolUse', handler: createSecretDetectionHook() })
+    hm.register({ eventType: 'PreToolUse', handler: createFileTypeWarningHook() })
+    hm.register({ eventType: 'PostToolUse', handler: createToolAuditLogHook() })
+    hm.register({
+      eventType: 'PostToolUseFailure',
+      handler: createFailureTrackerHook((count, toolName) => {
+        console.warn(`[Hook:FailureTracker] 工具 ${toolName} 已连续失败 ${count} 次`)
+      }),
+    })
+    engine.setHookManager(hm)
+    console.log('[EngineBridge] Built-in hooks registered (secret-detect / file-type / audit / failure-track)')
+
     console.log('[EngineBridge] Tool hooks wired from', join(app.getPath('userData'), 'hooks.json'))
   } catch (e) {
     console.warn('[EngineBridge] wireToolHooks failed:', (e as Error).message)

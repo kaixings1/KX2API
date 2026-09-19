@@ -72,6 +72,23 @@ import { writeSessionTranscriptSegment } from "./transcript.ts";
 import { recordApiUsage } from "./cost/costTracker.ts";
 import { SessionMemory, extractKeyPoints } from "./memory/sessionMemory.ts";
 import type { ImageBudgetOptions } from "./imageBudget.ts";
+import { absorb } from "./absorb.ts";
+
+/**
+ * 前置吸收的门槛参数。
+ *
+ * 吸收是「压缩的压缩」：只删**完全重复**的行/块，不做任何语义改写，
+ * 因此不产生信息损失，也不需要调用模型。它比摘要便宜几个数量级，
+ * 且能拦住「同一文件被读两次」「工具输出里重复的模板片段」这类
+ * 摘要根本不该处理的情况 —— 摘要会把这些内容拿去生成自然语言总结，
+ * 既费 token 又丢细节。
+ *
+ * 阈值定得保守：单条消息少于 200 字符不值得跑（收益盖不过 CPU），
+ * 整体省下不到 5% 也不值得替换（格式稳定性优先于这点收益）。
+ */
+const ABSORB_MIN_MESSAGE_LENGTH = 200
+/** 整体节约比例低于此值就不替换 —— 与 absorbIfWorthwhile 的语义一致 */
+const ABSORB_MIN_SAVING_RATIO = 0.05
 
 export interface QueryResult {
   state: string;
@@ -320,6 +337,58 @@ export class MessageLoop {
   }
 
   /**
+   * 压缩前置：对「较旧消息」的文本内容做无损吸收去重。
+   *
+   * 为什么放在摘要之前 —— 摘要会重写内容，而吸收只删重复。先做吸收，
+   * 能省的情况下就不必动用摘要（摘要要发一次真实 API 请求，且总结会丢细节）。
+   * 吸收不掉说明上下文里确实没有冗余，再交给摘要处理。
+   *
+   * 安全约束（必须严格遵守，否则下一次请求直接 400）：
+   *   1. `tool_use` / `tool_result` 通过 `toolUseId` 关联，**吸收不得改变
+   *      任何消息的条数、顺序、role 或 toolUseId** —— 只替换 content 字符串。
+   *      因此这里绝不增删消息，只在原数组上原地改写 content。
+   *   2. `content` 是数组时（多模态/结构化块）整体跳过：数组里可能是
+   *      image 块或 tool_use 块，字符串化再压缩会破坏结构。
+   *   3. 只处理最旧的若干条，最近的消息（含本轮工具结果）保持原样 ——
+   *      模型当前的推理依赖它们，且它们本来就不长。
+   *
+   * 失败绝不影响主流程：吸收是优化项，出错就当作没做。
+   *
+   * @returns 省下的字符数（0 表示未生效）
+   */
+  private absorbStaleContent(messages: InternalMessage[]): number {
+    try {
+      // 最近 10 条不动（与 AutoCompactor 的 preserveRecentCount 默认值对齐）
+      const staleEnd = Math.max(0, messages.length - 10)
+      if (staleEnd === 0) return 0
+
+      let savedTotal = 0
+      for (let i = 0; i < staleEnd; i++) {
+        const msg = messages[i]
+        const content = msg.content
+        // 只处理纯字符串内容；数组内容（多模态/tool_use 块）跳过
+        if (typeof content !== 'string') continue
+        if (content.length < ABSORB_MIN_MESSAGE_LENGTH) continue
+
+        const r = absorb(content)
+        // skipped 表示超长未处理；ratio 不达标表示收益太小
+        if (r.skipped || r.ratio < ABSORB_MIN_SAVING_RATIO) continue
+
+        msg.content = r.text
+        savedTotal += r.saved
+      }
+
+      if (savedTotal > 0) {
+        engineLog('ABSORB', `前置吸收：旧消息省下约 ${savedTotal} 字符（未调用模型）`)
+      }
+      return savedTotal
+    } catch (e) {
+      console.warn('[MessageLoop] absorbStaleContent failed:', (e as Error).message)
+      return 0
+    }
+  }
+
+  /**
    * 从压缩产物中吸收要点进会话记忆。
    *
    * 压缩后的消息里第一条 system 通常是摘要（由 `buildSummaryMessage` 包装）。
@@ -490,40 +559,51 @@ export class MessageLoop {
     // 高于压缩触发阈值，代码永远走不到压缩分支，等于"上下文一满就直接中断"。
     // 现在改成先给压缩一次自愈机会，压不动才拒绝。
     if (this.deps.autoCompactor && budget.shouldCompact) {
-      const coordinator = this.getCompactCoordinator();
-      const result = await coordinator.runCompact(
-        async () => {
-          // 压缩前把原文落盘转录，供压缩后/崩溃后追溯。
-          // fire-and-forget：transcript 内部已吞错，不影响压缩本身。
-          writeSessionTranscriptSegment(this.deps.conversation.messages, {
-            sessionId: this.deps.sessionId,
-          });
-          // 压缩前把本会话此前的要点交给摘要器：长对话会被多次压缩，
-          // 每次摘要都是对「上一次摘要」的二次加工，早期关键信息逐轮衰减。
-          const beforeCompact = this.deps.conversation.messages;
-          this.deps.conversation.messages = await this.deps.autoCompactor!.compact(
-            this.deps.conversation.messages,
-            { priorNotes: this.sessionMemory.formatForCompact() },
-          );
-          // 压缩后从新摘要里抽取要点，累加进会话记忆（供下一轮压缩用）。
-          // 放在这里而非压缩器内部：会话状态属于 messageLoop，压缩器不该持有它。
-          this.absorbCompactSummary(beforeCompact, this.deps.conversation.messages);
-        },
-        // 用预算器的真实计量（含 API 校准值），而非简单的消息条数
-        () => this.deps.tokenBudget.checkBudget(this.deps.conversation.messages).usedTokens,
-      );
-      const o = result.outcome;
-      if (o.attempted) {
-        engineLog(
-          'COMPACT',
-          `压缩${o.succeeded ? '成功' : '未生效'}：${o.beforeTokens} → ${o.afterTokens} tokens` +
-            (o.reason ? `（${o.reason}）` : ''),
-        );
-      } else if (o.reason) {
-        engineLog('COMPACT', `跳过压缩：${o.reason}`);
+      // 前置吸收：先做无损去重（不调模型）。若能省下可观的 token，
+      // 预算可能已降到阈值之下 —— 重新计量后再决定是否真的需要摘要。
+      // 顺序很关键：吸收必须发生在 runCompact 判定之前，否则摘要已把
+      // 原文重写掉，重复内容早已消失，吸收就无从下手了。
+      const savedChars = this.absorbStaleContent(this.deps.conversation.messages)
+      if (savedChars > 0) {
+        budget = this.deps.tokenBudget.checkBudget(this.deps.conversation.messages)
       }
-      // 压缩后必须重新评估：结果可能已不再超限，也可能仍超限
-      budget = this.deps.tokenBudget.checkBudget(this.deps.conversation.messages);
+
+      if (budget.shouldCompact) {
+        const coordinator = this.getCompactCoordinator();
+        const result = await coordinator.runCompact(
+          async () => {
+            // 压缩前把原文落盘转录，供压缩后/崩溃后追溯。
+            // fire-and-forget：transcript 内部已吞错，不影响压缩本身。
+            writeSessionTranscriptSegment(this.deps.conversation.messages, {
+              sessionId: this.deps.sessionId,
+            });
+            // 压缩前把本会话此前的要点交给摘要器：长对话会被多次压缩，
+            // 每次摘要都是对「上一次摘要」的二次加工，早期关键信息逐轮衰减。
+            const beforeCompact = this.deps.conversation.messages;
+            this.deps.conversation.messages = await this.deps.autoCompactor!.compact(
+              this.deps.conversation.messages,
+              { priorNotes: this.sessionMemory.formatForCompact() },
+            );
+            // 压缩后从新摘要里抽取要点，累加进会话记忆（供下一轮压缩用）。
+            // 放在这里而非压缩器内部：会话状态属于 messageLoop，压缩器不该持有它。
+            this.absorbCompactSummary(beforeCompact, this.deps.conversation.messages);
+          },
+          // 用预算器的真实计量（含 API 校准值），而非简单的消息条数
+          () => this.deps.tokenBudget.checkBudget(this.deps.conversation.messages).usedTokens,
+        );
+        const o = result.outcome;
+        if (o.attempted) {
+          engineLog(
+            'COMPACT',
+            `压缩${o.succeeded ? '成功' : '未生效'}：${o.beforeTokens} → ${o.afterTokens} tokens` +
+              (o.reason ? `（${o.reason}）` : ''),
+          );
+        } else if (o.reason) {
+          engineLog('COMPACT', `跳过压缩：${o.reason}`);
+        }
+        // 压缩后必须重新评估：结果可能已不再超限，也可能仍超限
+        budget = this.deps.tokenBudget.checkBudget(this.deps.conversation.messages);
+      }
     }
 
     if (budget.shouldReject) {
