@@ -128,7 +128,7 @@ describe('MessageLoop lastToolCalls 填充（readSearch 自动续写）', () => 
   })
 
   test('单轮工具执行后 lastToolCalls 被填充（无 readSearch 续写清空）', async () => {
-    // 只给一轮：模型发起 read 工具，执行后 done（canContinue 不再允许下一轮）。
+    // 只给一轮：模型发起 read 工具，执行后 success（canContinue 不再允许下一轮）。
     // 此时没有 readSearch 续写分支来清空它，run 返回后 lastToolCalls 应保留 [{read}]。
     const { deps, usedToolNames } = makeDeps([
       { content: '', toolCalls: [{ id: 't1', name: 'read', input: { path: 'x' } }] },
@@ -138,5 +138,91 @@ describe('MessageLoop lastToolCalls 填充（readSearch 自动续写）', () => 
     assert.deepEqual(usedToolNames[0], ['read'], '应执行 read 工具')
     const last = (loop as unknown as { lastToolCalls: Array<{ name: string }> }).lastToolCalls
     assert.deepEqual(last, [{ name: 'read' }], '工具执行后 lastToolCalls 应被填充')
+  })
+})
+
+describe('MessageLoop autoContinue 场景检测（intentOnly / continueKeyword）', () => {
+  /** 带 autoContinue 配置与多轮响应的最小实例 */
+  function makeAutoDeps(rounds, overrides) {
+    const messages = []
+    let round = 0
+    const defs = {
+      stateMachine: {
+        state: 'idle',
+        canContinue: () => round < rounds.length,
+        isTerminal: () => false,
+        transition: async (to) => { defs.stateMachine.state = to },
+      },
+      tokenBudget: {
+        setToolDefinitions: () => {},
+        checkBudget: () => ({ usedTokens: 0, shouldCompact: false, shouldReject: false }),
+        getUsage: () => ({ inputTokens: 0, outputTokens: 0 }),
+      },
+      requestBuilder: { build: () => ({}) },
+      responseHandler: {
+        set allowedToolNames(_) {},
+        handle: async () => {
+          const r = rounds[Math.min(round, rounds.length - 1)]
+          round++
+          return {
+            content: r.content,
+            toolCalls: r.toolCalls,
+            stopReason: r.toolCalls.length > 0 ? 'tool_use' : 'end_turn',
+            needsUserInput: false,
+          }
+        },
+      },
+      toolScheduler: { execute: async (calls) => calls.map((c) => ({ toolUseId: c.id, success: true, output: 'ok' })) },
+      apiClient: { sendMessage: async () => ({ async *[Symbol.asyncIterator]() { yield { type: 'text', text: '' } } }) },
+      conversation: { messages, addToolResults: (r) => { for (const x of r) messages.push({ role: 'tool', content: x.output }) } },
+      systemPrompt: '', model: 'test-model', maxOutputTokens: 1024,
+      toolDefinitions: [{ name: 'read', description: 'read', input_schema: { type: 'object' } }],
+      provider: 'anthropic',
+      autoContinue: { enabled: true, intentOnly: true, continueKeyword: true, readSearch: false, endTurn: false, maxCount: 10 },
+      ...(overrides || {}),
+    }
+    return { deps: defs }
+  }
+
+  async function runLoop(label: string, rounds: any[], overrides?: any) {
+    const { deps } = makeAutoDeps(rounds, overrides)
+    const loop = new MessageLoop(deps)
+    const result = await loop.run('开始')
+    const conv = (deps as any).conversation
+    const pushed = conv.messages || []
+    const hasUserContinue = pushed.some((m: any) => m.role === 'user' && typeof m.content === 'string' && m.content.indexOf('继续') >= 0)
+    return { result, hasUserContinue }
+  }
+
+  test('intentOnly：模型只说"我要…"未动手 → 自动续写一轮', async () => {
+    const { result, hasUserContinue } = await runLoop('intentOnly', [
+      { content: '我想先看一下项目结构，接下来分析依赖。', toolCalls: [] },
+      { content: '已完成。', toolCalls: [] },
+    ])
+    assert.ok(result.iterations >= 2, 'intentOnly 续写应使迭代 >= 2')
+    assert.ok(hasUserContinue, 'intentOnly 应追加一条含"继续"的 user 消息')
+  })
+
+  test('continueKeyword：以"要不要继续……吗"询问结尾自动回"继续"续写', async () => {
+    const { result } = await runLoop('continueKeyword', [
+      { content: '我已经读完了这些文件，要我继续分析吗？', toolCalls: [] },
+      { content: '分析完成。', toolCalls: [] },
+    ])
+    assert.ok(result.iterations >= 2, 'continueKeyword 命中「要我…吗」应续写')
+  })
+
+  test('continueKeyword：二选一结尾"要我……还是……"也会自动继续', async () => {
+    const { result } = await runLoop('both', [
+      { content: '这里有两个方案，要我继续用方案 A 还是方案 B？', toolCalls: [] },
+      { content: '已按方案 A 完成。', toolCalls: [] },
+    ])
+    assert.ok(result.iterations >= 2, '「要我…还是…」应触发自动续写')
+  })
+
+  test('intentOnly 关闭时不自动续写（停在 1 轮）', async () => {
+    const { result } = await runLoop('intent-off', [
+      { content: '我想先整理一下思路。', toolCalls: [] },
+    ], { autoContinue: { enabled: true, intentOnly: false, continueKeyword: false, maxCount: 10 } })
+    assert.ok(result.iterations <= 1, 'intentOnly 关闭时不应续写')
   })
 })

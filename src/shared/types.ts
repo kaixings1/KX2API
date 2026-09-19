@@ -35,6 +35,7 @@ import type {
   ToolCallingConfig,
 } from './toolCalling'
 import type { AgentLoopConfig } from '../engine/loopConfig'
+import type { AutoContinueConfig } from '../engine/messageLoop'
 
 export type {
   LegacyToolPromptConfig,
@@ -110,6 +111,8 @@ export interface AppConfig {
   retryCount: number
   /** Agent 引擎循环控制参数（此前为硬编码常量，现可配置） */
   agentLoop?: AgentLoopConfig
+  /** 自动流程控制：检测到"询问结尾 / 只表达意图未动手 / read后提前终止"时自动继续推进 */
+  autoContinue?: AutoContinueConfig
   /** 账号熔断（负载均衡）参数 */
   loadBalancer?: LoadBalancerConfig
   /** 工具运行参数（落盘策略、执行超时） */

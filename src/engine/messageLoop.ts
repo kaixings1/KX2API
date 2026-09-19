@@ -128,8 +128,13 @@ export type AgentEvent =
 export interface AutoContinueConfig {
   enabled?: boolean;
   maxCount?: number;
+  /** 模型 read/search 后提前终止时自动续写 */
   readSearch?: boolean;
+  /** 命中"是否/继续吗/还是…"等询问式结尾时自动回"继续" */
   continueKeyword?: boolean;
+  /** 模型只表达意图（我要/我将/先让我…）却没有动作或未完成就收尾时，自动回"请继续" */
+  intentOnly?: boolean;
+  /** 收到 end_turn 回复时自动继续 */
   endTurn?: boolean;
 }
 
@@ -328,6 +333,11 @@ export class MessageLoop {
   /** 更新图片预算（设置界面改完即时生效）；传空值表示不启用裁剪 */
   setImageBudget(budget?: ImageBudgetOptions | null): void {
     this.deps.imageBudget = budget ?? void 0
+  }
+
+  /** 更新自动流程控制（设置界面改完即时生效，无需重启） */
+  setAutoContinue(config?: AutoContinueConfig | null): void {
+    ;(this.deps as MessageLoopDeps & { autoContinue?: AutoContinueConfig }).autoContinue = config ?? void 0
   }
 
   /** 清空会话记忆（会话重置 / 用户清空上下文时调用） */
@@ -905,7 +915,7 @@ export class MessageLoop {
       return true;
     }
 
-    if (processed.stopReason === "end_turn") return false;
+    if (processed.stopReason === "end_turn") return shouldContinue;
     if (processed.stopReason === "max_tokens") {
       this.consecutiveMaxTokens++;
       if (this.consecutiveMaxTokens >= this.limits.maxConsecutiveMaxTokens) {
@@ -958,15 +968,43 @@ export class MessageLoop {
       }
       const acKeyword = ac.autoContinue?.continueKeyword ?? false
       const content = typeof processed.content === 'string' ? processed.content : '';
-      if (acKeyword && content && /是否继续|是否需要|是否同意|需要我|继续吗|确认一下/.test(content)) {
-        await new Promise(resolve => setTimeout(resolve, this.limits.autoContinueDelayMs));
-        this.deps.conversation.messages.push({
-          role: 'user',
-          content: '继续',
-        } as InternalMessage);
-        engineLog('AUTO_CONTINUE', `检测到"是否继续"关键词，${this.limits.autoContinueDelayMs}ms 后自动发送"继续"`);
-        this.autoContinueCount++
-        return true;
+      if (acKeyword && content) {
+        // 询问式结尾：模型明显在向用户征询，却不该真的停（多半是语气使然）。
+        // 覆盖两类真实场景：
+        //   ① 请求确认："是否继续 / 是否需要 / 继续吗 / 确认一下 / 要我（现在）…"
+        //   ② 二选一但要推进："要我继续…还是…？""继续…吗？""要不要…？"
+        // 命中即自动回"继续"，把球踢回模型让它接着做。
+        const askPattern = /是否继续|是否需要|是否同意|需要我|要我|要不要|继续吗|确认一下|继续\.\.\.还是|…还是…|还是说|要继续|接着做|对不对|可以吗|行吗|好吗/
+        if (askPattern.test(content)) {
+          await new Promise(resolve => setTimeout(resolve, this.limits.autoContinueDelayMs));
+          this.deps.conversation.messages.push({
+            role: 'user',
+            content: '继续',
+          } as InternalMessage);
+          engineLog('AUTO_CONTINUE', `检测到"询问式结尾"关键词，${this.limits.autoContinueDelayMs}ms 后自动发送"继续"`);
+          this.autoContinueCount++
+          return true;
+        }
+      }
+      // 意图未执行：模型只表达"我要/我将/先让我…"却没真正动手或没给结果就收尾。
+      // 这类"说要做没下文"常发生在它把动作留到下轮、或忘记调工具时 —— 自动追一句
+      // "请继续执行"，让模型立刻往下走，而不是停在一条空洞的预告上。
+      const acIntentOnly = ac.autoContinue?.intentOnly ?? false
+      if (acIntentOnly && content) {
+        // 只表达意图、未真正行动：以第一人称将来/计划动词结尾，且不包含任何结果性内容
+        const intentPattern = /(我要|我将|我准备|我打算|让我(先|现在)|先让我|接下来|下一步|我会|我先把|让我(首先)?|那么|然后我|之后我)/
+        const isIntentOpen = intentPattern.test(content) &&
+          !/完成|成功|已都|搞定|结果|如下|是：|输出|报告|总结|完成|已保存|结果为/.test(content)
+        if (isIntentOpen && hadReadOrSearch === false && processed.toolCalls.length === 0) {
+          engineLog('AUTO_CONTINUE', '检测到"只表达意图未动手"，自动发送"请继续执行"');
+          await new Promise(resolve => setTimeout(resolve, this.limits.autoContinueDelayMs));
+          this.deps.conversation.messages.push({
+            role: 'user',
+            content: '请继续执行上面的步骤，遇到关键取舍可以自己做主。',
+          } as InternalMessage);
+          this.autoContinueCount++
+          return true;
+        }
       }
     }
 

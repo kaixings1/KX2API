@@ -1786,6 +1786,20 @@ export async function registerIpcHandlers(mainWindow: BrowserWindow | null): Pro
       }
     }
 
+    // 自动流程控制热更新：改完设置立即生效，无需重启应用。
+    if (updates && 'autoContinue' in updates) {
+      try {
+        const { getEngineInstance } = await import('../engine-bridge.ts')
+        const eng = getEngineInstance()
+        if (eng) {
+          eng.updateConfig({ autoContinue: (updates as { autoContinue?: unknown }).autoContinue })
+          console.log('[EngineBridge] 自动流程控制已热更新:', JSON.stringify(updates.autoContinue))
+        }
+      } catch (e) {
+        console.warn('[EngineBridge] 同步自动流程控制失败:', (e as Error).message)
+      }
+    }
+
     BrowserWindow.getAllWindows().forEach((win) => {
       if (!win.isDestroyed()) {
         win.webContents.send(IpcChannels.CONFIG_CHANGED, newConfig)

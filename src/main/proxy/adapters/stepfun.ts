@@ -806,15 +806,25 @@ export class StepFunAdapter {
               }
               try {
                 const parsed = JSON.parse(data)
-                const delta = parsed.choices?.[0]?.delta || {}
-                // step_plan stream puts output in reasoning/content; content is often empty
-                const content = delta.reasoning || delta.reasoning_content || delta.content || parsed.choices?.[0]?.text || ''
-                if (content) {
-                  // Format as SSE for the stream handler
-                  const sseLine = 'data: ' + JSON.stringify({ content }) + '\n\n'
-                  stream.write(sseLine, 'utf-8')
+                const choice = parsed.choices?.[0] || {}
+                const delta = choice.delta || {}
+                // step_plan stream puts output in reasoning/content; content is often empty。
+                // OpenAI 兼容工具调用在 delta.tool_calls 里，必须原样保留重组下发，
+                // 否则上层 StepFunStreamHandler 收不到任何工具调用，导致「工具调用过程/结果
+                // 看不见」、工具结果也无法回写。
+                const content = delta.reasoning || delta.reasoning_content || delta.content || choice.text || ''
+                const outChunk: any = { content }
+                if (delta.tool_calls && Array.isArray(delta.tool_calls) && delta.tool_calls.length > 0) {
+                  outChunk.tool_calls = delta.tool_calls
                 }
-                if (parsed.choices?.[0]?.finish_reason === 'stop') {
+                if (typeof delta.reasoning === 'string') {
+                  outChunk.reasoning = delta.reasoning
+                } else if (typeof delta.reasoning_content === 'string') {
+                  outChunk.reasoning_content = delta.reasoning_content
+                }
+                const sseLine = 'data: ' + JSON.stringify(outChunk) + '\n\n'
+                stream.write(sseLine, 'utf-8')
+                if (choice.finish_reason === 'stop') {
                   stream.end()
                 }
               } catch {

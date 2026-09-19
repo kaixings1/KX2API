@@ -581,6 +581,13 @@ export class QueryEngine {
     if ('agentLoop' in updates) {
       this.messageLoop.setLoopLimits(updates.agentLoop as AgentLoopConfig | undefined)
     }
+    // 自动流程控制热更新：改完设置立即生效，无需重启应用
+    if ('autoContinue' in updates) {
+      const ac = updates.autoContinue as AutoContinueConfig | null
+      if (ac && typeof ac === 'object') {
+        this.messageLoop.setAutoContinue(ac)
+      }
+    }
     // 图片预算热更新：改完设置立即生效
     if ('imageBudget' in updates) {
       this.messageLoop.setImageBudget(

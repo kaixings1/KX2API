@@ -25,6 +25,7 @@ import { toolPluginRegistry, type ToolPlugin } from '../engine/plugin/toolPlugin
 import { allLegacyToolPlugins, coreToolPlugins, advancedToolPlugins } from '../engine/plugin/legacyToolPlugins.ts'
 import { ConfigManager } from './store/config'
 import type { AgentLoopConfig } from '../engine/loopConfig'
+import type { AutoContinueConfig } from '../engine/messageLoop'
 import type { ImageBudgetConfig } from '../shared/types'
 import { sendMessageStream, type ApiConfig } from '../engine/api/client.ts'
 import { buildToolFormatPrompt, DEFAULT_TOOL_FORMAT, type ToolFormat } from '../shared/toolCalling.ts'
@@ -402,6 +403,20 @@ export function readAgentLoopConfig(): AgentLoopConfig | undefined {
     return cfg?.agentLoop
   } catch {
     return undefined
+  }
+}
+
+/**
+ * 从配置读取自动流程控制参数。
+ * MessageLoop 里的 autoContinue 默认是关闭的；未配置或缺失字段时返回空对象，
+ * 引擎按 messageLoop.ts 内的 ?? 兜底回落默认值。
+ */
+export function readAutoContinueConfig(): AutoContinueConfig {
+  try {
+    const cfg = ConfigManager.get() as { autoContinue?: AutoContinueConfig }
+    return cfg?.autoContinue || {}
+  } catch {
+    return {}
   }
 }
 
@@ -972,6 +987,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         subagents,
         tools: commandTools,
         agentLoop: readAgentLoopConfig(),
+        autoContinue: readAutoContinueConfig(),
         imageBudget: readImageBudgetConfig(),
         ...readAuditConfig(),
       }
@@ -1004,6 +1020,7 @@ export async function initEngineBridge(_mainWindow: BrowserWindow | null): Promi
         subagents,
         tools: commandTools,
         agentLoop: readAgentLoopConfig(),
+        autoContinue: readAutoContinueConfig(),
         imageBudget: readImageBudgetConfig(),
         ...readAuditConfig(),
       })
@@ -1099,6 +1116,7 @@ export function updateEngineApiClient(opts: {
     ...(systemPrompt ? { systemPrompt } : {}),
     // 循环参数允许热更新：设置界面改完立即生效，无需重启
     agentLoop: readAgentLoopConfig(),
+        autoContinue: readAutoContinueConfig(),
     imageBudget: readImageBudgetConfig(),
   })
   eng.setApiClient({

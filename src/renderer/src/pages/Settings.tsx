@@ -9,6 +9,7 @@ import {
   ManagementApiSettings,
   LogCategoryConfig,
   AgentLoopSettings,
+  AutoContinueSettings,
   LoadBalancerSettings,
   ToolRuntimeSettings,
   ImageBudgetSettings,
@@ -107,6 +108,7 @@ export function Settings() {
 
         <TabsContent value="agent" className="mt-6 space-y-6">
           <AgentLoopSettings />
+          <AutoContinueSettings />
           <ToolRuntimeSettings />
           <ImageBudgetSettings />
           <MemorySettings />
