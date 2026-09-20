@@ -43,6 +43,10 @@ function collect(dir, out = []) {
 
 /** 单文件超时（毫秒）——避免某个测试挂住整个 runner */
 const FILE_TIMEOUT_MS = 120_000
+// 单个用例超时（毫秒）——某个用例里 promise 永不 settle 时（漏 await / 漏解构 reject），
+// 没有它整个文件会一直不产出统计行、只能等满 FILE_TIMEOUT_MS 被强杀，
+// 且不知道是哪个用例挂的。有它则该用例明确失败并给出名字。
+const TEST_TIMEOUT_MS = 15_000
 
 function killTree(pid) {
   // Windows 下需要连子孙进程一起杀，否则 tsx/子服务会挂住
@@ -60,7 +64,9 @@ function runTest(file) {
       // 限制子进程堆上限：34 个文件连着跑时，偶发 V8 反序列化 OOM（环境内存压力导致）
       '--max-old-space-size=768',
       '--import', 'tsx', '--import', ELECTRON_LOADER,
-      '--test', '--test-force-exit', rel,
+      '--test', '--test-force-exit',
+      `--test-timeout=${TEST_TIMEOUT_MS}`,
+      rel,
     ]
     const proc = spawn(process.execPath, args, {
       cwd: projectRoot,

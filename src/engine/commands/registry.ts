@@ -2878,6 +2878,470 @@ commandRegistry.register({
 })
 
 commandRegistry.register({
+  name: 'graph',
+  description: '构建代码库知识图谱（实体+依赖/继承/调用关系）（用法: /graph [目录] [文件数上限]）',
+  execute: async (args) => {
+    try {
+      const { buildKnowledgeGraph, formatGraphReport, getGraphStats } = await import('../knowledgeGraph.ts')
+      const fs = await import('fs')
+      const path = await import('path')
+      const root = args[0] || process.cwd()
+      const maxFiles = Number(args[1]) > 0 ? Number(args[1]) : 200
+      const CODE_RE = /\.(ts|tsx|js|jsx|mjs|json)$/
+
+      // 递归收集代码文件（读内容供图谱构建；构建本身是纯函数，只收 path+content）
+      const files: Array<{ path: string; content: string }> = []
+      const seen = new Set<string>()
+      const walk = (dir: string): void => {
+        if (files.length >= maxFiles) return
+        let entries: unknown[] = []
+        try {
+          entries = fs.readdirSync(dir, { withFileTypes: true }) as unknown[]
+        } catch {
+          return
+        }
+        for (const ent of entries) {
+          const e = ent as { name: string; isDirectory(): boolean; isFile(): boolean }
+          const full = path.join(dir, e.name)
+          if (e.name.startsWith('.') || e.name === 'node_modules' || e.name === 'out') continue
+          if (e.isDirectory()) walk(full)
+          else if (e.isFile() && CODE_RE.test(e.name)) {
+            const rel = full.replace(/\\/g, '/')
+            if (seen.has(rel)) continue
+            seen.add(rel)
+            try {
+              files.push({ path: rel, content: fs.readFileSync(full, 'utf8') })
+            } catch {
+              /* 单个文件读取失败不影响整体 */
+            }
+          }
+          if (files.length >= maxFiles) return
+        }
+      }
+      walk(root)
+
+      if (files.length === 0) {
+        return {
+          success: true,
+          output: `在 ${root} 下没有扫描到任何代码文件（目录不存在、或没有 .ts/.tsx/.js/.jsx/.mjs/.json 文件）。`,
+        }
+      }
+
+      const graph = buildKnowledgeGraph(files)
+      const stats = getGraphStats(graph)
+      const body = formatGraphReport(graph)
+      return {
+        success: true,
+        output:
+          `已构建知识图谱：${files.length} 个文件 → ${stats.files} 文件 / ${stats.symbols} 符号 / ${stats.edges} 条边（imports ${stats.imports} / calls ${stats.calls} / 继承实现 ${stats.relations}）\n\n` +
+          body,
+      }
+    } catch (e) {
+      return { success: false, error: `graph 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'semantic',
+  description: '语义代码搜索（BM25）：用法 /semantic [目录] <查询词...>，检索代码符号与内容',
+  execute: async (args) => {
+    try {
+      const { createSemanticIndexer } = await import('../semanticSearch.ts')
+      const rootDir = args[0] || process.cwd()
+      const query = args.slice(1).join(' ')
+      if (!query.trim()) {
+        return { success: false, error: 'semantic 需要提供查询词，例如：/semantic src 配置加载逻辑' }
+      }
+
+      const indexer = createSemanticIndexer(rootDir)
+      await indexer.index()
+      const stats = indexer.getStats()
+
+      const hits = indexer.search(query, { maxResults: 10 })
+      if (hits.length === 0) {
+        return {
+          success: true,
+          output: `在 ${rootDir}（${stats.files} 文件 / ${stats.symbols} 符号）中没有找到与「${query}」相关的结果。`,
+        }
+      }
+
+      const lines = hits.map((h, i) => {
+        const base = h.filePath.split('/').pop() ?? h.filePath
+        return `${i + 1}. [${h.score.toFixed(2)}] ${base}:${h.lineNumber}\n   ${(h.content || '').replace(/\n/g, ' ').slice(0, 120)}`
+      })
+      return {
+        success: true,
+        output:
+          `语义搜索「${query}」：共索引 ${stats.files} 文件 / ${stats.symbols} 符号 / ${stats.chunks} 块，命中 ${hits.length} 处：\n\n` +
+          lines.join('\n') +
+          '\n\n提示：按相关性（BM25）排序，可用来定位实现某逻辑的代码位置。',
+      }
+    } catch (e) {
+      return { success: false, error: `semantic 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'eco',
+  description: 'Bash 输出压缩过滤器（用法: /eco on|off|stats，对命令输出做 token 压缩）',
+  execute: async (args) => {
+    try {
+      const { setEcoEnabled, isEcoEnabled, getEcoStats, resetEcoStats } = await import('../ecoFilter.ts')
+      const mode = (args[0] || '').toLowerCase()
+      switch (mode) {
+        case 'on':
+          setEcoEnabled('session', true)
+          return { success: true, output: 'Eco 压缩已开启：Bash 输出将经过压缩管道后发给模型。' }
+        case 'off':
+          setEcoEnabled('session', false)
+          return { success: true, output: 'Eco 压缩已关闭。' }
+        case 'reset':
+          resetEcoStats()
+          return { success: true, output: 'Eco 统计已重置。' }
+        case 'stats': {
+          const s = getEcoStats()
+          return {
+            success: true,
+            output: s.commands === 0 && s.baselineTokens === 0
+              ? `Eco 压缩${isEcoEnabled() ? '开启' : '关闭'}，尚无统计。`
+              : `Eco 压缩${isEcoEnabled() ? '开启' : '关闭'}：累计 ${s.commands} 次，基准 ${s.baselineTokens} tokens → 压缩后 ${s.ecoTokens} tokens，节省 ${s.savedTokens} tokens（${s.savingsPct.toFixed(1)}%）。\n按过滤器：${Object.entries(s.byFilter).map(([k, [u, saved]]) => `${k}(${u}次/${saved}tokens)`).join(', ')}`,
+          }
+        }
+        default:
+          return { success: true, output: `用法：/eco on | off | stats | reset。当前状态：${isEcoEnabled() ? '开启' : '关闭'}。` }
+      }
+    } catch (e) {
+      return { success: false, error: `eco 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'diff',
+  description: '解析 git diff 输出并展示变更上下文（用法: /diff [<路径>]，可选传 diff 文本参数）',
+  execute: async (args) => {
+    try {
+      const { parseDiff, formatDiffForDisplay } = await import('../diffParser.ts')
+      const { execFile } = await import('node:child_process')
+      const { promisify } = await import('node:util')
+      const execFileP = promisify(execFile)
+
+      // 支持传入已拷贝的 diff 文本；否则运行 git diff
+      let diffText: string
+      if (args.length > 0) {
+        diffText = args.join(' ')
+      } else {
+        const { stdout } = await execFileP('git', ['diff', '--no-color'], {
+          cwd: process.cwd(),
+          maxBuffer: 16 * 1024 * 1024,
+        })
+        diffText = stdout
+      }
+
+      const parsed = parseDiff(diffText)
+      if (parsed.fileCount === 0) {
+        return { success: true, output: '没有可解析的 diff（工作区无变更或未提供 diff 文本）。' }
+      }
+
+      const header = `解析到 ${parsed.fileCount} 个文件${parsed.hasBinaryChanges ? '（含二进制变更）' : ''}`
+      const body = formatDiffForDisplay(parsed)
+      return { success: true, output: `${header}\n\n${body}` }
+    } catch (e) {
+      return { success: false, error: `diff 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'json',
+  description: '解析/修复 JSON 文本（用法: /json <文本>，用于 LLM/工具输出的破损 JSON 排查）',
+  execute: async (args) => {
+    try {
+      const { parseJsonStream, safeJsonStringify } = await import('../../utils/jsonRepair.ts')
+      if (args.length === 0) {
+        return { success: false, error: '用法: /json <JSON 文本>，输出解析结果或修复后的对象。' }
+      }
+      const input = args.join(' ')
+      const parsed = parseJsonStream(input)
+      return {
+        success: true,
+        output:
+          parsed === input
+            ? `无法修复的输入，原样返回：\n${input}`
+            : `解析结果：\n${safeJsonStringify(parsed)}`,
+      }
+    } catch (e) {
+      return { success: false, error: `json 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'tree',
+  description: '将 JSON/对象文本渲染为树状结构（用法: /tree <JSON 文本>，展示层级）',
+  execute: async (args) => {
+    try {
+      const { parseJsonStream } = await import('../../utils/jsonRepair.ts')
+      const { treeify } = await import('../../utils/treeify.ts')
+      if (args.length === 0) {
+        return { success: false, error: '用法: /tree <JSON 文本>，将其渲染为树状层级。' }
+      }
+      const input = args.join(' ')
+      const parsed = parseJsonStream(input)
+      if (typeof parsed !== 'object' || parsed === null) {
+        return { success: true, output: '(非对象，无树可渲染)' }
+      }
+      return { success: true, output: treeify(parsed as Record<string, unknown>) }
+    } catch (e) {
+      return { success: false, error: `tree 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'slug',
+  description: '生成人类可读的随机词 slug（用法: /slug [short]，默认三词 形容词-动词-名词）',
+  execute: async (args) => {
+    try {
+      const { generateWordSlug, generateShortWordSlug } = await import('../../utils/words.ts')
+      const short = (args[0] || '').toLowerCase() === 'short'
+      return { success: true, output: short ? generateShortWordSlug() : generateWordSlug() }
+    } catch (e) {
+      return { success: false, error: `slug 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'fmt',
+  description: '人类可读格式化（用法: /fmt bytes|iec|num|dur <值>，如 /fmt bytes 1536 → 1.5 KB）',
+  execute: async (args) => {
+    try {
+      const { humanBytes, humanBytesIEC, humanNumber, humanDuration, humanTime } = await import('../../utils/formatUtils.ts')
+      const mode = (args[0] || '').toLowerCase()
+      const raw = args[1]
+      if (!raw) {
+        return { success: false, error: '用法: /fmt bytes|iec|num|dur <值>' }
+      }
+      switch (mode) {
+        case 'bytes': return { success: true, output: humanBytes(Number(raw)) }
+        case 'iec': return { success: true, output: humanBytesIEC(Number(raw)) }
+        case 'num': return { success: true, output: humanNumber(Number(raw)) }
+        case 'dur': return { success: true, output: humanDuration(Number(raw)) }
+        case 'time': return { success: true, output: humanTime(new Date(Number(raw))) }
+        default:
+          return { success: false, error: '未知模式。用法: /fmt bytes|iec|num|dur|time <值>' }
+      }
+    } catch (e) {
+      return { success: false, error: `fmt 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'str',
+  description: '字符串工具（用法: /str cap|plural|lines|dedup <文本>，演示 capitalize/plural/truncateToLines/normalize）',
+  execute: async (args) => {
+    try {
+      const { capitalize, plural, truncateToLines, normalizeFullWidthDigits, normalizeFullWidthSpace, escapeRegExp } = await import('../../utils/stringUtils.ts')
+      const mode = (args[0] || '').toLowerCase()
+      const text = args.slice(1).join(' ')
+      if (!text) {
+        return { success: false, error: '用法: /str cap|plural|lines|norm|esc <数值/文本>' }
+      }
+      switch (mode) {
+        case 'cap': return { success: true, output: capitalize(text) }
+        case 'plural': {
+          const n = Number(args[1])
+          const word = args.slice(2).join(' ')
+          return { success: true, output: plural(n, word) }
+        }
+        case 'lines': return { success: true, output: truncateToLines(text, 2) }
+        case 'norm': return { success: true, output: normalizeFullWidthSpace(normalizeFullWidthDigits(text)) }
+        case 'esc': return { success: true, output: escapeRegExp(text) }
+        default: return { success: false, error: '未知模式。用法: /str cap|plural|lines|norm|esc <值>' }
+      }
+    } catch (e) {
+      return { success: false, error: `str 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'memo',
+  description: 'TTL 记忆化缓存演示（用法: /memo <按键>，同一按键二次点击命中缓存不重算）',
+  execute: async (args) => {
+    const { memoizeWithTTL } = await import('../../utils/memoize.ts')
+    const key = (args[0] || 'default')
+    let counter = 0
+    const mem = memoizeWithTTL((k: string) => {
+      counter++
+      return `计算(${k}) #${counter}`
+    }, 60_000) // 60s TTL
+    const r1 = mem(key)
+    const r2 = mem(key)
+    const r3 = mem(key)
+    return {
+      success: true,
+      output: `TTL 缓存演示（key=${key}）：\n1) ${r1}\n2) ${r2}\n3) ${r3}\n实际执行次数：${counter}（后两次应命中缓存实现 1 次计算）`,
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'budget',
+  description: 'token 预算解析演示（用法: /budget 预算 +500k｜use 2M tokens，解析自然语言预算表达式）',
+  execute: async (args) => {
+    try {
+      const { parseTokenBudget, findTokenBudgetPositions, getBudgetContinuationMessage } = await import('../../utils/tokenBudget.ts')
+      const text = args.join(' ')
+      if (!text) {
+        return { success: false, error: '用法: /budget <文本>，例如「预算 +500k」或「use 2M tokens」' }
+      }
+      const parsed = parseTokenBudget(text)
+      const positions = findTokenBudgetPositions(text)
+      if (parsed === null) {
+        return { success: true, output: `未在「${text}」中识别到 token 预算表达式（支持 +500k / +2M / use 300k tokens 等写法）` }
+      }
+      const fmt = new Intl.NumberFormat('en-US')
+      const spots = positions.map((p) => `["${text.slice(p.start, p.end)}"]`).join(', ')
+      return {
+        success: true,
+        output: `解析「${text}」→ ${fmt.format(parsed)} tokens 位置=${spots || '无'}（示例提示：每到 85% 预算时提醒——${getBudgetContinuationMessage(85, parsed * 0.85, parsed)}）`,
+      }
+    } catch (e) {
+      return { success: false, error: `budget 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
+  name: 'util',
+  description: '工具函数演示（用法: /util esc <文本>｜group <键> <项>…｜html <文本>｜tag <uuid>｜b64…，集中演示 escapeXml/objectGroupBy/looksLikeHtml/toTaggedId 等）',
+  execute: async (args) => {
+    try {
+      const mode = (args[0] || '').toLowerCase()
+      const rest = args.slice(1).join(' ')
+      switch (mode) {
+        case 'esc': {
+          const { escapeXml, escapeXmlAttr } = await import('../../utils/xml.ts')
+          return { success: true, output: `文本内容转义: ${escapeXml(rest)}\n属性转义: ${escapeXmlAttr(rest)}` }
+        }
+        case 'group': {
+          const { objectGroupBy } = await import('../../utils/objectGroupBy.ts')
+          const items = args.slice(2).map((v) => ({ k: args[1], v }))
+          const g = objectGroupBy(items, (i) => i.k)
+          return { success: true, output: `按键分组: ${JSON.stringify(g)}` }
+        }
+        case 'html': {
+          const { looksLikeHtml, slimdownHtml } = await import('../../utils/html.ts')
+          return {
+            success: true,
+            output: `是HTML: ${looksLikeHtml(rest)}\n清理后: ${slimdownHtml(rest)}`,
+          }
+        }
+        case 'merge': {
+          const { mergeDictionaries } = await import('../../utils/mergeUtils.ts')
+          try {
+            const pairs = JSON.parse(rest || '[]')
+            if (!Array.isArray(pairs) || pairs.length < 2) {
+              return { success: false, error: '用法: /util merge [{"a":1},{"a":2,"b":3}]' }
+            }
+            const result = { ...pairs[0] }
+            mergeDictionaries(result, pairs[1])
+            return { success: true, output: `合并结果: ${JSON.stringify(result)}` }
+          } catch {
+            return { success: false, error: '用法: /util merge [JSON数组]（两个对象）' }
+          }
+        }
+        case 'tagged': {
+          const { toTaggedId } = await import('../../utils/taggedId.ts')
+          const tag = args[1] || 'user'
+          const uuid = args[2] || '00000000-0000-0000-0000-000000000000'
+          try {
+            return { success: true, output: `tagged ID: ${toTaggedId(tag, uuid)}` }
+          } catch (e) {
+            return { success: false, error: `无效 UUID: ${(e as Error).message}` }
+          }
+        }
+        case 'fmt': {
+          const { StrictFormatter } = await import('../../utils/strictFormatter.ts')
+          const f = new StrictFormatter()
+          try {
+            return { success: true, output: `StrictFormatter: ${f.format(rest, { value: rest })}` }
+          } catch (e) {
+            return { success: false, error: `格式化失败: ${(e as Error).message}` }
+          }
+        }
+        case 'semantic': {
+          const { semanticBoolean } = await import('../../utils/semanticBoolean.ts')
+          const { semanticNumber } = await import('../../utils/semanticNumber.ts')
+          return {
+            success: true,
+            output: `semanticBoolean("false")=${semanticBoolean().parse('false')} semanticNumber("3.14")=${semanticNumber().parse('3.14')}（模型引号容错）`,
+          }
+        }
+        case 'grapheme': {
+          const { firstGrapheme, lastGrapheme } = await import('../../utils/intl.ts')
+          return { success: true, output: `首字素:「${firstGrapheme(rest)}」 末字素:「${lastGrapheme(rest)}」 文本:「${rest}」` }
+        }
+        case 'insert': {
+          const { insertBlockAfterToolResults } = await import('../../utils/contentArray.ts')
+          const content = [
+            { type: 'text', text: 'hi' },
+            { type: 'tool_result', content: 'r' },
+          ]
+          insertBlockAfterToolResults(content, { type: 'text', text: rest || 'directive' })
+          return { success: true, output: `插入后的 content 数组: ${JSON.stringify(content)}` }
+        }
+        case 'jsonio': {
+          const { readJsonFile, writeJsonFile } = await import('../../utils/jsonIO.ts')
+          return {
+            success: true,
+            output: `jsonIO: read/writeBuildJson（src/utils/jsonIO.ts 提供 readJsonFile/writeJsonFile，Date 自动转 ISO）`,
+          }
+        }
+        case 'msg': {
+          const { detectFormat, toOpenAI, fromOpenAI, countTurns, extractUserQuery, extractToolCalls } = await import('../../utils/messageFormat.ts')
+          try {
+            const parsed = JSON.parse(rest || '[]')
+            if (!Array.isArray(parsed)) {
+              return { success: false, error: '用法: /util msg [JSON消息数组]' }
+            }
+            const fmt = detectFormat(parsed)
+            const converted = toOpenAI(parsed)
+            return {
+              success: true,
+              output: `格式: ${fmt}（${countTurns(parsed)} 用户轮次）｜末用户消息: ${extractUserQuery(parsed).slice(0, 50)}｜工具调用: ${extractToolCalls(parsed).join(',') || '无'}\n已转 OpenAI 共 ${converted.length} 条（fromOpenAI 支持转回 anthropic/vercel/gemini）`,
+            }
+          } catch {
+            return { success: false, error: '用法: /util msg [JSON消息数组]（OpenAI/Anthropic/Vercel/Gemini 消息格式，含 4 种格式互转）' }
+          }
+        }
+        case 'text': {
+          const { parseJsonCodeBlock, removeComments, truncateAtSentence, splitParagraph, decodeUnicodeEscape } = await import('../../utils/textUtils.ts')
+          const jsonBlocks = parseJsonCodeBlock(rest)
+          return {
+            success: true,
+            output: `文本工具: json块=${jsonBlocks.length}｜去#注释: ${removeComments(rest).slice(0, 60)}…｜句子截断: ${truncateAtSentence(rest, 30)}`,
+          }
+        }
+        default: {
+          return {
+            success: false,
+            error: '用法: /util esc|group|html|merge|tagged|fmt|semantic|grapheme|insert|jsonio|msg|text <参数>（XML/分组/HTML/深合并/taggedID/strict/语义型/字素/content/JSON IO/消息格式/文本工具）',
+          }
+        }
+      }
+    } catch (e) {
+      return { success: false, error: `util 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
   name: 'skills',
   description: '列出可用的技能',
   execute: async () => {

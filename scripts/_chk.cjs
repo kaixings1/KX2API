@@ -1,0 +1,3 @@
+const fs = require('node:fs')
+console.log('lru-cache installed:', fs.existsSync('D:/KX2API/node_modules/lru-cache'))
+console.log('memoize in K:', (function walk(d){let f=false;for(const n of fs.readdirSync(d)){const p=d+'/'+n;const s=fs.statSync(p);if(s.isDirectory()){if(n!=='node_modules'&&walk(p))f=true}else if(n.endsWith('.ts')&&fs.readFileSync(p,'utf8').includes('memoizeWithLRU'))f=true}return f})('D:/KX2API/src'))
