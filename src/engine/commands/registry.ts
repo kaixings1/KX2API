@@ -3055,6 +3055,56 @@ commandRegistry.register({
 })
 
 commandRegistry.register({
+  name: 'websearch',
+  description:
+    '网络搜索（无需 API Key，聚合 DuckDuckGo/Baidu/Bing）。用法: /websearch <查询词> [--engine=duckduckgo|baidu|bing] [--limit=N]；/websearch --engines 列出可用引擎',
+  execute: async (args) => {
+    try {
+      const { webSearch, formatSearchResults, listEngines } = await import('../websearch/index.ts')
+
+      // 仅列出引擎
+      if (args.includes('--engines')) {
+        const list = listEngines()
+          .map(
+            (e) =>
+              `  ${e.name.padEnd(12)} ${e.displayName.padEnd(12)} ${e.needsKey ? '需要 Key' : '免 Key'} ${e.available ? '可用' : '不可用'}`,
+          )
+          .join('\n')
+        return { success: true, output: `可用搜索引擎：\n${list}` }
+      }
+
+      // 解析 --engine=xxx / --limit=N，其余作为查询词
+      let engine = ''
+      let limit = 0
+      const queryParts: string[] = []
+      for (const arg of args) {
+        const engineMatch = arg.match(/^--engine=(.+)$/)
+        const limitMatch = arg.match(/^--limit=(\d+)$/)
+        if (engineMatch) engine = engineMatch[1]
+        else if (limitMatch) limit = Number.parseInt(limitMatch[1], 10)
+        else queryParts.push(arg)
+      }
+
+      const query = queryParts.join(' ').trim()
+      if (!query) {
+        return {
+          success: false,
+          error: '用法: /websearch <查询词> [--engine=duckduckgo|baidu|bing] [--limit=N]；/websearch --engines 列出引擎。',
+        }
+      }
+
+      const resp = await webSearch(query, {
+        engine: engine || 'auto',
+        limit: limit > 0 ? limit : 5,
+      })
+      return { success: true, output: formatSearchResults(resp) }
+    } catch (e) {
+      return { success: false, error: `websearch 失败: ${(e as Error).message}` }
+    }
+  },
+})
+
+commandRegistry.register({
   name: 'json',
   description: '解析/修复 JSON 文本（用法: /json <文本>，用于 LLM/工具输出的破损 JSON 排查）',
   execute: async (args) => {
