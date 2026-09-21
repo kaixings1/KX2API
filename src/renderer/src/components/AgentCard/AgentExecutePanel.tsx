@@ -23,8 +23,11 @@ export function AgentExecutePanel({
 }: AgentExecutePanelProps) {
   const outputRef = useRef<HTMLDivElement>(null)
 
+  // outputRef 挂在滚动容器自身上：对它调 scrollIntoView 滚动的是外层页面，
+  // 而不是容器内部，意图落空。要容器内跟到底，必须直接赋值 scrollTop。
   useEffect(() => {
-    outputRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = outputRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [output])
 
   if (!show) return null

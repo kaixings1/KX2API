@@ -939,8 +939,10 @@ export function ChatPage() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [showHistory, setShowHistory] = useState(true)
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  // 标记「程序化滚动」：赋值 scrollTop 同样会派发 scroll 事件，
+  // 不设标记的话 handleScroll 会把自己的滚动误判成用户上翻，再反过来关掉自动滚动，形成自反馈循环。
+  const programmaticScrollRef = useRef(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const streamStatusRef = useRef<'idle' | 'streaming'>('idle')
@@ -1018,14 +1020,23 @@ export function ChatPage() {
   }, [flushStreamBuffer])
 
   // 自动滚动到底部
+  // 不用 scrollIntoView：它默认 block:'start'，要把末尾锚点顶到视口顶部，
+  // 只是到底时被 maxScrollTop 钳住才「看起来」吸底；一旦内容变短（删除消息、
+  // 重新生成清空 content、切换会话）钳位值骤降，scrollTop 会被直接压成 0 —— 即「跑到最顶上」。
+  // 直接赋值 scrollTop 语义明确，且是瞬时滚动，不会被下一帧的流式更新重启动画。
   useEffect(() => {
-    if (!userScrolledUp) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
+    if (userScrolledUp) return
+    const el = scrollContainerRef.current
+    if (!el) return
+    programmaticScrollRef.current = true
+    el.scrollTop = el.scrollHeight
+    // 同一帧内 scroll 事件是异步派发的，延到下一帧再解除标记
+    requestAnimationFrame(() => { programmaticScrollRef.current = false })
   }, [messages, userScrolledUp])
 
   // 检测用户是否手动向上滚动
   const handleScroll = useCallback(() => {
+    if (programmaticScrollRef.current) return
     const el = scrollContainerRef.current
     if (!el) return
     const distanceFromBottom = el.scrollHeight - el.clientHeight - el.scrollTop
@@ -1034,7 +1045,9 @@ export function ChatPage() {
 
   const scrollToBottom = useCallback(() => {
     setUserScrolledUp(false)
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = scrollContainerRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [])
 
   // 加载配置和配置组
@@ -1898,7 +1911,7 @@ export function ChatPage() {
           {/* 消息列表 */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto chat-scroll-area"
+            className="flex-1 min-h-0 overflow-y-auto chat-scroll-area"
             onScroll={handleScroll}
           >
             {messages.length === 0 ? (
@@ -1936,13 +1949,12 @@ export function ChatPage() {
                     textareaRef={textareaRef}
                   />
                 ))}
-                <div ref={messagesEndRef} />
               </div>
             )}
           </div>
 
           {/* Scroll-to-bottom button */}
-          {userScrolledUp && !isStreaming && messages.length > 0 && (
+          {userScrolledUp && messages.length > 0 && (
             <div className="flex justify-center -mt-8 mb-2 relative z-10">
               <button onClick={scrollToBottom} className="chat-scroll-down">
                 ↓ 滚动到底部

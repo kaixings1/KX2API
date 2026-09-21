@@ -684,6 +684,12 @@
 }
 
 /* Scroll-down floating button */
+/* 手动赋值 scrollTop 与浏览器的滚动锚定会互相拉扯（流式追加内容时锚点被重锚，
+   表现为位置跳动），这里交给代码全权控制 */
+.chat-scroll-area {
+  overflow-anchor: none;
+}
+
 .chat-scroll-down {
   position: fixed;
   bottom: 100px;

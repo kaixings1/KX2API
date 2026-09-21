@@ -176,8 +176,10 @@ export function TeamTaskPage() {
     unsubError()
   }, [description, running, useCustomRoles, customRoles])
 
+  // block:'nearest'：锚点已在视口内就不滚，只在不可见时滚最小距离。
+  // 默认的 block:'start' 会把锚点顶到窗口顶部，用户翻看历史讨论时会被强行拽走。
   useEffect(() => {
-    discussionsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    discussionsEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [discussions])
 
   const phaseVariant = PHASE_VARIANTS[phase] ?? 'outline'
