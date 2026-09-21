@@ -12,10 +12,11 @@ import { SectionCard } from '@/components/ui/section-card'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Plus, Trash2, Edit3, Save, X, RotateCcw,
-  Wrench, FolderOpen, Lightbulb, Check, Search, RefreshCw, Download, Upload, ArrowRight, Info, ListChecks,
+  Wrench, FolderOpen, Lightbulb, Check, Search, RefreshCw, Download, Upload, ArrowRight, Info, ListChecks, Gauge,
 } from 'lucide-react'
 import { ImportExportDialog, ManagementToolbar } from '@/components/management'
 import { ToolGroupsPanel } from './ToolGroupsPanel'
+import { ToolMetricsPanel } from './ToolMetricsPanel'
 import { ParameterEditor, type ToolParameter as ParamEditorParam } from './ParameterEditor'
 import { ToolDef, ToolGroup, HintRule, type ToolParameter as BackingToolParam } from '@/types/tools'
 import { useToast } from '@/hooks/use-toast'
@@ -560,6 +561,7 @@ export function ToolManagementPage() {
             <TabsTrigger value="groups"><FolderOpen className="w-4 h-4 mr-1" /> {t('tools.groupManagement', '分组管理')} ({filteredGroups.length})</TabsTrigger>
             <TabsTrigger value="hints"><Lightbulb className="w-4 h-4 mr-1" /> {t('tools.hintRules', '提示规则')} ({filteredRules.length})</TabsTrigger>
             <TabsTrigger value="test"><Search className="w-4 h-4 mr-1" /> {t('tools.ruleTest', '规则测试')}</TabsTrigger>
+            <TabsTrigger value="metrics"><Gauge className="w-4 h-4 mr-1" /> {t('tools.metricsTab', '运行度量')}</TabsTrigger>
           </TabsList>
 
           {/* ========== Tools Tab ========== */}
@@ -770,6 +772,11 @@ export function ToolManagementPage() {
                 )}
               </div>
             </SectionCard>
+          </TabsContent>
+
+          {/* ========== Metrics Tab ========== */}
+          <TabsContent value="metrics" className="space-y-4">
+            <ToolMetricsPanel />
           </TabsContent>
         </Tabs>
       )}
