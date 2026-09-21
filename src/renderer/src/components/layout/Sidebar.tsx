@@ -137,7 +137,7 @@ export function Sidebar() {
           sidebarCollapsed ? 'w-[72px]' : 'w-64'
         )}
       >
-        <nav className="flex-1 p-3 space-y-1 overflow-x-hidden overflow-y-auto pt-5">
+        <nav className="flex-1 min-h-0 p-3 space-y-1 overflow-x-hidden overflow-y-auto pt-5">
           {navGroups.map(group => (
             <div key={group.label} className="space-y-1">
               {!sidebarCollapsed && (

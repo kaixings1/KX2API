@@ -1860,7 +1860,7 @@ export function ChatPage() {
                 + 新对话
               </button>
             </div>
-            <div className="flex-1 overflow-auto py-1">
+            <div className="flex-1 min-h-0 overflow-auto py-1">
               {conversations.length === 0 ? (
                 <div className="px-3 py-4 text-xs text-[var(--text-faint)] text-center">暂无历史对话</div>
               ) : (
@@ -2009,7 +2009,7 @@ export function ChatPage() {
           </div>
           <pre
             ref={el => { if (el) el.scrollTop = el.scrollHeight }}
-            className="flex-1 p-3 text-green-400 font-mono text-xs overflow-auto whitespace-pre-wrap"
+            className="flex-1 min-h-0 p-3 text-green-400 font-mono text-xs overflow-auto whitespace-pre-wrap"
           >{terminalOutput || '终端就绪...\n'}</pre>
           <div className="flex items-center border-t border-white/10 px-2 py-1.5 flex-shrink-0">
             <span className="text-green-400 mr-2 text-xs">$</span>
