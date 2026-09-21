@@ -99,3 +99,6 @@ Cookies
 loop-request-task-*.json
 loop-response-task-*.json
 .test-home/
+# 抓包快照目录（含 Authorization.txt / Oasis-Token.txt 等命名的 JS chunk 快照，
+# 单文件可达数 MB，且已因此在推送时踩过体积问题，勿提交）
+.fireclaw/
