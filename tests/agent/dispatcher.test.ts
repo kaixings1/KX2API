@@ -5,6 +5,9 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import path from 'node:path'
+import os from 'node:os'
+import fs from 'node:fs/promises'
 import { AgentDispatcher, type AgentDispatchResult } from '../../src/engine/agent/dispatcher.ts'
 
 const mockConfig = {
@@ -63,9 +66,11 @@ test('AgentDispatcher - dispatch 未知命令返回错误', async () => {
   assert.strictEqual(result.agentUsed, 'unknown')
 })
 
-test('AgentDispatcher - dispatch local 命令直接执行（commit）', async () => {
+test('AgentDispatcher - dispatch local 命令直接执行（git-status）', async () => {
   const dispatcher = new AgentDispatcher(mockConfig)
-  const result: AgentDispatchResult = await dispatcher.dispatch('commit', ['-m', 'test commit'])
+  // 用只读命令验证，切勿用 commit/checkout 等会写真实仓库的命令：
+  // 单元测试跑在真实仓库里，写命令会污染工作区并产生垃圾提交。
+  const result: AgentDispatchResult = await dispatcher.dispatch('git-status', [])
   // local 命令直接执行，不依赖 API key
   assert.ok(result.success, 'local 命令应成功')
   assert.ok(result.agentUsed.includes('local'), `应标记为 local: ${result.agentUsed}`)
@@ -146,19 +151,25 @@ test('AgentDispatcher - dispatch 文件操作命令', async () => {
 
 test('AgentDispatcher - dispatch 构建类命令', async () => {
   const dispatcher = new AgentDispatcher(mockConfig)
+  // 指向一个无构建系统的空目录：验证 build/test/lint 都能被分发到 local runner
+  // 且正常返回。切勿在仓库根跑：那会真实触发 npm run build / npm test，
+  // 单测里既慢又会连带执行整套测试（递归）。
+  const emptyCwd = path.join(os.tmpdir(), 'kx2code-dispatcher-empty')
+  await fs.mkdir(emptyCwd, { recursive: true })
+  const ctx = { cwd: emptyCwd }
 
   // build
-  const buildResult = await dispatcher.dispatch('build', [])
+  const buildResult = await dispatcher.dispatch('build', [], ctx)
   assert.ok(buildResult.success, 'build 应成功')
   assert.ok(buildResult.agentUsed.includes('local'))
 
   // test
-  const testResult = await dispatcher.dispatch('test', [])
+  const testResult = await dispatcher.dispatch('test', [], ctx)
   assert.ok(testResult.success, 'test 应成功')
   assert.ok(testResult.agentUsed.includes('local'))
 
   // lint
-  const lintResult = await dispatcher.dispatch('lint', [])
+  const lintResult = await dispatcher.dispatch('lint', [], ctx)
   assert.ok(lintResult.success, 'lint 应成功')
 })
 
