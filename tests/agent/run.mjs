@@ -72,12 +72,23 @@ function runTest(file) {
     proc.on('close', (code) => {
       clearTimeout(timer)
       const output = stdout + '\n' + stderr
-      const passMatch = output.match(/(\d+)\s+pass/) || output.match(/pass\s+(\d+)/)
-      const failMatch = output.match(/(\d+)\s+fail/) || output.match(/fail\s+(\d+)/)
-      const passed = passMatch ? parseInt((passMatch[1] || passMatch[2]), 10) : 0
-      const failed = failMatch ? parseInt((failMatch[1] || failMatch[2]), 10) : 0
+      // node --test 的 TAP 汇总格式是「数字在后」：ℹ pass 7 / ℹ fail 0 / ℹ cancelled 0。
+      // 但不同 node 版本/旧格式也可能是「数字在前」，故两个方向都试，取先命中的。
+      // 只认独立单词 pass/fail/cancelled，避免把 "5 passing" 之类误判成计数。
+      const num = (re1, re2) => {
+        const m = output.match(re1) || output.match(re2)
+        return m ? parseInt(m[1], 10) : 0
+      }
+      const passed = num(/pass\s+(\d+)/, /(\d+)\s+pass\b/)
+      const failed = num(/fail(?:ed|ures)?\s+(\d+)/, /(\d+)\s+fail(?:ed|ures)?\b/)
+      // cancelled：用例超时(TEST_TIMEOUT_MS)后既不计 pass 也不计 fail，
+      // 但 node --test 仍返回退出码非 0。漏解析它会得到"全过却 FAIL"的假象。
+      const cancelled = num(/cancel(?:led)?\s+(\d+)/, /(\d+)\s+cancel(?:led)?\b/)
 
-      resolve({ passed, failed, name: path.basename(file), code, timedOut })
+      resolve({
+        passed, failed, cancelled, name: path.basename(file), code, timedOut,
+        output,
+      })
     })
   })
 }
@@ -89,6 +100,7 @@ async function main() {
   const results = []
   let totalPassed = 0
   let totalFailed = 0
+  let totalCancelled = 0
   let badFiles = 0
 
   for (const file of testFiles) {
@@ -97,26 +109,49 @@ async function main() {
     results.push(result)
     totalPassed += result.passed
     totalFailed += result.failed
+    totalCancelled += result.cancelled
 
-    const bad = result.failed > 0 || result.timedOut || result.code !== 0
+    const bad =
+      result.failed > 0 || result.cancelled > 0 || result.timedOut || result.code !== 0
     if (bad) badFiles++
     const status = bad ? 'FAIL' : 'PASS'
-    const extra = result.timedOut ? ' (超时)' : result.failed ? `, ${result.failed} failed` : ''
+    const extra = result.timedOut
+      ? ' (超时)'
+      : result.failed
+        ? `, ${result.failed} failed`
+        : result.cancelled
+          ? `, ${result.cancelled} cancelled`
+          : ''
     process.stdout.write(`${status} ${result.passed}/${result.passed + result.failed} passed${extra}\n`)
+
+    // 失败/超时时打印子进程原始输出，否则只有数字、看不出挂在哪
+    if (bad) {
+      console.log(`----- ${path.basename(file)} output (code=${result.code}) -----`)
+      console.log((result.output || '').slice(-3000))
+      console.log('----- end -----')
+    }
   }
 
   console.log('\n' + '='.repeat(60))
   console.log('Summary:')
   results.forEach((r) => {
-    const icon = r.failed === 0 && !r.timedOut && r.code === 0 ? 'PASS' : 'FAIL'
-    const extra = r.timedOut ? ' (超时)' : ''
-    console.log(`  ${icon} ${r.name}: ${r.passed}/${r.passed + r.failed} passed${extra}`)
+    const icon =
+      r.failed === 0 && r.cancelled === 0 && !r.timedOut && r.code === 0 ? 'PASS' : 'FAIL'
+    const extra = r.timedOut
+      ? ' (超时)'
+      : r.cancelled
+        ? `, ${r.cancelled} cancelled`
+        : ''
+    console.log(`  ${icon} ${r.name}: ${r.passed}/${r.passed + r.failed + r.cancelled} passed${extra}`)
   })
 
   console.log('='.repeat(60))
-  console.log(`Total: ${totalPassed} passed, ${totalFailed} failed, ${testFiles.length} test files`)
+  console.log(
+    `Total: ${totalPassed} passed, ${totalFailed} failed, ` +
+      `${totalCancelled} cancelled, ${testFiles.length} test files`
+  )
 
-  if (totalFailed > 0 || badFiles > 0) {
+  if (totalFailed > 0 || totalCancelled > 0 || badFiles > 0) {
     console.log('\nSome tests failed')
     process.exit(1)
   } else {
