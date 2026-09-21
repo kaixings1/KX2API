@@ -631,6 +631,9 @@ export class MessageLoop {
       harness: this.deps.harness,
       // 图片预算此前只在 deps 里声明、从未向下传递 —— 图片占用因此完全不受控。
       imageBudget: this.deps.imageBudget,
+      // 会话 id 一路透传到工具分层暴露（buildToolContext）：两条传输链路
+      // （engine-bridge 与 client.ts）必须用同一个 key，否则活跃集分裂。
+      sessionId: this.deps.sessionId,
     });
 
     engineLog('REQ', JSON.stringify(request, null, 2).slice(0, 5000));

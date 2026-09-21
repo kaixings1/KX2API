@@ -33,6 +33,14 @@ export interface ApiConfig {
   maxTokens?: number
   /** 启用的工具分组列表，空数组表示使用所有工具 */
   enabledToolGroups?: string[]
+  /**
+   * 会话 id，用于工具活跃集的隔离（分层暴露模式下按会话维护 LRU 与活跃集）。
+   *
+   * 必须与 `engine-bridge` 路径用同一个 id，否则同一份活跃集会被两条链路
+   * 以不同 key 读写，导致 `tool_load` 进来的工具在另一条链路上"消失"。
+   * 缺省为 'default'（单会话场景）。
+   */
+  sessionId?: string
 }
 
 export interface StreamCallbacks {
@@ -516,7 +524,11 @@ export async function canResolveToolName(name: string): Promise<boolean> {
  *
  * 兼容：toolRuntime 不可用（或工具 store 为空）时，回退到旧的 ToolCollection 逻辑。
  */
-export async function buildToolsFromRegistry(enabledGroups: string[] = []): Promise<ToolDefinition[]> {
+export async function buildToolsFromRegistry(
+  enabledGroups: string[] = [],
+  /** 分层暴露模式下的会话 id；与 engine-bridge 路径保持一致，避免活跃集分裂 */
+  sessionId = 'default',
+): Promise<ToolDefinition[]> {
   try {
     const { resolveActiveTools, buildOpenAIToolDefinitions, applyToolEnvVars } = await import(
       '../../main/tools/toolRuntime.ts'
@@ -552,6 +564,7 @@ export async function buildToolsFromRegistry(enabledGroups: string[] = []): Prom
           const ctx = buildToolContext({
             tools: resolved.tools,
             groups: toolManager.getAllGroups(),
+            sessionId,
             budgetTokens: computeToolBudget(ctxWindow, Number(process.env.KX2_TOOL_BUDGET_PCT) || 20),
           })
           console.log(
@@ -563,7 +576,7 @@ export async function buildToolsFromRegistry(enabledGroups: string[] = []): Prom
           // 与 engine-bridge 路径保持同样的度量埋点，否则两条链路的统计数据不可比
           const { recordContext } = await import('../../main/tools/toolMetrics.ts')
           recordContext({
-            sessionId: 'default',
+            sessionId,
             layered: true,
             exposed: ctx.activeTools.length,
             total: resolved.tools.length,
@@ -617,7 +630,7 @@ export async function sendOpenAIStreamWithTools(
   signal?: AbortSignal,
   reqId?: number,
 ): Promise<void> {
-  const tools = await buildToolsFromRegistry(config.enabledToolGroups || [])
+  const tools = await buildToolsFromRegistry(config.enabledToolGroups || [], config.sessionId || 'default')
   console.log('[API] tool definitions:', tools.length)
 
   // normalizeToolMsgId：把内部消息方言统一成 OpenAI 兼容消息。

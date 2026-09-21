@@ -481,6 +481,10 @@ function createApiClientStream(
         const { toolManager } = await import('./tools/toolManager.ts')
         // 会话隔离：优先用请求里带的 id；没有则退回 default，
         // 且上下文构建与度量必须用同一个 id，否则 LRU 统计与活跃集对不上。
+        //
+        // 该 id 由 MessageLoop 经 requestBuilder.build() 透传而来（见 RequestParams.sessionId）。
+        // 此前 MessageLoop 没传、APIRequest 也没这个字段，这里永远取到 'default'
+        // ——与 client.ts 链路（同样缺 sessionId）合起来就是「活跃集全是 default」。
         const sid = (request as { sessionId?: string }).sessionId || 'default'
         // 上下文窗口由环境变量给出（不同模型差异大），缺省 128k 仅作保守假设。
         const ctxWindow = Number(process.env.KX2_TOOL_CONTEXT_WINDOW) || 128000
@@ -669,6 +673,9 @@ function createApiClientStream(
         model: resolvedModel,
         baseUrl,
         enabledToolGroups,
+        // 与上方 buildToolContext 用同一个会话 id：client.ts 内部的
+        // buildToolsFromRegistry 会据此构建活跃集，两条链路必须一致。
+        sessionId: (request as { sessionId?: string }).sessionId || 'default',
       },
       messages.map(m => ({
         role: m.role as 'user' | 'assistant' | 'system',

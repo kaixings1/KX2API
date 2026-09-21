@@ -35,6 +35,12 @@ export interface RequestParams {
   harness?: HarnessConfig;
   /** 图片预算：超限的历史图片会被替换为占位文本 */
   imageBudget?: ImageBudgetOptions;
+  /**
+   * 会话 id。**不随请求发给模型**，只在本进程内向下游透传：
+   * 工具分层暴露（buildToolContext）按会话维护活跃集与 LRU，
+   * 缺了它就只能退化成全局 'default'，多会话会互相污染。
+   */
+  sessionId?: string;
 }
 
 /**
@@ -60,6 +66,11 @@ export interface APIRequest {
    * 对齐 OpenCode (Go) 的 Model.Provider 字段。
    */
   extra?: Record<string, unknown>;
+  /**
+   * 会话 id，仅供本进程内的下游（工具分层暴露）使用，
+   * **发送请求前必须剔除**（它不是任何 API 的合法字段）。
+   */
+  sessionId?: string;
 }
 
 /**
@@ -205,6 +216,7 @@ export class RequestBuilder {
         system: systemPrompt,
         messages,
         tools: params.tools,
+        ...(params.sessionId ? { sessionId: params.sessionId } : {}),
         ...modelParams,
       };
     } else {
@@ -215,6 +227,7 @@ export class RequestBuilder {
         provider,
         messages: [{ role: "system", content: systemPrompt }, ...messages],
         tools: this.convertToolsForOpenAI(params.tools),
+        ...(params.sessionId ? { sessionId: params.sessionId } : {}),
         ...modelParams,
       };
     }
