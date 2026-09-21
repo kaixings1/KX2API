@@ -1047,7 +1047,21 @@ export function ChatPage() {
     setUserScrolledUp(false)
     const el = scrollContainerRef.current
     if (!el) return
+    // smooth 动画期间浏览器会持续派发 scroll 事件，途中距底 >200px 的每一帧
+    // 都会被 handleScroll 判成「用户上翻」，把刚关掉的 userScrolledUp 又翻回来，
+    // 表现为点了「回到底部」却立刻又弹出按钮、自动滚动被误关。
+    // 动画时长不定，用时间戳而非 rAF：滚动结束前的 scroll 事件一律忽略。
+    programmaticScrollRef.current = true
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    const deadline = Date.now() + 800
+    const release = () => {
+      if (Date.now() < deadline && el.scrollHeight - el.clientHeight - el.scrollTop > 2) {
+        requestAnimationFrame(release)
+        return
+      }
+      programmaticScrollRef.current = false
+    }
+    requestAnimationFrame(release)
   }, [])
 
   // 加载配置和配置组

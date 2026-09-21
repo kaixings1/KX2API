@@ -137,6 +137,45 @@ describe('handleScroll 的用户上翻判据', () => {
     expect(userScrolledUp).toBe(true)
   })
 
+  it('scrollToBottom 的 smooth 动画期间必须持续守卫，否则会被判成用户上翻', () => {
+    // 场景：长会话点「回到底部」，smooth 动画途中距底仍远大于 200px
+    let userScrolledUp = true
+    const el: ScrollBox = { scrollHeight: 5000, clientHeight: 500, scrollTop: 0 }
+    const programmaticScrollRef = { current: false }
+    const handleScroll = () => {
+      if (programmaticScrollRef.current) return
+      userScrolledUp = isUserScrolledUp(el)
+    }
+
+    programmaticScrollRef.current = true // 点击回到底部，守卫开启
+    for (const top of [0, 1000, 2000, 3000]) {
+      el.scrollTop = top
+      handleScroll()
+      expect(userScrolledUp).toBe(true) // 守卫期内不翻转
+    }
+    // 动画收敛到底部后解除守卫
+    el.scrollTop = 4500
+    programmaticScrollRef.current = false
+    handleScroll()
+    expect(userScrolledUp).toBe(false)
+  })
+
+  it('对照：scrollToBottom 若只在点击瞬间清标记，动画途中会被误判成用户上翻', () => {
+    // 说明为什么必须用「持续到动画结束」的守卫，而不是 setUserScrolledUp(false) 就完事
+    const el: ScrollBox = { scrollHeight: 5000, clientHeight: 500, scrollTop: 0 }
+    let userScrolledUp = true
+    const handleScrollNoGuard = () => {
+      userScrolledUp = isUserScrolledUp(el)
+    }
+    // 动画第一帧：距底 4500 > 200
+    el.scrollTop = 0
+    handleScrollNoGuard()
+    expect(userScrolledUp).toBe(true) // 状态被写回「上翻」，回底按钮又冒出来
+    // 即便动画最终滚到了底部，中途那次误判已经让自动滚动被关掉
+    el.scrollTop = 4500
+    expect(isUserScrolledUp(el)).toBe(false)
+  })
+
   it('无守卫时会出现自反馈：自动滚动把自己判成用户上翻', () => {
     // 对照实验：说明为什么必须加 programmaticScrollRef
     let userScrolledUp = false
