@@ -51,6 +51,27 @@ export interface ToolHooks {
   postToolUse?: (toolName: string, input: Record<string, unknown>, success: boolean, output: string) => Promise<void>
 }
 
+/**
+ * 运行时度量回调。
+ *
+ * 与 hooks 同样的理由：**注入而非直接 import** —— 度量实现在 main 层
+ * （`main/tools/toolMetrics.ts`），engine 层不应反向依赖它。
+ * 未注入时全部跳过，不影响既有行为。
+ */
+export interface ToolMetricsSink {
+  recordToolCall(rec: {
+    sessionId: string
+    tool: string
+    /** 是否在活跃集内（false = 误选：模型调了没加载的工具） */
+    wasActive: boolean
+    allowed: boolean
+    reason?: string
+    durationMs: number
+    outputBytes: number
+    ok: boolean
+  }): void
+}
+
 export class ToolScheduler {
   /** 单次工具执行的默认超时（毫秒）；由上层注入，缺省 10 分钟 */
   private defaultToolTimeoutMs?: number
@@ -58,6 +79,10 @@ export class ToolScheduler {
   /** 参数级权限规则；默认空（不改变既有行为） */
   private permissionRules: PermissionRule[] = []
   private hookManager?: HookManager
+  /** 度量埋点；未注入则不采集 */
+  private metrics?: ToolMetricsSink
+  /** 会话 id（度量按会话隔离）；未设置时按 'default' 归类 */
+  private sessionId = 'default'
 
   constructor(
     private registry: Map<string, Tool>,
@@ -73,6 +98,16 @@ export class ToolScheduler {
   /** 注入事件钩子管理器（启动时调用）；未注入时跳过，不影响既有行为 */
   setHookManager(hm?: HookManager): void {
     this.hookManager = hm
+  }
+
+  /** 注入度量埋点（主进程启动时调用）；未注入则不采集 */
+  setMetrics(sink?: ToolMetricsSink): void {
+    this.metrics = sink
+  }
+
+  /** 设置当前会话 id（度量按会话隔离，与工具活跃集用同一个 key） */
+  setSessionId(id?: string): void {
+    if (typeof id === 'string' && id.length > 0) this.sessionId = id
   }
 
   /**
@@ -183,7 +218,35 @@ export class ToolScheduler {
     return out;
   }
 
+  /**
+   * 记录一次工具调用的度量。
+   *
+   * 刻意做成"只吞异常不抛出"：度量的职责是观测，它绝不能影响工具执行
+   * （埋点失败导致工具失败是本末倒置）。
+   */
+  private recordCall(rec: {
+    tool: string
+    wasActive: boolean
+    allowed: boolean
+    reason?: string
+    durationMs: number
+    outputBytes: number
+    ok: boolean
+  }): void {
+    if (!this.metrics) return
+    try {
+      this.metrics.recordToolCall({ sessionId: this.sessionId, ...rec })
+    } catch {
+      /* 度量失败不影响执行 */
+    }
+  }
+
   private async executeSingle(call: ToolCall): Promise<ToolResult> {
+    // 耗时从"调度器接手"起算，覆盖权限/钩子/执行全过程
+    const startedAt = Date.now()
+    const bytesOf = (s: unknown): number =>
+      typeof s === 'string' ? Buffer.byteLength(s, 'utf-8') : 0
+
     const tool = this.registry.get(call.name);
     if (!tool) {
       const available = Array.from(this.registry.keys());
@@ -200,6 +263,16 @@ export class ToolScheduler {
         ? `你是不是想用：${near.join(', ')}？`
         : '可用 tool_search 检索工具名。';
       console.warn(`[TOOL] Tool not found: ${call.name}. 候选=${near.join(',') || '(无)'} 总数=${available.length}`);
+      // 工具根本不存在 = 典型误选（模型叫了一个没有的名字）
+      this.recordCall({
+        tool: call.name,
+        wasActive: false,
+        allowed: true,
+        reason: 'toolNotFound',
+        durationMs: Date.now() - startedAt,
+        outputBytes: 0,
+        ok: false,
+      });
       return {
         success: false,
         error: `工具 \`${call.name}\` 不存在。${hint}`,
@@ -232,6 +305,17 @@ export class ToolScheduler {
       // 模型看到「缺少必需参数 `path`」就能直接补上，而原始的自由文本
       // 校验错误它不知道要改哪个参数 —— 这直接影响下一次调用能否成功。
       const rawErrors = Array.isArray(validation.errors) ? validation.errors : [];
+      // 参数校验失败：allowed=true（没被权限拦），但 ok=false —— 记下来才能看出
+      // 是模型参数给错，还是权限策略太严
+      this.recordCall({
+        tool: call.name,
+        wasActive: true,
+        allowed: true,
+        reason: 'validationFailed',
+        durationMs: Date.now() - startedAt,
+        outputBytes: 0,
+        ok: false,
+      });
       return {
         success: false,
         error: formatValidationError(call.name, issuesFromSimpleErrors(rawErrors)),
@@ -248,6 +332,15 @@ export class ToolScheduler {
       try {
         const hr = await this.hooks.preToolUse(call.name, input);
         if (hr?.deny) {
+          this.recordCall({
+            tool: call.name,
+            wasActive: true,
+            allowed: false,
+            reason: hr.reason || 'PreToolUse hook deny',
+            durationMs: Date.now() - startedAt,
+            outputBytes: 0,
+            ok: false,
+          });
           return {
             success: false,
             error: hr.reason || "被 PreToolUse 钩子拒绝",
@@ -270,6 +363,15 @@ export class ToolScheduler {
           input,
         })
         if (preResult.allow === false) {
+          this.recordCall({
+            tool: call.name,
+            wasActive: true,
+            allowed: false,
+            reason: preResult.reason || 'PreToolUse event deny',
+            durationMs: Date.now() - startedAt,
+            outputBytes: 0,
+            ok: false,
+          });
           return {
             success: false,
             error: preResult.reason || '被事件钩子拒绝',
@@ -316,6 +418,14 @@ export class ToolScheduler {
           /* 审计钩子异常不影响主流程 */
         }
       }
+      this.recordCall({
+        tool: call.name,
+        wasActive: true,
+        allowed: true,
+        durationMs: Date.now() - startedAt,
+        outputBytes: bytesOf(finalOutput),
+        ok: true,
+      });
       return { success: true, output: finalOutput, toolUseId: call.id };
     } catch (e) {
       // 统一的错误格式化：合并 message / stderr / stdout，超长时**中间**截断
@@ -342,6 +452,15 @@ export class ToolScheduler {
           /* 审计钩子异常不影响主流程 */
         }
       }
+      this.recordCall({
+        tool: call.name,
+        wasActive: true,
+        allowed: true,
+        reason: 'executionError',
+        durationMs: Date.now() - startedAt,
+        outputBytes: bytesOf(errMsg),
+        ok: false,
+      });
       return { success: false, error: errMsg, toolUseId: call.id };
     }
   }

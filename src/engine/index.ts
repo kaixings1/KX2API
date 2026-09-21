@@ -9,7 +9,7 @@ import { MessageLoop, type MessageLoopDeps, type QueryResult, type AutoContinueC
 import { MessageNormalizer, type InternalMessage } from "./messageNormalizer.ts";
 import { RequestBuilder, type ToolDefinition, type HarnessConfig, type Tools } from "./requestBuilder.ts";
 import { ResponseHandler } from "./responseHandler.ts";
-import { ToolScheduler, type PermissionManager, type ToolExecutor, type Tool, type ToolHooks } from "./toolScheduler.ts";
+import { ToolScheduler, type PermissionManager, type ToolExecutor, type Tool, type ToolHooks, type ToolMetricsSink } from "./toolScheduler.ts";
 import type { PermissionRule } from "./permissions/permissionRules.ts";
 import { TokenBudgetManager } from "./tokenBudgetManager.ts";
 import type { AgentLoopConfig } from "./loopConfig.ts";
@@ -481,6 +481,21 @@ export class QueryEngine {
   setHookManager(hm?: HookManager): void {
     this.hookManagerInstance = hm
     this.toolSchedulerInstance?.setHookManager(hm)
+  }
+
+  /**
+   * 注入运行时度量埋点（主进程启动时调用）。
+   *
+   * 与钩子同样理由：度量实现在 main 层，engine 层不反向依赖。
+   * 未注入时调度器跳过采集，不影响既有行为。
+   */
+  setMetrics(sink?: ToolMetricsSink): void {
+    this.toolSchedulerInstance?.setMetrics(sink)
+  }
+
+  /** 设置当前会话 id（度量按会话隔离，须与工具活跃集用同一个 key） */
+  setSessionId(id?: string): void {
+    this.toolSchedulerInstance?.setSessionId(id)
   }
 
   /**

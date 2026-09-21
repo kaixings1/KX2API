@@ -494,6 +494,9 @@ export class MessageLoop {
     this.autoContinueCount = 0
     this.toolSignatureHistory = []
     this.loopGuardTripped = false
+    // 把会话 id 同步给调度器：度量按会话隔离，必须与工具活跃集（buildToolContext）
+    // 用同一个 key，否则新接的度量面板里多会话数据会互相串。
+    this.deps.toolScheduler?.setSessionId?.(this.deps.sessionId)
     this.deps.conversation.messages.push({ role: "user", content: userMessage } as InternalMessage);
     await this.deps.stateMachine.transition("responding", { message: userMessage });
     this.consecutiveToolFailures = 0;

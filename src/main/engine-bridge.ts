@@ -301,6 +301,12 @@ async function wireToolHooks(engine: QueryEngine): Promise<void> {
     engine.setHookManager(hm)
     console.log('[EngineBridge] Built-in hooks registered (secret-detect / file-type / audit / failure-track)')
 
+    // 度量埋点：`recordToolCall` 此前只有测试在调，生产链路零调用 ——
+    // 于是新接的度量面板里「调用次数/成功率/误选率/TopN」永远为空。
+    // 这里把 main 层的 toolMetrics 注入给引擎（engine 不反向依赖 main）。
+    const { recordToolCall } = await import('./tools/toolMetrics.ts')
+    engine.setMetrics({ recordToolCall })
+
     console.log('[EngineBridge] Tool hooks wired from', join(app.getPath('userData'), 'hooks.json'))
   } catch (e) {
     console.warn('[EngineBridge] wireToolHooks failed:', (e as Error).message)
