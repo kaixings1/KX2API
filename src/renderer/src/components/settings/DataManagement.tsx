@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { useSettingsStore, LogLevel } from '@/stores/settingsStore'
 import { LogCategoryConfig } from './LogCategoryConfig'
 import { useToast } from '@/hooks/use-toast'
-import { Database, Download, Upload, Trash2, RotateCcw, AlertTriangle } from 'lucide-react'
+import { Database, Download, Upload, Trash2, RotateCcw, AlertTriangle, HardDrive, History } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -38,6 +39,14 @@ export function DataManagement() {
   const [isImporting, setIsImporting] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+
+  // ---- 全量备份 / 恢复（mgmt.* IPC）----
+  // 说明：上面那对「导出/导入配置」只操作渲染层的 localStorage 缓存，
+  // 不包含 electron-store 里的真实配置（账户、供应商、代理、工具等）。
+  // 这里接的是后端 mgmt.backup/restore，操作 userData 下的全部 store 文件。
+  const [backups, setBackups] = useState<Array<{ name: string; path: string }>>([])
+  const [isBackingUp, setIsBackingUp] = useState(false)
+  const [restoringName, setRestoringName] = useState<string | null>(null)
 
   const requestLogConfig = config?.requestLogConfig ?? {
     enabled: true,
@@ -165,6 +174,81 @@ export function DataManagement() {
       })
     } finally {
       setIsResetting(false)
+    }
+  }
+
+  // ==================== 全量备份 / 恢复 ====================
+
+  const refreshBackups = useCallback(async () => {
+    try {
+      const r = await window.electronAPI.mgmt.getAllBackups()
+      if (r.success && r.data) setBackups(r.data)
+    } catch {
+      /* 列表读取失败不打扰用户，下次操作再报 */
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshBackups()
+  }, [refreshBackups])
+
+  const handleBackup = async () => {
+    setIsBackingUp(true)
+    try {
+      const r = await window.electronAPI.mgmt.backup()
+      if (r.success) {
+        toast({
+          title: t('common.success'),
+          description: t('settings.backupCreated', '备份已创建：{{name}}', {
+            name: r.path?.split(/[\\/]/).pop() || '',
+          }),
+        })
+        await refreshBackups()
+      } else {
+        toast({ title: r.error || t('settings.backupFailed', '备份失败'), variant: 'destructive' })
+      }
+    } catch (e) {
+      toast({ title: (e as Error).message, variant: 'destructive' })
+    } finally {
+      setIsBackingUp(false)
+    }
+  }
+
+  const handleRestore = async (filePath: string) => {
+    setRestoringName(filePath)
+    try {
+      const r = await window.electronAPI.mgmt.restore(filePath)
+      if (r.success) {
+        // 恢复的是 store 数据，当前界面仍持有旧值 —— 必须重载才能看到新配置
+        const total = r.restored
+          ? Object.values(r.restored).reduce((n, v) => n + v, 0)
+          : 0
+        toast({
+          title: t('common.success'),
+          description: t('settings.restoreDone', '已恢复 {{count}} 条记录，即将刷新界面', { count: total }),
+        })
+        setTimeout(() => window.location.reload(), 1500)
+      } else {
+        toast({ title: r.error || t('settings.restoreFailed', '恢复失败'), variant: 'destructive' })
+      }
+    } catch (e) {
+      toast({ title: (e as Error).message, variant: 'destructive' })
+    } finally {
+      setRestoringName(null)
+    }
+  }
+
+  const handleDeleteBackup = async (fileName: string) => {
+    try {
+      const r = await window.electronAPI.mgmt.deleteBackup(fileName)
+      if (r.success) {
+        toast({ title: t('settings.backupDeleted', '备份已删除') })
+        await refreshBackups()
+      } else {
+        toast({ title: r.error || t('settings.backupDeleteFailed', '删除失败'), variant: 'destructive' })
+      }
+    } catch (e) {
+      toast({ title: (e as Error).message, variant: 'destructive' })
     }
   }
 
@@ -363,6 +447,95 @@ export function DataManagement() {
               </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ==================== 全量备份 / 恢复 ==================== */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-[var(--accent-primary)]/10 flex items-center justify-center">
+              <HardDrive className="h-4 w-4 text-[var(--accent-primary)]" />
+            </div>
+            {t('settings.fullBackup', '全量备份')}
+          </CardTitle>
+          <CardDescription>
+            {t(
+              'settings.fullBackupDesc',
+              '备份 userData 下的全部配置（账户、供应商、代理、工具、分组等）。与上方"导出配置"不同：那个只包含界面缓存，这个才是完整数据。',
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => void handleBackup()}
+              disabled={isBackingUp}
+              className="flex items-center gap-2"
+            >
+              <HardDrive className="h-4 w-4" />
+              {isBackingUp ? t('settings.backingUp', '备份中...') : t('settings.createBackup', '创建备份')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => void refreshBackups()}
+              className="flex items-center gap-2"
+            >
+              <History className="h-4 w-4" />
+              {t('tools.refresh', '刷新')}
+            </Button>
+          </div>
+
+          {backups.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {t('settings.noBackups', '暂无备份。点击"创建备份"生成第一份。')}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {backups.map((b) => (
+                <div
+                  key={b.name}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm truncate" title={b.path}>
+                      {b.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate" title={b.path}>
+                      {b.path}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleRestore(b.path)}
+                      disabled={restoringName !== null}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      {restoringName === b.path
+                        ? t('settings.restoring', '恢复中...')
+                        : t('settings.restore', '恢复')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleDeleteBackup(b.name)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            {t(
+              'settings.restoreHint',
+              '恢复采用"仅新增"策略：已存在的同 ID 记录会被跳过，不会覆盖当前数据。',
+            )}
+          </p>
         </CardContent>
       </Card>
 
