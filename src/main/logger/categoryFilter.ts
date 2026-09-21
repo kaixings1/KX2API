@@ -4,18 +4,18 @@
  */
 
 // ---------------------------------------------------------------------------
-// Types (defined locally to avoid shared/types import resolution issues)
+// Types
+//
+// 原先这里本地重定义了 LogCategory / LogLevel / CategoryConfig（注释说是为了
+// 避开 shared/types 的解析问题），但本文件已经从 shared/types 重导出
+// DEFAULT_LOG_CATEGORIES，说明该 import 是可行的。类型再本地写一份就是第三份真相，
+// 与 shared/types 的 LogCategoryConfig 结构漂移时编译器也未必报出来。
 // ---------------------------------------------------------------------------
-export type LogCategory =
-  | 'app' | 'proxy' | 'engine' | 'oauth' | 'cookie' | 'ipc'
-  | 'api' | 'forward' | 'tool' | 'session' | 'config' | 'ui' | 'general'
+import type { LogCategory, LogLevel, LogCategoryConfig } from '../../shared/types.ts'
+import { DEFAULT_LOG_CATEGORIES as SHARED_DEFAULT_LOG_CATEGORIES } from '../../shared/types.ts'
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
-
-export interface CategoryConfig {
-  level: LogLevel
-  enabled: boolean
-}
+export type { LogCategory, LogLevel }
+export type CategoryConfig = LogCategoryConfig
 
 export interface CategoryFilterResult<T> {
   passed: T | null
@@ -26,21 +26,16 @@ export interface CategoryFilterResult<T> {
 // Constants
 // ---------------------------------------------------------------------------
 
-export const DEFAULT_LOG_CATEGORIES: Record<string, CategoryConfig> = {
-  app:     { level: 'info',  enabled: true },
-  proxy:   { level: 'info',  enabled: true },
-  engine:  { level: 'info',  enabled: true },
-  oauth:   { level: 'info',  enabled: true },
-  cookie:  { level: 'debug', enabled: true },
-  ipc:     { level: 'info',  enabled: true },
-  api:     { level: 'info',  enabled: true },
-  forward: { level: 'info',  enabled: true },
-  tool:    { level: 'info',  enabled: true },
-  session: { level: 'info',  enabled: true },
-  config:  { level: 'info',  enabled: true },
-  ui:      { level: 'warn',  enabled: true },
-  general: { level: 'info',  enabled: true },
-}
+/**
+ * 默认值**不在此处再写一份**。
+ *
+ * 原先本文件与 `shared/types.ts` 各有一份逐字相同的 `DEFAULT_LOG_CATEGORIES`
+ * （13 项、cookie=debug、ui=warn）。两份常量就是两份真相：改一处忘另一处，
+ * 就会出现「测试测的是 A 套默认值、生产跑的是 B 套」的漂移，且这类漂移
+ * 不会报错、只表现为"某个分类的日志莫名多了/少了"。
+ * 这里改为重导出，保证唯一来源。
+ */
+export { DEFAULT_LOG_CATEGORIES } from '../../shared/types.ts'
 
 const LEVEL_ORDER: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 }
 
@@ -91,7 +86,7 @@ export function filterLogsByCategory<T extends { category: string; level: LogLev
 export function mergeCategoryConfigs(
   overrides: Record<string, CategoryConfig> = {},
 ): Record<string, CategoryConfig> {
-  return { ...DEFAULT_LOG_CATEGORIES, ...overrides }
+  return { ...SHARED_DEFAULT_LOG_CATEGORIES, ...overrides }
 }
 
 /**

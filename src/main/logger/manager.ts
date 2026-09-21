@@ -4,8 +4,7 @@ import * as path from 'path'
 import type { LogEntry, LogLevel, LogCategory, LogCategoryConfig } from '../../shared/types.ts'
 import { DEFAULT_LOG_CATEGORIES } from '../../shared/types.ts'
 import { IpcChannels } from '../ipc/channels'
-
-const LEVEL_ORDER: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 }
+import { shouldLog } from './categoryFilter.ts'
 
 interface LogFilter {
   level?: LogLevel | 'all'
@@ -233,12 +232,15 @@ export class LogManager {
     const category = opts.category || 'general'
     const config = this.categoryConfigs[category]
 
-    if (config && !config.enabled) {
-      return null
-    }
-
-    if (config && LEVEL_ORDER[level] < LEVEL_ORDER[config.level]) {
-      return null
+    // 分类过滤改调 categoryFilter.shouldLog（此前本文件内联了一份等价判定，
+    // 而 categoryFilter 那份只被测试调用，等于"正确实现没接上"）。
+    //
+    // ⚠️ 语义差异刻意保留：shouldLog 在 **config 缺失**时也返回 disabled，
+    // 而本文件历来是「分类不在配置表内 → 放行」（未登记的分类不该被静默丢掉）。
+    // 因此只在 config 存在时交给 shouldLog，缺失分支维持原行为 —— 接线不改行为。
+    if (config) {
+      const decision = shouldLog(category, level, this.categoryConfigs)
+      if (!decision.passed) return null
     }
 
     const entry: LogEntry = {
